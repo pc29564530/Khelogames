@@ -19,9 +19,9 @@ CREATE TABLE "blogs" (
 );
 
 CREATE TABLE "communities" (
-                               "id" bigserial,
+                               "id" bigserial PRIMARY KEY,
                                "communities_name" varchar NOT NULL,
-                               "description" varchar,
+                               "description" varchar NOT NULL,
                                "community_type" varchar NOT NULL,
                                "created_at" timestamp NOT NULL DEFAULT 'now()'
 );

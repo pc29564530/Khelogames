@@ -5,7 +5,6 @@
 package db
 
 import (
-	"database/sql"
 	"time"
 )
 
@@ -18,11 +17,11 @@ type Blog struct {
 }
 
 type Community struct {
-	ID              sql.NullInt64  `json:"id"`
-	CommunitiesName string         `json:"communities_name"`
-	Description     sql.NullString `json:"description"`
-	CommunityType   string         `json:"community_type"`
-	CreatedAt       time.Time      `json:"created_at"`
+	ID              int64     `json:"id"`
+	CommunitiesName string    `json:"communities_name"`
+	Description     string    `json:"description"`
+	CommunityType   string    `json:"community_type"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type Signup struct {

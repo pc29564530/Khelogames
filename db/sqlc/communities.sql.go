@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createCommunity = `-- name: CreateCommunity :one
@@ -21,9 +20,9 @@ INSERT INTO communities (
 `
 
 type CreateCommunityParams struct {
-	CommunitiesName string         `json:"communities_name"`
-	Description     sql.NullString `json:"description"`
-	CommunityType   string         `json:"community_type"`
+	CommunitiesName string `json:"communities_name"`
+	Description     string `json:"description"`
+	CommunityType   string `json:"community_type"`
 }
 
 func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams) (Community, error) {
@@ -37,4 +36,56 @@ func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getCommunity = `-- name: GetCommunity :one
+SELECT id,communities_name,description,community_type,created_at FROM communities
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetCommunity(ctx context.Context, id int64) (Community, error) {
+	row := q.db.QueryRowContext(ctx, getCommunity, id)
+	var i Community
+	err := row.Scan(
+		&i.ID,
+		&i.CommunitiesName,
+		&i.Description,
+		&i.CommunityType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getListCommunity = `-- name: GetListCommunity :many
+SELECT id, communities_name, description, community_type, created_at FROM communities
+ORDER BY id
+`
+
+func (q *Queries) GetListCommunity(ctx context.Context) ([]Community, error) {
+	rows, err := q.db.QueryContext(ctx, getListCommunity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Community
+	for rows.Next() {
+		var i Community
+		if err := rows.Scan(
+			&i.ID,
+			&i.CommunitiesName,
+			&i.Description,
+			&i.CommunityType,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

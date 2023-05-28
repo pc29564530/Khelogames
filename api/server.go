@@ -22,6 +22,8 @@ func NewServer(store *db.Store) (*Server, error) {
 	router.GET("/blogs/:id", server.getBlog)
 	router.POST("/users", server.createUser)
 	router.POST("/signup", server.createSignup)
+	router.POST("/communities", server.createCommunites)
+	router.GET("/communities/:id", server.getCommunity)
 	server.router = router
 	return server, nil
 }
