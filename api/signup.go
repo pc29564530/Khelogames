@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -41,6 +40,7 @@ func (server *Server) createSignup(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Printf("Successfully signup %s", http.StatusOK)
+	ctx.JSON(http.StatusOK, user)
+	//fmt.Printf("Successfully created account %w", http.StatusOK)
 	return
 }

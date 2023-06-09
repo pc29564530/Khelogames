@@ -12,20 +12,77 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
   username,
-  mobile_number
+  mobile_number,
+  hashed_password
 ) VALUES (
-  $1, $2
-) RETURNING username, mobile_number, created_at
+  $1, $2, $3
+) RETURNING username, mobile_number, hashed_password, created_at
 `
 
 type CreateUserParams struct {
-	Username     string `json:"username"`
-	MobileNumber string `json:"mobile_number"`
+	Username       string `json:"username"`
+	MobileNumber   string `json:"mobile_number"`
+	HashedPassword string `json:"hashed_password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.MobileNumber)
+	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.MobileNumber, arg.HashedPassword)
 	var i User
-	err := row.Scan(&i.Username, &i.MobileNumber, &i.CreatedAt)
+	err := row.Scan(
+		&i.Username,
+		&i.MobileNumber,
+		&i.HashedPassword,
+		&i.CreatedAt,
+	)
 	return i, err
+}
+
+const getUser = `-- name: GetUser :one
+SELECT username, mobile_number, hashed_password, created_at FROM users
+WHERE username = $1 LIMIT 1
+`
+
+func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUser, username)
+	var i User
+	err := row.Scan(
+		&i.Username,
+		&i.MobileNumber,
+		&i.HashedPassword,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listUser = `-- name: ListUser :many
+SELECT username, mobile_number, hashed_password, created_at FROM users
+ORDER BY id
+`
+
+func (q *Queries) ListUser(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUser)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.Username,
+			&i.MobileNumber,
+			&i.HashedPassword,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -4,20 +4,21 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/twilio/twilio-go"
 	openapi "github.com/twilio/twilio-go/rest/verify/v2"
 	db "khelogames/db/sqlc"
+	"khelogames/util"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/twilio/twilio-go"
 )
 
 type createUserRequest struct {
-	Username     string `json:"username"`
-	MobileNumber string `json:"mobile_number"`
+	Username       string `json:"username"`
+	MobileNumber   string `json:"mobile_number"`
+	HashedPassword string `json:"hashed_password"`
 }
 
 type createUserResponse struct {
@@ -56,16 +57,24 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	otp := generateOtp()
 
-	arg := db.CreateUserParams{
-		Username:     req.Username,
-		MobileNumber: req.MobileNumber,
+	hashedPassword, err := util.HashPassword(req.HashedPassword)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
 
+	arg := db.CreateUserParams{
+		Username:       req.Username,
+		MobileNumber:   req.MobileNumber,
+		HashedPassword: hashedPassword,
+	}
+
+	//signup parameter
 	argSignup := db.CreateSignupParams{
 		MobileNumber: req.MobileNumber,
 		Otp:          otp,
 	}
-
+	// creating a signup to be store in datbase
 	signup, err := server.store.CreateSignup(ctx, argSignup)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -76,19 +85,26 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	respSignup := createSignupResponse{
-		MobileNumber: signup.MobileNumber,
-		Otp:          signup.Otp,
-		CreatedAt:    signup.CreatedAt,
-	}
+	//respSignup := createSignupResponse{
+	//	MobileNumber: signup.MobileNumber,
+	//	Otp:          signup.Otp,
+	//	CreatedAt:    signup.CreatedAt,
+	//}
 
-	ctx.JSON(http.StatusOK, respSignup)
+	ctx.JSON(http.StatusOK, signup)
 
 	err = server.sendOTP(client, arg.MobileNumber, otp)
 	if err != nil {
 		fmt.Println("unable to send otp")
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
+	}
+	fmt.Println("Otp has been send successfully")
+
+	arg = db.CreateUserParams{
+		Username:       req.Username,
+		MobileNumber:   req.MobileNumber,
+		HashedPassword: hashedPassword,
 	}
 
 	user, err := server.store.CreateUser(ctx, arg)
@@ -107,7 +123,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 	return
 }
 
-// Create Sign Up function
+// Sending a otp to verify the user mobile number
 func (server *Server) sendOTP(client *twilio.RestClient, to string, otp string) error {
 
 	params := &openapi.CreateVerificationParams{}

@@ -5,7 +5,10 @@
 package db
 
 import (
+	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Blog struct {
@@ -24,14 +27,41 @@ type Community struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
-type Signup struct {
-	MobileNumber string    `json:"mobile_number"`
-	Otp          string    `json:"otp"`
+type Friend struct {
+	ID             sql.NullInt64  `json:"id"`
+	FriendUsername sql.NullString `json:"friend_username"`
+	FriendName     sql.NullString `json:"friend_name"`
+}
+
+type FriendsRequest struct {
+	RecieverUsername string `json:"reciever_username"`
+	SenderUsername   string `json:"sender_username"`
+	Status           string `json:"status"`
+}
+
+type Login struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type Session struct {
+	ID           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
+	RefreshToken string    `json:"refresh_token"`
+	UserAgent    string    `json:"user_agent"`
+	ClientIp     string    `json:"client_ip"`
+	ExpiresAt    time.Time `json:"expires_at"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+type Signup struct {
+	MobileNumber string `json:"mobile_number"`
+	Otp          string `json:"otp"`
+}
+
 type User struct {
-	Username     string    `json:"username"`
-	MobileNumber string    `json:"mobile_number"`
-	CreatedAt    time.Time `json:"created_at"`
+	Username       string    `json:"username"`
+	MobileNumber   string    `json:"mobile_number"`
+	HashedPassword string    `json:"hashed_password"`
+	CreatedAt      time.Time `json:"created_at"`
 }

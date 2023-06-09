@@ -1,29 +1,47 @@
 package api
 
 import (
-	db "khelogames/db/sqlc"
-
+	"fmt"
 	"github.com/gin-gonic/gin"
+	db "khelogames/db/sqlc"
+	"khelogames/token"
+	"khelogames/util"
 )
 
 type Server struct {
-	store  *db.Store
-	router *gin.Engine
+	config     util.Config
+	store      *db.Store
+	tokenMaker token.Maker
+	router     *gin.Engine
 }
 
 // NewServer creates a new HTTP server and setup routing
-func NewServer(store *db.Store) (*Server, error) {
+func NewServer(config util.Config, store *db.Store) (*Server, error) {
+
+	tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create token maker: %w", err)
+	}
 	server := &Server{
-		store: store,
+		config:     config,
+		store:      store,
+		tokenMaker: tokenMaker,
 	}
 
 	router := gin.Default()
-	router.POST("/blogs", server.createBlog)
-	router.GET("/blogs/:id", server.getBlog)
 	router.POST("/users", server.createUser)
 	router.POST("/signup", server.createSignup)
-	router.POST("/communities", server.createCommunites)
-	router.GET("/communities/:id", server.getCommunity)
+	router.POST("/login", server.createLogin)
+	router.POST("/tokens/renew_access", server.renewAccessToken)
+	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
+	authRouter.POST("/blogs", server.createBlog)
+	authRouter.GET("/blogs/:id", server.getBlog)
+	authRouter.POST("/communities", server.createCommunites)
+	authRouter.GET("/communities/:id", server.getCommunity)
+	authRouter.POST("/friend_request", server.getRecieverUsername)
+	authRouter.GET("/friend_request", server.ListConnections)
+	//router.POST("/connections", server.createConnections)
+
 	server.router = router
 	return server, nil
 }

@@ -15,7 +15,7 @@ INSERT INTO signup (
     otp
 ) VALUES (
     $1, $2
-) RETURNING mobile_number, otp, created_at
+) RETURNING mobile_number, otp
 `
 
 type CreateSignupParams struct {
@@ -26,18 +26,18 @@ type CreateSignupParams struct {
 func (q *Queries) CreateSignup(ctx context.Context, arg CreateSignupParams) (Signup, error) {
 	row := q.db.QueryRowContext(ctx, createSignup, arg.MobileNumber, arg.Otp)
 	var i Signup
-	err := row.Scan(&i.MobileNumber, &i.Otp, &i.CreatedAt)
+	err := row.Scan(&i.MobileNumber, &i.Otp)
 	return i, err
 }
 
 const getSignup = `-- name: GetSignup :one
-SELECT mobile_number, otp, created_at FROM signup
+SELECT mobile_number, otp FROM signup
 WHERE mobile_number = $1 LIMIT 1
 `
 
 func (q *Queries) GetSignup(ctx context.Context, mobileNumber string) (Signup, error) {
 	row := q.db.QueryRowContext(ctx, getSignup, mobileNumber)
 	var i Signup
-	err := row.Scan(&i.MobileNumber, &i.Otp, &i.CreatedAt)
+	err := row.Scan(&i.MobileNumber, &i.Otp)
 	return i, err
 }

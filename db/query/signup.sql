@@ -10,3 +10,4 @@ INSERT INTO signup (
 -- name: GetSignup :one
 SELECT * FROM signup
 WHERE mobile_number = $1 LIMIT 1;
+

@@ -60,3 +60,17 @@ func (server *Server) getBlog(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, blog)
 }
+
+type getBlogUsernameRequest struct {
+	Username string `json:"username"`
+}
+
+//func (server *Server) getBlogUsername(ctx *gin.Context) {
+//	var req getBlogUsernameRequest
+//	if err := ctx.ShouldBindJSON(&req); err != nil {
+//		ctx.JSON(http.StatusNotFound, errorResponse(err))
+//		return
+//	}
+//
+//	blog, err := server.store.()
+//}
