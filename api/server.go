@@ -32,15 +32,18 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router.POST("/users", server.createUser)
 	router.POST("/signup", server.createSignup)
 	router.POST("/login", server.createLogin)
+
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
-	authRouter.POST("/blogs", server.createBlog)
+	authRouter.GET("/user_list", server.listUsers)
+	router.POST("/blogs", server.createBlog)
 	authRouter.GET("/blogs/:id", server.getBlog)
 	authRouter.POST("/communities", server.createCommunites)
 	authRouter.GET("/communities/:id", server.getCommunity)
 	authRouter.POST("/friend_request", server.getRecieverUsername)
 	authRouter.GET("/friend_request", server.ListConnections)
-	//router.POST("/connections", server.createConnections)
+	authRouter.POST("/accept_friend_request/:id", server.acceptFriendResquest)
+	//router.POST("/connections", server)
 
 	server.router = router
 	return server, nil

@@ -85,12 +85,6 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	//respSignup := createSignupResponse{
-	//	MobileNumber: signup.MobileNumber,
-	//	Otp:          signup.Otp,
-	//	CreatedAt:    signup.CreatedAt,
-	//}
-
 	ctx.JSON(http.StatusOK, signup)
 
 	err = server.sendOTP(client, arg.MobileNumber, otp)
@@ -140,4 +134,51 @@ func (server *Server) sendOTP(client *twilio.RestClient, to string, otp string) 
 	}
 
 	return nil
+}
+
+type getUsersRequest struct {
+	Username string `josn:"username"`
+}
+
+func (server *Server) getUsers(ctx *gin.Context) {
+	var req getUsersRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	users, err := server.store.GetUser(ctx, req.Username)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, users)
+	return
+}
+
+type getListUsersRequest struct {
+	PageID   int32 `form:"page_id" binding:"required,min=1"`
+	PageSize int32 `form:"page_size" binding:"required,min=5,max=10"`
+}
+
+func (server *Server) listUsers(ctx *gin.Context) {
+	var req getListUsersRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	arg := db.ListUserParams{
+		Limit:  req.PageSize,
+		Offset: (req.PageID - 1) * req.PageSize,
+	}
+
+	userList, err := server.store.ListUser(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, userList)
 }

@@ -34,9 +34,11 @@ type Friend struct {
 }
 
 type FriendsRequest struct {
-	RecieverUsername string `json:"reciever_username"`
-	SenderUsername   string `json:"sender_username"`
-	Status           string `json:"status"`
+	ID               int64     `json:"id"`
+	SenderUsername   string    `json:"sender_username"`
+	RecieverUsername string    `json:"reciever_username"`
+	Status           string    `json:"status"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type Login struct {

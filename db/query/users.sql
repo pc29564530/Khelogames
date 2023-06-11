@@ -13,4 +13,7 @@ WHERE username = $1 LIMIT 1;
 
 -- name: ListUser :many
 SELECT * FROM users
-ORDER BY id;
+WHERE username = $1
+ORDER BY username
+LIMIT $2
+OFFSET $3;

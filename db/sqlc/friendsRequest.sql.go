@@ -9,47 +9,59 @@ import (
 	"context"
 )
 
-const createConnections = `-- name: CreateConnections :one
+const createFriendsRequest = `-- name: CreateFriendsRequest :one
 INSERT INTO friends_request (
     sender_username,
     reciever_username,
     status
 ) VALUES ($1, $2, $3)
-RETURNING reciever_username, sender_username, status
+RETURNING id, sender_username, reciever_username, status, created_at
 `
 
-type CreateConnectionsParams struct {
+type CreateFriendsRequestParams struct {
 	SenderUsername   string `json:"sender_username"`
 	RecieverUsername string `json:"reciever_username"`
 	Status           string `json:"status"`
 }
 
-func (q *Queries) CreateConnections(ctx context.Context, arg CreateConnectionsParams) (FriendsRequest, error) {
-	row := q.db.QueryRowContext(ctx, createConnections, arg.SenderUsername, arg.RecieverUsername, arg.Status)
+func (q *Queries) CreateFriendsRequest(ctx context.Context, arg CreateFriendsRequestParams) (FriendsRequest, error) {
+	row := q.db.QueryRowContext(ctx, createFriendsRequest, arg.SenderUsername, arg.RecieverUsername, arg.Status)
 	var i FriendsRequest
-	err := row.Scan(&i.RecieverUsername, &i.SenderUsername, &i.Status)
+	err := row.Scan(
+		&i.ID,
+		&i.SenderUsername,
+		&i.RecieverUsername,
+		&i.Status,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
-const getConnections = `-- name: GetConnections :one
-SELECT reciever_username, sender_username, status FROM friends_request
-WHERE sender_username = $1
+const getFriendsRequest = `-- name: GetFriendsRequest :one
+SELECT id, sender_username, reciever_username, status, created_at FROM friends_request
+WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetConnections(ctx context.Context, senderUsername string) (FriendsRequest, error) {
-	row := q.db.QueryRowContext(ctx, getConnections, senderUsername)
+func (q *Queries) GetFriendsRequest(ctx context.Context, id int64) (FriendsRequest, error) {
+	row := q.db.QueryRowContext(ctx, getFriendsRequest, id)
 	var i FriendsRequest
-	err := row.Scan(&i.RecieverUsername, &i.SenderUsername, &i.Status)
+	err := row.Scan(
+		&i.ID,
+		&i.SenderUsername,
+		&i.RecieverUsername,
+		&i.Status,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
-const listConnections = `-- name: ListConnections :many
-SELECT reciever_username, sender_username, status FROM friends_request
-WHERE sender_username = $1
+const listFriends = `-- name: ListFriends :many
+SELECT id, sender_username, reciever_username, status, created_at FROM friends_request
+ORDER BY id
 `
 
-func (q *Queries) ListConnections(ctx context.Context, senderUsername string) ([]FriendsRequest, error) {
-	rows, err := q.db.QueryContext(ctx, listConnections, senderUsername)
+func (q *Queries) ListFriends(ctx context.Context) ([]FriendsRequest, error) {
+	rows, err := q.db.QueryContext(ctx, listFriends)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +69,13 @@ func (q *Queries) ListConnections(ctx context.Context, senderUsername string) ([
 	var items []FriendsRequest
 	for rows.Next() {
 		var i FriendsRequest
-		if err := rows.Scan(&i.RecieverUsername, &i.SenderUsername, &i.Status); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.SenderUsername,
+			&i.RecieverUsername,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -71,14 +89,14 @@ func (q *Queries) ListConnections(ctx context.Context, senderUsername string) ([
 	return items, nil
 }
 
-const updateConnections = `-- name: UpdateConnections :exec
+const updateFriendsRequest = `-- name: UpdateFriendsRequest :exec
 UPDATE friends_request
 SET status = 'accepted'
-WHERE sender_username = $1
-RETURNING reciever_username, sender_username, status
+WHERE id = $1
+RETURNING id, sender_username, reciever_username, status, created_at
 `
 
-func (q *Queries) UpdateConnections(ctx context.Context, senderUsername string) error {
-	_, err := q.db.ExecContext(ctx, updateConnections, senderUsername)
+func (q *Queries) UpdateFriendsRequest(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, updateFriendsRequest, id)
 	return err
 }

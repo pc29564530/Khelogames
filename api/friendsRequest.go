@@ -7,26 +7,16 @@ import (
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
+	"time"
 )
 
 type getUsername struct {
 	RecieverUsername string `json:"reciever_username"`
 }
 
-type createConnectionsRequest struct {
-	SenderUsername   string `json:"sender_username"`
-	RecieverUsername string `json:"reciever_username"`
-	Status           string `json:"status"`
-}
-
-type createConnectionResponse struct {
-	SenderUsername   string `json:"sender_username"`
-	RecieverUsername string `json:"reciever_username"`
-	Status           string `json:"status"`
-}
-
 func (server *Server) getRecieverUsername(ctx *gin.Context) {
 	var req getUsername
+
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -45,23 +35,13 @@ func (server *Server) getRecieverUsername(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	sender_username := authPayload.Username
-	//err = sendFriendRequest(ctx, sender_username, user.Username)
-	//if err != nil {
-	//	ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-	//}
 
-	argConnection := db.CreateConnectionsParams{
-		RecieverUsername: user.Username,
+	argConnection := db.CreateFriendsRequestParams{
 		SenderUsername:   sender_username,
+		RecieverUsername: user.Username,
 		Status:           "pending",
 	}
-	fmt.Println("line67")
-	fmt.Println(argConnection.SenderUsername)
-	fmt.Println(argConnection.RecieverUsername)
-	fmt.Println(argConnection.Status)
-	fmt.Println("line69")
-	connection, err := server.store.CreateConnections(ctx, argConnection)
-	fmt.Println("ram ram ji")
+	connection, err := server.store.CreateFriendsRequest(ctx, argConnection)
 	if err != nil {
 		fmt.Errorf("unable to create a connection ", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -70,7 +50,6 @@ func (server *Server) getRecieverUsername(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, connection)
 	fmt.Println("Successfully send the friend request")
-	ctx.JSON(http.StatusOK, user)
 	return
 
 }
@@ -87,13 +66,64 @@ func (server *Server) ListConnections(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	username := authPayload.Username
-	connections, err := server.store.ListConnections(ctx, username)
+	connections, err := server.store.ListFriends(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, connections)
+}
+
+type getSenderUsernameRequest struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+type getSenderUsernameResponse struct {
+	ID               int64     `uri:"id" binding:"required min=1"`
+	SenderUsername   string    `json:"sender_username"`
+	RecieverUsername string    `json:"reciever_username"`
+	Status           string    `json:"status"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+func (server *Server) acceptFriendResquest(ctx *gin.Context) {
+	var req getSenderUsernameRequest
+	err := ctx.ShouldBindJSON(&req)
+	fmt.Println("check the err")
+	if err != nil {
+		fmt.Println("no row found")
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	currentUser := authPayload.Username
+
+	err = server.store.UpdateFriendsRequest(ctx, req.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	user, err := server.store.GetFriendsRequest(ctx, req.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+
+	}
+
+	rsp := getSenderUsernameResponse{
+		ID:               user.ID,
+		SenderUsername:   user.SenderUsername,
+		RecieverUsername: currentUser,
+		Status:           user.Status,
+		CreatedAt:        user.CreatedAt,
+	}
+
+	ctx.JSON(http.StatusOK, rsp)
+	return
 }

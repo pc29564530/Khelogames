@@ -50,9 +50,11 @@ CREATE TABLE "friends" (
 );
 
 CREATE TABLE "friends_request" (
-                                  "reciever_username" varchar NOT NULL,
-                                  "sender_username" varchar NOT NULL,
-                                  "status" varchar NOT NULL
+                                "id" bigserial PRIMARY KEY,
+                                "sender_username" varchar NOT NULL,
+                                "reciever_username" varchar NOT NULL,
+                                "status" varchar NOT NULL,
+                                "created_at" timestamp   NOT NULL DEFAULT (now())
 );
 
 ALTER TABLE "blogs" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");

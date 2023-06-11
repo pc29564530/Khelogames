@@ -56,11 +56,20 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 
 const listUser = `-- name: ListUser :many
 SELECT username, mobile_number, hashed_password, created_at FROM users
-ORDER BY id
+WHERE username = $1
+ORDER BY username
+LIMIT $2
+OFFSET $3
 `
 
-func (q *Queries) ListUser(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, listUser)
+type ListUserParams struct {
+	Username string `json:"username"`
+	Limit    int32  `json:"limit"`
+	Offset   int32  `json:"offset"`
+}
+
+func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUser, arg.Username, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
