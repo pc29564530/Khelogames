@@ -87,9 +87,13 @@ type getSenderUsernameResponse struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
-func (server *Server) acceptFriendResquest(ctx *gin.Context) {
-	var req getSenderUsernameRequest
-	err := ctx.ShouldBindJSON(&req)
+type acceptFriendRequest struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+func (server *Server) acceptFriend(ctx *gin.Context) {
+	var req acceptFriendRequest
+	err := ctx.ShouldBindUri(&req)
 	fmt.Println("check the err")
 	if err != nil {
 		fmt.Println("no row found")
