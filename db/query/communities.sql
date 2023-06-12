@@ -1,16 +1,18 @@
 -- name: CreateCommunity :one
 INSERT INTO communities (
+    owner,
     communities_name,
     description,
     community_type
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 ) RETURNING *;
 
 -- name: GetCommunity :one
-SELECT id,communities_name,description,community_type,created_at FROM communities
+SELECT * FROM communities
 WHERE id = $1 LIMIT 1;
 
 -- name: GetListCommunity :many
 SELECT * FROM communities
-ORDER BY id;
+WHERE owner=$1
+ORDER BY id=$1;

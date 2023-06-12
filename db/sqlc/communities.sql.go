@@ -11,25 +11,33 @@ import (
 
 const createCommunity = `-- name: CreateCommunity :one
 INSERT INTO communities (
+    owner,
     communities_name,
     description,
     community_type
 ) VALUES (
-    $1, $2, $3
-) RETURNING id, communities_name, description, community_type, created_at
+    $1, $2, $3, $4
+) RETURNING id, owner, communities_name, description, community_type, created_at
 `
 
 type CreateCommunityParams struct {
+	Owner           string `json:"owner"`
 	CommunitiesName string `json:"communities_name"`
 	Description     string `json:"description"`
 	CommunityType   string `json:"community_type"`
 }
 
 func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams) (Community, error) {
-	row := q.db.QueryRowContext(ctx, createCommunity, arg.CommunitiesName, arg.Description, arg.CommunityType)
+	row := q.db.QueryRowContext(ctx, createCommunity,
+		arg.Owner,
+		arg.CommunitiesName,
+		arg.Description,
+		arg.CommunityType,
+	)
 	var i Community
 	err := row.Scan(
 		&i.ID,
+		&i.Owner,
 		&i.CommunitiesName,
 		&i.Description,
 		&i.CommunityType,
@@ -39,7 +47,7 @@ func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams
 }
 
 const getCommunity = `-- name: GetCommunity :one
-SELECT id,communities_name,description,community_type,created_at FROM communities
+SELECT id, owner, communities_name, description, community_type, created_at FROM communities
 WHERE id = $1 LIMIT 1
 `
 
@@ -48,6 +56,7 @@ func (q *Queries) GetCommunity(ctx context.Context, id int64) (Community, error)
 	var i Community
 	err := row.Scan(
 		&i.ID,
+		&i.Owner,
 		&i.CommunitiesName,
 		&i.Description,
 		&i.CommunityType,
@@ -57,12 +66,13 @@ func (q *Queries) GetCommunity(ctx context.Context, id int64) (Community, error)
 }
 
 const getListCommunity = `-- name: GetListCommunity :many
-SELECT id, communities_name, description, community_type, created_at FROM communities
-ORDER BY id
+SELECT id, owner, communities_name, description, community_type, created_at FROM communities
+WHERE owner=$1
+ORDER BY id=$1
 `
 
-func (q *Queries) GetListCommunity(ctx context.Context) ([]Community, error) {
-	rows, err := q.db.QueryContext(ctx, getListCommunity)
+func (q *Queries) GetListCommunity(ctx context.Context, owner string) ([]Community, error) {
+	rows, err := q.db.QueryContext(ctx, getListCommunity, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +82,7 @@ func (q *Queries) GetListCommunity(ctx context.Context) ([]Community, error) {
 		var i Community
 		if err := rows.Scan(
 			&i.ID,
+			&i.Owner,
 			&i.CommunitiesName,
 			&i.Description,
 			&i.CommunityType,

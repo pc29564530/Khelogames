@@ -6,6 +6,16 @@ CREATE TABLE "blogs" (
                          "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
+CREATE TABLE "threads" (
+                           "id" bigserial PRIMARY KEY,
+                           "username" varchar NOT NULL,
+                           "communities_name" varchar,
+                           "title" varchar,
+                           "content" text,
+                           "created_at" timestamp NOT NULL DEFAULT 'now()'
+);
+
+
 CREATE TABLE "users" (
                          "username" varchar UNIQUE NOT NULL,
                          "mobile_number" string UNIQUE NOT NULL,
@@ -37,6 +47,7 @@ CREATE TABLE "signup" (
 
 CREATE TABLE "communities" (
                                "id" bigserial PRIMARY KEY,
+                               "owner" varchar NOT NULL,
                                "communities_name" varchar NOT NULL,
                                "description" varchar NOT NULL,
                                "community_type" varchar NOT NULL,
@@ -56,6 +67,12 @@ CREATE TABLE "friends_request" (
                                 "status" varchar NOT NULL,
                                 "created_at" timestamp   NOT NULL DEFAULT (now())
 );
+
+ALTER TABLE "threads" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
+
+ALTER TABLE "threads" ADD FOREIGN KEY ("communities_name") REFERENCES "communities" ("communities_name");
+
+ALTER TABLE "communities" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 
 ALTER TABLE "blogs" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
 

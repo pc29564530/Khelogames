@@ -5,6 +5,7 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ type Blog struct {
 
 type Community struct {
 	ID              int64     `json:"id"`
+	Owner           string    `json:"owner"`
 	CommunitiesName string    `json:"communities_name"`
 	Description     string    `json:"description"`
 	CommunityType   string    `json:"community_type"`
@@ -58,6 +60,15 @@ type Session struct {
 type Signup struct {
 	MobileNumber string `json:"mobile_number"`
 	Otp          string `json:"otp"`
+}
+
+type Thread struct {
+	ID              int64          `json:"id"`
+	Username        string         `json:"username"`
+	CommunitiesName sql.NullString `json:"communities_name"`
+	Title           sql.NullString `json:"title"`
+	Content         sql.NullString `json:"content"`
+	CreatedAt       time.Time      `json:"created_at"`
 }
 
 type User struct {
