@@ -43,6 +43,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/friend_request", server.getRecieverUsername)
 	authRouter.GET("/friend_request", server.ListConnections)
 	authRouter.POST("/accept_friend/:id", server.acceptFriend)
+	authRouter.GET("/get_all_friends", server.getAllFriends)
 	//router.POST("/connections", server)
 
 	server.router = router

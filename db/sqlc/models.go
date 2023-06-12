@@ -5,7 +5,6 @@
 package db
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,9 +27,9 @@ type Community struct {
 }
 
 type Friend struct {
-	ID             sql.NullInt64  `json:"id"`
-	FriendUsername sql.NullString `json:"friend_username"`
-	FriendName     sql.NullString `json:"friend_name"`
+	ID             int64  `json:"id"`
+	Owner          string `json:"owner"`
+	FriendUsername string `json:"friend_username"`
 }
 
 type FriendsRequest struct {

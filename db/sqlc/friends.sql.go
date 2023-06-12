@@ -7,49 +7,37 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createFriends = `-- name: CreateFriends :one
 INSERT INTO friends (
-    friend_name,
+    owner,
     friend_username
 ) VALUES (
     $1, $2
-) RETURNING id, friend_username, friend_name
+) RETURNING id, owner, friend_username
 `
 
 type CreateFriendsParams struct {
-	FriendName     sql.NullString `json:"friend_name"`
-	FriendUsername sql.NullString `json:"friend_username"`
+	Owner          string `json:"owner"`
+	FriendUsername string `json:"friend_username"`
 }
 
 func (q *Queries) CreateFriends(ctx context.Context, arg CreateFriendsParams) (Friend, error) {
-	row := q.db.QueryRowContext(ctx, createFriends, arg.FriendName, arg.FriendUsername)
+	row := q.db.QueryRowContext(ctx, createFriends, arg.Owner, arg.FriendUsername)
 	var i Friend
-	err := row.Scan(&i.ID, &i.FriendUsername, &i.FriendName)
+	err := row.Scan(&i.ID, &i.Owner, &i.FriendUsername)
 	return i, err
 }
 
-const getFriends = `-- name: GetFriends :one
-SELECT id, friend_username, friend_name FROM friends
-WHERE friend_username = $1
-`
-
-func (q *Queries) GetFriends(ctx context.Context, friendUsername sql.NullString) (Friend, error) {
-	row := q.db.QueryRowContext(ctx, getFriends, friendUsername)
-	var i Friend
-	err := row.Scan(&i.ID, &i.FriendUsername, &i.FriendName)
-	return i, err
-}
-
-const getListFriends = `-- name: GetListFriends :many
-SELECT id, friend_username, friend_name FROM friends
+const getAllFriends = `-- name: GetAllFriends :many
+SELECT id, owner, friend_username FROM friends
+WHERE owner = $1
 ORDER BY id
 `
 
-func (q *Queries) GetListFriends(ctx context.Context) ([]Friend, error) {
-	rows, err := q.db.QueryContext(ctx, getListFriends)
+func (q *Queries) GetAllFriends(ctx context.Context, owner string) ([]Friend, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFriends, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +45,7 @@ func (q *Queries) GetListFriends(ctx context.Context) ([]Friend, error) {
 	var items []Friend
 	for rows.Next() {
 		var i Friend
-		if err := rows.Scan(&i.ID, &i.FriendUsername, &i.FriendName); err != nil {
+		if err := rows.Scan(&i.ID, &i.Owner, &i.FriendUsername); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -69,4 +57,16 @@ func (q *Queries) GetListFriends(ctx context.Context) ([]Friend, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getFriends = `-- name: GetFriends :one
+SELECT id, owner, friend_username FROM friends
+WHERE friend_username = $1
+`
+
+func (q *Queries) GetFriends(ctx context.Context, friendUsername string) (Friend, error) {
+	row := q.db.QueryRowContext(ctx, getFriends, friendUsername)
+	var i Friend
+	err := row.Scan(&i.ID, &i.Owner, &i.FriendUsername)
+	return i, err
 }

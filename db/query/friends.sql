@@ -1,6 +1,6 @@
 -- name: CreateFriends :one
 INSERT INTO friends (
-    friend_name,
+    owner,
     friend_username
 ) VALUES (
     $1, $2
@@ -10,6 +10,7 @@ INSERT INTO friends (
 SELECT * FROM friends
 WHERE friend_username = $1;
 
--- name: GetListFriends :many
+-- name: GetAllFriends :many
 SELECT * FROM friends
+WHERE owner = $1
 ORDER BY id;

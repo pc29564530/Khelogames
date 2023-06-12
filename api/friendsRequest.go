@@ -120,6 +120,8 @@ func (server *Server) acceptFriend(ctx *gin.Context) {
 
 	}
 
+	server.addFriendToUsers(ctx, req.ID)
+
 	rsp := getSenderUsernameResponse{
 		ID:               user.ID,
 		SenderUsername:   user.SenderUsername,
@@ -129,5 +131,58 @@ func (server *Server) acceptFriend(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, rsp)
+
+}
+
+type createAddFriendToUsers struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+func (server *Server) addFriendToUsers(ctx *gin.Context, id int64) {
+	//var req createAddFriendToUsers
+	//err := ctx.ShouldBindUri(&req)
+	//if err != nil {
+	//	ctx.JSON(http.StatusNotFound, errorResponse(err))
+	//	return
+	//}
+	friendRequest, err := server.store.GetFriendsRequest(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//userResponse, err := server.store.GetUser(ctx, friendRequest.RecieverUsername)
+	//if err != nil {
+	//	ctx.JSON(http.StatusNotFound, errorResponse(err))
+	//}
+
+	if friendRequest.Status != "accepted" {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+	}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	argSender := db.CreateFriendsParams{
+		Owner:          authPayload.Username,
+		FriendUsername: friendRequest.RecieverUsername,
+	}
+
+	addFriendSender, err := server.store.CreateFriends(ctx, argSender)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, addFriendSender)
+
+	argReciever := db.CreateFriendsParams{
+		Owner:          friendRequest.RecieverUsername,
+		FriendUsername: authPayload.Username,
+	}
+
+	addFriendReciever, err := server.store.CreateFriends(ctx, argReciever)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, addFriendReciever)
 	return
+
 }

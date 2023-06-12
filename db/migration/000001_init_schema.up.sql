@@ -44,9 +44,9 @@ CREATE TABLE "communities" (
 );
 
 CREATE TABLE "friends" (
-                           "id" bigserial,
-                           "friend_username" varchar,
-                           "friend_name" varchar
+                           "id" bigserial PRIMARY KEY,
+                           "owner" varchar NOT NULL,
+                           "friend_username" varchar NOT NULL
 );
 
 CREATE TABLE "friends_request" (
@@ -62,6 +62,8 @@ ALTER TABLE "blogs" ADD FOREIGN KEY ("username") REFERENCES "users" ("username")
 ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
 
 ALTER TABLE "blogs" ADD FOREIGN KEY ("created_at") REFERENCES "blogs" ("username");
+
+ALTER TABLE "friends" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 
 ALTER TABLE "friends" ADD FOREIGN KEY ("friend_username") REFERENCES "users" ("username");
 
