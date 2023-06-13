@@ -46,7 +46,9 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/get_all_friends", server.getAllFriends)
 	authRouter.GET("/community/:id", server.getCommunity)
 	authRouter.GET("/get_all_communities/:owner", server.getAllCommunities)
-	//router.POST("/connections", server)
+	authRouter.POST("/create_thread", server.createThread)
+	authRouter.GET("/all_threads", server.getAllThreads)
+	authRouter.GET("/get_all_communities_by_owner", server.getAllThreadsByCommunities)
 
 	server.router = router
 	return server, nil

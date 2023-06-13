@@ -49,11 +49,10 @@ func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (Thr
 
 const getAllThreads = `-- name: GetAllThreads :many
 SELECT id, username, communities_name, title, content, created_at FROM threads
-ORDER BY id=$1
 `
 
-func (q *Queries) GetAllThreads(ctx context.Context, id int64) ([]Thread, error) {
-	rows, err := q.db.QueryContext(ctx, getAllThreads, id)
+func (q *Queries) GetAllThreads(ctx context.Context) ([]Thread, error) {
+	rows, err := q.db.QueryContext(ctx, getAllThreads)
 	if err != nil {
 		return nil, err
 	}

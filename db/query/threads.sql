@@ -18,5 +18,4 @@ WHERE communities_name = $1
 ORDER BY id=$1;
 
 -- name: GetAllThreads :many
-SELECT * FROM threads
-ORDER BY id=$1;
+SELECT * FROM threads;
