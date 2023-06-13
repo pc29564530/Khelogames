@@ -46,33 +46,13 @@ func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams
 	return i, err
 }
 
-const getCommunity = `-- name: GetCommunity :one
-SELECT id, owner, communities_name, description, community_type, created_at FROM communities
-WHERE id = $1 LIMIT 1
-`
-
-func (q *Queries) GetCommunity(ctx context.Context, id int64) (Community, error) {
-	row := q.db.QueryRowContext(ctx, getCommunity, id)
-	var i Community
-	err := row.Scan(
-		&i.ID,
-		&i.Owner,
-		&i.CommunitiesName,
-		&i.Description,
-		&i.CommunityType,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getListCommunity = `-- name: GetListCommunity :many
+const getAllCommunities = `-- name: GetAllCommunities :many
 SELECT id, owner, communities_name, description, community_type, created_at FROM communities
 WHERE owner=$1
-ORDER BY id=$1
 `
 
-func (q *Queries) GetListCommunity(ctx context.Context, owner string) ([]Community, error) {
-	rows, err := q.db.QueryContext(ctx, getListCommunity, owner)
+func (q *Queries) GetAllCommunities(ctx context.Context, owner string) ([]Community, error) {
+	rows, err := q.db.QueryContext(ctx, getAllCommunities, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -99,4 +79,23 @@ func (q *Queries) GetListCommunity(ctx context.Context, owner string) ([]Communi
 		return nil, err
 	}
 	return items, nil
+}
+
+const getCommunity = `-- name: GetCommunity :one
+SELECT id, owner, communities_name, description, community_type, created_at FROM communities
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetCommunity(ctx context.Context, id int64) (Community, error) {
+	row := q.db.QueryRowContext(ctx, getCommunity, id)
+	var i Community
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.CommunitiesName,
+		&i.Description,
+		&i.CommunityType,
+		&i.CreatedAt,
+	)
+	return i, err
 }

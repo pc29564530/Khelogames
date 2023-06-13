@@ -89,14 +89,29 @@ func (server *Server) getCommunity(ctx *gin.Context) {
 	return
 }
 
+type getAllCommunitiesRequest struct {
+	Owner string `uri:"owner"`
+}
+
 // Get all communities by owner.
 func (server *Server) getAllCommunities(ctx *gin.Context) {
+	var req getAllCommunitiesRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	}
+
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	userResponse, err := server.store.GetListCommunity(ctx, authPayload.Username)
+
+	if req.Owner != authPayload.Username {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+	user, err := server.store.GetAllCommunities(ctx, authPayload.Username)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
-	ctx.JSON(http.StatusOK, userResponse)
+	ctx.JSON(http.StatusOK, user)
 	return
 }
