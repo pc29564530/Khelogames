@@ -15,3 +15,9 @@ WHERE id = $1 LIMIT 1;
 -- name: GetAllCommunities :many
 SELECT * FROM communities
 WHERE owner=$1;
+
+
+-- name: GetCommunitiesMember :many
+SELECT users.username FROM users
+JOIN communities ON users.username = communities.owner
+WHERE communities.communities_name=$1;

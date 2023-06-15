@@ -1,11 +1,3 @@
-CREATE TABLE "blogs" (
-                         "id" bigserial PRIMARY KEY,
-                         "username" varchar NOT NULL,
-                         "title" varchar NOT NULL,
-                         "content" text NOT NULL,
-                         "created_at" timestamp NOT NULL DEFAULT 'now()'
-);
-
 CREATE TABLE "threads" (
                            "id" bigserial PRIMARY KEY,
                            "username" varchar NOT NULL,
@@ -32,8 +24,6 @@ CREATE TABLE "sessions" (
                             "expires_at" timestamptz NOT NULL,
                             "created_at" timestamptz NOT NULL DEFAULT (now())
 );
-
-ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
 
 CREATE TABLE "login" (
                          "username" varchar NOT NULL,
@@ -68,17 +58,26 @@ CREATE TABLE "friends_request" (
                                 "created_at" timestamp   NOT NULL DEFAULT (now())
 );
 
+-- CREATE TABLE "community_member" (
+--                                     "communities_name" varchar NOT NULL,
+--                                     "username" varchar NOT NULL
+-- );
+
+CREATE TABLE "search_bar" (
+                              "full_name" varchar NOT NULL ,
+                              "username" varchar NOT NULL ,
+                              "communities" varchar NOT NULL
+);
+
+ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
+
 ALTER TABLE "threads" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
 
 ALTER TABLE "threads" ADD FOREIGN KEY ("communities_name") REFERENCES "communities" ("communities_name");
 
 ALTER TABLE "communities" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 
-ALTER TABLE "blogs" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
-
 ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
-
-ALTER TABLE "blogs" ADD FOREIGN KEY ("created_at") REFERENCES "blogs" ("username");
 
 ALTER TABLE "friends" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 
@@ -87,3 +86,9 @@ ALTER TABLE "friends" ADD FOREIGN KEY ("friend_username") REFERENCES "users" ("u
 ALTER TABLE "friends_request" ADD FOREIGN KEY ("reciever_username") REFERENCES "users" ("username");
 
 ALTER TABLE "friends_request" ADD FOREIGN KEY ("sender_username") REFERENCES "users" ("username");
+
+ALTER TABLE "search_bar" ADD FOREIGN KEY ("full_name") REFERENCES "users" ("full_name");
+
+ALTER TABLE "search_bar" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
+
+ALTER TABLE "search_bar" ADD FOREIGN KEY ("communities") REFERENCES "communities" ("communities_name")

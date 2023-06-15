@@ -81,6 +81,35 @@ func (q *Queries) GetAllCommunities(ctx context.Context, owner string) ([]Commun
 	return items, nil
 }
 
+const getCommunitiesMember = `-- name: GetCommunitiesMember :many
+SELECT users.username FROM users
+JOIN communities ON users.username = communities.owner
+WHERE communities.communities_name=$1
+`
+
+func (q *Queries) GetCommunitiesMember(ctx context.Context, communitiesName string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getCommunitiesMember, communitiesName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var username string
+		if err := rows.Scan(&username); err != nil {
+			return nil, err
+		}
+		items = append(items, username)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCommunity = `-- name: GetCommunity :one
 SELECT id, owner, communities_name, description, community_type, created_at FROM communities
 WHERE id = $1 LIMIT 1

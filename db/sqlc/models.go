@@ -11,14 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type Blog struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 type Community struct {
 	ID              int64     `json:"id"`
 	Owner           string    `json:"owner"`
@@ -45,6 +37,12 @@ type FriendsRequest struct {
 type Login struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type SearchBar struct {
+	FullName    string `json:"full_name"`
+	Username    string `json:"username"`
+	Communities string `json:"communities"`
 }
 
 type Session struct {

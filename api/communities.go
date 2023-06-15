@@ -115,3 +115,28 @@ func (server *Server) getAllCommunities(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 	return
 }
+
+// Get all users that have joined a particular communities
+type getCommunitiesMemberRequest struct {
+	CommunitiesName string `uri:"communities_name"`
+}
+
+func (server *Server) getCommunitiesMember(ctx *gin.Context) {
+	var req getCommunitiesMemberRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	usersList, err := server.store.GetCommunitiesMember(ctx, req.CommunitiesName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, usersList)
+}

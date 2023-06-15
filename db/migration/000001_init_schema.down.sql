@@ -6,3 +6,5 @@ DROP TABLE IF EXISTS friends;
 DROP TABLE IF EXISTS friends_request;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS login;
+DROP TABLE IF EXISTS search_bar;
+DROP TABLE IF EXISTS community_member;
