@@ -5,21 +5,15 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type Blog struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 type Community struct {
 	ID              int64     `json:"id"`
+	Owner           string    `json:"owner"`
 	CommunitiesName string    `json:"communities_name"`
 	Description     string    `json:"description"`
 	CommunityType   string    `json:"community_type"`
@@ -45,6 +39,12 @@ type Login struct {
 	Password string `json:"password"`
 }
 
+type SearchBar struct {
+	FullName    string `json:"full_name"`
+	Username    string `json:"username"`
+	Communities string `json:"communities"`
+}
+
 type Session struct {
 	ID           uuid.UUID `json:"id"`
 	Username     string    `json:"username"`
@@ -58,6 +58,15 @@ type Session struct {
 type Signup struct {
 	MobileNumber string `json:"mobile_number"`
 	Otp          string `json:"otp"`
+}
+
+type Thread struct {
+	ID              int64          `json:"id"`
+	Username        string         `json:"username"`
+	CommunitiesName sql.NullString `json:"communities_name"`
+	Title           sql.NullString `json:"title"`
+	Content         sql.NullString `json:"content"`
+	CreatedAt       time.Time      `json:"created_at"`
 }
 
 type User struct {

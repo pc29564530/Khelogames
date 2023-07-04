@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
+	"khelogames/token"
 	"net/http"
 	"time"
 )
 
 type createCommunitiesRequest struct {
+	Owner           string `json:"owner"`
 	CommunitiesName string `json:"communities_name"`
 	Description     string `json:"description"`
 	CommunityType   string `json:"community_type"`
@@ -28,8 +30,9 @@ func (server *Server) createCommunites(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateCommunityParams{
+		Owner:           authPayload.Username,
 		CommunitiesName: req.CommunitiesName,
 		Description:     req.Description,
 		CommunityType:   req.CommunityType,
@@ -55,7 +58,7 @@ type getCommunityResponse struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
-// Open selected community
+// get Community by id.
 func (server *Server) getCommunity(ctx *gin.Context) {
 	var req getCommunityRequest
 
@@ -84,4 +87,56 @@ func (server *Server) getCommunity(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 	return
+}
+
+type getAllCommunitiesRequest struct {
+	Owner string `uri:"owner"`
+}
+
+// Get all communities by owner.
+func (server *Server) getAllCommunities(ctx *gin.Context) {
+	var req getAllCommunitiesRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	if req.Owner != authPayload.Username {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+	user, err := server.store.GetAllCommunities(ctx, authPayload.Username)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
+	return
+}
+
+// Get all users that have joined a particular communities
+type getCommunitiesMemberRequest struct {
+	CommunitiesName string `uri:"communities_name"`
+}
+
+func (server *Server) getCommunitiesMember(ctx *gin.Context) {
+	var req getCommunitiesMemberRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	usersList, err := server.store.GetCommunitiesMember(ctx, req.CommunitiesName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, usersList)
 }

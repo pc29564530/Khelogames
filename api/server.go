@@ -36,15 +36,20 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRouter.GET("/user_list", server.listUsers)
-	router.POST("/blogs", server.createBlog)
-	authRouter.GET("/blogs/:id", server.getBlog)
+	//router.POST("/blogs", server.createBlog)
+	//authRouter.GET("/blogs/:id", server.getBlog)
 	authRouter.POST("/communities", server.createCommunites)
 	authRouter.GET("/communities/:id", server.getCommunity)
 	authRouter.POST("/friend_request", server.getRecieverUsername)
 	authRouter.GET("/friend_request", server.ListConnections)
 	authRouter.POST("/accept_friend/:id", server.acceptFriend)
 	authRouter.GET("/get_all_friends", server.getAllFriends)
-	//router.POST("/connections", server)
+	authRouter.GET("/community/:id", server.getCommunity)
+	authRouter.GET("/get_all_communities/:owner", server.getAllCommunities)
+	authRouter.POST("/create_thread", server.createThread)
+	authRouter.GET("/all_threads", server.getAllThreads)
+	authRouter.GET("/get_all_communities_by_owner", server.getAllThreadsByCommunities)
+	authRouter.GET("/get_communities_member/:communities_name", server.getCommunitiesMember)
 
 	server.router = router
 	return server, nil

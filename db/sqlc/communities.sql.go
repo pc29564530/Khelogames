@@ -11,25 +11,33 @@ import (
 
 const createCommunity = `-- name: CreateCommunity :one
 INSERT INTO communities (
+    owner,
     communities_name,
     description,
     community_type
 ) VALUES (
-    $1, $2, $3
-) RETURNING id, communities_name, description, community_type, created_at
+    $1, $2, $3, $4
+) RETURNING id, owner, communities_name, description, community_type, created_at
 `
 
 type CreateCommunityParams struct {
+	Owner           string `json:"owner"`
 	CommunitiesName string `json:"communities_name"`
 	Description     string `json:"description"`
 	CommunityType   string `json:"community_type"`
 }
 
 func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams) (Community, error) {
-	row := q.db.QueryRowContext(ctx, createCommunity, arg.CommunitiesName, arg.Description, arg.CommunityType)
+	row := q.db.QueryRowContext(ctx, createCommunity,
+		arg.Owner,
+		arg.CommunitiesName,
+		arg.Description,
+		arg.CommunityType,
+	)
 	var i Community
 	err := row.Scan(
 		&i.ID,
+		&i.Owner,
 		&i.CommunitiesName,
 		&i.Description,
 		&i.CommunityType,
@@ -38,31 +46,13 @@ func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams
 	return i, err
 }
 
-const getCommunity = `-- name: GetCommunity :one
-SELECT id,communities_name,description,community_type,created_at FROM communities
-WHERE id = $1 LIMIT 1
+const getAllCommunities = `-- name: GetAllCommunities :many
+SELECT id, owner, communities_name, description, community_type, created_at FROM communities
+WHERE owner=$1
 `
 
-func (q *Queries) GetCommunity(ctx context.Context, id int64) (Community, error) {
-	row := q.db.QueryRowContext(ctx, getCommunity, id)
-	var i Community
-	err := row.Scan(
-		&i.ID,
-		&i.CommunitiesName,
-		&i.Description,
-		&i.CommunityType,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getListCommunity = `-- name: GetListCommunity :many
-SELECT id, communities_name, description, community_type, created_at FROM communities
-ORDER BY id
-`
-
-func (q *Queries) GetListCommunity(ctx context.Context) ([]Community, error) {
-	rows, err := q.db.QueryContext(ctx, getListCommunity)
+func (q *Queries) GetAllCommunities(ctx context.Context, owner string) ([]Community, error) {
+	rows, err := q.db.QueryContext(ctx, getAllCommunities, owner)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +62,7 @@ func (q *Queries) GetListCommunity(ctx context.Context) ([]Community, error) {
 		var i Community
 		if err := rows.Scan(
 			&i.ID,
+			&i.Owner,
 			&i.CommunitiesName,
 			&i.Description,
 			&i.CommunityType,
@@ -88,4 +79,52 @@ func (q *Queries) GetListCommunity(ctx context.Context) ([]Community, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getCommunitiesMember = `-- name: GetCommunitiesMember :many
+SELECT users.username FROM users
+JOIN communities ON users.username = communities.owner
+WHERE communities.communities_name=$1
+`
+
+func (q *Queries) GetCommunitiesMember(ctx context.Context, communitiesName string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getCommunitiesMember, communitiesName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var username string
+		if err := rows.Scan(&username); err != nil {
+			return nil, err
+		}
+		items = append(items, username)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCommunity = `-- name: GetCommunity :one
+SELECT id, owner, communities_name, description, community_type, created_at FROM communities
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetCommunity(ctx context.Context, id int64) (Community, error) {
+	row := q.db.QueryRowContext(ctx, getCommunity, id)
+	var i Community
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.CommunitiesName,
+		&i.Description,
+		&i.CommunityType,
+		&i.CreatedAt,
+	)
+	return i, err
 }
