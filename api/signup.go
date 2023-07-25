@@ -2,21 +2,16 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/twilio/twilio-go"
-	db "khelogames/db/sqlc"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 )
 
-const (
-	accountSid       = "AC678672a16c66b33b075c556dfd805ad1"
-	authToken        = "7c83405dfef243da0cd68c22792444af"
-	verifyServiceSid = "VAd8d998e67283e3bb85bcf5c4f21682ad"
-)
+//const (
+//	accountSid       = "AC678672a16c66b33b075c556dfd805ad1"
+//	authToken        = "7c83405dfef243da0cd68c22792444af"
+//	verifyServiceSid = "VAd8d998e67283e3bb85bcf5c4f21682ad"
+//)
 
 type createSignupResponse struct {
 	MobileNumber string    `json:"mobile_number"`
@@ -29,15 +24,15 @@ type createSignupRequest struct {
 	Otp          string `json:"otp"`
 }
 
-func generateOtp() string {
-	rand.Seed(time.Now().UnixNano())
-	otp := strconv.Itoa(rand.Intn(899999))
-	return otp
-}
+//func generateOtp() string {
+//	rand.Seed(time.Now().UnixNano())
+//	otp := strconv.Itoa(rand.Intn(899999))
+//	return otp
+//}
 
 func (server *Server) createSignup(ctx *gin.Context) {
 
-	client := twilio.NewRestClientWithParams(twilio.ClientParams{Username: accountSid, Password: authToken})
+	//client := twilio.NewRestClientWithParams(twilio.ClientParams{Username: accountSid, Password: authToken})
 
 	var req createSignupRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -50,32 +45,32 @@ func (server *Server) createSignup(ctx *gin.Context) {
 		return
 	}
 
-	otp := generateOtp()
+	//otp := generateOtp()
 
-	arg := db.CreateSignupParams{
-		MobileNumber: req.MobileNumber,
-		Otp:          otp,
-	}
+	//arg := db.CreateSignupParams{
+	//	MobileNumber: req.MobileNumber,
+	//	Otp:          otp,
+	//}
 
-	signup, err := server.store.CreateSignup(ctx, arg)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
+	//signup, err := server.store.CreateSignup(ctx, arg)
+	//if err != nil {
+	//	if err == sql.ErrNoRows {
+	//		ctx.JSON(http.StatusNotFound, errorResponse(err))
+	//		return
+	//	}
+	//	ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	//	return
+	//}
+	//
+	//ctx.JSON(http.StatusOK, signup)
 
-	ctx.JSON(http.StatusOK, signup)
-
-	err = server.sendOTP(client, arg.MobileNumber, otp)
-	if err != nil {
-		fmt.Println("unable to send otp")
-		ctx.JSON(http.StatusNotFound, errorResponse(err))
-		return
-	}
-	fmt.Println("Otp has been send successfully")
+	//err = server.sendOTP(client, arg.MobileNumber, otp)
+	//if err != nil {
+	//	fmt.Println("unable to send otp")
+	//	ctx.JSON(http.StatusNotFound, errorResponse(err))
+	//	return
+	//}
+	//fmt.Println("Otp has been send successfully")
 
 	verifyOTP, err := server.store.GetSignup(ctx, req.MobileNumber)
 	if verifyOTP.MobileNumber != req.MobileNumber {

@@ -31,6 +31,8 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router := gin.Default()
 
 	router.Use(corsHandle())
+
+	router.POST("/send_otp", server.Otp)
 	router.POST("/signup", server.createSignup)
 	router.POST("/users", server.createUser)
 	router.POST("/login", server.createLogin)

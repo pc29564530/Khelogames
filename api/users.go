@@ -2,11 +2,7 @@ package api
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/twilio/twilio-go"
-	openapi "github.com/twilio/twilio-go/rest/verify/v2"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
 	"net/http"
@@ -25,23 +21,9 @@ type createUserResponse struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-//const (
-//	accountSid       = "AC678672a16c66b33b075c556dfd805ad1"
-//	authToken        = "7c83405dfef243da0cd68c22792444af"
-//	verifyServiceSid = "VAd8d998e67283e3bb85bcf5c4f21682ad"
-//)
-
-//func generateOtp() string {
-//	rand.Seed(time.Now().UnixNano())
-//	otp := strconv.Itoa(rand.Intn(899999))
-//	return otp
-//}
-
 func (server *Server) createUser(ctx *gin.Context) {
 
 	var req createUserRequest
-
-	//client := twilio.NewRestClientWithParams(twilio.ClientParams{Username: accountSid, Password: authToken})
 
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -52,8 +34,6 @@ func (server *Server) createUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadGateway, errorResponse(err))
 		return
 	}
-
-	//otp := generateOtp()
 
 	hashedPassword, err := util.HashPassword(req.HashedPassword)
 	if err != nil {
@@ -66,32 +46,6 @@ func (server *Server) createUser(ctx *gin.Context) {
 		MobileNumber:   req.MobileNumber,
 		HashedPassword: hashedPassword,
 	}
-
-	//signup parameter
-	//argSignup := db.CreateSignupParams{
-	//	MobileNumber: req.MobileNumber,
-	//	Otp:          otp,
-	//}
-	// creating a signup to be store in datbase
-	//signup, err := server.store.CreateSignup(ctx, argSignup)
-	//if err != nil {
-	//	if err == sql.ErrNoRows {
-	//		ctx.JSON(http.StatusNotFound, errorResponse(err))
-	//		return
-	//	}
-	//	ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-	//	return
-	//}
-
-	//ctx.JSON(http.StatusOK, signup)
-
-	//err = server.sendOTP(client, arg.MobileNumber, otp)
-	//if err != nil {
-	//	fmt.Println("unable to send otp")
-	//	ctx.JSON(http.StatusNotFound, errorResponse(err))
-	//	return
-	//}
-	//fmt.Println("Otp has been send successfully")
 
 	arg = db.CreateUserParams{
 		Username:       req.Username,
@@ -113,25 +67,6 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, resp)
 	return
-}
-
-// Sending a otp to verify the user mobile number
-func (server *Server) sendOTP(client *twilio.RestClient, to string, otp string) error {
-
-	params := &openapi.CreateVerificationParams{}
-	params.SetTo(to)
-	params.SetChannel("sms")
-
-	resp, err := client.VerifyV2.CreateVerification(verifyServiceSid, params)
-	if err != nil {
-		fmt.Errorf("Unable to create a message: %s", err)
-		return err
-	} else {
-		response, _ := json.Marshal(*resp)
-		fmt.Printf(string(response))
-	}
-
-	return nil
 }
 
 type getUsersRequest struct {
