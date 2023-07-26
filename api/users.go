@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
@@ -11,13 +12,13 @@ import (
 
 type createUserRequest struct {
 	Username       string `json:"username"`
-	MobileNumber   string `json:"mobile_number"`
-	HashedPassword string `json:"hashed_password"`
+	MobileNumber   string `json:"mobileNumber"`
+	HashedPassword string `json:"password"`
 }
 
 type createUserResponse struct {
 	Username     string    `json:"username"`
-	MobileNumber string    `json:"mobile_number"`
+	MobileNumber string    `json:"mobileNumber"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -26,6 +27,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 	var req createUserRequest
 
 	err := ctx.ShouldBindJSON(&req)
+	fmt.Println("unable to bind json ", err)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -34,7 +36,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadGateway, errorResponse(err))
 		return
 	}
-
+	fmt.Println("bind the json")
 	hashedPassword, err := util.HashPassword(req.HashedPassword)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -52,8 +54,12 @@ func (server *Server) createUser(ctx *gin.Context) {
 		MobileNumber:   req.MobileNumber,
 		HashedPassword: hashedPassword,
 	}
+	fmt.Println(arg.Username)
+	fmt.Println(arg.MobileNumber)
+	fmt.Println(arg.HashedPassword)
 
 	user, err := server.store.CreateUser(ctx, arg)
+	fmt.Println("unable to create a new user: ", err)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
@@ -64,7 +70,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		MobileNumber: user.MobileNumber,
 		CreatedAt:    user.CreatedAt,
 	}
-
+	fmt.Println(resp)
 	ctx.JSON(http.StatusOK, resp)
 	return
 }

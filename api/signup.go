@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -20,19 +21,11 @@ type createSignupResponse struct {
 }
 
 type createSignupRequest struct {
-	MobileNumber string `json:"mobile_number"`
+	MobileNumber string `json:"mobileNumber"`
 	Otp          string `json:"otp"`
 }
 
-//func generateOtp() string {
-//	rand.Seed(time.Now().UnixNano())
-//	otp := strconv.Itoa(rand.Intn(899999))
-//	return otp
-//}
-
 func (server *Server) createSignup(ctx *gin.Context) {
-
-	//client := twilio.NewRestClientWithParams(twilio.ClientParams{Username: accountSid, Password: authToken})
 
 	var req createSignupRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -45,44 +38,19 @@ func (server *Server) createSignup(ctx *gin.Context) {
 		return
 	}
 
-	//otp := generateOtp()
-
-	//arg := db.CreateSignupParams{
-	//	MobileNumber: req.MobileNumber,
-	//	Otp:          otp,
-	//}
-
-	//signup, err := server.store.CreateSignup(ctx, arg)
-	//if err != nil {
-	//	if err == sql.ErrNoRows {
-	//		ctx.JSON(http.StatusNotFound, errorResponse(err))
-	//		return
-	//	}
-	//	ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-	//	return
-	//}
-	//
-	//ctx.JSON(http.StatusOK, signup)
-
-	//err = server.sendOTP(client, arg.MobileNumber, otp)
-	//if err != nil {
-	//	fmt.Println("unable to send otp")
-	//	ctx.JSON(http.StatusNotFound, errorResponse(err))
-	//	return
-	//}
-	//fmt.Println("Otp has been send successfully")
-
 	verifyOTP, err := server.store.GetSignup(ctx, req.MobileNumber)
 	if verifyOTP.MobileNumber != req.MobileNumber {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
+	fmt.Println(verifyOTP.Otp)
+	fmt.Println(req.Otp)
 	if verifyOTP.Otp != req.Otp {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
 
 	ctx.JSON(http.StatusOK, verifyOTP)
-	//fmt.Printf("Successfully created account %w", http.StatusOK)
+	fmt.Printf("Successfully created account %w", http.StatusOK)
 	return
 }
