@@ -7,7 +7,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/sfreiberg/gotwilio"
 	db "khelogames/db/sqlc"
-	"khelogames/util"
 	"math/rand"
 	"net/http"
 	"os"
@@ -25,8 +24,6 @@ func generateOtp() string {
 	return otp
 }
 
-var config util.Config
-
 func (server *Server) Otp(ctx *gin.Context) {
 
 	var reqSendOTP createSendOtpRequest
@@ -39,7 +36,6 @@ func (server *Server) Otp(ctx *gin.Context) {
 
 	err = server.sendOTP(reqSendOTP.MobileNumber, otp)
 	if err != nil {
-		fmt.Println("unable to send otp")
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
@@ -52,6 +48,7 @@ func (server *Server) Otp(ctx *gin.Context) {
 
 	signup, err := server.store.CreateSignup(ctx, arg)
 	if err != nil {
+
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return

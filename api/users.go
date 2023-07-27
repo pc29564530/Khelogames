@@ -22,13 +22,22 @@ type createUserResponse struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+type getUsersRequest struct {
+	Username string `json:"username"`
+}
+
 func (server *Server) createUser(ctx *gin.Context) {
 
 	var req createUserRequest
 
 	err := ctx.ShouldBindJSON(&req)
-	fmt.Println("unable to bind json ", err)
+
 	if err != nil {
+		errCode := db.ErrorCode(err)
+		if errCode == db.UniqueViolation {
+			ctx.JSON(http.StatusForbidden, errorResponse(err))
+			return
+		}
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -36,7 +45,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadGateway, errorResponse(err))
 		return
 	}
-	fmt.Println("bind the json")
+
 	hashedPassword, err := util.HashPassword(req.HashedPassword)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -48,15 +57,6 @@ func (server *Server) createUser(ctx *gin.Context) {
 		MobileNumber:   req.MobileNumber,
 		HashedPassword: hashedPassword,
 	}
-
-	arg = db.CreateUserParams{
-		Username:       req.Username,
-		MobileNumber:   req.MobileNumber,
-		HashedPassword: hashedPassword,
-	}
-	fmt.Println(arg.Username)
-	fmt.Println(arg.MobileNumber)
-	fmt.Println(arg.HashedPassword)
 
 	user, err := server.store.CreateUser(ctx, arg)
 	fmt.Println("unable to create a new user: ", err)
@@ -72,11 +72,14 @@ func (server *Server) createUser(ctx *gin.Context) {
 	}
 	fmt.Println(resp)
 	ctx.JSON(http.StatusOK, resp)
-	return
-}
 
-type getUsersRequest struct {
-	Username string `josn:"username"`
+	deleteSignUp, err := server.store.DeleteSignup(ctx, req.MobileNumber)
+	if err != nil {
+		fmt.Errorf("unable to delete the mobile number details: ", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, deleteSignUp)
+	return
 }
 
 func (server *Server) getUsers(ctx *gin.Context) {
