@@ -11,3 +11,7 @@ INSERT INTO signup (
 SELECT * FROM signup
 WHERE mobile_number = $1 LIMIT 1;
 
+-- name: DeleteSignup :one
+DELETE FROM signup
+WHERE mobile_number = $1 RETURNING *;
+
