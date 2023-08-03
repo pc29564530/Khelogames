@@ -3,9 +3,11 @@ INSERT INTO threads (
     username,
     communities_name,
     title,
-    content
+    content,
+    media_type,
+    media_url
 ) VALUES (
-             $1, $2, $3, $4
+             $1, $2, $3, $4, $5, $6
 ) RETURNING *;
 
 -- name: GetThread :one

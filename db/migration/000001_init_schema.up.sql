@@ -1,9 +1,11 @@
 CREATE TABLE "threads" (
                            "id" bigserial PRIMARY KEY,
                            "username" varchar NOT NULL,
-                           "communities_name" varchar,
-                           "title" varchar,
-                           "content" text,
+                           "communities_name" varchar NULL,
+                           "title" varchar NOT NULL,
+                           "content" text NOT NULL,
+                           "media_type" varchar,
+                           "media_url" text,
                            "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
@@ -29,6 +31,10 @@ CREATE TABLE "login" (
                          "username" varchar NOT NULL,
                          "password" varchar NOT NULL
 );
+-- CREATE TABLE "signin" (
+--     "mobile_number" string NOT NULL,
+--     "otp" string NOT NULL
+-- );
 
 CREATE TABLE "signup" (
                           "mobile_number" string UNIQUE NOT NULL,

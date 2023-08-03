@@ -52,6 +52,8 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/get_all_communities_by_owner", server.getAllThreadsByCommunities)
 	authRouter.GET("/get_communities_member/:communities_name", server.getCommunitiesMember)
 
+	//handler := corsHandle.Handler(router)
+
 	server.router = router
 	return server, nil
 }
@@ -67,9 +69,9 @@ func errorResponse(err error) gin.H {
 
 func corsHandle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:19006")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
