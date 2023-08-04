@@ -2,51 +2,42 @@ package api
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/twilio/twilio-go"
-	openapi "github.com/twilio/twilio-go/rest/verify/v2"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 )
 
 type createUserRequest struct {
 	Username       string `json:"username"`
-	MobileNumber   string `json:"mobile_number"`
-	HashedPassword string `json:"hashed_password"`
+	MobileNumber   string `json:"mobileNumber"`
+	HashedPassword string `json:"password"`
 }
 
 type createUserResponse struct {
 	Username     string    `json:"username"`
-	MobileNumber string    `json:"mobile_number"`
+	MobileNumber string    `json:"mobileNumber"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-const (
-	accountSid       = "AC678672a16c66b33b075c556dfd805ad1"
-	authToken        = "7c83405dfef243da0cd68c22792444af"
-	verifyServiceSid = "VAd8d998e67283e3bb85bcf5c4f21682ad"
-)
-
-func generateOtp() string {
-	rand.Seed(time.Now().UnixNano())
-	otp := strconv.Itoa(rand.Intn(899999))
-	return otp
+type getUsersRequest struct {
+	Username string `json:"username"`
 }
 
 func (server *Server) createUser(ctx *gin.Context) {
 
 	var req createUserRequest
 
-	client := twilio.NewRestClientWithParams(twilio.ClientParams{Username: accountSid, Password: authToken})
-
 	err := ctx.ShouldBindJSON(&req)
+
 	if err != nil {
+		errCode := db.ErrorCode(err)
+		if errCode == db.UniqueViolation {
+			ctx.JSON(http.StatusForbidden, errorResponse(err))
+			return
+		}
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -54,8 +45,6 @@ func (server *Server) createUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadGateway, errorResponse(err))
 		return
 	}
-
-	otp := generateOtp()
 
 	hashedPassword, err := util.HashPassword(req.HashedPassword)
 	if err != nil {
@@ -69,39 +58,8 @@ func (server *Server) createUser(ctx *gin.Context) {
 		HashedPassword: hashedPassword,
 	}
 
-	//signup parameter
-	argSignup := db.CreateSignupParams{
-		MobileNumber: req.MobileNumber,
-		Otp:          otp,
-	}
-	// creating a signup to be store in datbase
-	signup, err := server.store.CreateSignup(ctx, argSignup)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, signup)
-
-	err = server.sendOTP(client, arg.MobileNumber, otp)
-	if err != nil {
-		fmt.Println("unable to send otp")
-		ctx.JSON(http.StatusNotFound, errorResponse(err))
-		return
-	}
-	fmt.Println("Otp has been send successfully")
-
-	arg = db.CreateUserParams{
-		Username:       req.Username,
-		MobileNumber:   req.MobileNumber,
-		HashedPassword: hashedPassword,
-	}
-
 	user, err := server.store.CreateUser(ctx, arg)
+	fmt.Println("unable to create a new user: ", err)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
@@ -112,32 +70,16 @@ func (server *Server) createUser(ctx *gin.Context) {
 		MobileNumber: user.MobileNumber,
 		CreatedAt:    user.CreatedAt,
 	}
-
+	fmt.Println(resp)
 	ctx.JSON(http.StatusOK, resp)
-	return
-}
 
-// Sending a otp to verify the user mobile number
-func (server *Server) sendOTP(client *twilio.RestClient, to string, otp string) error {
-
-	params := &openapi.CreateVerificationParams{}
-	params.SetTo(to)
-	params.SetChannel("sms")
-
-	resp, err := client.VerifyV2.CreateVerification(verifyServiceSid, params)
+	deleteSignUp, err := server.store.DeleteSignup(ctx, req.MobileNumber)
 	if err != nil {
-		fmt.Errorf("Unable to create a message: %s", err)
-		return err
-	} else {
-		response, _ := json.Marshal(*resp)
-		fmt.Printf(string(response))
+		fmt.Errorf("unable to delete the mobile number details: ", err)
+		return
 	}
-
-	return nil
-}
-
-type getUsersRequest struct {
-	Username string `josn:"username"`
+	ctx.JSON(http.StatusOK, deleteSignUp)
+	return
 }
 
 func (server *Server) getUsers(ctx *gin.Context) {

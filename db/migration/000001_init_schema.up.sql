@@ -1,9 +1,11 @@
 CREATE TABLE "threads" (
                            "id" bigserial PRIMARY KEY,
                            "username" varchar NOT NULL,
-                           "communities_name" varchar,
-                           "title" varchar,
-                           "content" text,
+                           "communities_name" varchar NOT NULL ,
+                           "title" varchar NOT NULL,
+                           "content" text NOT NULL,
+                           "media_type" varchar NOT NULL ,
+                           "media_url" text NOT NULL ,
                            "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
@@ -29,9 +31,13 @@ CREATE TABLE "login" (
                          "username" varchar NOT NULL,
                          "password" varchar NOT NULL
 );
+-- CREATE TABLE "signin" (
+--     "mobile_number" string NOT NULL,
+--     "otp" string NOT NULL
+-- );
 
 CREATE TABLE "signup" (
-                          "mobile_number" string NOT NULL,
+                          "mobile_number" string UNIQUE NOT NULL,
                           "otp" string NOT NULL
 );
 
@@ -63,11 +69,11 @@ CREATE TABLE "friends_request" (
 --                                     "username" varchar NOT NULL
 -- );
 
-CREATE TABLE "search_bar" (
-                              "full_name" varchar NOT NULL ,
-                              "username" varchar NOT NULL ,
-                              "communities" varchar NOT NULL
-);
+-- CREATE TABLE "search_bar" (
+--                               "full_name" varchar NOT NULL ,
+--                               "username" varchar NOT NULL ,
+--                               "communities" varchar NOT NULL
+-- );
 
 ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
 
@@ -87,8 +93,8 @@ ALTER TABLE "friends_request" ADD FOREIGN KEY ("reciever_username") REFERENCES "
 
 ALTER TABLE "friends_request" ADD FOREIGN KEY ("sender_username") REFERENCES "users" ("username");
 
-ALTER TABLE "search_bar" ADD FOREIGN KEY ("full_name") REFERENCES "users" ("full_name");
-
-ALTER TABLE "search_bar" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
-
-ALTER TABLE "search_bar" ADD FOREIGN KEY ("communities") REFERENCES "communities" ("communities_name")
+-- ALTER TABLE "search_bar" ADD FOREIGN KEY ("full_name") REFERENCES "users" ("full_name");
+--
+-- ALTER TABLE "search_bar" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
+--
+-- ALTER TABLE "search_bar" ADD FOREIGN KEY ("communities") REFERENCES "communities" ("communities_name")

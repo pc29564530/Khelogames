@@ -111,7 +111,6 @@ func (server *Server) createLogin(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		fmt.Printf("token error is comming in india")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

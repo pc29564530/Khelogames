@@ -2,45 +2,50 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	db "khelogames/db/sqlc"
 	"net/http"
-	"time"
 )
 
-type createSignupResponse struct {
-	MobileNumber string    `json:"mobile_number"`
-	Otp          string    `json:"otp"`
-	CreatedAt    time.Time `json:"created_at"`
-}
-
 type createSignupRequest struct {
-	MobileNumber string `json:"mobile_number"`
+	MobileNumber string `json:"mobileNumber"`
 	Otp          string `json:"otp"`
 }
 
 func (server *Server) createSignup(ctx *gin.Context) {
+
 	var req createSignupRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+
+		errCode := db.ErrorCode(err)
+		if errCode == db.UniqueViolation {
+			ctx.JSON(http.StatusForbidden, errorResponse(err))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	user, err := server.store.GetSignup(ctx, req.MobileNumber)
-	if user.MobileNumber != req.MobileNumber {
-		ctx.JSON(http.StatusNotFound, errorResponse(err))
-		return
-	}
-	if user.Otp != req.Otp {
+	verifyOTP, err := server.store.GetSignup(ctx, req.MobileNumber)
+	if verifyOTP.MobileNumber != req.MobileNumber {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, user)
-	//fmt.Printf("Successfully created account %w", http.StatusOK)
+	if verifyOTP.Otp != req.Otp {
+		ctx.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, verifyOTP)
+	fmt.Printf("Successfully created account %w", http.StatusOK)
 	return
 }

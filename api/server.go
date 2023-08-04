@@ -29,15 +29,16 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	}
 
 	router := gin.Default()
-	router.POST("/users", server.createUser)
-	router.POST("/signup", server.createSignup)
-	router.POST("/login", server.createLogin)
 
+	router.Use(corsHandle())
+
+	router.POST("/send_otp", server.Otp)
+	router.POST("/signup", server.createSignup)
+	router.POST("/users", server.createUser)
+	router.POST("/login", server.createLogin)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRouter.GET("/user_list", server.listUsers)
-	//router.POST("/blogs", server.createBlog)
-	//authRouter.GET("/blogs/:id", server.getBlog)
 	authRouter.POST("/communities", server.createCommunites)
 	authRouter.GET("/communities/:id", server.getCommunity)
 	authRouter.POST("/friend_request", server.getRecieverUsername)
@@ -51,6 +52,8 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/get_all_communities_by_owner", server.getAllThreadsByCommunities)
 	authRouter.GET("/get_communities_member/:communities_name", server.getCommunitiesMember)
 
+	//handler := corsHandle.Handler(router)
+
 	server.router = router
 	return server, nil
 }
@@ -62,4 +65,19 @@ func (server *Server) Start(address string) error {
 
 func errorResponse(err error) gin.H {
 	return gin.H{"error": err.Error()}
+}
+
+func corsHandle() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:19006")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }
