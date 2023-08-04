@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createThread = `-- name: CreateThread :one
@@ -24,12 +23,12 @@ INSERT INTO threads (
 `
 
 type CreateThreadParams struct {
-	Username        string         `json:"username"`
-	CommunitiesName sql.NullString `json:"communities_name"`
-	Title           string         `json:"title"`
-	Content         string         `json:"content"`
-	MediaType       sql.NullString `json:"media_type"`
-	MediaUrl        sql.NullString `json:"media_url"`
+	Username        string `json:"username"`
+	CommunitiesName string `json:"communities_name"`
+	Title           string `json:"title"`
+	Content         string `json:"content"`
+	MediaType       string `json:"media_type"`
+	MediaUrl        string `json:"media_url"`
 }
 
 func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (Thread, error) {
@@ -97,7 +96,7 @@ WHERE communities_name = $1
 ORDER BY id=$1
 `
 
-func (q *Queries) GetAllThreadsByCommunities(ctx context.Context, communitiesName sql.NullString) ([]Thread, error) {
+func (q *Queries) GetAllThreadsByCommunities(ctx context.Context, communitiesName string) ([]Thread, error) {
 	rows, err := q.db.QueryContext(ctx, getAllThreadsByCommunities, communitiesName)
 	if err != nil {
 		return nil, err

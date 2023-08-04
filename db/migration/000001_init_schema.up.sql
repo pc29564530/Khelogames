@@ -1,11 +1,11 @@
 CREATE TABLE "threads" (
                            "id" bigserial PRIMARY KEY,
                            "username" varchar NOT NULL,
-                           "communities_name" varchar NULL,
+                           "communities_name" varchar NOT NULL ,
                            "title" varchar NOT NULL,
                            "content" text NOT NULL,
-                           "media_type" varchar,
-                           "media_url" text,
+                           "media_type" varchar NOT NULL ,
+                           "media_url" text NOT NULL ,
                            "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
