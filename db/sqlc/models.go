@@ -5,11 +5,18 @@
 package db
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type Comment struct {
+	ID          int64     `json:"id"`
+	ThreadID    int64     `json:"thread_id"`
+	Owner       string    `json:"owner"`
+	CommentText string    `json:"comment_text"`
+	CreatedAt   time.Time `json:"created_at"`
+}
 
 type Community struct {
 	ID              int64     `json:"id"`
@@ -18,6 +25,13 @@ type Community struct {
 	Description     string    `json:"description"`
 	CommunityType   string    `json:"community_type"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+type Follow struct {
+	ID             int64     `json:"id"`
+	FollowerOwner  string    `json:"follower_owner"`
+	FollowingOwner string    `json:"following_owner"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type Friend struct {
@@ -55,12 +69,15 @@ type Signup struct {
 }
 
 type Thread struct {
-	ID              int64          `json:"id"`
-	Username        string         `json:"username"`
-	CommunitiesName sql.NullString `json:"communities_name"`
-	Title           sql.NullString `json:"title"`
-	Content         sql.NullString `json:"content"`
-	CreatedAt       time.Time      `json:"created_at"`
+	ID              int64     `json:"id"`
+	Username        string    `json:"username"`
+	CommunitiesName string    `json:"communities_name"`
+	Title           string    `json:"title"`
+	Content         string    `json:"content"`
+	MediaType       string    `json:"media_type"`
+	MediaUrl        string    `json:"media_url"`
+	LikeCount       int64     `json:"like_count"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type User struct {

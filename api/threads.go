@@ -17,6 +17,7 @@ type createThreadRequest struct {
 	Content         string `json:"content"`
 	MediaType       string `json:"mediaType,omitempty"`
 	MediaURL        string `json:"mediaURL,omitempty"`
+	LikeCount       int64  `json:"likeCount"`
 }
 
 func (server *Server) createThread(ctx *gin.Context) {
@@ -43,7 +44,7 @@ func (server *Server) createThread(ctx *gin.Context) {
 
 	fmt.Println(path)
 
-	//function for uploading a image or video
+	//function for uplo	ading a image or video
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateThreadParams{
 		Username:        authPayload.Username,
@@ -52,6 +53,7 @@ func (server *Server) createThread(ctx *gin.Context) {
 		Content:         req.Content,
 		MediaType:       req.MediaType,
 		MediaUrl:        path,
+		LikeCount:       0,
 	}
 
 	thread, err := server.store.CreateThread(ctx, arg)
@@ -94,6 +96,29 @@ func (server *Server) getAllThreadsByCommunities(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, threads)
 	return
+}
+
+type updateThreadLikeRequest struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+func (server *Server) updateThreadLike(ctx *gin.Context) {
+	var req updateThreadLikeRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	thread, err := server.store.UpdateThreadLike(ctx, req.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, thread)
+	return
+
 }
 
 func (server *Server) Uploads(ctx *gin.Context) {

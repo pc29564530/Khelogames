@@ -16,10 +16,11 @@ INSERT INTO threads (
     title,
     content,
     media_type,
-    media_url
+    media_url,
+    like_count
 ) VALUES (
-             $1, $2, $3, $4, $5, $6
-) RETURNING id, username, communities_name, title, content, media_type, media_url, created_at
+             $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, username, communities_name, title, content, media_type, media_url, like_count, created_at
 `
 
 type CreateThreadParams struct {
@@ -29,6 +30,7 @@ type CreateThreadParams struct {
 	Content         string `json:"content"`
 	MediaType       string `json:"media_type"`
 	MediaUrl        string `json:"media_url"`
+	LikeCount       int64  `json:"like_count"`
 }
 
 func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (Thread, error) {
@@ -39,6 +41,7 @@ func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (Thr
 		arg.Content,
 		arg.MediaType,
 		arg.MediaUrl,
+		arg.LikeCount,
 	)
 	var i Thread
 	err := row.Scan(
@@ -49,13 +52,14 @@ func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (Thr
 		&i.Content,
 		&i.MediaType,
 		&i.MediaUrl,
+		&i.LikeCount,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getAllThreads = `-- name: GetAllThreads :many
-SELECT id, username, communities_name, title, content, media_type, media_url, created_at FROM threads
+SELECT id, username, communities_name, title, content, media_type, media_url, like_count, created_at FROM threads
 `
 
 func (q *Queries) GetAllThreads(ctx context.Context) ([]Thread, error) {
@@ -75,6 +79,7 @@ func (q *Queries) GetAllThreads(ctx context.Context) ([]Thread, error) {
 			&i.Content,
 			&i.MediaType,
 			&i.MediaUrl,
+			&i.LikeCount,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -91,7 +96,7 @@ func (q *Queries) GetAllThreads(ctx context.Context) ([]Thread, error) {
 }
 
 const getAllThreadsByCommunities = `-- name: GetAllThreadsByCommunities :many
-SELECT id, username, communities_name, title, content, media_type, media_url, created_at FROM threads
+SELECT id, username, communities_name, title, content, media_type, media_url, like_count, created_at FROM threads
 WHERE communities_name = $1
 ORDER BY id=$1
 `
@@ -113,6 +118,7 @@ func (q *Queries) GetAllThreadsByCommunities(ctx context.Context, communitiesNam
 			&i.Content,
 			&i.MediaType,
 			&i.MediaUrl,
+			&i.LikeCount,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -129,7 +135,7 @@ func (q *Queries) GetAllThreadsByCommunities(ctx context.Context, communitiesNam
 }
 
 const getThread = `-- name: GetThread :one
-SELECT id, username, communities_name, title, content, media_type, media_url, created_at FROM threads
+SELECT id, username, communities_name, title, content, media_type, media_url, like_count, created_at FROM threads
 WHERE id = $1 LIMIT 1
 `
 
@@ -144,6 +150,31 @@ func (q *Queries) GetThread(ctx context.Context, id int64) (Thread, error) {
 		&i.Content,
 		&i.MediaType,
 		&i.MediaUrl,
+		&i.LikeCount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateThreadLike = `-- name: UpdateThreadLike :one
+UPDATE threads
+SET like_count=like_count + 1
+WHERE id=$1
+RETURNING id, username, communities_name, title, content, media_type, media_url, like_count, created_at
+`
+
+func (q *Queries) UpdateThreadLike(ctx context.Context, id int64) (Thread, error) {
+	row := q.db.QueryRowContext(ctx, updateThreadLike, id)
+	var i Thread
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.CommunitiesName,
+		&i.Title,
+		&i.Content,
+		&i.MediaType,
+		&i.MediaUrl,
+		&i.LikeCount,
 		&i.CreatedAt,
 	)
 	return i, err

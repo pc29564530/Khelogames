@@ -6,6 +6,7 @@ CREATE TABLE "threads" (
                            "content" text NOT NULL,
                            "media_type" varchar NOT NULL ,
                            "media_url" text NOT NULL ,
+                           "like_count" bigint NOT NULL,
                            "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
@@ -64,6 +65,8 @@ CREATE TABLE "friends_request" (
                                 "created_at" timestamp   NOT NULL DEFAULT (now())
 );
 
+
+
 -- CREATE TABLE "community_member" (
 --                                     "communities_name" varchar NOT NULL,
 --                                     "username" varchar NOT NULL
@@ -74,6 +77,45 @@ CREATE TABLE "friends_request" (
 --                               "username" varchar NOT NULL ,
 --                               "communities" varchar NOT NULL
 -- );
+
+-- CREATE TABLE "likes" (
+--                         "thread_id" bigserial PRIMARY KEY,
+--                         "count" bigInt NOT NULL
+-- );
+--
+
+CREATE TABLE "follow" (
+                          "id" bigserial PRIMARY KEY,
+                          "follower_owner" varchar NOT NULL,
+                          "following_owner" varchar NOT NULL,
+                          "created_at" timestamp NOT NULL DEFAULT 'now()'
+);
+
+CREATE TABLE "comment" (
+                           "id" bigserial PRIMARY KEY,
+                           "thread_id" bigserial NOT NULL,
+                           "owner" varchar NOT NULL,
+                           "comment_text" text NOT NULL,
+                           "created_at" timestamp NOT NULL DEFAULT 'now()'
+);
+
+ALTER TABLE "comment" ADD FOREIGN KEY ("thread_id") REFERENCES "threads" ("id");
+
+ALTER TABLE "comment" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
+
+ALTER TABLE "follow" ADD FOREIGN KEY ("follower_owner") REFERENCES "users" ("username");
+
+ALTER TABLE "follow" ADD FOREIGN KEY ("following_owner") REFERENCES "users" ("username");
+
+--
+-- ALTER TABLE "likes" ADD FOREIGN KEY ("thread_id") REFERENCES "threads" ("id");
+--
+-- ALTER TABLE "comment" ADD FOREIGN KEY ("thread_id") REFERENCES "threads" ("id");
+--
+-- ALTER TABLE "comment" ADD FOREIGN KEY ("user_username") REFERENCES "users" ("username");
+ALTER TABLE "comment" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
+
+ALTER TABLE "comment" ADD FOREIGN KEY ("thread_id") REFERENCES "threads" ("id");
 
 ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
 

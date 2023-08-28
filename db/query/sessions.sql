@@ -13,7 +13,7 @@ INSERT INTO sessions (
 
 -- name: GetSessions :one
 SELECT * FROM sessions
-WHERE id = $1;
+WHERE username = $1;
 
 -- name: DeleteSessions :exec
 DELETE FROM sessions

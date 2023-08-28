@@ -11,10 +11,10 @@ import (
 )
 
 type createCommunitiesRequest struct {
-	Owner           string `json:"owner"`
-	CommunitiesName string `json:"communities_name"`
-	Description     string `json:"description"`
-	CommunityType   string `json:"community_type"`
+	Owner         string `json:"owner"`
+	CommunityName string `json:"communityName"`
+	Description   string `json:"description"`
+	CommunityType string `json:"communityType"`
 }
 
 // Create communities function
@@ -33,7 +33,7 @@ func (server *Server) createCommunites(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateCommunityParams{
 		Owner:           authPayload.Username,
-		CommunitiesName: req.CommunitiesName,
+		CommunitiesName: req.CommunityName,
 		Description:     req.Description,
 		CommunityType:   req.CommunityType,
 	}
@@ -52,9 +52,9 @@ type getCommunityRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 type getCommunityResponse struct {
-	CommunitiesName string    `json:"communities_name"`
+	CommunitiesName string    `json:"communityName"`
 	Description     string    `json:"description"`
-	CommunityType   string    `json:"community_type"`
+	CommunityType   string    `json:"communityType"`
 	CreatedAt       time.Time `json:"created_at"`
 }
 
