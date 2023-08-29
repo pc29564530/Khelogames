@@ -9,8 +9,8 @@ import (
 )
 
 type createCommentRequest struct {
-	ThreadID    int64  `json: "thread_id"`
-	CommentText string `json: "comment_text"`
+	ThreadID    int64  `json:"thread_id"`
+	CommentText string `json:"comment_text"`
 }
 
 func (server *Server) createComment(ctx *gin.Context) {

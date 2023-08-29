@@ -57,7 +57,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/create_follow/:following_owner", server.createFollowing)
 	authRouter.GET("/getFollower", server.getAllFollower)
 	authRouter.GET("/getFollowing", server.getAllFollowing)
-	authRouter.POST("/createComment", server.createComment)
+	authRouter.POST("/createComment/:thread_id", server.createComment)
 	authRouter.GET("/getComment", server.getAllComment)
 
 	//handler := corsHandle.Handler(router)
