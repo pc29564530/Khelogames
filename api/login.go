@@ -34,13 +34,11 @@ type loginUserResponse struct {
 }
 
 func (server *Server) createLogin(ctx *gin.Context) {
-	//config, err := util.LoadConfig(".")
 	var req createLoginRequest
 
 	err := ctx.ShouldBindJSON(&req)
 	fmt.Println(err)
 	if err != nil {
-		fmt.Printf("not able to get form data")
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -64,6 +62,9 @@ func (server *Server) createLogin(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
+
+	fmt.Println(user)
+	fmt.Println(req.Password)
 
 	//userData, err := server.store.GetUser(ctx, req.Username)
 	//fmt.Println(userData.Username)

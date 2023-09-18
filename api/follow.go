@@ -74,3 +74,15 @@ func (server *Server) getAllFollowing(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, follower)
 	return
 }
+
+func (server *Server) deleteFollowing(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	following, err := server.store.DeleteFollowing(ctx, authPayload.Username)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, following)
+	return
+}

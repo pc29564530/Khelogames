@@ -37,6 +37,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router.POST("/users", server.createUser)
 	router.POST("/login", server.createLogin)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
+	router.GET("/user/:username", server.getUsers)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRouter.GET("/user_list", server.listUsers)
 	authRouter.POST("/communities", server.createCommunites)
@@ -59,6 +60,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/getFollowing", server.getAllFollowing)
 	authRouter.POST("/createComment/:thread_id", server.createComment)
 	authRouter.GET("/getComment/:thread_id", server.getAllComment)
+	authRouter.DELETE("/unFollow/:following_owner", server.deleteFollowing)
 
 	//handler := corsHandle.Handler(router)
 

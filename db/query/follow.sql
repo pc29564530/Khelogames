@@ -13,3 +13,7 @@ WHERE following_owner = $1;
 -- name: GetAllFollowing :many
 SELECT following_owner FROM follow
 WHERE follower_owner =  $1;
+
+-- name: DeleteFollowing :one
+DELETE FROM follow
+WHERE following_owner = $1 RETURNING *;
