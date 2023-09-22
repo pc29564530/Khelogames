@@ -51,6 +51,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/create_thread", server.createThread)
 	//authRouter.GET("/likes", server.getLikes)
 	//authRouter.POST("add_likes", server.AddLike)
+	authRouter.GET("/getThread/:id", server.getThread)
 	authRouter.PUT("/update_like/:id", server.updateThreadLike)
 	authRouter.GET("/all_threads", server.getAllThreads)
 	authRouter.GET("/get_all_communities_by_owner", server.getAllThreadsByCommunities)

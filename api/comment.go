@@ -9,13 +9,26 @@ import (
 )
 
 type createCommentRequest struct {
-	ThreadID    int64  `json:"thread_id"`
 	CommentText string `json:"comment_text"`
+}
+
+type createCommentThreadIdRequest struct {
+	ThreadID int64 `uri:"thread_id"`
 }
 
 func (server *Server) createComment(ctx *gin.Context) {
 	var req createCommentRequest
+	var reqThreadId createCommentThreadIdRequest
 	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	err = ctx.ShouldBindUri(&reqThreadId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -27,7 +40,7 @@ func (server *Server) createComment(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateCommentParams{
-		ThreadID:    req.ThreadID,
+		ThreadID:    reqThreadId.ThreadID,
 		Owner:       authPayload.Username,
 		CommentText: req.CommentText,
 	}

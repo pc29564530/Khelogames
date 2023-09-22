@@ -65,6 +65,27 @@ func (server *Server) createThread(ctx *gin.Context) {
 	return
 }
 
+type getThreadRequest struct {
+	ID int64 `uri:"id"`
+}
+
+func (server *Server) getThread(ctx *gin.Context) {
+	var req getThreadRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	thread, err := server.store.GetThread(ctx, req.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, thread)
+	return
+}
+
 func (server *Server) getAllThreads(ctx *gin.Context) {
 	threads, err := server.store.GetAllThreads(ctx)
 	if err != nil {
