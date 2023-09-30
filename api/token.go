@@ -33,7 +33,7 @@ func (server *Server) renewAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	session, err := server.store.GetSessions(ctx, refreshPayload.ID)
+	session, err := server.store.GetSessions(ctx, refreshPayload.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))

@@ -1,9 +1,13 @@
 package api
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -17,6 +21,7 @@ type createThreadRequest struct {
 	Content         string `json:"content"`
 	MediaType       string `json:"mediaType,omitempty"`
 	MediaURL        string `json:"mediaURL,omitempty"`
+	LikeCount       int64  `json:"likeCount"`
 }
 
 func (server *Server) createThread(ctx *gin.Context) {
@@ -27,6 +32,7 @@ func (server *Server) createThread(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
 	b64data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
 
 	data, err := base64.StdEncoding.DecodeString(b64data)
@@ -41,8 +47,6 @@ func (server *Server) createThread(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println(path)
-
 	//function for uploading a image or video
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateThreadParams{
@@ -52,9 +56,32 @@ func (server *Server) createThread(ctx *gin.Context) {
 		Content:         req.Content,
 		MediaType:       req.MediaType,
 		MediaUrl:        path,
+		LikeCount:       0,
 	}
 
 	thread, err := server.store.CreateThread(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, thread)
+	return
+}
+
+type getThreadRequest struct {
+	ID int64 `uri:"id"`
+}
+
+func (server *Server) getThread(ctx *gin.Context) {
+	var req getThreadRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	thread, err := server.store.GetThread(ctx, req.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -96,41 +123,70 @@ func (server *Server) getAllThreadsByCommunities(ctx *gin.Context) {
 	return
 }
 
-func (server *Server) Uploads(ctx *gin.Context) {
-	file, err := ctx.FormFile("image")
-	fmt.Println(file)
+type updateThreadLikeRequest struct {
+	ID int64 `uri:"id" binding:"required,min=1"`
+}
+
+func (server *Server) updateThreadLike(ctx *gin.Context) {
+	var req updateThreadLikeRequest
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	fmt.Println("Hello IUndia what are you doing ")
+	thread, err := server.store.UpdateThreadLike(ctx, req.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, thread)
+	return
 
 }
 
-//func decodeBase64Image(base64Str string) ([]byte, error) {
-//	fmt.Println("line no 102")
-//	data, err := base64.StdEncoding.DecodeString(base64Str)
-//	fmt.Println(string(data))
-//	fmt.Println(err)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return data, nil
-//}
-
 func saveImageToFile(data []byte) (string, error) {
-	filePath := "/home/pawan/projects/golang-project/Khelogames/images/image.jpg"
+	randomString, err := generateRandomString(12)
+	if err != nil {
+		fmt.Printf("Error generating random string: %v\n", err)
+		return "", err
+	}
+	filePath := fmt.Sprintf("/home/pawan/projects/golang-project/Khelogames/images/%s", randomString)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
 
-	_, err = file.Write(data)
+	_, err = io.Copy(file, bytes.NewReader(data))
 	if err != nil {
 		return "", err
 	}
-	return filePath, nil
+
+	fmt.Println(filePath)
+
+	path := convertLocalPathToURL(filePath)
+	return path, nil
+}
+
+func generateRandomString(length int) (string, error) {
+	if length%2 != 0 {
+		return "", fmt.Errorf("length must be even for generating hex string")
+	}
+
+	randomBytes := make([]byte, length/2)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(randomBytes), nil
+}
+
+func convertLocalPathToURL(localPath string) string {
+	baseURL := "http://192.168.0.105:8080/images/"
+	imagePath := baseURL + strings.TrimPrefix(localPath, "/home/pawan/projects/golang-project/Khelogames/images/")
+	filePath := fmt.Sprintf("%s", imagePath)
+	return filePath
 }

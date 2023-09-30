@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
@@ -31,12 +32,14 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router := gin.Default()
 
 	router.Use(corsHandle())
+	router.StaticFS("/images", http.Dir("/home/pawan/projects/golang-project/Khelogames/images"))
 
 	router.POST("/send_otp", server.Otp)
 	router.POST("/signup", server.createSignup)
 	router.POST("/users", server.createUser)
 	router.POST("/login", server.createLogin)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
+	router.GET("/user/:username", server.getUsers)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRouter.GET("/user_list", server.listUsers)
 	authRouter.POST("/communities", server.createCommunites)
@@ -48,9 +51,17 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/community/:id", server.getCommunity)
 	authRouter.GET("/get_all_communities/:owner", server.getAllCommunities)
 	authRouter.POST("/create_thread", server.createThread)
+	authRouter.GET("/getThread/:id", server.getThread)
+	authRouter.PUT("/update_like/:id", server.updateThreadLike)
 	authRouter.GET("/all_threads", server.getAllThreads)
 	authRouter.GET("/get_all_communities_by_owner", server.getAllThreadsByCommunities)
 	authRouter.GET("/get_communities_member/:communities_name", server.getCommunitiesMember)
+	authRouter.POST("/create_follow/:following_owner", server.createFollowing)
+	authRouter.GET("/getFollower", server.getAllFollower)
+	authRouter.GET("/getFollowing", server.getAllFollowing)
+	authRouter.POST("/createComment/:threadId", server.createComment)
+	authRouter.GET("/getComment/:thread_id", server.getAllComment)
+	authRouter.DELETE("/unFollow/:following_owner", server.deleteFollowing)
 
 	//handler := corsHandle.Handler(router)
 

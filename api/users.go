@@ -22,10 +22,6 @@ type createUserResponse struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-type getUsersRequest struct {
-	Username string `json:"username"`
-}
-
 func (server *Server) createUser(ctx *gin.Context) {
 
 	var req createUserRequest
@@ -82,19 +78,28 @@ func (server *Server) createUser(ctx *gin.Context) {
 	return
 }
 
+type getUserRequest struct {
+	Username string `uri:"username"`
+}
+
 func (server *Server) getUsers(ctx *gin.Context) {
-	var req getUsersRequest
-	err := ctx.ShouldBindJSON(&req)
+	var req getUserRequest
+	err := ctx.ShouldBindUri(&req)
+	fmt.Println(err)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	fmt.Println(req.Username)
 
 	users, err := server.store.GetUser(ctx, req.Username)
+	fmt.Println(err)
+	fmt.Println(req.Username)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	fmt.Println(users)
 
 	ctx.JSON(http.StatusOK, users)
 	return
