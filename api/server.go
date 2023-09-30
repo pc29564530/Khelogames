@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
@@ -31,6 +32,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router := gin.Default()
 
 	router.Use(corsHandle())
+	router.StaticFS("/images", http.Dir("/home/pawan/projects/golang-project/Khelogames/images"))
 
 	router.POST("/send_otp", server.Otp)
 	router.POST("/signup", server.createSignup)
@@ -49,8 +51,6 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/community/:id", server.getCommunity)
 	authRouter.GET("/get_all_communities/:owner", server.getAllCommunities)
 	authRouter.POST("/create_thread", server.createThread)
-	//authRouter.GET("/likes", server.getLikes)
-	//authRouter.POST("add_likes", server.AddLike)
 	authRouter.GET("/getThread/:id", server.getThread)
 	authRouter.PUT("/update_like/:id", server.updateThreadLike)
 	authRouter.GET("/all_threads", server.getAllThreads)
@@ -59,7 +59,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/create_follow/:following_owner", server.createFollowing)
 	authRouter.GET("/getFollower", server.getAllFollower)
 	authRouter.GET("/getFollowing", server.getAllFollowing)
-	authRouter.POST("/createComment/:thread_id", server.createComment)
+	authRouter.POST("/createComment/:threadId", server.createComment)
 	authRouter.GET("/getComment/:thread_id", server.getAllComment)
 	authRouter.DELETE("/unFollow/:following_owner", server.deleteFollowing)
 

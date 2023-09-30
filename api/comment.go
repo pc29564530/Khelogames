@@ -9,11 +9,11 @@ import (
 )
 
 type createCommentRequest struct {
-	CommentText string `json:"comment_text"`
+	CommentText string `json:"commentText"`
 }
 
 type createCommentThreadIdRequest struct {
-	ThreadID int64 `uri:"thread_id"`
+	ThreadID int64 `uri:"threadId"`
 }
 
 func (server *Server) createComment(ctx *gin.Context) {

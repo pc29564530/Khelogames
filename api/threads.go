@@ -1,9 +1,13 @@
 package api
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -28,6 +32,7 @@ func (server *Server) createThread(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
 	b64data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
 
 	data, err := base64.StdEncoding.DecodeString(b64data)
@@ -42,9 +47,7 @@ func (server *Server) createThread(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println(path)
-
-	//function for uplo	ading a image or video
+	//function for uploading a image or video
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateThreadParams{
 		Username:        authPayload.Username,
@@ -61,6 +64,7 @@ func (server *Server) createThread(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -142,41 +146,47 @@ func (server *Server) updateThreadLike(ctx *gin.Context) {
 
 }
 
-func (server *Server) Uploads(ctx *gin.Context) {
-	file, err := ctx.FormFile("image")
-	fmt.Println(file)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	fmt.Println("Hello IUndia what are you doing ")
-
-}
-
-//func decodeBase64Image(base64Str string) ([]byte, error) {
-//	fmt.Println("line no 102")
-//	data, err := base64.StdEncoding.DecodeString(base64Str)
-//	fmt.Println(string(data))
-//	fmt.Println(err)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return data, nil
-//}
-
 func saveImageToFile(data []byte) (string, error) {
-	filePath := "/home/pawan/projects/golang-project/Khelogames/images/image.jpg"
+	randomString, err := generateRandomString(12)
+	if err != nil {
+		fmt.Printf("Error generating random string: %v\n", err)
+		return "", err
+	}
+	filePath := fmt.Sprintf("/home/pawan/projects/golang-project/Khelogames/images/%s", randomString)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
 
-	_, err = file.Write(data)
+	_, err = io.Copy(file, bytes.NewReader(data))
 	if err != nil {
 		return "", err
 	}
-	return filePath, nil
+
+	fmt.Println(filePath)
+
+	path := convertLocalPathToURL(filePath)
+	return path, nil
+}
+
+func generateRandomString(length int) (string, error) {
+	if length%2 != 0 {
+		return "", fmt.Errorf("length must be even for generating hex string")
+	}
+
+	randomBytes := make([]byte, length/2)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(randomBytes), nil
+}
+
+func convertLocalPathToURL(localPath string) string {
+	baseURL := "http://192.168.0.105:8080/images/"
+	imagePath := baseURL + strings.TrimPrefix(localPath, "/home/pawan/projects/golang-project/Khelogames/images/")
+	filePath := fmt.Sprintf("%s", imagePath)
+	return filePath
 }
