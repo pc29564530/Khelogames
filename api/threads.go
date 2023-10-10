@@ -15,6 +15,67 @@ import (
 	"strings"
 )
 
+func saveImageToFile(data []byte) (string, error) {
+	randomString, err := generateRandomString(12)
+	if err != nil {
+		fmt.Printf("Error generating random string: %v\n", err)
+		return "", err
+	}
+	filePath := fmt.Sprintf("/home/pawan/projects/golang-project/Khelogames/images/%s", randomString)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, bytes.NewReader(data))
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println(filePath)
+
+	path := convertLocalPathToURL(filePath)
+	return path, nil
+}
+
+func generateRandomString(length int) (string, error) {
+	if length%2 != 0 {
+		return "", fmt.Errorf("length must be even for generating hex string")
+	}
+
+	randomBytes := make([]byte, length/2)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(randomBytes), nil
+}
+
+func convertLocalPathToURL(localPath string) string {
+	baseURL := "http://192.168.0.105:8080/images/"
+	imagePath := baseURL + strings.TrimPrefix(localPath, "/home/pawan/projects/golang-project/Khelogames/images/")
+	filePath := fmt.Sprintf("%s", imagePath)
+	return filePath
+}
+
+func copyFile(src, dest string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+	_, err = io.Copy(destFile, srcFile)
+	return err
+}
+
 type createThreadRequest struct {
 	CommunitiesName string `json:"communities_name,omitempty"`
 	Title           string `json:"title"`
@@ -32,6 +93,20 @@ func (server *Server) createThread(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	//mediaType, _, err := mime.ParseMediaType(req.MediaURL)
+	//if err != nil {
+	//	fmt.Println("Invalid media type:", err)
+	//	return
+	//}
+
+	//fmt.Println(req.MediaURL)
+	//fmt.Println(req.MediaURL)
+	//fmt.Println(req.MediaType)
+	//
+	////filePath := strings.TrimPrefix(req.MediaURL, "file://")
+	////fmt.Println(filePath)
+	//fmt.Println(reflect.TypeOf(req.MediaURL))
 
 	b64data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
 
@@ -65,6 +140,8 @@ func (server *Server) createThread(ctx *gin.Context) {
 		return
 	}
 
+	fmt.Println(thread)
+	fmt.Println("lin no 77 threasds")
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -144,49 +221,4 @@ func (server *Server) updateThreadLike(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, thread)
 	return
 
-}
-
-func saveImageToFile(data []byte) (string, error) {
-	randomString, err := generateRandomString(12)
-	if err != nil {
-		fmt.Printf("Error generating random string: %v\n", err)
-		return "", err
-	}
-	filePath := fmt.Sprintf("/home/pawan/projects/golang-project/Khelogames/images/%s", randomString)
-	file, err := os.Create(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, bytes.NewReader(data))
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Println(filePath)
-
-	path := convertLocalPathToURL(filePath)
-	return path, nil
-}
-
-func generateRandomString(length int) (string, error) {
-	if length%2 != 0 {
-		return "", fmt.Errorf("length must be even for generating hex string")
-	}
-
-	randomBytes := make([]byte, length/2)
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(randomBytes), nil
-}
-
-func convertLocalPathToURL(localPath string) string {
-	baseURL := "http://192.168.0.105:8080/images/"
-	imagePath := baseURL + strings.TrimPrefix(localPath, "/home/pawan/projects/golang-project/Khelogames/images/")
-	filePath := fmt.Sprintf("%s", imagePath)
-	return filePath
 }
