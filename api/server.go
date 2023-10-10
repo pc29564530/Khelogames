@@ -2,11 +2,12 @@ package api
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"khelogames/util"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Server struct {
@@ -32,7 +33,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router := gin.Default()
 
 	router.Use(corsHandle())
-	router.StaticFS("/images", http.Dir("/home/pawan/projects/golang-project/Khelogames/images"))
+	router.StaticFS("/images", http.Dir("/Users/pawan/project/Khelogames/images"))
 
 	router.POST("/send_otp", server.Otp)
 	router.POST("/signup", server.createSignup)
@@ -80,7 +81,7 @@ func errorResponse(err error) gin.H {
 
 func corsHandle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "192.168.0.105:8080")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "0.0.0.0:8080")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 
