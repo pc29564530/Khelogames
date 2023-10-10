@@ -2,11 +2,11 @@ package api
 
 import (
 	"fmt"
-	"net/http"
 	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"khelogames/util"
+	"net/http"
 )
 
 type Server struct {
@@ -80,7 +80,7 @@ func errorResponse(err error) gin.H {
 
 func corsHandle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:19006")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "192.168.0.105:8080")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 

@@ -18,7 +18,6 @@ func (server *Server) createSignup(ctx *gin.Context) {
 	var req createSignupRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
@@ -39,7 +38,8 @@ func (server *Server) createSignup(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
-
+	fmt.Println(verifyOTP.Otp)
+	fmt.Println(req.Otp)
 	if verifyOTP.Otp != req.Otp {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return

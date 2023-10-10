@@ -56,13 +56,13 @@ func (server *Server) createLogin(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	fmt.Println(user)
 
 	err = util.CheckPassword(req.Password, user.HashedPassword)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
-
 
 	//err = verifyMobileAndPassword(ctx, req.Username, req.Password, userData)
 	////fmt.Printf("ramram")

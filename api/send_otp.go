@@ -28,6 +28,8 @@ func (server *Server) Otp(ctx *gin.Context) {
 
 	var reqSendOTP createSendOtpRequest
 	err := ctx.ShouldBindJSON(&reqSendOTP)
+
+	fmt.Println(err)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 	}
@@ -35,18 +37,20 @@ func (server *Server) Otp(ctx *gin.Context) {
 	otp := generateOtp()
 
 	err = server.sendOTP(reqSendOTP.MobileNumber, otp)
+	fmt.Println("line no 40: ", err)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
 	fmt.Println("Otp has been send successfully")
-
+	fmt.Println(reqSendOTP.MobileNumber)
 	arg := db.CreateSignupParams{
 		MobileNumber: reqSendOTP.MobileNumber,
 		Otp:          otp,
 	}
-
+	fmt.Println("line no 51:", arg)
 	signup, err := server.store.CreateSignup(ctx, arg)
+	fmt.Println("line no 53: ", err)
 	if err != nil {
 
 		if err == sql.ErrNoRows {

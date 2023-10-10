@@ -20,6 +20,7 @@ type renewAccessTokenResponse struct {
 }
 
 func (server *Server) renewAccessToken(ctx *gin.Context) {
+	fmt.Println("access token lin no 23")
 	config, err := util.LoadConfig(".")
 	var req renewAccessTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
