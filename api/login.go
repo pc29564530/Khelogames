@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type createLoginRequest struct {
@@ -21,7 +22,7 @@ type createLoginRequest struct {
 type userResponse struct {
 	Username     string    `json:"username"`
 	MobileNumber string    `json:"mobile_number"`
-	createdAt    time.Time `json:"created_at"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type loginUserResponse struct {
@@ -116,7 +117,7 @@ func (server *Server) createLogin(ctx *gin.Context) {
 		User: userResponse{
 			Username:     user.Username,
 			MobileNumber: user.MobileNumber,
-			createdAt:    user.CreatedAt,
+			CreatedAt:    user.CreatedAt,
 		},
 	}
 
