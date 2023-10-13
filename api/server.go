@@ -53,7 +53,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/get_all_communities/:owner", server.getAllCommunities)
 	authRouter.POST("/create_thread", server.createThread)
 	authRouter.GET("/getThread/:id", server.getThread)
-	authRouter.PUT("/update_like/:id", server.updateThreadLike)
+	authRouter.PUT("/update_like", server.updateThreadLike)
 	authRouter.GET("/all_threads", server.getAllThreads)
 	authRouter.GET("/get_all_communities_by_owner", server.getAllThreadsByCommunities)
 	authRouter.GET("/get_communities_member/:communities_name", server.getCommunitiesMember)
@@ -63,6 +63,8 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/createComment/:threadId", server.createComment)
 	authRouter.GET("/getComment/:thread_id", server.getAllComment)
 	authRouter.DELETE("/unFollow/:following_owner", server.deleteFollowing)
+	authRouter.POST("/createLikeThread/:thread_id", server.createLike)
+	authRouter.GET("/countLike/:thread_id", server.countLike)
 
 	//handler := corsHandle.Handler(router)
 

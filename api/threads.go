@@ -202,18 +202,24 @@ func (server *Server) getAllThreadsByCommunities(ctx *gin.Context) {
 }
 
 type updateThreadLikeRequest struct {
-	ID int64 `uri:"id" binding:"required,min=1"`
+	LikeCount int64 `json:"like_count"`
+	ID        int64 `json:"id"`
 }
 
 func (server *Server) updateThreadLike(ctx *gin.Context) {
 	var req updateThreadLikeRequest
-	err := ctx.ShouldBindUri(&req)
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	thread, err := server.store.UpdateThreadLike(ctx, req.ID)
+	arg := db.UpdateThreadLikeParams{
+		LikeCount: req.LikeCount,
+		ID:        req.ID,
+	}
+
+	thread, err := server.store.UpdateThreadLike(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
