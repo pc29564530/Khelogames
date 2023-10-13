@@ -10,6 +10,12 @@ CREATE TABLE "threads" (
                            "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
+CREATE TABLE "like_thread" (
+    "id" bigserial PRIMARY KEY,
+    "thread_id" bigserial NOT NULL,
+    "username" varchar NOT NULL
+);
+
 
 CREATE TABLE "users" (
                          "username" varchar UNIQUE NOT NULL,
@@ -98,6 +104,10 @@ CREATE TABLE "comment" (
                            "comment_text" text NOT NULL,
                            "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
+
+ALTER TABLE "like_thread" ADD FOREIGN KEY ("thread_id") REFERENCES "threads" ("id");
+
+ALTER TABLE "like_thread" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
 
 ALTER TABLE "comment" ADD FOREIGN KEY ("thread_id") REFERENCES "threads" ("id");
 

@@ -6,13 +6,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 func saveImageToFile(data []byte) (string, error) {
@@ -21,7 +22,7 @@ func saveImageToFile(data []byte) (string, error) {
 		fmt.Printf("Error generating random string: %v\n", err)
 		return "", err
 	}
-	filePath := fmt.Sprintf("/home/pawan/projects/golang-project/Khelogames/images/%s", randomString)
+	filePath := fmt.Sprintf("/Users/pawan/project/Khelogames/images/%s", randomString)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return "", err
@@ -54,27 +55,27 @@ func generateRandomString(length int) (string, error) {
 }
 
 func convertLocalPathToURL(localPath string) string {
-	baseURL := "http://192.168.0.105:8080/images/"
-	imagePath := baseURL + strings.TrimPrefix(localPath, "/home/pawan/projects/golang-project/Khelogames/images/")
-	filePath := fmt.Sprintf("%s", imagePath)
+	baseURL := "http://192.168.0.107:8080/images/"
+	imagePath := baseURL + strings.TrimPrefix(localPath, "/Users/pawan/project/Khelogames/images/")
+	filePath := imagePath
 	return filePath
 }
 
-func copyFile(src, dest string) error {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
+// func copyFile(src, dest string) error {
+// 	srcFile, err := os.Open(src)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer srcFile.Close()
 
-	destFile, err := os.Create(dest)
-	if err != nil {
-		return err
-	}
-	defer destFile.Close()
-	_, err = io.Copy(destFile, srcFile)
-	return err
-}
+// 	destFile, err := os.Create(dest)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer destFile.Close()
+// 	_, err = io.Copy(destFile, srcFile)
+// 	return err
+// }
 
 type createThreadRequest struct {
 	CommunitiesName string `json:"communities_name,omitempty"`
@@ -201,18 +202,24 @@ func (server *Server) getAllThreadsByCommunities(ctx *gin.Context) {
 }
 
 type updateThreadLikeRequest struct {
-	ID int64 `uri:"id" binding:"required,min=1"`
+	LikeCount int64 `json:"like_count"`
+	ID        int64 `json:"id"`
 }
 
 func (server *Server) updateThreadLike(ctx *gin.Context) {
 	var req updateThreadLikeRequest
-	err := ctx.ShouldBindUri(&req)
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	thread, err := server.store.UpdateThreadLike(ctx, req.ID)
+	arg := db.UpdateThreadLikeParams{
+		LikeCount: req.LikeCount,
+		ID:        req.ID,
+	}
+
+	thread, err := server.store.UpdateThreadLike(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

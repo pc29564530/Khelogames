@@ -25,6 +25,6 @@ ORDER BY id=$1;
 
 -- name: UpdateThreadLike :one
 UPDATE threads
-SET like_count=like_count + 1
-WHERE id=$1
+SET like_count=$1
+WHERE id=$2
 RETURNING *;
