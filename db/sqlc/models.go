@@ -86,3 +86,9 @@ type User struct {
 	HashedPassword string    `json:"hashed_password"`
 	CreatedAt      time.Time `json:"created_at"`
 }
+
+type LikeThread struct {
+	ID       int64  `json:"id"`
+	ThreadID int64  `json:"thread_id"`
+	Username string `json:"username"`
+}
