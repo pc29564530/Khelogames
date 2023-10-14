@@ -9,6 +9,26 @@ import (
 	"context"
 )
 
+const checkUserCount = `-- name: CheckUserCount :one
+SELECT COUNT(*) AS user_count
+FROM like_thread l1
+JOIN users u ON l1.username = u.username
+WHERE l1.thread_id = $1
+AND u.username = $2
+`
+
+type CheckUserCountParams struct {
+	ThreadID int64  `json:"thread_id"`
+	Username string `json:"username"`
+}
+
+func (q *Queries) CheckUserCount(ctx context.Context, arg CheckUserCountParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkUserCount, arg.ThreadID, arg.Username)
+	var user_count int64
+	err := row.Scan(&user_count)
+	return user_count, err
+}
+
 const countLikeUser = `-- name: CountLikeUser :one
 SELECT COUNT(*) FROM like_thread
 WHERE thread_id = $1

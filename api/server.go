@@ -65,6 +65,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.DELETE("/unFollow/:following_owner", server.deleteFollowing)
 	authRouter.POST("/createLikeThread/:thread_id", server.createLike)
 	authRouter.GET("/countLike/:thread_id", server.countLike)
+	authRouter.GET("/checkLikeByUser/:thread_id", server.checkLikeByUser)
 
 	//handler := corsHandle.Handler(router)
 
