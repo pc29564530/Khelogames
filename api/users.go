@@ -22,6 +22,61 @@ type createUserResponse struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+func authorizationCode(ctx *gin.Context, username string, mobileNumber string, createdAt time.Time, server *Server) {
+	accessToken, accessPayload, err := server.tokenMaker.CreateToken(
+		username,
+		server.config.AccessTokenDuration,
+	)
+	fmt.Println("AccessToken: ", accessToken)
+	fmt.Println("Error Line no 52: ", err)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	refreshToken, refreshPayload, err := server.tokenMaker.CreateToken(
+		username,
+		server.config.RefreshTokenDuration,
+	)
+	fmt.Println("RefreshToken: ", refreshToken)
+	fmt.Println("Error line no 64: ", err)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	session, err := server.store.CreateSessions(ctx, db.CreateSessionsParams{
+		ID:           refreshPayload.ID,
+		Username:     username,
+		RefreshToken: refreshToken,
+		UserAgent:    ctx.Request.UserAgent(),
+		ClientIp:     ctx.ClientIP(),
+		ExpiresAt:    refreshPayload.ExpiredAt,
+	})
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	rsp := loginUserResponse{
+		SessionID:             session.ID,
+		AccessToken:           accessToken,
+		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
+		RefreshToken:          refreshToken,
+		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
+		User: userResponse{
+			Username:     username,
+			MobileNumber: mobileNumber,
+			createdAt:    createdAt,
+		},
+	}
+
+	ctx.JSON(http.StatusOK, rsp)
+
+	fmt.Printf("Loggen in successfully")
+}
+
 func (server *Server) createUser(ctx *gin.Context) {
 
 	var req createUserRequest
@@ -67,14 +122,16 @@ func (server *Server) createUser(ctx *gin.Context) {
 		CreatedAt:    user.CreatedAt,
 	}
 	fmt.Println(resp)
-	ctx.JSON(http.StatusOK, resp)
+	fmt.Println("Username: ", resp.Username)
+	//Navigate to main screen using signIn system
+	authorizationCode(ctx, resp.Username, resp.MobileNumber, resp.CreatedAt, server)
 
-	deleteSignUp, err := server.store.DeleteSignup(ctx, req.MobileNumber)
-	if err != nil {
-		fmt.Errorf("unable to delete the mobile number details: ", err)
-		return
-	}
-	ctx.JSON(http.StatusOK, deleteSignUp)
+	//deleteSignUp, err := server.store.DeleteSignup(ctx, req.MobileNumber)
+	//if err != nil {
+	//	fmt.Errorf("unable to delete the mobile number details: ", err)
+	//	return
+	//}
+	//ctx.JSON(http.StatusOK, deleteSignUp)
 	return
 }
 
