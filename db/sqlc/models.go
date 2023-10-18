@@ -48,6 +48,12 @@ type FriendsRequest struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
+type JoinCommunity struct {
+	ID            int64  `json:"id"`
+	CommunityName string `json:"community_name"`
+	Username      string `json:"username"`
+}
+
 type LikeThread struct {
 	ID       int64  `json:"id"`
 	ThreadID int64  `json:"thread_id"`
