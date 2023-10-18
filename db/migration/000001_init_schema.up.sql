@@ -57,20 +57,6 @@ CREATE TABLE "communities" (
                                "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
-CREATE TABLE "friends" (
-                           "id" bigserial PRIMARY KEY,
-                           "owner" varchar NOT NULL,
-                           "friend_username" varchar NOT NULL
-);
-
-CREATE TABLE "friends_request" (
-                                "id" bigserial PRIMARY KEY,
-                                "sender_username" varchar NOT NULL,
-                                "reciever_username" varchar NOT NULL,
-                                "status" varchar NOT NULL,
-                                "created_at" timestamp   NOT NULL DEFAULT (now())
-);
-
 
 
 -- CREATE TABLE "community_member" (
@@ -136,14 +122,6 @@ ALTER TABLE "threads" ADD FOREIGN KEY ("communities_name") REFERENCES "communiti
 ALTER TABLE "communities" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 
 ALTER TABLE "sessions" ADD FOREIGN KEY ("username") REFERENCES "users" ("username");
-
-ALTER TABLE "friends" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
-
-ALTER TABLE "friends" ADD FOREIGN KEY ("friend_username") REFERENCES "users" ("username");
-
-ALTER TABLE "friends_request" ADD FOREIGN KEY ("reciever_username") REFERENCES "users" ("username");
-
-ALTER TABLE "friends_request" ADD FOREIGN KEY ("sender_username") REFERENCES "users" ("username");
 
 -- ALTER TABLE "search_bar" ADD FOREIGN KEY ("full_name") REFERENCES "users" ("full_name");
 --

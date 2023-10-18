@@ -14,7 +14,7 @@ WHERE id = $1 LIMIT 1;
 
 -- name: GetAllCommunities :many
 SELECT * FROM communities
-WHERE owner=$1;
+ORDER BY id;
 
 
 -- name: GetCommunitiesMember :many
