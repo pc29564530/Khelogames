@@ -9,3 +9,8 @@ INSERT INTO join_community (
 -- name: GetUserByCommunity :many
 SELECT * FROM join_community
 WHERE community_name=$1;
+
+-- name: GetCommunityByUser :many
+SELECT * FROM join_community
+WHERE username=$1
+ORDER BY id;

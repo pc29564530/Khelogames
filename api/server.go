@@ -45,6 +45,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRouter.POST("/joinUserCommunity/:community_name", server.addJoinCommunity)
 	authRouter.GET("/getUserByCommunity/:community_name", server.getUserByCommunity)
+	authRouter.GET("/getCommunityByUser", server.getCommunityByUser)
 	authRouter.GET("/user_list", server.listUsers)
 	authRouter.POST("/communities", server.createCommunites)
 	authRouter.GET("/communities/:id", server.getCommunity)

@@ -61,3 +61,16 @@ func (server *Server) getUserByCommunity(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, communityUserList)
 	return
 }
+
+//get the community joined by the users
+
+func (server *Server) getCommunityByUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	communityList, err := server.store.GetCommunityByUser(ctx, authPayload.Username)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, communityList)
+}
