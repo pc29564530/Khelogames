@@ -48,11 +48,11 @@ func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams
 
 const getAllCommunities = `-- name: GetAllCommunities :many
 SELECT id, owner, communities_name, description, community_type, created_at FROM communities
-WHERE owner=$1
+ORDER BY id
 `
 
-func (q *Queries) GetAllCommunities(ctx context.Context, owner string) ([]Community, error) {
-	rows, err := q.db.QueryContext(ctx, getAllCommunities, owner)
+func (q *Queries) GetAllCommunities(ctx context.Context) ([]Community, error) {
+	rows, err := q.db.QueryContext(ctx, getAllCommunities)
 	if err != nil {
 		return nil, err
 	}

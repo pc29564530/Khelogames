@@ -43,13 +43,12 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	router.GET("/user/:username", server.getUsers)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
+	authRouter.POST("/joinUserCommunity/:community_name", server.addJoinCommunity)
+	authRouter.GET("/getUserByCommunity/:community_name", server.getUserByCommunity)
+	authRouter.GET("/getCommunityByUser", server.getCommunityByUser)
 	authRouter.GET("/user_list", server.listUsers)
 	authRouter.POST("/communities", server.createCommunites)
 	authRouter.GET("/communities/:id", server.getCommunity)
-	authRouter.POST("/friend_request", server.getRecieverUsername)
-	authRouter.GET("/friend_request", server.ListConnections)
-	authRouter.POST("/accept_friend/:id", server.acceptFriend)
-	authRouter.GET("/get_all_friends", server.getAllFriends)
 	authRouter.GET("/community/:id", server.getCommunity)
 	authRouter.GET("/get_all_communities/:owner", server.getAllCommunities)
 	authRouter.POST("/create_thread", server.createThread)
@@ -85,7 +84,7 @@ func errorResponse(err error) gin.H {
 
 func corsHandle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "0.0.0.0:8080")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 

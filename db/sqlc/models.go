@@ -34,18 +34,10 @@ type Follow struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-type Friend struct {
-	ID             int64  `json:"id"`
-	Owner          string `json:"owner"`
-	FriendUsername string `json:"friend_username"`
-}
-
-type FriendsRequest struct {
-	ID               int64     `json:"id"`
-	SenderUsername   string    `json:"sender_username"`
-	RecieverUsername string    `json:"reciever_username"`
-	Status           string    `json:"status"`
-	CreatedAt        time.Time `json:"created_at"`
+type JoinCommunity struct {
+	ID            int64  `json:"id"`
+	CommunityName string `json:"community_name"`
+	Username      string `json:"username"`
 }
 
 type LikeThread struct {
