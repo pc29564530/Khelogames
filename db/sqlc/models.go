@@ -51,6 +51,17 @@ type Login struct {
 	Password string `json:"password"`
 }
 
+type Profile struct {
+	ID             int64     `json:"id"`
+	Owner          string    `json:"owner"`
+	FullName       string    `json:"full_name"`
+	Bio            string    `json:"bio"`
+	FollowingOwner int64     `json:"following_owner"`
+	FollowerOwner  int64     `json:"follower_owner"`
+	AvatarUrl      string    `json:"avatar_url"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 type Session struct {
 	ID           uuid.UUID `json:"id"`
 	Username     string    `json:"username"`

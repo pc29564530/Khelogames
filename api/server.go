@@ -42,6 +42,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router.DELETE("/removeSession/:username", server.deleteSession)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	router.GET("/user/:username", server.getUsers)
+	router.GET("/getProfile", server.getProfile)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRouter.POST("/joinUserCommunity/:community_name", server.addJoinCommunity)
 	authRouter.GET("/getUserByCommunity/:community_name", server.getUserByCommunity)
@@ -66,6 +67,9 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/createLikeThread/:thread_id", server.createLike)
 	authRouter.GET("/countLike/:thread_id", server.countLike)
 	authRouter.GET("/checkLikeByUser/:thread_id", server.checkLikeByUser)
+	authRouter.PUT("/updateProfileFullName", server.updateFullName)
+	authRouter.PUT("/updateAvatarUrl", server.updateAvatarUrl)
+	authRouter.PUT("/updateProfileBio", server.updateBio)
 
 	//handler := corsHandle.Handler(router)
 
