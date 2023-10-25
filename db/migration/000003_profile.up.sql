@@ -1,6 +1,6 @@
 CREATE TABLE "profile" (
                    "id" bigInt PRIMARY KEY,
-                   "owner" varchar NOT NULL,
+                   "owner" varchar NOT NULL UNIQUE,
                    "full_name" varchar NOT NULL,
                    "bio" text NOT NULL,
                    "following_owner" bigInt NOT NULL,
