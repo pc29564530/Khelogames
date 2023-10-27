@@ -42,7 +42,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router.DELETE("/removeSession/:username", server.deleteSession)
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	router.GET("/user/:username", server.getUsers)
-	router.GET("/getProfile", server.getProfile)
+	router.GET("/getProfile/:owner", server.getProfile)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRouter.POST("/joinUserCommunity/:community_name", server.addJoinCommunity)
 	authRouter.GET("/getUserByCommunity/:community_name", server.getUserByCommunity)
