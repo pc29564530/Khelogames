@@ -6,12 +6,12 @@ import (
 )
 
 type searchByCommunityNameRequest struct {
-	CommunityName string `uri:"communities_name"`
+	CommunityName string `json:"communities_name"`
 }
 
 func (server *Server) searchByCommunityName(ctx *gin.Context) {
 	var req searchByCommunityNameRequest
-	err := ctx.ShouldBindUri(&req)
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -28,18 +28,18 @@ func (server *Server) searchByCommunityName(ctx *gin.Context) {
 }
 
 type searchByFullNameRequest struct {
-	FullName string `uri:"full_name"`
+	FullName string `json:"full_name"`
 }
 
 func (server *Server) searchByFullName(ctx *gin.Context) {
 	var req searchByFullNameRequest
-	err := ctx.ShouldBindUri(&req)
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	profile, err := server.store.SearchByCommunityName(ctx, req.FullName)
+	profile, err := server.store.SearchByFullName(ctx, req.FullName)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
@@ -50,12 +50,12 @@ func (server *Server) searchByFullName(ctx *gin.Context) {
 }
 
 type searchCommunityByCommunityTypeRequest struct {
-	CommunityType string `uri:"community_type"`
+	CommunityType string `json:"community_type"`
 }
 
 func (server *Server) searchCommunityByCommunityType(ctx *gin.Context) {
 	var req searchCommunityByCommunityTypeRequest
-	err := ctx.ShouldBindUri(&req)
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
