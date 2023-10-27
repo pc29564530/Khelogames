@@ -54,6 +54,15 @@ func (server *Server) getProfile(ctx *gin.Context) {
 		return
 	}
 
+	profile, err := server.store.GetProfile(ctx, req.Owner)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, profile)
+	return
+
 }
 
 type updateBioRequest struct {
