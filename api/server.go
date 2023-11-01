@@ -70,7 +70,9 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateProfileFullName", server.updateFullName)
 	authRouter.PUT("/updateAvatarUrl", server.updateAvatarUrl)
 	authRouter.PUT("/updateProfileBio", server.updateBio)
-
+	authRouter.POST("/searchCommunityType", server.searchCommunityByCommunityType)
+	authRouter.POST("/searchByFullName", server.searchByFullName)
+	authRouter.POST("/searchByCommunityName", server.searchByCommunityName)
 	//handler := corsHandle.Handler(router)
 
 	server.router = router
