@@ -11,7 +11,7 @@ import (
 
 const searchByCommunityName = `-- name: SearchByCommunityName :one
 SELECT communities_name FROM communities
-WHERE communities_name=$1
+WHERE communities_name ILIKE $1
 `
 
 func (q *Queries) SearchByCommunityName(ctx context.Context, communitiesName string) (string, error) {
@@ -23,7 +23,7 @@ func (q *Queries) SearchByCommunityName(ctx context.Context, communitiesName str
 
 const searchByFullName = `-- name: SearchByFullName :many
 SELECT full_name, owner FROM profile
-WHERE full_name=$1
+WHERE full_name ILIKE $1
 ORDER BY id
 `
 
@@ -57,7 +57,7 @@ func (q *Queries) SearchByFullName(ctx context.Context, fullName string) ([]Sear
 
 const searchCommunityByCommunityType = `-- name: SearchCommunityByCommunityType :many
 SELECT communities_name FROM communities
-WHERE community_type=$1
+WHERE community_type ILIKE $1
 ORDER BY id
 `
 
