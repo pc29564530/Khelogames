@@ -69,100 +69,72 @@ func (server *Server) getProfile(ctx *gin.Context) {
 
 }
 
-type updateBioRequest struct {
-	Bio string `json:"bio"`
-	ID  int64  `json:"id"`
+type editProfileRequest struct {
+	FullName  string `json:"full_name,omitempty"`
+	Bio       string `json:"bio,omitempty"`
+	AvatarUrl string `json:"avatar_url,omitempty"`
+	CoverUrl  string `json:"cover_url,omitempty"`
 }
 
-func (server *Server) updateBio(ctx *gin.Context) {
-	var req updateBioRequest
+func (server *Server) updateProfile(ctx *gin.Context) {
+
+	var req editProfileRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	arg := db.UpdateProfileBioParams{
-		Bio: req.Bio,
-		ID:  req.ID,
-	}
+	b64Avatar := req.AvatarUrl[strings.IndexByte(req.AvatarUrl, ',')+1:]
 
-	bio, err := server.store.UpdateProfileBio(ctx, arg)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, bio)
-	return
-}
-
-type updateAvatarUrlRequest struct {
-	AvatarUrl string `json:"avatar_url"`
-	ID        int64  `json:"id"`
-}
-
-func (server *Server) updateAvatarUrl(ctx *gin.Context) {
-	var req updateAvatarUrlRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	b64data := req.AvatarUrl[strings.IndexByte(req.AvatarUrl, ',')+1:]
-
-	data, err := base64.StdEncoding.DecodeString(b64data)
+	avatarData, err := base64.StdEncoding.DecodeString(b64Avatar)
 	if err != nil {
 		fmt.Println("uanble to decode :", err)
 		return
 	}
 
-	path, err := saveImageToFile(data)
+	b64Cover := req.AvatarUrl[strings.IndexByte(req.CoverUrl, ',')+1:]
+
+	coverData, err := base64.StdEncoding.DecodeString(b64Cover)
 	if err != nil {
-		fmt.Println("uanble to create a file")
+		fmt.Println("uanble to decode :", err)
 		return
 	}
 
-	arg := db.UpdateProfileAvatarParams{
-		AvatarUrl: path,
-		ID:        req.ID,
-	}
-
-	avatarUrl, err := server.store.UpdateProfileAvatar(ctx, arg)
+	avatarPath, err := saveImageToFile(avatarData)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		fmt.Println("unable to create a file")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, avatarUrl)
-	return
-}
+	coverPath, err := saveImageToFile(coverData)
+	if err != nil {
+		fmt.Println("unable to create a file")
+		return
+	}
 
-type updateFullNameRequest struct {
-	FullName string `json:"full_name"`
-	ID       int64  `json:"id"`
-}
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
-func (server *Server) updateFullName(ctx *gin.Context) {
-	var req updateFullNameRequest
-	err := ctx.ShouldBindJSON(&req)
+	profile, err := server.store.GetProfile(ctx, authPayload.Username)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	arg := db.UpdateProfileFullNameParams{
-		FullName: req.FullName,
-		ID:       req.ID,
+	arg := db.EditProfileParams{
+		FullName:  req.FullName,
+		Bio:       req.Bio,
+		AvatarUrl: avatarPath,
+		CoverUrl:  coverPath,
+		ID:        profile.ID,
 	}
 
-	bio, err := server.store.UpdateProfileFullName(ctx, arg)
+	updatedProfile, err := server.store.EditProfile(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusNotAcceptable, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, bio)
+	ctx.JSON(http.StatusAccepted, updatedProfile)
 	return
 }

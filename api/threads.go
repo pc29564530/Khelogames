@@ -16,10 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ParseTheURL() {
-
-}
-
 func saveImageToFile(data []byte) (string, error) {
 	randomString, err := generateRandomString(12)
 	if err != nil {
@@ -98,20 +94,6 @@ func (server *Server) createThread(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
-	//mediaType, _, err := mime.ParseMediaType(req.MediaURL)
-	//if err != nil {
-	//	fmt.Println("Invalid media type:", err)
-	//	return
-	//}
-
-	//fmt.Println(req.MediaURL)
-	//fmt.Println(req.MediaURL)
-	//fmt.Println(req.MediaType)
-	//
-	////filePath := strings.TrimPrefix(req.MediaURL, "file://")
-	////fmt.Println(filePath)
-	//fmt.Println(reflect.TypeOf(req.MediaURL))
 
 	b64data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
 

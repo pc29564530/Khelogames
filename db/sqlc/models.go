@@ -59,6 +59,7 @@ type Profile struct {
 	FollowingOwner int64     `json:"following_owner"`
 	FollowerOwner  int64     `json:"follower_owner"`
 	AvatarUrl      string    `json:"avatar_url"`
+	CoverUrl       string    `json:"cover_url"`
 	CreatedAt      time.Time `json:"created_at"`
 }
 
