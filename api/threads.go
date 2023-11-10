@@ -16,6 +16,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func ParseTheURL() {
+
+}
+
 func saveImageToFile(data []byte) (string, error) {
 	randomString, err := generateRandomString(12)
 	if err != nil {
@@ -55,7 +59,7 @@ func generateRandomString(length int) (string, error) {
 }
 
 func convertLocalPathToURL(localPath string) string {
-	baseURL := "http://192.168.0.107:8080/images/"
+	baseURL := "http://192.168.0.101:8080/images/"
 	imagePath := baseURL + strings.TrimPrefix(localPath, "/Users/pawan/project/Khelogames/images/")
 	filePath := imagePath
 	return filePath

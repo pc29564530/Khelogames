@@ -1,10 +1,14 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
+	"encoding/base64"
+	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 type createProfileRequest struct {
@@ -106,8 +110,22 @@ func (server *Server) updateAvatarUrl(ctx *gin.Context) {
 		return
 	}
 
+	b64data := req.AvatarUrl[strings.IndexByte(req.AvatarUrl, ',')+1:]
+
+	data, err := base64.StdEncoding.DecodeString(b64data)
+	if err != nil {
+		fmt.Println("uanble to decode :", err)
+		return
+	}
+
+	path, err := saveImageToFile(data)
+	if err != nil {
+		fmt.Println("uanble to create a file")
+		return
+	}
+
 	arg := db.UpdateProfileAvatarParams{
-		AvatarUrl: req.AvatarUrl,
+		AvatarUrl: path,
 		ID:        req.ID,
 	}
 
