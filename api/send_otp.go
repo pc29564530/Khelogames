@@ -3,19 +3,20 @@ package api
 import (
 	"database/sql"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	"github.com/sfreiberg/gotwilio"
 	db "khelogames/db/sqlc"
 	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"github.com/sfreiberg/gotwilio"
 )
 
 type createSendOtpRequest struct {
-	MobileNumber string `json:"mobileNumber"`
+	MobileNumber string `json:"mobile_number"`
 }
 
 func generateOtp() string {

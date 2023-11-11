@@ -12,30 +12,34 @@ import (
 )
 
 type createProfileRequest struct {
-	FullName       string `json:"full_name"`
-	Bio            string `json:"bio,omitempty"`
-	FollowingOwner int64  `json:"following_owner"`
-	FollowerOwner  int64  `json:"follower_owner"`
-	AvatarUrl      string `json:"avatar_url"`
+	FullName  string `json:"full_name"`
+	Bio       string `json:"bio"`
+	AvatarUrl string `json:"avatar_url"`
+	CoverUrl  string `json:"cover_url"`
 }
 
 func (server *Server) createProfile(ctx *gin.Context) {
 	var req createProfileRequest
+	fmt.Println("Hello")
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
+	fmt.Println("FullName:")
+
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	fmt.Println("Username: ", authPayload.Username)
 	arg := db.CreateProfileParams{
-		Owner:          authPayload.Username,
-		FullName:       req.FullName,
-		Bio:            req.Bio,
-		FollowingOwner: req.FollowingOwner,
-		FollowerOwner:  req.FollowerOwner,
-		AvatarUrl:      req.AvatarUrl,
+		Owner:     authPayload.Username,
+		FullName:  req.FullName,
+		Bio:       req.Bio,
+		AvatarUrl: req.AvatarUrl,
+		CoverUrl:  req.CoverUrl,
 	}
+
+	fmt.Println("Arg: ", arg)
 
 	profile, err := server.store.CreateProfile(ctx, arg)
 	if err != nil {
@@ -52,13 +56,17 @@ type getProfileRequest struct {
 
 func (server *Server) getProfile(ctx *gin.Context) {
 	var req getProfileRequest
+	fmt.Println("Hello")
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	fmt.Println("Profile Owner: ", req.Owner)
 
 	profile, err := server.store.GetProfile(ctx, req.Owner)
+	fmt.Println("Profile: ", profile)
+	fmt.Println("Error: ", err)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
@@ -93,7 +101,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 		return
 	}
 
-	b64Cover := req.AvatarUrl[strings.IndexByte(req.CoverUrl, ',')+1:]
+	b64Cover := req.CoverUrl[strings.IndexByte(req.CoverUrl, ',')+1:]
 
 	coverData, err := base64.StdEncoding.DecodeString(b64Cover)
 	if err != nil {

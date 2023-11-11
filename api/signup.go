@@ -3,13 +3,14 @@ package api
 import (
 	"database/sql"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type createSignupRequest struct {
-	MobileNumber string `json:"mobileNumber"`
+	MobileNumber string `json:"mobile_number"`
 	Otp          string `json:"otp"`
 }
 
@@ -32,6 +33,9 @@ func (server *Server) createSignup(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	fmt.Println("MobileNUmber: ", req.MobileNumber)
+	fmt.Println("Otp: ", req.Otp)
 
 	verifyOTP, err := server.store.GetSignup(ctx, req.MobileNumber)
 	if verifyOTP.MobileNumber != req.MobileNumber {
