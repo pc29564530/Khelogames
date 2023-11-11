@@ -14,21 +14,19 @@ INSERT INTO profile (
     owner,
     full_name,
     bio,
-    following_owner,
-    follower_owner,
-    avatar_url
+    avatar_url,
+    cover_url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
-) RETURNING id, owner, full_name, bio, following_owner, follower_owner, avatar_url, cover_url, created_at
+    $1, $2, $3, $4, $5
+) RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
 `
 
 type CreateProfileParams struct {
-	Owner          string `json:"owner"`
-	FullName       string `json:"full_name"`
-	Bio            string `json:"bio"`
-	FollowingOwner int64  `json:"following_owner"`
-	FollowerOwner  int64  `json:"follower_owner"`
-	AvatarUrl      string `json:"avatar_url"`
+	Owner     string `json:"owner"`
+	FullName  string `json:"full_name"`
+	Bio       string `json:"bio"`
+	AvatarUrl string `json:"avatar_url"`
+	CoverUrl  string `json:"cover_url"`
 }
 
 func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error) {
@@ -36,9 +34,8 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 		arg.Owner,
 		arg.FullName,
 		arg.Bio,
-		arg.FollowingOwner,
-		arg.FollowerOwner,
 		arg.AvatarUrl,
+		arg.CoverUrl,
 	)
 	var i Profile
 	err := row.Scan(
@@ -46,8 +43,6 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 		&i.Owner,
 		&i.FullName,
 		&i.Bio,
-		&i.FollowingOwner,
-		&i.FollowerOwner,
 		&i.AvatarUrl,
 		&i.CoverUrl,
 		&i.CreatedAt,
@@ -59,7 +54,7 @@ const editProfile = `-- name: EditProfile :one
 UPDATE profile
 SET full_name=$1, avatar_url=$2, bio=$3, cover_url=$4
 WHERE id=$5
-RETURNING id, owner, full_name, bio, following_owner, follower_owner, avatar_url, cover_url, created_at
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
 `
 
 type EditProfileParams struct {
@@ -84,8 +79,6 @@ func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (Profi
 		&i.Owner,
 		&i.FullName,
 		&i.Bio,
-		&i.FollowingOwner,
-		&i.FollowerOwner,
 		&i.AvatarUrl,
 		&i.CoverUrl,
 		&i.CreatedAt,
@@ -94,7 +87,7 @@ func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (Profi
 }
 
 const getProfile = `-- name: GetProfile :one
-SELECT id, owner, full_name, bio, following_owner, follower_owner, avatar_url, cover_url, created_at FROM profile
+SELECT id, owner, full_name, bio, avatar_url, cover_url, created_at FROM profile
 WHERE owner=$1
 `
 
@@ -106,8 +99,6 @@ func (q *Queries) GetProfile(ctx context.Context, owner string) (Profile, error)
 		&i.Owner,
 		&i.FullName,
 		&i.Bio,
-		&i.FollowingOwner,
-		&i.FollowerOwner,
 		&i.AvatarUrl,
 		&i.CoverUrl,
 		&i.CreatedAt,

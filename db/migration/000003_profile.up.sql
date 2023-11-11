@@ -1,10 +1,8 @@
 CREATE TABLE "profile" (
-                   "id" bigInt PRIMARY KEY,
-                   "owner" varchar NOT NULL UNIQUE,
+                   "id" bigserial PRIMARY KEY,
+                   "owner" varchar UNIQUE NOT NULL,
                    "full_name" varchar NOT NULL,
                    "bio" text NOT NULL,
-                   "following_owner" bigInt NOT NULL,
-                   "follower_owner" bigInt NOT NULL,
                    "avatar_url" varchar NOT NULL,
                    "cover_url" varchar NOT NULL,
                    "created_at" timestamp NOT NULL DEFAULT 'now()'

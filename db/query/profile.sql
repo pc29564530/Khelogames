@@ -3,11 +3,10 @@ INSERT INTO profile (
     owner,
     full_name,
     bio,
-    following_owner,
-    follower_owner,
-    avatar_url
+    avatar_url,
+    cover_url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5
 ) RETURNING *;
 
 -- name: EditProfile :one
