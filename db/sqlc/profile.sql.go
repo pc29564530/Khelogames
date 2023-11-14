@@ -105,3 +105,111 @@ func (q *Queries) GetProfile(ctx context.Context, owner string) (Profile, error)
 	)
 	return i, err
 }
+
+const updateAvatar = `-- name: UpdateAvatar :one
+UPDATE profile
+SET avatar_url=$1
+WHERE owner=$2
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+`
+
+type UpdateAvatarParams struct {
+	AvatarUrl string `json:"avatar_url"`
+	Owner     string `json:"owner"`
+}
+
+func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) (Profile, error) {
+	row := q.db.QueryRowContext(ctx, updateAvatar, arg.AvatarUrl, arg.Owner)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.FullName,
+		&i.Bio,
+		&i.AvatarUrl,
+		&i.CoverUrl,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateBio = `-- name: UpdateBio :one
+UPDATE profile
+SET bio=$1
+WHERE owner=$2
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+`
+
+type UpdateBioParams struct {
+	Bio   string `json:"bio"`
+	Owner string `json:"owner"`
+}
+
+func (q *Queries) UpdateBio(ctx context.Context, arg UpdateBioParams) (Profile, error) {
+	row := q.db.QueryRowContext(ctx, updateBio, arg.Bio, arg.Owner)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.FullName,
+		&i.Bio,
+		&i.AvatarUrl,
+		&i.CoverUrl,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateCover = `-- name: UpdateCover :one
+UPDATE profile
+SET cover_url=$1
+WHERE owner=$2
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+`
+
+type UpdateCoverParams struct {
+	CoverUrl string `json:"cover_url"`
+	Owner    string `json:"owner"`
+}
+
+func (q *Queries) UpdateCover(ctx context.Context, arg UpdateCoverParams) (Profile, error) {
+	row := q.db.QueryRowContext(ctx, updateCover, arg.CoverUrl, arg.Owner)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.FullName,
+		&i.Bio,
+		&i.AvatarUrl,
+		&i.CoverUrl,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateFullName = `-- name: UpdateFullName :one
+UPDATE profile
+SET full_name=$1
+WHERE owner=$2
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+`
+
+type UpdateFullNameParams struct {
+	FullName string `json:"full_name"`
+	Owner    string `json:"owner"`
+}
+
+func (q *Queries) UpdateFullName(ctx context.Context, arg UpdateFullNameParams) (Profile, error) {
+	row := q.db.QueryRowContext(ctx, updateFullName, arg.FullName, arg.Owner)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.FullName,
+		&i.Bio,
+		&i.AvatarUrl,
+		&i.CoverUrl,
+		&i.CreatedAt,
+	)
+	return i, err
+}

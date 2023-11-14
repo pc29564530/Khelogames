@@ -19,3 +19,27 @@ RETURNING *;
 -- name: GetProfile :one
 SELECT * FROM profile
 WHERE owner=$1;
+
+-- name: UpdateAvatar :one
+UPDATE profile
+SET avatar_url=$1
+WHERE owner=$2
+RETURNING *;
+
+-- name: UpdateCover :one
+UPDATE profile
+SET cover_url=$1
+WHERE owner=$2
+RETURNING *;
+
+-- name: UpdateFullName :one
+UPDATE profile
+SET full_name=$1
+WHERE owner=$2
+RETURNING *;
+
+-- name: UpdateBio :one
+UPDATE profile
+SET bio=$1
+WHERE owner=$2
+RETURNING *;

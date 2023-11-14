@@ -40,12 +40,6 @@ type JoinCommunity struct {
 	Username      string `json:"username"`
 }
 
-type LikeThread struct {
-	ID       int64  `json:"id"`
-	ThreadID int64  `json:"thread_id"`
-	Username string `json:"username"`
-}
-
 type Login struct {
 	Username string `json:"username"`
 	Password string `json:"password"`

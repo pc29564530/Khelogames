@@ -64,11 +64,15 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/createComment/:threadId", server.createComment)
 	authRouter.GET("/getComment/:thread_id", server.getAllComment)
 	authRouter.DELETE("/unFollow/:following_owner", server.deleteFollowing)
-	authRouter.POST("/createLikeThread/:thread_id", server.createLike)
-	authRouter.GET("/countLike/:thread_id", server.countLike)
-	authRouter.GET("/checkLikeByUser/:thread_id", server.checkLikeByUser)
+	//authRouter.POST("/createLikeThread/:thread_id", server.createLike)
+	//authRouter.GET("/countLike/:thread_id", server.countLike)
+	//authRouter.GET("/checkLikeByUser/:thread_id", server.checkLikeByUser)
 	authRouter.POST("/createProfile", server.createProfile)
 	authRouter.PUT("/editProfile", server.updateProfile)
+	authRouter.PUT("/updateAvatar", server.updateAvatarUrl)
+	authRouter.PUT("/updateCover", server.updateCoverUrl)
+	authRouter.PUT("/updateFullName", server.updateFullName)
+	authRouter.PUT("/updateBio", server.updateBio)
 
 	//handler := corsHandle.Handler(router)
 

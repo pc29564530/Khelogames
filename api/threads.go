@@ -55,7 +55,7 @@ func generateRandomString(length int) (string, error) {
 }
 
 func convertLocalPathToURL(localPath string) string {
-	baseURL := "http://192.168.0.102:8080/images/"
+	baseURL := "http://192.168.0.101:8080/images/"
 	imagePath := baseURL + strings.TrimPrefix(localPath, "/Users/pawan/project/Khelogames/images/")
 	filePath := imagePath
 	return filePath
@@ -99,13 +99,13 @@ func (server *Server) createThread(ctx *gin.Context) {
 
 	data, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		fmt.Println("uanble to decode :", err)
+		fmt.Println("unable to decode :", err)
 		return
 	}
 
 	path, err := saveImageToFile(data)
 	if err != nil {
-		fmt.Println("uanble to create a file")
+		fmt.Println("unable to create a file")
 		return
 	}
 
