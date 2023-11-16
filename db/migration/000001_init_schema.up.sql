@@ -10,6 +10,12 @@ CREATE TABLE "threads" (
                            "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
+CREATE TABLE "like_thread" (
+    "id" bigserial PRIMARY KEY,
+    "thread_id" bigserial NOT NULL,
+    "username" varchar NOT NULL
+);
+
 CREATE TABLE "users" (
                          "username" varchar UNIQUE NOT NULL,
                          "mobile_number" string UNIQUE NOT NULL,
