@@ -3,22 +3,23 @@ package api
 import (
 	"database/sql"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type createUserRequest struct {
 	Username       string `json:"username"`
-	MobileNumber   string `json:"mobileNumber"`
+	MobileNumber   string `json:"mobile_number"`
 	HashedPassword string `json:"password"`
 }
 
 type createUserResponse struct {
 	Username     string    `json:"username"`
-	MobileNumber string    `json:"mobileNumber"`
+	MobileNumber string    `json:"mobile_number"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
@@ -28,7 +29,6 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, c
 		server.config.AccessTokenDuration,
 	)
 	fmt.Println("AccessToken: ", accessToken)
-	fmt.Println("Error Line no 52: ", err)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -38,8 +38,6 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, c
 		username,
 		server.config.RefreshTokenDuration,
 	)
-	fmt.Println("RefreshToken: ", refreshToken)
-	fmt.Println("Error line no 64: ", err)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -110,8 +108,9 @@ func (server *Server) createUser(ctx *gin.Context) {
 	}
 
 	user, err := server.store.CreateUser(ctx, arg)
-	fmt.Println("unable to create a new user: ", err)
+
 	if err != nil {
+		fmt.Println("unable to create a new user: ", err)
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
@@ -121,17 +120,32 @@ func (server *Server) createUser(ctx *gin.Context) {
 		MobileNumber: user.MobileNumber,
 		CreatedAt:    user.CreatedAt,
 	}
-	fmt.Println(resp)
-	fmt.Println("Username: ", resp.Username)
-	//Navigate to main screen using signIn system
+
 	authorizationCode(ctx, resp.Username, resp.MobileNumber, resp.CreatedAt, server)
 
-	//deleteSignUp, err := server.store.DeleteSignup(ctx, req.MobileNumber)
-	//if err != nil {
-	//	fmt.Errorf("unable to delete the mobile number details: ", err)
-	//	return
-	//}
-	//ctx.JSON(http.StatusOK, deleteSignUp)
+	_, err = server.store.DeleteSignup(ctx, req.MobileNumber)
+	if err != nil {
+		fmt.Errorf("unable to delete the mobile number details: ", err)
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//createProfile
+	argProfile := db.CreateProfileParams{
+		Owner:     resp.Username,
+		FullName:  "",
+		Bio:       "",
+		AvatarUrl: "",
+		CoverUrl:  "",
+	}
+
+	_, err = server.store.CreateProfile(ctx, argProfile)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, resp)
 	return
 }
 
@@ -142,21 +156,16 @@ type getUserRequest struct {
 func (server *Server) getUsers(ctx *gin.Context) {
 	var req getUserRequest
 	err := ctx.ShouldBindUri(&req)
-	fmt.Println(err)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println(req.Username)
 
 	users, err := server.store.GetUser(ctx, req.Username)
-	fmt.Println(err)
-	fmt.Println(req.Username)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println(users)
 
 	ctx.JSON(http.StatusOK, users)
 	return

@@ -3,31 +3,43 @@ INSERT INTO profile (
     owner,
     full_name,
     bio,
-    following_owner,
-    follower_owner,
-    avatar_url
+    avatar_url,
+    cover_url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5
 ) RETURNING *;
+
+-- name: EditProfile :one
+UPDATE profile
+SET full_name=$1, avatar_url=$2, bio=$3, cover_url=$4
+WHERE id=$5
+RETURNING *;
+
 
 -- name: GetProfile :one
 SELECT * FROM profile
 WHERE owner=$1;
 
--- name: UpdateProfileAvatar :one
+-- name: UpdateAvatar :one
 UPDATE profile
 SET avatar_url=$1
-WHERE id=$2
+WHERE owner=$2
 RETURNING *;
 
--- name: UpdateProfileFullName :one
+-- name: UpdateCover :one
+UPDATE profile
+SET cover_url=$1
+WHERE owner=$2
+RETURNING *;
+
+-- name: UpdateFullName :one
 UPDATE profile
 SET full_name=$1
-WHERE id=$2
+WHERE owner=$2
 RETURNING *;
 
--- name: UpdateProfileBio :one
+-- name: UpdateBio :one
 UPDATE profile
 SET bio=$1
-WHERE id=$2
+WHERE owner=$2
 RETURNING *;

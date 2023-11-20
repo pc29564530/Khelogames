@@ -16,7 +16,6 @@ CREATE TABLE "like_thread" (
     "username" varchar NOT NULL
 );
 
-
 CREATE TABLE "users" (
                          "username" varchar UNIQUE NOT NULL,
                          "mobile_number" string UNIQUE NOT NULL,

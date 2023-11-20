@@ -67,11 +67,12 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/createLikeThread/:thread_id", server.createLike)
 	authRouter.GET("/countLike/:thread_id", server.countLike)
 	authRouter.GET("/checkLikeByUser/:thread_id", server.checkLikeByUser)
-	authRouter.PUT("/updateProfileFullName", server.updateFullName)
-	authRouter.PUT("/updateAvatarUrl", server.updateAvatarUrl)
-	authRouter.PUT("/updateProfileBio", server.updateBio)
-
-	//handler := corsHandle.Handler(router)
+	authRouter.POST("/createProfile", server.createProfile)
+	authRouter.PUT("/editProfile", server.updateProfile)
+	authRouter.PUT("/updateAvatar", server.updateAvatarUrl)
+	authRouter.PUT("/updateCover", server.updateCoverUrl)
+	authRouter.PUT("/updateFullName", server.updateFullName)
+	authRouter.PUT("/updateBio", server.updateBio)
 
 	server.router = router
 	return server, nil
