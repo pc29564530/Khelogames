@@ -2,21 +2,21 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
-	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
 type createFollowingRequest struct {
 	FollowingOwner string `uri:"following_owner"`
 }
-// this is function i have to call the get_following endpoint so that using that i can verify the following list 
+
+// this is function i have to call the get_following endpoint so that using that i can verify the following list
 func (server *Server) createFollowing(ctx *gin.Context) {
 	var req createFollowingRequest
-	fmt.Println("line no 18")
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -72,8 +72,8 @@ type deleteFollowingRequest struct {
 
 func (server *Server) deleteFollowing(ctx *gin.Context) {
 
-	var req deleteFollowingRequest;
-	err := ctx.ShouldBindUri(&req);
+	var req deleteFollowingRequest
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))

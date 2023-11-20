@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type createLoginRequest struct {
@@ -56,23 +57,12 @@ func (server *Server) createLogin(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println(user)
 
 	err = util.CheckPassword(req.Password, user.HashedPassword)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
-
-	//err = verifyMobileAndPassword(ctx, req.Username, req.Password, userData)
-	////fmt.Printf("ramram")
-	////if err != nil {
-	////	ctx.JSON(http.StatusUnauthorized, errorResponse(err))
-	////}
-	////}
-	//if err != nil {
-	//	ctx.JSON(http.StatusNotFound, errorResponse(err))
-	//}
 
 	accessToken, accessPayload, err := server.tokenMaker.CreateToken(
 		user.Username,

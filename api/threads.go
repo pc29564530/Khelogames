@@ -34,8 +34,6 @@ func saveImageToFile(data []byte) (string, error) {
 		return "", err
 	}
 
-	fmt.Println(filePath)
-
 	path := convertLocalPathToURL(filePath)
 	return path, nil
 }
@@ -55,27 +53,11 @@ func generateRandomString(length int) (string, error) {
 }
 
 func convertLocalPathToURL(localPath string) string {
-	baseURL := "http://192.168.0.101:8080/images/"
+	baseURL := "http://192.168.0.103:8080/images/"
 	imagePath := baseURL + strings.TrimPrefix(localPath, "/Users/pawan/project/Khelogames/images/")
 	filePath := imagePath
 	return filePath
 }
-
-// func copyFile(src, dest string) error {
-// 	srcFile, err := os.Open(src)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer srcFile.Close()
-
-// 	destFile, err := os.Create(dest)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer destFile.Close()
-// 	_, err = io.Copy(destFile, srcFile)
-// 	return err
-// }
 
 type createThreadRequest struct {
 	CommunitiesName string `json:"communities_name,omitempty"`
@@ -127,8 +109,6 @@ func (server *Server) createThread(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println(thread)
-	fmt.Println("lin no 77 threasds")
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -176,8 +156,6 @@ func (server *Server) getAllThreadsByCommunities(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 	}
 
-	//authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-
 	threads, err := server.store.GetAllThreadsByCommunities(ctx, req.CommunitiesName)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -213,5 +191,4 @@ func (server *Server) updateThreadLike(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, thread)
 	return
-
 }

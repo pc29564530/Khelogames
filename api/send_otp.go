@@ -44,14 +44,14 @@ func (server *Server) Otp(ctx *gin.Context) {
 		return
 	}
 	fmt.Println("Otp has been send successfully")
-	fmt.Println(reqSendOTP.MobileNumber)
+
 	arg := db.CreateSignupParams{
 		MobileNumber: reqSendOTP.MobileNumber,
 		Otp:          otp,
 	}
+
 	fmt.Println("line no 51:", arg)
 	signup, err := server.store.CreateSignup(ctx, arg)
-	fmt.Println("line no 53: ", err)
 	if err != nil {
 
 		if err == sql.ErrNoRows {

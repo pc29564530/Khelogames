@@ -74,8 +74,6 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateFullName", server.updateFullName)
 	authRouter.PUT("/updateBio", server.updateBio)
 
-	//handler := corsHandle.Handler(router)
-
 	server.router = router
 	return server, nil
 }

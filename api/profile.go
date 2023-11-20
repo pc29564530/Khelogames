@@ -27,7 +27,7 @@ func (server *Server) createProfile(ctx *gin.Context) {
 	}
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	fmt.Println("Username: ", authPayload.Username)
+
 	arg := db.CreateProfileParams{
 		Owner:     authPayload.Username,
 		FullName:  req.FullName,
@@ -35,8 +35,6 @@ func (server *Server) createProfile(ctx *gin.Context) {
 		AvatarUrl: req.AvatarUrl,
 		CoverUrl:  req.CoverUrl,
 	}
-
-	fmt.Println("Arg: ", arg)
 
 	profile, err := server.store.CreateProfile(ctx, arg)
 	if err != nil {
@@ -53,17 +51,13 @@ type getProfileRequest struct {
 
 func (server *Server) getProfile(ctx *gin.Context) {
 	var req getProfileRequest
-	fmt.Println("Hello")
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println("Profile Owner: ", req.Owner)
 
 	profile, err := server.store.GetProfile(ctx, req.Owner)
-	fmt.Println("Profile: ", profile)
-	fmt.Println("Error: ", err)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
@@ -71,7 +65,6 @@ func (server *Server) getProfile(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, profile)
 	return
-
 }
 
 type editProfileRequest struct {

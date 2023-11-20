@@ -38,7 +38,6 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, c
 		username,
 		server.config.RefreshTokenDuration,
 	)
-	fmt.Println("RefreshToken: ", refreshToken)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -139,13 +138,13 @@ func (server *Server) createUser(ctx *gin.Context) {
 		AvatarUrl: "",
 		CoverUrl:  "",
 	}
-	fmt.Println("argProfile: ", argProfile)
-	profile, err := server.store.CreateProfile(ctx, argProfile)
+
+	_, err = server.store.CreateProfile(ctx, argProfile)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println("ResponseProfile: ", profile)
+
 	ctx.JSON(http.StatusAccepted, resp)
 	return
 }
@@ -157,21 +156,16 @@ type getUserRequest struct {
 func (server *Server) getUsers(ctx *gin.Context) {
 	var req getUserRequest
 	err := ctx.ShouldBindUri(&req)
-	fmt.Println(err)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println(req.Username)
 
 	users, err := server.store.GetUser(ctx, req.Username)
-	fmt.Println(err)
-	fmt.Println(req.Username)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println(users)
 
 	ctx.JSON(http.StatusOK, users)
 	return
