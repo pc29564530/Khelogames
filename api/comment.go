@@ -2,14 +2,15 @@ package api
 
 import (
 	"database/sql"
-	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type createCommentRequest struct {
-	CommentText string `json:"commentText"`
+	CommentText string `json:"comment_text"`
 }
 
 type createCommentThreadIdRequest struct {
