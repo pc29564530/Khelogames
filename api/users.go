@@ -144,8 +144,8 @@ func (server *Server) createUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
-	ctx.JSON(http.StatusAccepted, resp)
+	fmt.Println("Profile created successfully")
+	fmt.Println("Successfully created the user account")
 	return
 }
 

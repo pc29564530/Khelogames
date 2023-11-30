@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -26,11 +27,15 @@ func (server *Server) addJoinCommunity(ctx *gin.Context) {
 		Username:      authPayload.Username,
 	}
 
+	fmt.Println("Args: ", arg)
+
 	communityUser, err := server.store.AddJoinCommunity(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	fmt.Println("Community User: ", communityUser)
 
 	ctx.JSON(http.StatusOK, communityUser)
 	return
