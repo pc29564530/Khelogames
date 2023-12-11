@@ -20,8 +20,7 @@ SELECT * FROM threads;
 
 -- name: GetAllThreadsByCommunities :many
 SELECT * FROM threads
-WHERE communities_name = $1
-ORDER BY id=$1;
+WHERE communities_name = $1;
 
 -- name: UpdateThreadLike :one
 UPDATE threads

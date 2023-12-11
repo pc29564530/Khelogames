@@ -98,7 +98,6 @@ func (q *Queries) GetAllThreads(ctx context.Context) ([]Thread, error) {
 const getAllThreadsByCommunities = `-- name: GetAllThreadsByCommunities :many
 SELECT id, username, communities_name, title, content, media_type, media_url, like_count, created_at FROM threads
 WHERE communities_name = $1
-ORDER BY id=$1
 `
 
 func (q *Queries) GetAllThreadsByCommunities(ctx context.Context, communitiesName string) ([]Thread, error) {

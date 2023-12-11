@@ -145,7 +145,7 @@ func (server *Server) getAllThreads(ctx *gin.Context) {
 }
 
 type getThreadsByCommunitiesRequest struct {
-	CommunitiesName string `json:"communities_name"`
+	CommunitiesName string `uri:"communities_name"`
 }
 
 func (server *Server) getAllThreadsByCommunities(ctx *gin.Context) {
@@ -161,6 +161,7 @@ func (server *Server) getAllThreadsByCommunities(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
+	fmt.Println("Thread Data: ", threads)
 	ctx.JSON(http.StatusOK, threads)
 	return
 }

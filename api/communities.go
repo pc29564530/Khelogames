@@ -3,11 +3,12 @@ package api
 import (
 	"database/sql"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type createCommunitiesRequest struct {
@@ -95,18 +96,7 @@ func (server *Server) getCommunity(ctx *gin.Context) {
 
 // Get all communities by owner.
 func (server *Server) getAllCommunities(ctx *gin.Context) {
-	//var req getAllCommunitiesRequest
-	//err := ctx.ShouldBindUri(&req)
-	//if err != nil {
-	//	ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-	//}
 
-	//authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-
-	//if req.Owner != authPayload.Username {
-	//	ctx.JSON(http.StatusUnauthorized, errorResponse(err))
-	//	return
-	//}
 	user, err := server.store.GetAllCommunities(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
