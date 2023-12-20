@@ -53,7 +53,7 @@ func generateRandomString(length int) (string, error) {
 }
 
 func convertLocalPathToURL(localPath string) string {
-	baseURL := "http://192.168.0.103:8080/images/"
+	baseURL := "http://10.0.2.2:8080/images/"
 	imagePath := baseURL + strings.TrimPrefix(localPath, "/Users/pawan/project/Khelogames/images/")
 	filePath := imagePath
 	return filePath
