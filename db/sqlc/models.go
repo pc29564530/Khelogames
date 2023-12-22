@@ -51,6 +51,15 @@ type Login struct {
 	Password string `json:"password"`
 }
 
+type Message struct {
+	ID               int64     `json:"id"`
+	Content          string    `json:"content"`
+	IsSeen           bool      `json:"is_seen"`
+	SenderUsername   string    `json:"sender_username"`
+	ReceiverUsername string    `json:"receiver_username"`
+	SentAt           time.Time `json:"sent_at"`
+}
+
 type Profile struct {
 	ID        int64     `json:"id"`
 	Owner     string    `json:"owner"`

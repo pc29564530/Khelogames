@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 type Server struct {
@@ -15,6 +16,45 @@ type Server struct {
 	store      *db.Store
 	tokenMaker token.Maker
 	router     *gin.Engine
+	upgrader   websocket.Upgrader
+	clients    map[*websocket.Conn]bool
+	broadcast  chan []byte
+}
+
+func (server *Server) startWebSocketHub(){
+	for  {
+		select  {
+		case message := <- server.broadcast:
+			for client := range server.clients {
+				err := client.WriteMessage(websocket.TextMessage, message) {
+					if err != nil {
+						delete(server.clients, client)
+						client.Close()
+					}
+				}
+			}
+		}
+	}
+}
+
+func (server *Server) handleWebSocket(ctx *gin.Context) {
+	conn, err := server.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	server.clients[conn] = true
+
+	for {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			delete(server.clients, conn)
+			break
+		}
+
+		server.broadcast <- msg
+	}
 }
 
 // NewServer creates a new HTTP server and setup routing
@@ -24,17 +64,27 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
+
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
 	server := &Server{
 		config:     config,
 		store:      store,
 		tokenMaker: tokenMaker,
+		upgrader:   upgrader,
+		clients:    make(map[*websocket.Conn]bool),
+		broadcast:  make(chan []byte),
 	}
 
 	router := gin.Default()
 
 	router.Use(corsHandle())
 	router.StaticFS("/images", http.Dir("/Users/pawan/project/Khelogames/images"))
-
+	router.GET("/ws", server.handleWebSocket)
 	router.POST("/send_otp", server.Otp)
 	router.POST("/signup", server.createSignup)
 	router.POST("/users", server.createUser)
@@ -73,6 +123,8 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateCover", server.updateCoverUrl)
 	authRouter.PUT("/updateFullName", server.updateFullName)
 	authRouter.PUT("/updateBio", server.updateBio)
+	authRouter.POST("/createMessage", server.createNewMessage)
+	authRouter.GET("/getMessage", server.getMessageByReceiver)
 
 	server.router = router
 	return server, nil
@@ -80,6 +132,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 
 // Start run the HTTP server as specific address.
 func (server *Server) Start(address string) error {
+	go server.startWebSocketHub()
 	return server.router.Run(address)
 }
 
