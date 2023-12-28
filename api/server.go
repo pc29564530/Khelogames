@@ -1,11 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"khelogames/util"
 	"net/http"
+	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -19,41 +22,86 @@ type Server struct {
 	upgrader   websocket.Upgrader
 	clients    map[*websocket.Conn]bool
 	broadcast  chan []byte
+	mutex      sync.Mutex
 }
 
-func (server *Server) startWebSocketHub(){
-	for  {
-		select  {
-		case message := <- server.broadcast:
+func (server *Server) startWebSocketHub() {
+	for {
+		select {
+		case message := <-server.broadcast:
+			server.mutex.Lock()
 			for client := range server.clients {
-				err := client.WriteMessage(websocket.TextMessage, message) {
-					if err != nil {
-						delete(server.clients, client)
-						client.Close()
-					}
+				err := client.WriteMessage(websocket.TextMessage, message)
+				if err != nil {
+					delete(server.clients, client)
+					client.Close()
 				}
 			}
+			server.mutex.Unlock()
 		}
 	}
 }
 
 func (server *Server) handleWebSocket(ctx *gin.Context) {
+
+	authHeader := ctx.GetHeader("Authorization")
+	auth := strings.Split(authHeader, " ")
+
+	if len(auth) == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
+		return
+	}
+
+	_, err := server.tokenMaker.VerifyToken(auth[1])
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+
 	conn, err := server.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+	fmt.Println("Error: ", err)
 	if err != nil {
 		return
 	}
+
 	defer conn.Close()
 
 	server.clients[conn] = true
 
 	for {
 		_, msg, err := conn.ReadMessage()
+		fmt.Println("Message: ", msg)
 		if err != nil {
 			delete(server.clients, conn)
 			break
 		}
 
+		var message map[string]string
+		err = json.Unmarshal(msg, &message)
+		if err != nil {
+			fmt.Errorf("unable to unmarshal msg ", err)
+			return
+		}
+		fmt.Println("Message data: ", message)
+
+		authToken := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+		fmt.Println("SenderUsername: ", authToken.Username)
+		fmt.Println("ReceiverUsername: ", message["receiver_username"])
+		arg := db.CreateNewMessageParams{
+			Content:          message["content"],
+			IsSeen:           false,
+			SenderUsername:   authToken.Username,
+			ReceiverUsername: message["receiver_username"],
+		}
+
+		_, err = server.store.CreateNewMessage(ctx, arg)
+		if err != nil {
+			fmt.Errorf("unable to store new message: ", err)
+			return
+		}
+
 		server.broadcast <- msg
+		fmt.Println("Server Message: ", server.broadcast)
 	}
 }
 
@@ -78,13 +126,13 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		upgrader:   upgrader,
 		clients:    make(map[*websocket.Conn]bool),
 		broadcast:  make(chan []byte),
+		mutex:      sync.Mutex{},
 	}
 
 	router := gin.Default()
-
+	fmt.Println("Check Backend: ", upgrader)
 	router.Use(corsHandle())
 	router.StaticFS("/images", http.Dir("/Users/pawan/project/Khelogames/images"))
-	router.GET("/ws", server.handleWebSocket)
 	router.POST("/send_otp", server.Otp)
 	router.POST("/signup", server.createSignup)
 	router.POST("/users", server.createUser)
@@ -94,6 +142,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router.GET("/user/:username", server.getUsers)
 	router.GET("/getProfile/:owner", server.getProfile)
 	authRouter := router.Group("/").Use(authMiddleware(server.tokenMaker))
+	authRouter.GET("/ws", server.handleWebSocket)
 	authRouter.POST("/joinUserCommunity/:community_name", server.addJoinCommunity)
 	authRouter.GET("/getUserByCommunity/:community_name", server.getUserByCommunity)
 	authRouter.GET("/getCommunityByUser", server.getCommunityByUser)
@@ -124,7 +173,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateFullName", server.updateFullName)
 	authRouter.PUT("/updateBio", server.updateBio)
 	authRouter.POST("/createMessage", server.createNewMessage)
-	authRouter.GET("/getMessage", server.getMessageByReceiver)
+	authRouter.GET("/getMessage/:receiver_username", server.getMessageByReceiver)
 
 	server.router = router
 	return server, nil

@@ -48,8 +48,8 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 
 const getMessageByReceiver = `-- name: GetMessageByReceiver :many
 SELECT id, content, is_seen, sender_username, receiver_username, sent_at FROM message
-WHERE (sender_username=$1 AND receiver_username=$2 AND sent_at=%3)
-ORDER BY id DESC
+WHERE (sender_username=$1 AND receiver_username=$2) OR (receiver_username=$1 AND sender_username=$2)
+ORDER BY id ASC
 `
 
 type GetMessageByReceiverParams struct {
