@@ -187,7 +187,6 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateCover", server.updateCoverUrl)
 	authRouter.PUT("/updateFullName", server.updateFullName)
 	authRouter.PUT("/updateBio", server.updateBio)
-	authRouter.POST("/createMessage", server.createNewMessage)
 	authRouter.GET("/getMessage/:receiver_username", server.getMessageByReceiver)
 
 	server.router = router
