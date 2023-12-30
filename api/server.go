@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	db "khelogames/db/sqlc"
@@ -70,7 +71,7 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 
 	for {
 		_, msg, err := conn.ReadMessage()
-		fmt.Println("Message: ", msg)
+
 		if err != nil {
 			delete(server.clients, conn)
 			break
@@ -82,16 +83,30 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 			fmt.Errorf("unable to unmarshal msg ", err)
 			return
 		}
-		fmt.Println("Message data: ", message)
 
 		authToken := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 		fmt.Println("SenderUsername: ", authToken.Username)
 		fmt.Println("ReceiverUsername: ", message["receiver_username"])
+		b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
+		data, err := base64.StdEncoding.DecodeString(b64data)
+		if err != nil {
+			fmt.Println("unable to decode :", err)
+			return
+		}
+
+		path, err := saveImageToFile(data)
+		if err != nil {
+			fmt.Println("unable to create a file")
+			return
+		}
+
 		arg := db.CreateNewMessageParams{
 			Content:          message["content"],
 			IsSeen:           false,
 			SenderUsername:   authToken.Username,
 			ReceiverUsername: message["receiver_username"],
+			MediaUrl:         path,
+			MediaType:        message["media_type"],
 		}
 
 		_, err = server.store.CreateNewMessage(ctx, arg)
@@ -130,7 +145,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	}
 
 	router := gin.Default()
-	fmt.Println("Check Backend: ", upgrader)
+
 	router.Use(corsHandle())
 	router.StaticFS("/images", http.Dir("/Users/pawan/project/Khelogames/images"))
 	router.POST("/send_otp", server.Otp)

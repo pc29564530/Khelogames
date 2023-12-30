@@ -58,6 +58,8 @@ type Message struct {
 	SenderUsername   string    `json:"sender_username"`
 	ReceiverUsername string    `json:"receiver_username"`
 	SentAt           time.Time `json:"sent_at"`
+	MediaUrl         string    `json:"media_url"`
+	MediaType        string    `json:"media_type"`
 }
 
 type Profile struct {

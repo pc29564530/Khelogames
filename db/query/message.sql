@@ -3,9 +3,11 @@ INSERT INTO message (
     content,
     is_seen,
     sender_username,
-    receiver_username
+    receiver_username,
+    media_url,
+    media_type
 ) VALUES (
-    $1,$2,$3,$4
+    $1,$2,$3,$4,$5,$6
 ) RETURNING *;
 
 -- name: GetMessageByReceiver :many

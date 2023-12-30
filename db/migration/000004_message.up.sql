@@ -4,7 +4,9 @@ CREATE TABLE "message" (
   "is_seen" boolean NOT NULL,
   "sender_username" varchar NOT NULL,
   "receiver_username" varchar NOT NULL,
-  "sent_at" timestamp NOT NULL DEFAULT 'now()'
+  "sent_at" timestamp NOT NULL DEFAULT 'now()',
+  "media_url" varchar NOT NULL,
+  "media_type" varchar NOT NULL
 );
 
 ALTER TABLE "message" ADD FOREIGN KEY ("sender_username") REFERENCES "users" ("username");

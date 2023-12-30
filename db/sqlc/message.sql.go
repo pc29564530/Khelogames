@@ -14,10 +14,12 @@ INSERT INTO message (
     content,
     is_seen,
     sender_username,
-    receiver_username
+    receiver_username,
+    media_url,
+    media_type
 ) VALUES (
-    $1,$2,$3,$4
-) RETURNING id, content, is_seen, sender_username, receiver_username, sent_at
+    $1,$2,$3,$4,$5,$6
+) RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type
 `
 
 type CreateNewMessageParams struct {
@@ -25,6 +27,8 @@ type CreateNewMessageParams struct {
 	IsSeen           bool   `json:"is_seen"`
 	SenderUsername   string `json:"sender_username"`
 	ReceiverUsername string `json:"receiver_username"`
+	MediaUrl         string `json:"media_url"`
+	MediaType        string `json:"media_type"`
 }
 
 func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessageParams) (Message, error) {
@@ -33,6 +37,8 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 		arg.IsSeen,
 		arg.SenderUsername,
 		arg.ReceiverUsername,
+		arg.MediaUrl,
+		arg.MediaType,
 	)
 	var i Message
 	err := row.Scan(
@@ -42,12 +48,14 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 		&i.SenderUsername,
 		&i.ReceiverUsername,
 		&i.SentAt,
+		&i.MediaUrl,
+		&i.MediaType,
 	)
 	return i, err
 }
 
 const getMessageByReceiver = `-- name: GetMessageByReceiver :many
-SELECT id, content, is_seen, sender_username, receiver_username, sent_at FROM message
+SELECT id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type FROM message
 WHERE (sender_username=$1 AND receiver_username=$2) OR (receiver_username=$1 AND sender_username=$2)
 ORDER BY id ASC
 `
@@ -73,6 +81,8 @@ func (q *Queries) GetMessageByReceiver(ctx context.Context, arg GetMessageByRece
 			&i.SenderUsername,
 			&i.ReceiverUsername,
 			&i.SentAt,
+			&i.MediaUrl,
+			&i.MediaType,
 		); err != nil {
 			return nil, err
 		}
