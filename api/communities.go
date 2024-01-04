@@ -90,10 +90,6 @@ func (server *Server) getCommunity(ctx *gin.Context) {
 	return
 }
 
-//type getAllCommunitiesRequest struct {
-//	Owner string `uri:"owner"`
-//}
-
 // Get all communities by owner.
 func (server *Server) getAllCommunities(ctx *gin.Context) {
 

@@ -53,7 +53,7 @@ func (q *Queries) DeleteFollowing(ctx context.Context, followingOwner string) (F
 }
 
 const getAllFollower = `-- name: GetAllFollower :many
-SELECT follower_owner FROM follow
+SELECT DISTINCT follower_owner FROM follow
 WHERE following_owner = $1
 `
 
@@ -81,7 +81,7 @@ func (q *Queries) GetAllFollower(ctx context.Context, followingOwner string) ([]
 }
 
 const getAllFollowing = `-- name: GetAllFollowing :many
-SELECT following_owner FROM follow
+SELECT DISTINCT following_owner FROM follow
 WHERE follower_owner =  $1
 `
 

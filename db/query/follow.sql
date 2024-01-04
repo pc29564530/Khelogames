@@ -7,11 +7,11 @@ INSERT INTO follow (
 ) RETURNING *;
 
 -- name: GetAllFollower :many
-SELECT follower_owner FROM follow
+SELECT DISTINCT follower_owner FROM follow
 WHERE following_owner = $1;
 
 -- name: GetAllFollowing :many
-SELECT following_owner FROM follow
+SELECT DISTINCT following_owner FROM follow
 WHERE follower_owner =  $1;
 
 -- name: DeleteFollowing :one
