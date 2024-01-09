@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	ampq "github.com/rabbitmq/amqp091-go"
 )
 
 type Server struct {
@@ -23,6 +24,8 @@ type Server struct {
 	upgrader   websocket.Upgrader
 	clients    map[*websocket.Conn]bool
 	broadcast  chan []byte
+	rabbitConn *ampq.Connection
+	rabbitChan *ampq.Channel
 	mutex      sync.Mutex
 }
 
@@ -84,9 +87,18 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 			return
 		}
 
+		err = server.rabbitChan.Publish(
+			"",
+			"message",
+			false,
+			false,
+			ampq.Publishing{
+				ContentType: "application/json",
+				Body:        msg,
+			},
+		)
+
 		authToken := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-		fmt.Println("SenderUsername: ", authToken.Username)
-		fmt.Println("ReceiverUsername: ", message["receiver_username"])
 		b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
 		data, err := base64.StdEncoding.DecodeString(b64data)
 		if err != nil {
@@ -120,6 +132,18 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 	}
 }
 
+func startRabbitMQ(config util.Config) (*ampq.Connection, *ampq.Channel, error) {
+	rabbitConn, err := ampq.Dial(config.RabbitSource)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to connect to RabbitMQ :%w", err)
+	}
+	rabbitChan, err := rabbitConn.Channel()
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to open RabbitMQ channel :%w", err)
+	}
+	return rabbitConn, rabbitChan, nil
+}
+
 // NewServer creates a new HTTP server and setup routing
 func NewServer(config util.Config, store *db.Store) (*Server, error) {
 
@@ -134,6 +158,11 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		},
 	}
 
+	rabbitConn, rabbitChan, err := startRabbitMQ(config)
+	if err != nil {
+		return nil, fmt.Errorf("cannot run the rabbit mq :%w", err)
+	}
+
 	server := &Server{
 		config:     config,
 		store:      store,
@@ -141,6 +170,8 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		upgrader:   upgrader,
 		clients:    make(map[*websocket.Conn]bool),
 		broadcast:  make(chan []byte),
+		rabbitConn: rabbitConn,
+		rabbitChan: rabbitChan,
 		mutex:      sync.Mutex{},
 	}
 
