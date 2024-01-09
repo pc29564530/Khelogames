@@ -133,7 +133,7 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 }
 
 func startRabbitMQ(config util.Config) (*ampq.Connection, *ampq.Channel, error) {
-	rabbitConn, err := ampq.Dial("amqp://guest:guest@localhost:5672/")
+	rabbitConn, err := ampq.Dial(config.RabbitSource)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to connect to RabbitMQ :%w", err)
 	}
