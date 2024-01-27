@@ -12,7 +12,7 @@ SELECT * FROM users
 WHERE username = $1 LIMIT 1;
 
 -- name: ListUser :many
-SELECT * FROM users
+SELECT DISTINCT * FROM users
 WHERE username = $1
 ORDER BY username
 LIMIT $2

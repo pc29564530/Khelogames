@@ -55,7 +55,7 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 }
 
 const listUser = `-- name: ListUser :many
-SELECT username, mobile_number, hashed_password, created_at FROM users
+SELECT DISTINCT username, mobile_number, hashed_password, created_at FROM users
 WHERE username = $1
 ORDER BY username
 LIMIT $2

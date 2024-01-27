@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -12,7 +11,6 @@ import (
 )
 
 type createCommunitiesRequest struct {
-	Owner         string `json:"owner"`
 	CommunityName string `json:"communityName"`
 	Description   string `json:"description"`
 	CommunityType string `json:"communityType"`
@@ -21,7 +19,6 @@ type createCommunitiesRequest struct {
 // Create communities function
 func (server *Server) createCommunites(ctx *gin.Context) {
 	var req createCommunitiesRequest
-	fmt.Println(req)
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
