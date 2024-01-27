@@ -60,23 +60,23 @@ func (q *Queries) GetCommunityByUser(ctx context.Context, username string) ([]Jo
 }
 
 const getUserByCommunity = `-- name: GetUserByCommunity :many
-SELECT id, community_name, username FROM join_community
+SELECT DISTINCT username FROM join_community
 WHERE community_name=$1
 `
 
-func (q *Queries) GetUserByCommunity(ctx context.Context, communityName string) ([]JoinCommunity, error) {
+func (q *Queries) GetUserByCommunity(ctx context.Context, communityName string) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, getUserByCommunity, communityName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []JoinCommunity
+	var items []string
 	for rows.Next() {
-		var i JoinCommunity
-		if err := rows.Scan(&i.ID, &i.CommunityName, &i.Username); err != nil {
+		var username string
+		if err := rows.Scan(&username); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, username)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

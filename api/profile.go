@@ -100,8 +100,9 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 	}
 
 	var avatarPath string
+	mediaType := "image"
 	if req.AvatarUrl != "" {
-		avatarPath, err = saveImageToFile(avatarData)
+		avatarPath, err = saveImageToFile(avatarData, mediaType)
 		if err != nil {
 			fmt.Println("unable to create a avatar file")
 			return
@@ -109,7 +110,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 	}
 	var coverPath string
 	if req.CoverUrl != "" {
-		coverPath, err = saveImageToFile(coverData)
+		coverPath, err = saveImageToFile(coverData, mediaType)
 		if err != nil {
 			fmt.Println("unable to create a cover file")
 			return
@@ -199,7 +200,7 @@ func (server *Server) updateBio(ctx *gin.Context) {
 }
 
 type editAvatarUrlRequest struct {
-	AvatarUrl string `json:"avatar_url"`
+	AvatarUrl string `json:"avatar_url,omitempty"`
 }
 
 func (server *Server) updateAvatarUrl(ctx *gin.Context) {
@@ -217,8 +218,8 @@ func (server *Server) updateAvatarUrl(ctx *gin.Context) {
 		fmt.Println("unable to decode avatar :", err)
 		return
 	}
-
-	path, err := saveImageToFile(avatarData)
+	mediaType := "image"
+	path, err := saveImageToFile(avatarData, mediaType)
 	if err != nil {
 		fmt.Println("unable to create a avatar file")
 		return
@@ -241,7 +242,7 @@ func (server *Server) updateAvatarUrl(ctx *gin.Context) {
 }
 
 type editCoverUrlRequest struct {
-	CoverUrl string `json:"cover_url"`
+	CoverUrl string `json:"cover_url,omitempty"`
 }
 
 func (server *Server) updateCoverUrl(ctx *gin.Context) {
@@ -259,8 +260,8 @@ func (server *Server) updateCoverUrl(ctx *gin.Context) {
 		fmt.Println("unable to decode cover  :", err)
 		return
 	}
-
-	path, err := saveImageToFile(coverData)
+	mediaType := "image"
+	path, err := saveImageToFile(coverData, mediaType)
 	if err != nil {
 		fmt.Println("unable to create a cover file")
 		return

@@ -105,8 +105,8 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 			fmt.Println("unable to decode :", err)
 			return
 		}
-
-		path, err := saveImageToFile(data)
+		mediaType := "image"
+		path, err := saveImageToFile(data, mediaType)
 		if err != nil {
 			fmt.Println("unable to create a file")
 			return
@@ -178,7 +178,8 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router := gin.Default()
 
 	router.Use(corsHandle())
-	router.StaticFS("/images", http.Dir("/Users/pawan/project/Khelogames/images"))
+	router.StaticFS("/images", http.Dir("/Users/pawan/database/Khelogames/images"))
+	router.StaticFS("/videos", http.Dir("/Users/pawan/database/Khelogames/videos"))
 	router.POST("/send_otp", server.Otp)
 	router.POST("/signup", server.createSignup)
 	router.POST("/users", server.createUser)
