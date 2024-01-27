@@ -16,17 +16,29 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func saveImageToFile(data []byte) (string, error) {
+func saveImageToFile(data []byte, mediaType string) (string, error) {
 	randomString, err := generateRandomString(12)
 	if err != nil {
 		fmt.Printf("Error generating random string: %v\n", err)
 		return "", err
 	}
-	filePath := fmt.Sprintf("/Users/pawan/project/Khelogames/images/%s", randomString)
+
+	var mediaFolder string
+	switch mediaType {
+	case "image":
+		mediaFolder = "images"
+	case "video":
+		mediaFolder = "videos"
+	default:
+		return "", fmt.Errorf("unsupported media type for inserting in mediaFolder: %s", mediaType)
+	}
+
+	filePath := fmt.Sprintf("/Users/pawan/database/Khelogames/%s/%s", mediaFolder, randomString)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return "", err
 	}
+
 	defer file.Close()
 
 	_, err = io.Copy(file, bytes.NewReader(data))
@@ -34,7 +46,7 @@ func saveImageToFile(data []byte) (string, error) {
 		return "", err
 	}
 
-	path := convertLocalPathToURL(filePath)
+	path := convertLocalPathToURL(filePath, mediaFolder)
 	return path, nil
 }
 
@@ -52,9 +64,9 @@ func generateRandomString(length int) (string, error) {
 	return hex.EncodeToString(randomBytes), nil
 }
 
-func convertLocalPathToURL(localPath string) string {
-	baseURL := "http://10.0.2.2:8080/images/"
-	imagePath := baseURL + strings.TrimPrefix(localPath, "/Users/pawan/project/Khelogames/images/")
+func convertLocalPathToURL(localPath string, mediaFolder string) string {
+	baseURL := fmt.Sprintf("http://10.0.2.2:8080/%s/", mediaFolder)
+	imagePath := baseURL + strings.TrimPrefix(localPath, fmt.Sprintf("/Users/pawan/database/Khelogames/%s/", mediaFolder))
 	filePath := imagePath
 	return filePath
 }
@@ -69,26 +81,31 @@ type createThreadRequest struct {
 }
 
 func (server *Server) createThread(ctx *gin.Context) {
-	fmt.Println("line no 66")
 	var req createThreadRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	fmt.Println("Hello line no 99")
 
-	b64data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
+	var path string
+	if req.MediaType != "" {
+		b64data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
 
-	data, err := base64.StdEncoding.DecodeString(b64data)
-	if err != nil {
-		fmt.Println("unable to decode :", err)
-		return
-	}
+		data, err := base64.StdEncoding.DecodeString(b64data)
+		if err != nil {
+			fmt.Println("unable to decode :", err)
+			return
+		}
 
-	path, err := saveImageToFile(data)
-	if err != nil {
-		fmt.Println("unable to create a file")
-		return
+		fmt.Println("hello line no 109")
+
+		path, err = saveImageToFile(data, req.MediaType)
+		if err != nil {
+			fmt.Println("unable to create a file")
+			return
+		}
 	}
 
 	//function for uploading a image or video
