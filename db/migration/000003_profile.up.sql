@@ -5,7 +5,7 @@ CREATE TABLE "profile" (
                    "bio" text NOT NULL,
                    "avatar_url" varchar NOT NULL,
                    "cover_url" varchar NOT NULL,
-                   "created_at" timestamp NOT NULL DEFAULT 'now()'
+                   "created_at" timestamp NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE "profile" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");

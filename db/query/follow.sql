@@ -1,9 +1,10 @@
 -- name: CreateFollowing :one
 INSERT INTO follow (
     follower_owner,
-    following_owner
+    following_owner,
+    created_at
 ) VALUES (
-             $1, $2
+             $1, $2, CURRENT_TIMESTAMP
 ) RETURNING *;
 
 -- name: GetAllFollower :many

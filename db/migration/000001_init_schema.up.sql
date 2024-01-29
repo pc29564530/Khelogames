@@ -7,7 +7,7 @@ CREATE TABLE "threads" (
                            "media_type" varchar NOT NULL ,
                            "media_url" text NOT NULL ,
                            "like_count" bigint NOT NULL,
-                           "created_at" timestamp NOT NULL DEFAULT 'now()'
+                           "created_at" timestamp NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE "like_thread" (
@@ -17,10 +17,10 @@ CREATE TABLE "like_thread" (
 );
 
 CREATE TABLE "users" (
-                         "username" varchar UNIQUE NOT NULL,
-                         "mobile_number" string UNIQUE NOT NULL,
-                         "hashed_password" varchar UNIQUE NOT NULL,
-                         "created_at" timestamp NOT NULL DEFAULT 'now()'
+                "username" varchar UNIQUE NOT NULL,
+                "mobile_number" string UNIQUE NOT NULL,
+                "hashed_password" varchar UNIQUE NOT NULL,
+                "created_at" timestamptz NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE "sessions" (
@@ -30,7 +30,7 @@ CREATE TABLE "sessions" (
                             "user_agent" varchar NOT NULL,
                             "client_ip" varchar NOT NULL,
                             "expires_at" timestamptz NOT NULL,
-                            "created_at" timestamptz NOT NULL DEFAULT (now())
+                            "created_at" timestamptz NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE "login" (
@@ -53,7 +53,7 @@ CREATE TABLE "communities" (
                                "communities_name" varchar NOT NULL,
                                "description" varchar NOT NULL,
                                "community_type" varchar NOT NULL,
-                               "created_at" timestamp NOT NULL DEFAULT 'now()'
+                               "created_at" timestamp NOT NULL DEFAULT NOW()
 );
 
 
@@ -79,7 +79,7 @@ CREATE TABLE "follow" (
                           "id" bigserial PRIMARY KEY,
                           "follower_owner" varchar NOT NULL,
                           "following_owner" varchar NOT NULL,
-                          "created_at" timestamp NOT NULL DEFAULT 'now()'
+                          "created_at" timestamptz NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE "comment" (
@@ -87,7 +87,7 @@ CREATE TABLE "comment" (
                            "thread_id" bigserial NOT NULL,
                            "owner" varchar NOT NULL,
                            "comment_text" text NOT NULL,
-                           "created_at" timestamp NOT NULL DEFAULT 'now()'
+                           "created_at" timestamptz NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE "like_thread" ADD FOREIGN KEY ("thread_id") REFERENCES "threads" ("id");
