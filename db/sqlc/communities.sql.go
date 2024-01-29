@@ -82,7 +82,7 @@ func (q *Queries) GetAllCommunities(ctx context.Context) ([]Community, error) {
 }
 
 const getCommunitiesMember = `-- name: GetCommunitiesMember :many
-SELECT DISTINCT users.username FROM users
+SELECT users.username FROM users
 JOIN communities ON users.username = communities.owner
 WHERE communities.communities_name=$1
 `

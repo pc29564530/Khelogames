@@ -13,9 +13,10 @@ const createComment = `-- name: CreateComment :one
 INSERT INTO comment (
     thread_id,
     owner,
-	comment_text
+	comment_text,
+    created_at
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, CURRENT_TIMESTAMP
 )
 RETURNING id, thread_id, owner, comment_text, created_at
 `

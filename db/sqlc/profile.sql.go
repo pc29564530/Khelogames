@@ -15,9 +15,10 @@ INSERT INTO profile (
     full_name,
     bio,
     avatar_url,
-    cover_url
+    cover_url,
+    created_at
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, CURRENT_TIMESTAMP
 ) RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
 `
 

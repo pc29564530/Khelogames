@@ -22,7 +22,7 @@ INSERT INTO sessions (
     expires_at,
     created_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP
 ) RETURNING id, username, refresh_token, user_agent, client_ip, expires_at, created_at
 `
 
@@ -33,7 +33,6 @@ type CreateSessionsParams struct {
 	UserAgent    string    `json:"user_agent"`
 	ClientIp     string    `json:"client_ip"`
 	ExpiresAt    time.Time `json:"expires_at"`
-	CreatedAt    time.Time `json:"created_at"`
 }
 
 func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) (Session, error) {
@@ -44,7 +43,6 @@ func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) 
 		arg.UserAgent,
 		arg.ClientIp,
 		arg.ExpiresAt,
-		arg.CreatedAt,
 	)
 	var i Session
 	err := row.Scan(

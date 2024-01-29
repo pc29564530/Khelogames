@@ -6,9 +6,10 @@ INSERT INTO threads (
     content,
     media_type,
     media_url,
-    like_count
+    like_count,
+    created_at
 ) VALUES (
-             $1, $2, $3, $4, $5, $6, $7
+             $1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP
 ) RETURNING *;
 
 -- name: GetThread :one

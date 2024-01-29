@@ -13,9 +13,10 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO users (
   username,
   mobile_number,
-  hashed_password
+  hashed_password,
+  created_at
 ) VALUES (
-  $1, $2, $3
+  $1, $2, $3, CURRENT_TIMESTAMP
 ) RETURNING username, mobile_number, hashed_password, created_at
 `
 

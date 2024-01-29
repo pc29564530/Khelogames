@@ -7,7 +7,7 @@ INSERT INTO join_community (
 ) RETURNING *;
 
 -- name: GetUserByCommunity :many
-SELECT DISTINCT username join_community
+SELECT DISTINCT username FROM join_community
 WHERE community_name=$1;
 
 -- name: GetCommunityByUser :many
