@@ -65,7 +65,7 @@ func generateRandomString(length int) (string, error) {
 }
 
 func convertLocalPathToURL(localPath string, mediaFolder string) string {
-	baseURL := fmt.Sprintf("http://10.0.2.2:8080/%s/", mediaFolder)
+	baseURL := fmt.Sprintf("http://192.168.0.102:8080/%s/", mediaFolder)
 	imagePath := baseURL + strings.TrimPrefix(localPath, fmt.Sprintf("/Users/pawan/database/Khelogames/%s/", mediaFolder))
 	filePath := imagePath
 	return filePath
@@ -87,7 +87,6 @@ func (server *Server) createThread(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println("Hello line no 99")
 
 	var path string
 	if req.MediaType != "" {
@@ -98,8 +97,6 @@ func (server *Server) createThread(ctx *gin.Context) {
 			fmt.Println("unable to decode :", err)
 			return
 		}
-
-		fmt.Println("hello line no 109")
 
 		path, err = saveImageToFile(data, req.MediaType)
 		if err != nil {

@@ -12,10 +12,11 @@ import (
 )
 
 type createProfileRequest struct {
-	FullName  string `json:"full_name,omitempty"`
-	Bio       string `json:"bio,omitempty"`
-	AvatarUrl string `json:"avatar_url,omitempty"`
-	CoverUrl  string `json:"cover_url,omitempty"`
+	FullName   string `json:"full_name,omitempty"`
+	Bio        string `json:"bio,omitempty"`
+	AvatarUrl  string `json:"avatar_url,omitempty"`
+	CoverUrl   string `json:"cover_url,omitempty"`
+	AvatarType string `json:"avatar_type,omitempty"`
 }
 
 func (server *Server) createProfile(ctx *gin.Context) {
@@ -29,11 +30,12 @@ func (server *Server) createProfile(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
 	arg := db.CreateProfileParams{
-		Owner:     authPayload.Username,
-		FullName:  req.FullName,
-		Bio:       req.Bio,
-		AvatarUrl: req.AvatarUrl,
-		CoverUrl:  req.CoverUrl,
+		Owner:      authPayload.Username,
+		FullName:   req.FullName,
+		Bio:        req.Bio,
+		AvatarUrl:  req.AvatarUrl,
+		AvatarType: req.AvatarType,
+		CoverUrl:   req.CoverUrl,
 	}
 
 	profile, err := server.store.CreateProfile(ctx, arg)
@@ -200,7 +202,8 @@ func (server *Server) updateBio(ctx *gin.Context) {
 }
 
 type editAvatarUrlRequest struct {
-	AvatarUrl string `json:"avatar_url,omitempty"`
+	AvatarUrl  string `json:"avatar_url,omitempty"`
+	AvatarType string `json:"avatar_type,omitempty"`
 }
 
 func (server *Server) updateAvatarUrl(ctx *gin.Context) {
@@ -211,25 +214,28 @@ func (server *Server) updateAvatarUrl(ctx *gin.Context) {
 		return
 	}
 
-	b64data := req.AvatarUrl[strings.IndexByte(req.AvatarUrl, ',')+1:]
+	var path string
+	if req.AvatarType != "" {
+		b64data := req.AvatarUrl[strings.IndexByte(req.AvatarUrl, ',')+1:]
 
-	avatarData, err := base64.StdEncoding.DecodeString(b64data)
-	if err != nil {
-		fmt.Println("unable to decode avatar :", err)
-		return
-	}
-	mediaType := "image"
-	path, err := saveImageToFile(avatarData, mediaType)
-	if err != nil {
-		fmt.Println("unable to create a avatar file")
-		return
+		data, err := base64.StdEncoding.DecodeString(b64data)
+		if err != nil {
+			fmt.Println("unable to decode :", err)
+			return
+		}
+		path, err = saveImageToFile(data, req.AvatarType)
+		if err != nil {
+			fmt.Println("unable to create a file")
+			return
+		}
 	}
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
 	arg := db.UpdateAvatarParams{
-		Owner:     authPayload.Username,
-		AvatarUrl: path,
+		Owner:      authPayload.Username,
+		AvatarUrl:  path,
+		AvatarType: req.AvatarType,
 	}
 
 	profileAvatarUrl, err := server.store.UpdateAvatar(ctx, arg)
@@ -242,7 +248,8 @@ func (server *Server) updateAvatarUrl(ctx *gin.Context) {
 }
 
 type editCoverUrlRequest struct {
-	CoverUrl string `json:"cover_url,omitempty"`
+	CoverUrl  string `json:"cover_url,omitempty"`
+	CoverType string `json:"cover_type,omitempty"`
 }
 
 func (server *Server) updateCoverUrl(ctx *gin.Context) {

@@ -63,13 +63,14 @@ type Message struct {
 }
 
 type Profile struct {
-	ID        int64     `json:"id"`
-	Owner     string    `json:"owner"`
-	FullName  string    `json:"full_name"`
-	Bio       string    `json:"bio"`
-	AvatarUrl string    `json:"avatar_url"`
-	CoverUrl  string    `json:"cover_url"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         int64       `json:"id"`
+	Owner      string      `json:"owner"`
+	FullName   string      `json:"full_name"`
+	Bio        string      `json:"bio"`
+	AvatarUrl  string      `json:"avatar_url"`
+	CoverUrl   string      `json:"cover_url"`
+	AvatarType interface{} `json:"avatar_type"`
+	CreatedAt  time.Time   `json:"created_at"`
 }
 
 type Session struct {

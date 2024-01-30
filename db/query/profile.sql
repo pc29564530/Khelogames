@@ -5,9 +5,11 @@ INSERT INTO profile (
     bio,
     avatar_url,
     cover_url,
+    avatar_type,
     created_at
+    
 ) VALUES (
-    $1, $2, $3, $4, $5, CURRENT_TIMESTAMP
+    $1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP
 ) RETURNING *;
 
 -- name: EditProfile :one
@@ -23,8 +25,8 @@ WHERE owner=$1;
 
 -- name: UpdateAvatar :one
 UPDATE profile
-SET avatar_url=$1
-WHERE owner=$2
+SET avatar_url=$1, avatar_type=$2
+WHERE owner=$3
 RETURNING *;
 
 -- name: UpdateCover :one

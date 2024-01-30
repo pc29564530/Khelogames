@@ -16,18 +16,21 @@ INSERT INTO profile (
     bio,
     avatar_url,
     cover_url,
+    avatar_type,
     created_at
+    
 ) VALUES (
-    $1, $2, $3, $4, $5, CURRENT_TIMESTAMP
-) RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+    $1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP
+) RETURNING id, owner, full_name, bio, avatar_url, cover_url, avatar_type, created_at
 `
 
 type CreateProfileParams struct {
-	Owner     string `json:"owner"`
-	FullName  string `json:"full_name"`
-	Bio       string `json:"bio"`
-	AvatarUrl string `json:"avatar_url"`
-	CoverUrl  string `json:"cover_url"`
+	Owner      string      `json:"owner"`
+	FullName   string      `json:"full_name"`
+	Bio        string      `json:"bio"`
+	AvatarUrl  string      `json:"avatar_url"`
+	CoverUrl   string      `json:"cover_url"`
+	AvatarType interface{} `json:"avatar_type"`
 }
 
 func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error) {
@@ -37,6 +40,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 		arg.Bio,
 		arg.AvatarUrl,
 		arg.CoverUrl,
+		arg.AvatarType,
 	)
 	var i Profile
 	err := row.Scan(
@@ -46,6 +50,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 		&i.Bio,
 		&i.AvatarUrl,
 		&i.CoverUrl,
+		&i.AvatarType,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -55,7 +60,7 @@ const editProfile = `-- name: EditProfile :one
 UPDATE profile
 SET full_name=$1, avatar_url=$2, bio=$3, cover_url=$4
 WHERE id=$5
-RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, avatar_type, created_at
 `
 
 type EditProfileParams struct {
@@ -82,13 +87,14 @@ func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (Profi
 		&i.Bio,
 		&i.AvatarUrl,
 		&i.CoverUrl,
+		&i.AvatarType,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getProfile = `-- name: GetProfile :one
-SELECT id, owner, full_name, bio, avatar_url, cover_url, created_at FROM profile
+SELECT id, owner, full_name, bio, avatar_url, cover_url, avatar_type, created_at FROM profile
 WHERE owner=$1
 `
 
@@ -102,6 +108,7 @@ func (q *Queries) GetProfile(ctx context.Context, owner string) (Profile, error)
 		&i.Bio,
 		&i.AvatarUrl,
 		&i.CoverUrl,
+		&i.AvatarType,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -109,18 +116,19 @@ func (q *Queries) GetProfile(ctx context.Context, owner string) (Profile, error)
 
 const updateAvatar = `-- name: UpdateAvatar :one
 UPDATE profile
-SET avatar_url=$1
-WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+SET avatar_url=$1, avatar_type=$2
+WHERE owner=$3
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, avatar_type, created_at
 `
 
 type UpdateAvatarParams struct {
-	AvatarUrl string `json:"avatar_url"`
-	Owner     string `json:"owner"`
+	AvatarUrl  string      `json:"avatar_url"`
+	AvatarType interface{} `json:"avatar_type"`
+	Owner      string      `json:"owner"`
 }
 
 func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) (Profile, error) {
-	row := q.db.QueryRowContext(ctx, updateAvatar, arg.AvatarUrl, arg.Owner)
+	row := q.db.QueryRowContext(ctx, updateAvatar, arg.AvatarUrl, arg.AvatarType, arg.Owner)
 	var i Profile
 	err := row.Scan(
 		&i.ID,
@@ -129,6 +137,7 @@ func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) (Pro
 		&i.Bio,
 		&i.AvatarUrl,
 		&i.CoverUrl,
+		&i.AvatarType,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -138,7 +147,7 @@ const updateBio = `-- name: UpdateBio :one
 UPDATE profile
 SET bio=$1
 WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, avatar_type, created_at
 `
 
 type UpdateBioParams struct {
@@ -156,6 +165,7 @@ func (q *Queries) UpdateBio(ctx context.Context, arg UpdateBioParams) (Profile, 
 		&i.Bio,
 		&i.AvatarUrl,
 		&i.CoverUrl,
+		&i.AvatarType,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -165,7 +175,7 @@ const updateCover = `-- name: UpdateCover :one
 UPDATE profile
 SET cover_url=$1
 WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, avatar_type, created_at
 `
 
 type UpdateCoverParams struct {
@@ -183,6 +193,7 @@ func (q *Queries) UpdateCover(ctx context.Context, arg UpdateCoverParams) (Profi
 		&i.Bio,
 		&i.AvatarUrl,
 		&i.CoverUrl,
+		&i.AvatarType,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -192,7 +203,7 @@ const updateFullName = `-- name: UpdateFullName :one
 UPDATE profile
 SET full_name=$1
 WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, cover_url, created_at
+RETURNING id, owner, full_name, bio, avatar_url, cover_url, avatar_type, created_at
 `
 
 type UpdateFullNameParams struct {
@@ -210,6 +221,7 @@ func (q *Queries) UpdateFullName(ctx context.Context, arg UpdateFullNameParams) 
 		&i.Bio,
 		&i.AvatarUrl,
 		&i.CoverUrl,
+		&i.AvatarType,
 		&i.CreatedAt,
 	)
 	return i, err
