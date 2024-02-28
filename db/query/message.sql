@@ -5,9 +5,10 @@ INSERT INTO message (
     sender_username,
     receiver_username,
     media_url,
-    media_type
+    media_type,
+    sent_at
 ) VALUES (
-    $1,$2,$3,$4,$5,$6
+    $1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP
 ) RETURNING *;
 
 -- name: GetMessageByReceiver :many
