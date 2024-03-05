@@ -219,7 +219,15 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateCover", server.updateCoverUrl)
 	authRouter.PUT("/updateFullName", server.updateFullName)
 	authRouter.PUT("/updateBio", server.updateBio)
+	authRouter.GET("getThreadByUser/:username", server.getThreadByUser)
 	authRouter.GET("/getMessage/:receiver_username", server.getMessageByReceiver)
+	authRouter.GET("/getCommentByUser/:owner", server.getCommentByUser)
+	authRouter.GET("/getThreadByThreadID/:thread_id", server.getThreadByThreadID)
+	authRouter.GET("/getMessagedUser", server.getUserByMessageSend)
+	authRouter.POST("/createUploadMedia", server.createUploadMedia)
+	authRouter.POST("/createMessageMedia", server.createMessageMedia)
+	authRouter.POST("/createCommunityMessage", server.createCommunityMessage)
+	authRouter.GET("/getCommunityMessage", server.getCommuntiyMessage)
 
 	server.router = router
 	return server, nil
