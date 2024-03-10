@@ -77,3 +77,29 @@ func (server *Server) getAllComment(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, comments)
 	return
 }
+
+type getCommentByUserRequest struct {
+	Owner string `uri:"owner"`
+}
+
+func (server *Server) getCommentByUser(ctx *gin.Context) {
+	var req getCommentByUserRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	if req.Owner == "undefined" {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	comments, err := server.store.GetCommentByUser(ctx, req.Owner)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, comments)
+	return
+}

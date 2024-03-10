@@ -12,3 +12,7 @@ RETURNING *;
 -- name: GetAllComment :many
 SELECT * FROM comment
 WHERE thread_id=$1;
+
+-- name: GetCommentByUser :many
+SELECT * FROM comment
+WHERE owner=$1;
