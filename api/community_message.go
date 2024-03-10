@@ -46,7 +46,7 @@ func (server *Server) createCommunityMessage(ctx *gin.Context) {
 func (server *Server) createUploadMedia(ctx *gin.Context) {
 
 	r := ctx.Request
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
+	if err := r.ParseMultipartForm(40 << 30); err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
