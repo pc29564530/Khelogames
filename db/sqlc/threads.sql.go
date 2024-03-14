@@ -156,6 +156,66 @@ func (q *Queries) GetThread(ctx context.Context, id int64) (Thread, error) {
 	return i, err
 }
 
+const getThreadByThreadID = `-- name: GetThreadByThreadID :one
+SELECT id, username, communities_name, title, content, media_type, media_url, like_count, created_at FROM threads
+WHERE id = $1
+`
+
+func (q *Queries) GetThreadByThreadID(ctx context.Context, id int64) (Thread, error) {
+	row := q.db.QueryRowContext(ctx, getThreadByThreadID, id)
+	var i Thread
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.CommunitiesName,
+		&i.Title,
+		&i.Content,
+		&i.MediaType,
+		&i.MediaUrl,
+		&i.LikeCount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getThreadUser = `-- name: GetThreadUser :many
+SELECT id, username, communities_name, title, content, media_type, media_url, like_count, created_at FROM threads
+WHERE username=$1
+`
+
+func (q *Queries) GetThreadUser(ctx context.Context, username string) ([]Thread, error) {
+	rows, err := q.db.QueryContext(ctx, getThreadUser, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Thread
+	for rows.Next() {
+		var i Thread
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.CommunitiesName,
+			&i.Title,
+			&i.Content,
+			&i.MediaType,
+			&i.MediaUrl,
+			&i.LikeCount,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateThreadLike = `-- name: UpdateThreadLike :one
 UPDATE threads
 SET like_count=$1

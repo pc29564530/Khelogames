@@ -16,9 +16,10 @@ INSERT INTO message (
     sender_username,
     receiver_username,
     media_url,
-    media_type
+    media_type,
+    sent_at
 ) VALUES (
-    $1,$2,$3,$4,$5,$6
+    $1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP
 ) RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type
 `
 
@@ -87,6 +88,35 @@ func (q *Queries) GetMessageByReceiver(ctx context.Context, arg GetMessageByRece
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserByMessageSend = `-- name: GetUserByMessageSend :many
+SELECT DISTINCT receiver_username
+FROM message
+WHERE sender_username = $1
+`
+
+func (q *Queries) GetUserByMessageSend(ctx context.Context, senderUsername string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getUserByMessageSend, senderUsername)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var receiver_username string
+		if err := rows.Scan(&receiver_username); err != nil {
+			return nil, err
+		}
+		items = append(items, receiver_username)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

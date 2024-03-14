@@ -43,3 +43,15 @@ func (server *Server) getMessageByReceiver(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, messageContent)
 	return
 }
+
+func (server *Server) getUserByMessageSend(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	messageUserName, err := server.store.GetUserByMessageSend(ctx, authPayload.Username)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, messageUserName)
+	return
+}

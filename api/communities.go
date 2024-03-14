@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -121,5 +122,31 @@ func (server *Server) getCommunitiesMember(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	ctx.JSON(http.StatusOK, usersList)
+}
+
+type getCommunityByCommunityNameRequest struct {
+	CommunitiesName string `uri:"communities_name"`
+}
+
+func (server *Server) getCommunityByCommunityName(ctx *gin.Context) {
+	var req getCommunityByCommunityNameRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		fmt.Println(err)
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	usersList, err := server.store.GetCommunityByCommunityName(ctx, req.CommunitiesName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
 	ctx.JSON(http.StatusOK, usersList)
 }

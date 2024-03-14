@@ -27,6 +27,14 @@ type Community struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
+type Communitymessage struct {
+	ID             int64     `json:"id"`
+	CommunityName  string    `json:"community_name"`
+	SenderUsername string    `json:"sender_username"`
+	Content        string    `json:"content"`
+	SentAt         time.Time `json:"sent_at"`
+}
+
 type Follow struct {
 	ID             int64     `json:"id"`
 	FollowerOwner  string    `json:"follower_owner"`
@@ -60,6 +68,11 @@ type Message struct {
 	SentAt           time.Time `json:"sent_at"`
 	MediaUrl         string    `json:"media_url"`
 	MediaType        string    `json:"media_type"`
+}
+
+type Messagemedium struct {
+	MessageID int64 `json:"message_id"`
+	MediaID   int64 `json:"media_id"`
 }
 
 type Profile struct {
@@ -97,6 +110,13 @@ type Thread struct {
 	MediaUrl        string    `json:"media_url"`
 	LikeCount       int64     `json:"like_count"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+type Uploadmedium struct {
+	ID        int64     `json:"id"`
+	MediaUrl  string    `json:"media_url"`
+	MediaType string    `json:"media_type"`
+	SentAt    time.Time `json:"sent_at"`
 }
 
 type User struct {

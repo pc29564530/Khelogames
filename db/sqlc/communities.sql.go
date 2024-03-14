@@ -128,3 +128,22 @@ func (q *Queries) GetCommunity(ctx context.Context, id int64) (Community, error)
 	)
 	return i, err
 }
+
+const getCommunityByCommunityName = `-- name: GetCommunityByCommunityName :one
+SELECT id, owner, communities_name, description, community_type, created_at FROM communities
+WHERE communities_name=$1
+`
+
+func (q *Queries) GetCommunityByCommunityName(ctx context.Context, communitiesName string) (Community, error) {
+	row := q.db.QueryRowContext(ctx, getCommunityByCommunityName, communitiesName)
+	var i Community
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.CommunitiesName,
+		&i.Description,
+		&i.CommunityType,
+		&i.CreatedAt,
+	)
+	return i, err
+}

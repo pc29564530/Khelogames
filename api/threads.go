@@ -151,6 +151,28 @@ func (server *Server) getThread(ctx *gin.Context) {
 	return
 }
 
+type getThreadUserRequest struct {
+	Username string `uri:"username"`
+}
+
+// get thread by user
+func (server *Server) getThreadByUser(ctx *gin.Context) {
+	var req getThreadUserRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	thread, err := server.store.GetThreadUser(ctx, req.Username)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, thread)
+	return
+}
+
 func (server *Server) getAllThreads(ctx *gin.Context) {
 	threads, err := server.store.GetAllThreads(ctx)
 	if err != nil {
@@ -208,5 +230,26 @@ func (server *Server) updateThreadLike(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, thread)
+	return
+}
+
+type threadByThreadIdRequest struct {
+	ID int64 `uri:"id"`
+}
+
+func (server *Server) getThreadByThreadID(ctx *gin.Context) {
+	var req threadByThreadIdRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	thread, err := server.store.GetThreadByThreadID(ctx, req.ID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, errorResponse(err))
+		return
+	}
+	fmt.Println("Thread Thread IDS: ", thread)
+	ctx.JSON(http.StatusAccepted, thread)
 	return
 }

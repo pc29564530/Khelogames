@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.4.2
 	github.com/joho/godotenv v1.5.1
 	github.com/sfreiberg/gotwilio v1.0.0

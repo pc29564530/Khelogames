@@ -21,3 +21,7 @@ ORDER BY id;
 SELECT users.username FROM users
 JOIN communities ON users.username = communities.owner
 WHERE communities.communities_name=$1;
+
+-- name: GetCommunityByCommunityName :one
+SELECT * FROM communities
+WHERE communities_name=$1;
