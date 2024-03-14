@@ -229,6 +229,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/createMessageMedia", server.createMessageMedia)
 	authRouter.POST("/createCommunityMessage", server.createCommunityMessage)
 	authRouter.GET("/getCommunityMessage", server.getCommuntiyMessage)
+	authRouter.GET("/getCommunityByMessage", server.getCommunityByMessage)
 
 	server.router = router
 	return server, nil

@@ -86,6 +86,33 @@ func (q *Queries) CreateUploadMedia(ctx context.Context, arg CreateUploadMediaPa
 	return i, err
 }
 
+const getCommunityByMessage = `-- name: GetCommunityByMessage :many
+SELECT DISTINCT community_name FROM communitymessage
+`
+
+func (q *Queries) GetCommunityByMessage(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getCommunityByMessage)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var community_name string
+		if err := rows.Scan(&community_name); err != nil {
+			return nil, err
+		}
+		items = append(items, community_name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCommuntiyMessage = `-- name: GetCommuntiyMessage :many
 SELECT cm.id, cm.community_name, cm.sender_username, cm.content, cm.sent_at, um.media_url, um.media_type 
 FROM communitymessage cm 
