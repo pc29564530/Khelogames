@@ -124,3 +124,14 @@ func (server *Server) getCommuntiyMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
+
+func (server *Server) getCommunityByMessage(ctx *gin.Context) {
+	response, err := server.store.GetCommunityByMessage(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	fmt.Println(response)
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}

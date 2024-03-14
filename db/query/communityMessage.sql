@@ -29,4 +29,6 @@ FROM communitymessage cm
 JOIN messagemedia mm ON mm.message_id = cm.id 
 JOIN uploadmedia um ON mm.media_id = um.id;
 
+-- name: GetCommunityByMessage :many
+SELECT DISTINCT community_name FROM communitymessage;
 
