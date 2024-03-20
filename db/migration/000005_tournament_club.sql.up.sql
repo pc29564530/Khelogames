@@ -9,9 +9,8 @@ CREATE TABLE "club" (
 
 CREATE TABLE "club_member" (
     "id" bigserial PRIMARY KEY,
-    "club_name" varchar UNIQUE NOT NULL,
+    "club_name" varchar NOT NULL,
     "club_member" varchar NOT NULL,
-    "owner" varchar NOT NULL,
     "joined_at" timestamp NOT NULL DEFAULT 'now()'
 );
 

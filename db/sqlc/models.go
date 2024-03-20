@@ -23,7 +23,6 @@ type ClubMember struct {
 	ID         int64     `json:"id"`
 	ClubName   string    `json:"club_name"`
 	ClubMember string    `json:"club_member"`
-	Owner      string    `json:"owner"`
 	JoinedAt   time.Time `json:"joined_at"`
 }
 
