@@ -220,6 +220,11 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateFullName", server.updateFullName)
 	authRouter.PUT("/updateBio", server.updateBio)
 	authRouter.GET("/getMessage/:receiver_username", server.getMessageByReceiver)
+	authRouter.POST("/createClub", server.createClub)
+	authRouter.GET("/getClub/:id", server.getClub)
+	authRouter.GET("/getClubs", server.getClubs)
+	authRouter.PUT("/updateAvatarUrl", server.updateAvatarUrl)
+	authRouter.PUT("/updateClubSport", server.updateClubSport)
 
 	server.router = router
 	return server, nil
