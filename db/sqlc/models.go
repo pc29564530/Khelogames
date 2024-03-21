@@ -10,6 +10,22 @@ import (
 	"github.com/google/uuid"
 )
 
+type Club struct {
+	ID        int64     `json:"id"`
+	ClubName  string    `json:"club_name"`
+	AvatarUrl string    `json:"avatar_url"`
+	Sport     string    `json:"sport"`
+	Owner     string    `json:"owner"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ClubMember struct {
+	ID         int64     `json:"id"`
+	ClubName   string    `json:"club_name"`
+	ClubMember string    `json:"club_member"`
+	JoinedAt   time.Time `json:"joined_at"`
+}
+
 type Comment struct {
 	ID          int64     `json:"id"`
 	ThreadID    int64     `json:"thread_id"`
@@ -62,6 +78,12 @@ type Message struct {
 	MediaType        string    `json:"media_type"`
 }
 
+type Organizer struct {
+	OrganizerID   int64  `json:"organizer_id"`
+	OrganizerName string `json:"organizer_name"`
+	TournamentID  int64  `json:"tournament_id"`
+}
+
 type Profile struct {
 	ID        int64     `json:"id"`
 	Owner     string    `json:"owner"`
@@ -97,6 +119,24 @@ type Thread struct {
 	MediaUrl        string    `json:"media_url"`
 	LikeCount       int64     `json:"like_count"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+type Tournament struct {
+	TournamentID   int64  `json:"tournament_id"`
+	TournamentName string `json:"tournament_name"`
+	SportType      string `json:"sport_type"`
+	Format         string `json:"format"`
+	TeamsJoined    int64  `json:"teams_joined"`
+}
+
+type TournamentOrganizer struct {
+	OrganizerID  int64 `json:"organizer_id"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
+type TournamentTeam struct {
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
 }
 
 type User struct {

@@ -220,7 +220,23 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateFullName", server.updateFullName)
 	authRouter.PUT("/updateBio", server.updateBio)
 	authRouter.GET("/getMessage/:receiver_username", server.getMessageByReceiver)
-
+	authRouter.POST("/createClub", server.createClub)
+	authRouter.GET("/getClub/:id", server.getClub)
+	authRouter.GET("/getClubs", server.getClubs)
+	authRouter.PUT("/updateAvatarUrl", server.updateAvatarUrl)
+	authRouter.PUT("/updateClubSport", server.updateClubSport)
+	authRouter.POST("/addClubMember", server.addClubMember)
+	authRouter.GET("/getClubMember/:club_name", server.getClubMember)
+	authRouter.POST("/createTournament", server.createTournament)
+	authRouter.GET("/getTournament", server.getTournament)
+	authRouter.GET("/getTournaments", server.getTournaments)
+	authRouter.POST("/createOrganizer", server.createOrganizer)
+	authRouter.GET("/getOrganizer/:tournament_id", server.getOrganizer)
+	authRouter.GET("/getTeam", server.getTeam)
+	authRouter.POST("/addTeam", server.addTeam)
+	authRouter.GET("/getTeams/:tournament_id", server.getTeams)
+	authRouter.GET("/getTournamentTeamCount/:tournament_id", server.getTournamentTeamCount)
+	authRouter.PUT("/updateTeamsJoined", server.updateTeamsJoined)
 	server.router = router
 	return server, nil
 }
