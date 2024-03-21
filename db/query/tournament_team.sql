@@ -13,3 +13,7 @@ WHERE team_id=$1;
 SELECT c.* FROM tournament_team tt
 JOIN club c ON c.id = tt.team_id
 WHERE tournament_id=$1;
+
+-- name: GetTeamsCount :one
+SELECT COUNT(*) FROM tournament_team
+WHERE tournament_id=$1;

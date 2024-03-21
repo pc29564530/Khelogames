@@ -76,3 +76,15 @@ func (q *Queries) GetTeams(ctx context.Context, tournamentID int64) ([]Club, err
 	}
 	return items, nil
 }
+
+const getTeamsCount = `-- name: GetTeamsCount :one
+SELECT COUNT(*) FROM tournament_team
+WHERE tournament_id=$1
+`
+
+func (q *Queries) GetTeamsCount(ctx context.Context, tournamentID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTeamsCount, tournamentID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}

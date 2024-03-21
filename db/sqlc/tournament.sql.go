@@ -94,3 +94,28 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
 	}
 	return items, nil
 }
+
+const updateTeamsJoined = `-- name: UpdateTeamsJoined :one
+UPDATE tournament
+SET teams_joined=$1
+WHERE tournament_id=$2
+RETURNING tournament_id, tournament_name, sport_type, format, teams_joined
+`
+
+type UpdateTeamsJoinedParams struct {
+	TeamsJoined  int64 `json:"teams_joined"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
+func (q *Queries) UpdateTeamsJoined(ctx context.Context, arg UpdateTeamsJoinedParams) (Tournament, error) {
+	row := q.db.QueryRowContext(ctx, updateTeamsJoined, arg.TeamsJoined, arg.TournamentID)
+	var i Tournament
+	err := row.Scan(
+		&i.TournamentID,
+		&i.TournamentName,
+		&i.SportType,
+		&i.Format,
+		&i.TeamsJoined,
+	)
+	return i, err
+}
