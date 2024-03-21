@@ -78,6 +78,12 @@ type Message struct {
 	MediaType        string    `json:"media_type"`
 }
 
+type Organizer struct {
+	OrganizerID   int64  `json:"organizer_id"`
+	OrganizerName string `json:"organizer_name"`
+	TournamentID  int64  `json:"tournament_id"`
+}
+
 type Profile struct {
 	ID        int64     `json:"id"`
 	Owner     string    `json:"owner"`
@@ -113,6 +119,24 @@ type Thread struct {
 	MediaUrl        string    `json:"media_url"`
 	LikeCount       int64     `json:"like_count"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+type Tournament struct {
+	TournamentID   int64  `json:"tournament_id"`
+	TournamentName string `json:"tournament_name"`
+	SportType      string `json:"sport_type"`
+	Format         string `json:"format"`
+	TeamsJoined    int64  `json:"teams_joined"`
+}
+
+type TournamentOrganizer struct {
+	OrganizerID  int64 `json:"organizer_id"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
+type TournamentTeam struct {
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
 }
 
 type User struct {
