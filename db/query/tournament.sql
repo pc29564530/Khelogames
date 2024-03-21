@@ -13,3 +13,9 @@ SELECT * FROM tournament;
 -- name: GetTournament :one
 SELECT * FROM tournament
 WHERE tournament_id=$1;
+
+-- name: UpdateTeamsJoined :one
+UPDATE tournament
+SET teams_joined=$1
+WHERE tournament_id=$2
+RETURNING *;
