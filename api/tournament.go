@@ -197,6 +197,8 @@ func (server *Server) addTeam(ctx *gin.Context) {
 		TeamID:       req.TeamID,
 	}
 
+	fmt.Println("Team: params: ", arg)
+
 	response, err := server.store.AddTeam(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)

@@ -100,6 +100,39 @@ func (q *Queries) GetClubs(ctx context.Context) ([]Club, error) {
 	return items, nil
 }
 
+const searchTeam = `-- name: SearchTeam :many
+SELECT id, club_name from club
+WHERE club_name LIKE $1
+`
+
+type SearchTeamRow struct {
+	ID       int64  `json:"id"`
+	ClubName string `json:"club_name"`
+}
+
+func (q *Queries) SearchTeam(ctx context.Context, clubName string) ([]SearchTeamRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchTeam, clubName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchTeamRow
+	for rows.Next() {
+		var i SearchTeamRow
+		if err := rows.Scan(&i.ID, &i.ClubName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateAvatarUrl = `-- name: UpdateAvatarUrl :one
 UPDATE club
 SET avatar_url=$1
