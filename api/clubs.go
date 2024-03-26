@@ -160,3 +160,31 @@ func (server *Server) updateClubSport(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
+
+type searchTeamRequest struct {
+	ClubName string `json:"club_name"`
+}
+
+func (server *Server) searchTeam(ctx *gin.Context) {
+	var req searchTeamRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	searchQuery := "%" + req.ClubName + "%"
+	fmt.Println("SearchQuieru: ", req.ClubName)
+
+	// authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	response, err := server.store.SearchTeam(ctx, searchQuery)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	fmt.Println("Response: ", response)
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}

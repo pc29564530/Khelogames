@@ -33,3 +33,7 @@ UPDATE club
 SET club_name=$1
 WHERE club_name=$2
 RETURNING *;
+
+-- name: SearchTeam :many
+SELECT id, club_name from club
+WHERE club_name LIKE $1;
