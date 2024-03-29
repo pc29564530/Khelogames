@@ -5,6 +5,7 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -127,6 +128,19 @@ type Tournament struct {
 	SportType      string `json:"sport_type"`
 	Format         string `json:"format"`
 	TeamsJoined    int64  `json:"teams_joined"`
+}
+
+type TournamentMatch struct {
+	MatchID      int64        `json:"match_id"`
+	OrganizerID  int64        `json:"organizer_id"`
+	TournamentID int64        `json:"tournament_id"`
+	Team1ID      int64        `json:"team1_id"`
+	Team2ID      int64        `json:"team2_id"`
+	DateOn       time.Time    `json:"date_on"`
+	StartAt      time.Time    `json:"start_at"`
+	Stage        string       `json:"stage"`
+	CreatedAt    sql.NullTime `json:"created_at"`
+	Sports       string       `json:"sports"`
 }
 
 type TournamentOrganizer struct {

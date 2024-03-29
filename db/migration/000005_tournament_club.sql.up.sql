@@ -41,6 +41,19 @@ CREATE TABLE tournament_team (
     PRIMARY KEY (tournament_id, team_id)
 );
 
+CREATE TABLE tournament_match (
+    match_id bigserial PRIMARY KEY,
+    organizer_id bigint NOT NULL REFERENCES "organizer" ("organizer_id"),
+    tournament_id bigint NOT NULL REFERENCES "tournament" ("tournament_id"),
+    team1_id bigint NOT NULL REFERENCES "club" ("id"),
+    team2_id bigint NOT NULL REFERENCES "club" ("id"),
+    date_on timestamp NOT NULL,
+    start_at timestamp NOT NULL,
+    stage varchar NOT NULL,
+    created_at timestamp DEFAULT 'now()',
+    sports varchar NOT NULL
+);
+
 ALTER TABLE "club" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 ALTER TABLE "club_member" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 ALTER TABLE "club_member" ADD FOREIGN KEY ("club_member") REFERENCES "users" ("username");

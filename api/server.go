@@ -232,12 +232,14 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/getTournaments", server.getTournaments)
 	authRouter.POST("/createOrganizer", server.createOrganizer)
 	authRouter.GET("/getOrganizer/:tournament_id", server.getOrganizer)
-	authRouter.GET("/getTeam", server.getTeam)
+	authRouter.GET("/getTeam/:team_id", server.getTeam)
 	authRouter.POST("/addTeam", server.addTeam)
 	authRouter.GET("/getTeams/:tournament_id", server.getTeams)
 	authRouter.GET("/getTournamentTeamCount/:tournament_id", server.getTournamentTeamCount)
 	authRouter.PUT("/updateTeamsJoined", server.updateTeamsJoined)
 	authRouter.POST("/searchTeam", server.searchTeam)
+	authRouter.POST("/createTournamentMatch", server.createTournamentMatch)
+	authRouter.GET("/getAllTournamentMatch", server.getAllTournamentMatch)
 	server.router = router
 	return server, nil
 }
