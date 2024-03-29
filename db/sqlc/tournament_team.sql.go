@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 )
 
 const addTeam = `-- name: AddTeam :one
@@ -27,7 +26,6 @@ func (q *Queries) AddTeam(ctx context.Context, arg AddTeamParams) (TournamentTea
 	row := q.db.QueryRowContext(ctx, addTeam, arg.TournamentID, arg.TeamID)
 	var i TournamentTeam
 	err := row.Scan(&i.TournamentID, &i.TeamID)
-	fmt.Println("err: ", err)
 	return i, err
 }
 

@@ -244,7 +244,6 @@ func (server *Server) getTeam(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-
 	response, err := server.store.GetTeam(ctx, req.TeamID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
