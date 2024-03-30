@@ -188,3 +188,24 @@ func (server *Server) searchTeam(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
+
+type getClubsBySportRequest struct {
+	Sport string `uri:"sport"`
+}
+
+func (server *Server) getClubsBySport(ctx *gin.Context) {
+	var req getClubsBySportRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	response, err := server.store.GetClubsBySport(ctx, req.Sport)
+	if err != nil {
+		ctx.JSON(http.StatusNoContent, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}

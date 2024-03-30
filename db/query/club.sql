@@ -9,6 +9,10 @@ INSERT INTO "club" (
     $1, $2, $3, $4, CURRENT_TIMESTAMP
 ) RETURNING *;
 
+-- name: GetClubsBySport :many
+SELECT * FROM "club"
+WHERE sport=$1;
+
 -- name: GetClubs :many
 SELECT * FROM "club";
 

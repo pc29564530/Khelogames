@@ -240,6 +240,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/searchTeam", server.searchTeam)
 	authRouter.POST("/createTournamentMatch", server.createTournamentMatch)
 	authRouter.GET("/getAllTournamentMatch", server.getAllTournamentMatch)
+	authRouter.GET("/getClubsBySport/:sport", server.getClubsBySport)
 	server.router = router
 	return server, nil
 }

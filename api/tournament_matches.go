@@ -17,6 +17,7 @@ type createTournamentMatchRequest struct {
 	DateON       time.Time `json:"date_on"`
 	StartAt      time.Time `json:"start_at"`
 	Stage        string    `json:"stage"`
+	Sports       string    `json:"sports"`
 }
 
 func (server *Server) createTournamentMatch(ctx *gin.Context) {
@@ -35,6 +36,7 @@ func (server *Server) createTournamentMatch(ctx *gin.Context) {
 		DateOn:       req.DateON,
 		StartAt:      req.StartAt,
 		Stage:        req.Stage,
+		Sports:       req.Sports,
 	}
 
 	response, err := server.store.CreateMatch(ctx, arg)
