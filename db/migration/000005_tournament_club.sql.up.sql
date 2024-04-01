@@ -41,6 +41,16 @@ CREATE TABLE tournament_team (
     PRIMARY KEY (tournament_id, team_id)
 );
 
+CREATE TABLE tournament_organization (
+    id bigserial PRIMARY KEY,
+    tournament_id bigint NOT NULL REFERENCES tournament (tournament_id),
+    tournament_start timestamp NOT NULL DEFAULT 'now()',
+    player_count bigint NOT NULL,
+    team_count bigint NOT NULL,
+    group_count bigint NOT NULL,
+    advanced_team bigint NOT NULL
+);
+
 CREATE TABLE tournament_match (
     match_id bigserial PRIMARY KEY,
     organizer_id bigint NOT NULL REFERENCES "organizer" ("organizer_id"),

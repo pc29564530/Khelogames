@@ -162,6 +162,16 @@ type TournamentMatch struct {
 	Sports       string       `json:"sports"`
 }
 
+type TournamentOrganization struct {
+	ID              int64     `json:"id"`
+	TournamentID    int64     `json:"tournament_id"`
+	TournamentStart time.Time `json:"tournament_start"`
+	PlayerCount     int64     `json:"player_count"`
+	TeamCount       int64     `json:"team_count"`
+	GroupCount      int64     `json:"group_count"`
+	AdvancedTeam    int64     `json:"advanced_team"`
+}
+
 type TournamentOrganizer struct {
 	OrganizerID  int64 `json:"organizer_id"`
 	TournamentID int64 `json:"tournament_id"`

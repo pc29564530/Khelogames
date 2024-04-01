@@ -31,6 +31,8 @@ func (server *Server) createTournament(ctx *gin.Context) {
 		TeamsJoined:    req.TeamsJoined,
 	}
 
+	fmt.Println("Arg: line 34:L ", arg)
+
 	response, err := server.store.CreateTournament(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
