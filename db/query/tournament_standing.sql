@@ -1,0 +1,45 @@
+-- name: CreateTournamentStanding :one
+INSERT INTO tournament_standing (
+    tournament_id,
+    group_id,
+    team_id,
+    wins,
+    loss,
+    draw,
+    goal_for,
+    goal_against,
+    goal_difference,
+    points
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 ) RETURNING *;
+
+-- name: CreateTournamentGroup :one
+INSERT INTO tournament_group (
+    tournament_id,
+    team_id
+) VALUES (
+    $1, $2
+) RETURNING *;
+
+-- name: GetTournamentStanding :many
+SELECT 
+    ts.standing_id, ts.tournament_id, ts.group_id, ts.team_id,
+    ts.wins, ts.loss, ts.draw, ts.goal_for, ts.goal_against, ts.goal_difference, ts.points,
+    t.tournament_name, t.sport_type,
+    c.club_name, t.format
+FROM 
+    tournament_standing ts
+JOIN 
+    tournament_group tg ON ts.group_id = tg.group_id
+JOIN 
+    tournament t ON ts.tournament_id = t.tournament_id
+JOIN 
+    club c ON ts.team_id = c.id
+WHERE t.tournament_id=$1 AND tg.group_id=$2 AND t.sport_type=$3;
+
+-- name: GetTournamentGroup :one
+SELECT * FROM tournament_group
+WHERE group_id=$1 AND tournament_id=$2;
+
+-- name: GetTournamentGroups :many
+SELECT * FROM tournament_group
+WHERE tournament_id=$1;

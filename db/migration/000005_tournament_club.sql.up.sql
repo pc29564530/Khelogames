@@ -64,6 +64,26 @@ CREATE TABLE tournament_match (
     sports varchar NOT NULL
 );
 
+CREATE TABLE tournament_standing (
+    standing_id bigserial PRIMARY KEY,
+    tournament_id bigserial NOT NULL REFERENCES tournament (tournament_id),
+    group_id bigserial NOT NULL REFERENCES tournament_group (group_id),
+    team_id bigint NOT NULL REFERENCES club (id),
+    wins bigint NOT NULL,
+    loss bigint NOT NULL,
+    draw bigint NOT NULL,
+    goal_for bigint NOT NULL,
+    goal_against bigint NOT NULL,
+    goal_difference bigint NOT NULL,
+    points bigint NOT NULL
+);
+
+CREATE TABLE tournament_group (
+    group_id bigserial PRIMARY KEY,
+    tournament_id bigint NOT NULL REFERENCES tournament (tournament_id),
+    team_id bigint NOT NULL REFERENCES club (id)
+);
+
 ALTER TABLE "club" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 ALTER TABLE "club_member" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 ALTER TABLE "club_member" ADD FOREIGN KEY ("club_member") REFERENCES "users" ("username");
