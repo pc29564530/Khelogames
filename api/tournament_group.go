@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -8,13 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type createTournamentGroupReqiest struct {
-	TournamentID int64 `json:"tournament_id"`
-	TeamID       int64 `json:"team_id"`
+type createTournamentGroupRequest struct {
+	GroupName     string `json:"group_name"`
+	TournamentID  int64  `json:"tournament_id"`
+	GroupStrength int64  `json:"group_strength"`
 }
 
 func (server *Server) createTournamentGroup(ctx *gin.Context) {
-	var req createTournamentGroupReqiest
+	var req createTournamentGroupRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -22,8 +24,9 @@ func (server *Server) createTournamentGroup(ctx *gin.Context) {
 	}
 
 	arg := db.CreateTournamentGroupParams{
-		TournamentID: req.TournamentID,
-		TeamID:       req.TeamID,
+		GroupName:     req.GroupName,
+		TournamentID:  req.TournamentID,
+		GroupStrength: req.GroupStrength,
 	}
 
 	response, err := server.store.CreateTournamentGroup(ctx, arg)
@@ -73,11 +76,14 @@ func (server *Server) getTournamentGroups(ctx *gin.Context) {
 		return
 	}
 
+	fmt.Println("Group: ", tournamentID)
+
 	response, err := server.store.GetTournamentGroups(ctx, tournamentID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+	fmt.Println("Group Resposne: ", response)
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
