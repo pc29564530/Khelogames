@@ -9,27 +9,6 @@ import (
 	"context"
 )
 
-const createTournamentGroup = `-- name: CreateTournamentGroup :one
-INSERT INTO tournament_group (
-    tournament_id,
-    team_id
-) VALUES (
-    $1, $2
-) RETURNING group_id, tournament_id, team_id
-`
-
-type CreateTournamentGroupParams struct {
-	TournamentID int64 `json:"tournament_id"`
-	TeamID       int64 `json:"team_id"`
-}
-
-func (q *Queries) CreateTournamentGroup(ctx context.Context, arg CreateTournamentGroupParams) (TournamentGroup, error) {
-	row := q.db.QueryRowContext(ctx, createTournamentGroup, arg.TournamentID, arg.TeamID)
-	var i TournamentGroup
-	err := row.Scan(&i.GroupID, &i.TournamentID, &i.TeamID)
-	return i, err
-}
-
 const createTournamentStanding = `-- name: CreateTournamentStanding :one
 INSERT INTO tournament_standing (
     tournament_id,
@@ -88,51 +67,6 @@ func (q *Queries) CreateTournamentStanding(ctx context.Context, arg CreateTourna
 	return i, err
 }
 
-const getTournamentGroup = `-- name: GetTournamentGroup :one
-SELECT group_id, tournament_id, team_id FROM tournament_group
-WHERE group_id=$1 AND tournament_id=$2
-`
-
-type GetTournamentGroupParams struct {
-	GroupID      int64 `json:"group_id"`
-	TournamentID int64 `json:"tournament_id"`
-}
-
-func (q *Queries) GetTournamentGroup(ctx context.Context, arg GetTournamentGroupParams) (TournamentGroup, error) {
-	row := q.db.QueryRowContext(ctx, getTournamentGroup, arg.GroupID, arg.TournamentID)
-	var i TournamentGroup
-	err := row.Scan(&i.GroupID, &i.TournamentID, &i.TeamID)
-	return i, err
-}
-
-const getTournamentGroups = `-- name: GetTournamentGroups :many
-SELECT group_id, tournament_id, team_id FROM tournament_group
-WHERE tournament_id=$1
-`
-
-func (q *Queries) GetTournamentGroups(ctx context.Context, tournamentID int64) ([]TournamentGroup, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentGroups, tournamentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []TournamentGroup
-	for rows.Next() {
-		var i TournamentGroup
-		if err := rows.Scan(&i.GroupID, &i.TournamentID, &i.TeamID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getTournamentStanding = `-- name: GetTournamentStanding :many
 SELECT 
     ts.standing_id, ts.tournament_id, ts.group_id, ts.team_id,
@@ -147,7 +81,10 @@ JOIN
     tournament t ON ts.tournament_id = t.tournament_id
 JOIN 
     club c ON ts.team_id = c.id
-WHERE t.tournament_id=$1 AND tg.group_id=$2 AND t.sport_type=$3
+WHERE 
+    ts.tournament_id = $1
+    AND tg.group_id = $2
+    AND t.sport_type = $3
 `
 
 type GetTournamentStandingParams struct {

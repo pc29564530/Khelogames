@@ -59,6 +59,20 @@ type Follow struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+type GroupLeague struct {
+	GroupID       int64  `json:"group_id"`
+	GroupName     string `json:"group_name"`
+	TournamentID  int64  `json:"tournament_id"`
+	GroupStrength int64  `json:"group_strength"`
+}
+
+type GroupTeam struct {
+	GroupTeamID  int64 `json:"group_team_id"`
+	GroupID      int64 `json:"group_id"`
+	TeamID       int64 `json:"team_id"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
 type JoinCommunity struct {
 	ID            int64  `json:"id"`
 	CommunityName string `json:"community_name"`
@@ -120,6 +134,14 @@ type Session struct {
 type Signup struct {
 	MobileNumber string `json:"mobile_number"`
 	Otp          string `json:"otp"`
+}
+
+type Standing struct {
+	StandingID int64         `json:"standing_id"`
+	TeamID     sql.NullInt64 `json:"team_id"`
+	Wins       int64         `json:"wins"`
+	Loss       int64         `json:"loss"`
+	Draw       int64         `json:"draw"`
 }
 
 type Thread struct {
