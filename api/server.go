@@ -259,6 +259,8 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/getTournamentGroup", server.getTournamentGroup)
 	authRouter.GET("/getTournamentGroups", server.getTournamentGroups)
 	authRouter.GET("/getTournamentStanding", server.getTournamentStanding)
+	authRouter.POST("/addGroupTeam", server.addGroupTeam)
+	authRouter.GET("/getTeamsByGroup", server.getTeamsByGroup)
 
 	server.router = router
 	return server, nil
