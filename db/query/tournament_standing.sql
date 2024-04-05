@@ -21,7 +21,7 @@ SELECT
 FROM 
     tournament_standing ts
 JOIN 
-    tournament_group tg ON ts.group_id = tg.group_id
+    group_league tg ON ts.group_id = tg.group_id
 JOIN 
     tournament t ON ts.tournament_id = t.tournament_id
 JOIN 

@@ -76,8 +76,6 @@ func (server *Server) getTournamentGroups(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("Group: ", tournamentID)
-
 	response, err := server.store.GetTournamentGroups(ctx, tournamentID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
