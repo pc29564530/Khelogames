@@ -137,11 +137,12 @@ type Signup struct {
 }
 
 type Standing struct {
-	StandingID int64         `json:"standing_id"`
-	TeamID     sql.NullInt64 `json:"team_id"`
-	Wins       int64         `json:"wins"`
-	Loss       int64         `json:"loss"`
-	Draw       int64         `json:"draw"`
+	StandingID int64 `json:"standing_id"`
+	GroupID    int64 `json:"group_id"`
+	TeamID     int64 `json:"team_id"`
+	Wins       int64 `json:"wins"`
+	Loss       int64 `json:"loss"`
+	Draw       int64 `json:"draw"`
 }
 
 type Thread struct {
@@ -169,12 +170,6 @@ type Tournament struct {
 	SportType      string `json:"sport_type"`
 	Format         string `json:"format"`
 	TeamsJoined    int64  `json:"teams_joined"`
-}
-
-type TournamentGroup struct {
-	GroupID      int64 `json:"group_id"`
-	TournamentID int64 `json:"tournament_id"`
-	TeamID       int64 `json:"team_id"`
 }
 
 type TournamentMatch struct {

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -63,10 +62,8 @@ func (server *Server) getTournamentStanding(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	groupIDStr := ctx.Query("group_id")
 	sport := ctx.Query("sport_type")
-	fmt.Println("TournamentIDStr", tournamentIDStr)
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("unable to parstInt  in tournament id")
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
