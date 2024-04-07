@@ -16,6 +16,10 @@ INSERT INTO threads (
 SELECT * FROM threads
 WHERE id = $1 LIMIT 1;
 
+-- name: GetThreadUser :many
+SELECT * FROM threads
+WHERE username=$1;
+
 -- name: GetAllThreads :many
 SELECT * FROM threads;
 
@@ -28,3 +32,7 @@ UPDATE threads
 SET like_count=$1
 WHERE id=$2
 RETURNING *;
+
+-- name: GetThreadByThreadID :one
+SELECT * FROM threads
+WHERE id = $1;
