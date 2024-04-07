@@ -6,7 +6,6 @@
 package db
 
 import (
-	"fmt"
 	"context"
 )
 
@@ -77,7 +76,7 @@ SELECT
 FROM 
     tournament_standing ts
 JOIN 
-    group_league tg ON ts.group_id = tg.group_id
+    tournament_group tg ON ts.group_id = tg.group_id
 JOIN 
     tournament t ON ts.tournament_id = t.tournament_id
 JOIN 
@@ -140,7 +139,6 @@ func (q *Queries) GetTournamentStanding(ctx context.Context, arg GetTournamentSt
 		); err != nil {
 			return nil, err
 		}
-		fmt.Println("Lin3e no 143: ", items)
 		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
@@ -149,6 +147,5 @@ func (q *Queries) GetTournamentStanding(ctx context.Context, arg GetTournamentSt
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	fmt.Println("Line no 150L ", items)
 	return items, nil
 }
