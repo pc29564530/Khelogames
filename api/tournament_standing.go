@@ -41,7 +41,6 @@ func (server *Server) createTournamentStanding(ctx *gin.Context) {
 		GoalDifference: req.GoalDifference,
 		Points:         req.Points,
 	}
-
 	response, err := server.store.CreateTournamentStanding(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
