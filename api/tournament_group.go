@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -81,7 +80,6 @@ func (server *Server) getTournamentGroups(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
-	fmt.Println("Group Resposne: ", response)
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
