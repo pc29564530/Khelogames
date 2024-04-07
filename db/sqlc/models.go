@@ -44,6 +44,14 @@ type Community struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
+type Communitymessage struct {
+	ID             int64     `json:"id"`
+	CommunityName  string    `json:"community_name"`
+	SenderUsername string    `json:"sender_username"`
+	Content        string    `json:"content"`
+	SentAt         time.Time `json:"sent_at"`
+}
+
 type Follow struct {
 	ID             int64     `json:"id"`
 	FollowerOwner  string    `json:"follower_owner"`
@@ -93,10 +101,15 @@ type Message struct {
 	MediaType        string    `json:"media_type"`
 }
 
+
 type Organizer struct {
 	OrganizerID   int64  `json:"organizer_id"`
 	OrganizerName string `json:"organizer_name"`
 	TournamentID  int64  `json:"tournament_id"`
+
+type Messagemedium struct {
+	MessageID int64 `json:"message_id"`
+	MediaID   int64 `json:"media_id"`
 }
 
 type Profile struct {
@@ -198,6 +211,12 @@ type TournamentStanding struct {
 type TournamentTeam struct {
 	TournamentID int64 `json:"tournament_id"`
 	TeamID       int64 `json:"team_id"`
+
+type Uploadmedium struct {
+	ID        int64     `json:"id"`
+	MediaUrl  string    `json:"media_url"`
+	MediaType string    `json:"media_type"`
+	SentAt    time.Time `json:"sent_at"`
 }
 
 type User struct {

@@ -198,6 +198,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/communities/:id", server.getCommunity)
 	authRouter.GET("/community/:id", server.getCommunity)
 	authRouter.GET("/get_all_communities", server.getAllCommunities)
+	authRouter.GET("/getCommunityByCommunityName/:communities_name", server.getCommunityByCommunityName)
 	authRouter.POST("/create_thread", server.createThread)
 	authRouter.GET("/getThread/:id", server.getThread)
 	authRouter.PUT("/update_like", server.updateThreadLike)
@@ -219,6 +220,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateCover", server.updateCoverUrl)
 	authRouter.PUT("/updateFullName", server.updateFullName)
 	authRouter.PUT("/updateBio", server.updateBio)
+	authRouter.GET("getThreadByUser/:username", server.getThreadByUser)
 	authRouter.GET("/getMessage/:receiver_username", server.getMessageByReceiver)
 	authRouter.POST("/createClub", server.createClub)
 	authRouter.GET("/getClub/:id", server.getClub)
@@ -250,6 +252,14 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.GET("/getTournamentStanding", server.getTournamentStanding)
 	authRouter.POST("/addGroupTeam", server.addGroupTeam)
 	authRouter.GET("/getTeamsByGroup", server.getTeamsByGroup)
+	authRouter.GET("/getCommentByUser/:owner", server.getCommentByUser)
+	authRouter.GET("/getThreadByThreadID/:thread_id", server.getThreadByThreadID)
+	authRouter.GET("/getMessagedUser", server.getUserByMessageSend)
+	authRouter.POST("/createUploadMedia", server.createUploadMedia)
+	authRouter.POST("/createMessageMedia", server.createMessageMedia)
+	authRouter.POST("/createCommunityMessage", server.createCommunityMessage)
+	authRouter.GET("/getCommunityMessage", server.getCommuntiyMessage)
+	authRouter.GET("/getCommunityByMessage", server.getCommunityByMessage)
 
 	server.router = router
 	return server, nil
