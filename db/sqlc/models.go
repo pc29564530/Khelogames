@@ -102,12 +102,7 @@ type Message struct {
 }
 
 
-type Organizer struct {
-	OrganizerID   int64  `json:"organizer_id"`
-	OrganizerName string `json:"organizer_name"`
-	TournamentID  int64  `json:"tournament_id"`
-
-type Messagemedium struct {
+ type Messagemedium struct {
 	MessageID int64 `json:"message_id"`
 	MediaID   int64 `json:"media_id"`
 }
