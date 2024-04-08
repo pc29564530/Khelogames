@@ -112,6 +112,12 @@ type Messagemedium struct {
 	MediaID   int64 `json:"media_id"`
 }
 
+type Organizer struct {
+	OrganizerID   int64  `json:"organizer_id"`
+	OrganizerName string `json:"organizer_name"`
+	TournamentID  int64  `json:"tournament_id"`
+}
+
 type Profile struct {
 	ID        int64     `json:"id"`
 	Owner     string    `json:"owner"`
@@ -211,6 +217,7 @@ type TournamentStanding struct {
 type TournamentTeam struct {
 	TournamentID int64 `json:"tournament_id"`
 	TeamID       int64 `json:"team_id"`
+}
 
 type Uploadmedium struct {
 	ID        int64     `json:"id"`
