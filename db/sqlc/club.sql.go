@@ -126,6 +126,32 @@ func (q *Queries) UpdateAvatarUrl(ctx context.Context, arg UpdateAvatarUrlParams
 	return i, err
 }
 
+const updateClubName = `-- name: UpdateClubName :one
+UPDATE club
+SET club_name=$1
+WHERE club_name=$2
+RETURNING id, club_name, avatar_url, sport, owner, created_at
+`
+
+type UpdateClubNameParams struct {
+	ClubName   string `json:"club_name"`
+	ClubName_2 string `json:"club_name_2"`
+}
+
+func (q *Queries) UpdateClubName(ctx context.Context, arg UpdateClubNameParams) (Club, error) {
+	row := q.db.QueryRowContext(ctx, updateClubName, arg.ClubName, arg.ClubName_2)
+	var i Club
+	err := row.Scan(
+		&i.ID,
+		&i.ClubName,
+		&i.AvatarUrl,
+		&i.Sport,
+		&i.Owner,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateClubSport = `-- name: UpdateClubSport :one
 UPDATE club
 SET sport=$1

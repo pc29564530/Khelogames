@@ -28,8 +28,8 @@ SET sport=$1
 WHERE club_name=$2
 RETURNING *;
 
--- -- name: UpdateClubName :one
--- UPDATE club
--- SET club_name=$1
--- WHERE club_name=$2
--- RETURNING *;
+-- name: UpdateClubName :one
+UPDATE club
+SET club_name=$1
+WHERE club_name=$2
+RETURNING *;

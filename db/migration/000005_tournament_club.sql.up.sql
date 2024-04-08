@@ -14,7 +14,36 @@ CREATE TABLE "club_member" (
     "joined_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
+CREATE TABLE "tournament" (
+    tournament_id bigserial PRIMARY KEY,
+    tournament_name varchar(255) NOT NULL,
+    sport_type varchar(100) NOT NULL,
+    format varchar(100) NOT NULL,
+    teams_joined bigInt NOT NULL,
+    CONSTRAINT format_check CHECK (format IN ('knockout', 'league', 'leagure+knockout', 'gourps+knockout', 'custom'))
+);
+
+CREATE TABLE organizer (
+    organizer_id bigserial PRIMARY KEY,
+    organizer_name varchar NOT NULL,
+    tournament_id bigserial  NOT NULL
+);
+
+CREATE TABLE tournament_organizer (
+    organizer_id bigserial REFERENCES organizer(organizer_id),
+    tournament_id bigserial REFERENCES tournament(tournament_id),
+    PRIMARY KEY (organizer_id, tournament_id)
+);
+
+CREATE TABLE tournament_team (
+    tournament_id bigserial REFERENCES tournament(tournament_id),
+    team_id bigserial REFERENCES club(id),
+    PRIMARY KEY (tournament_id, team_id)
+);
+
 ALTER TABLE "club" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 ALTER TABLE "club_member" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
 ALTER TABLE "club_member" ADD FOREIGN KEY ("club_member") REFERENCES "users" ("username");
 ALTER TABLE "club_member" ADD FOREIGN KEY ("club_name") REFERENCES "club" ("club_name");
+ALTER TABLE "organizer" ADD FOREIGN KEY ("organizer_name") REFERENCES "users" ("username");
+ALTER TABLE "organizer" ADD FOREIGN KEY ("tournament_id") REFERENCES "tournament" ("tournament_id");
