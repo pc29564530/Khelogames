@@ -5,7 +5,6 @@
 package db
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -57,20 +56,6 @@ type Follow struct {
 	FollowerOwner  string    `json:"follower_owner"`
 	FollowingOwner string    `json:"following_owner"`
 	CreatedAt      time.Time `json:"created_at"`
-}
-
-type GroupLeague struct {
-	GroupID       int64  `json:"group_id"`
-	GroupName     string `json:"group_name"`
-	TournamentID  int64  `json:"tournament_id"`
-	GroupStrength int64  `json:"group_strength"`
-}
-
-type GroupTeam struct {
-	GroupTeamID  int64 `json:"group_team_id"`
-	GroupID      int64 `json:"group_id"`
-	TeamID       int64 `json:"team_id"`
-	TournamentID int64 `json:"tournament_id"`
 }
 
 type JoinCommunity struct {
@@ -136,15 +121,6 @@ type Signup struct {
 	Otp          string `json:"otp"`
 }
 
-type Standing struct {
-	StandingID int64 `json:"standing_id"`
-	GroupID    int64 `json:"group_id"`
-	TeamID     int64 `json:"team_id"`
-	Wins       int64 `json:"wins"`
-	Loss       int64 `json:"loss"`
-	Draw       int64 `json:"draw"`
-}
-
 type Thread struct {
 	ID              int64     `json:"id"`
 	Username        string    `json:"username"`
@@ -157,13 +133,13 @@ type Thread struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
-<<<<<<< HEAD
 type Uploadmedium struct {
 	ID        int64     `json:"id"`
 	MediaUrl  string    `json:"media_url"`
 	MediaType string    `json:"media_type"`
 	SentAt    time.Time `json:"sent_at"`
-=======
+}
+
 type Tournament struct {
 	TournamentID   int64  `json:"tournament_id"`
 	TournamentName string `json:"tournament_name"`
@@ -172,52 +148,14 @@ type Tournament struct {
 	TeamsJoined    int64  `json:"teams_joined"`
 }
 
-type TournamentMatch struct {
-	MatchID      int64        `json:"match_id"`
-	OrganizerID  int64        `json:"organizer_id"`
-	TournamentID int64        `json:"tournament_id"`
-	Team1ID      int64        `json:"team1_id"`
-	Team2ID      int64        `json:"team2_id"`
-	DateOn       time.Time    `json:"date_on"`
-	StartAt      time.Time    `json:"start_at"`
-	Stage        string       `json:"stage"`
-	CreatedAt    sql.NullTime `json:"created_at"`
-	Sports       string       `json:"sports"`
-}
-
-type TournamentOrganization struct {
-	ID              int64     `json:"id"`
-	TournamentID    int64     `json:"tournament_id"`
-	TournamentStart time.Time `json:"tournament_start"`
-	PlayerCount     int64     `json:"player_count"`
-	TeamCount       int64     `json:"team_count"`
-	GroupCount      int64     `json:"group_count"`
-	AdvancedTeam    int64     `json:"advanced_team"`
-}
-
 type TournamentOrganizer struct {
 	OrganizerID  int64 `json:"organizer_id"`
 	TournamentID int64 `json:"tournament_id"`
 }
 
-type TournamentStanding struct {
-	StandingID     int64 `json:"standing_id"`
-	TournamentID   int64 `json:"tournament_id"`
-	GroupID        int64 `json:"group_id"`
-	TeamID         int64 `json:"team_id"`
-	Wins           int64 `json:"wins"`
-	Loss           int64 `json:"loss"`
-	Draw           int64 `json:"draw"`
-	GoalFor        int64 `json:"goal_for"`
-	GoalAgainst    int64 `json:"goal_against"`
-	GoalDifference int64 `json:"goal_difference"`
-	Points         int64 `json:"points"`
-}
-
 type TournamentTeam struct {
 	TournamentID int64 `json:"tournament_id"`
 	TeamID       int64 `json:"team_id"`
->>>>>>> 1142144 (added the functionlity for tournament)
 }
 
 type User struct {
