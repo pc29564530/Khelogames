@@ -27,6 +27,12 @@ type ClubMember struct {
 	JoinedAt   time.Time `json:"joined_at"`
 }
 
+type ClubPlayed struct {
+	PlayedID     int64 `json:"played_id"`
+	TournamentID int64 `json:"tournament_id"`
+	ClubID       int64 `json:"club_id"`
+}
+
 type Comment struct {
 	ID          int64     `json:"id"`
 	ThreadID    int64     `json:"thread_id"`
@@ -101,15 +107,15 @@ type Message struct {
 	MediaType        string    `json:"media_type"`
 }
 
+type Messagemedium struct {
+	MessageID int64 `json:"message_id"`
+	MediaID   int64 `json:"media_id"`
+}
 
 type Organizer struct {
 	OrganizerID   int64  `json:"organizer_id"`
 	OrganizerName string `json:"organizer_name"`
 	TournamentID  int64  `json:"tournament_id"`
-
-type Messagemedium struct {
-	MessageID int64 `json:"message_id"`
-	MediaID   int64 `json:"media_id"`
 }
 
 type Organizer struct {
@@ -165,11 +171,13 @@ type Thread struct {
 }
 
 type Tournament struct {
-	TournamentID   int64  `json:"tournament_id"`
-	TournamentName string `json:"tournament_name"`
-	SportType      string `json:"sport_type"`
-	Format         string `json:"format"`
-	TeamsJoined    int64  `json:"teams_joined"`
+	TournamentID   int64     `json:"tournament_id"`
+	TournamentName string    `json:"tournament_name"`
+	SportType      string    `json:"sport_type"`
+	Format         string    `json:"format"`
+	TeamsJoined    int64     `json:"teams_joined"`
+	StartOn        time.Time `json:"start_on"`
+	EndOn          time.Time `json:"end_on"`
 }
 
 type TournamentMatch struct {

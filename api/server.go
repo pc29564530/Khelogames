@@ -260,6 +260,11 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.POST("/createCommunityMessage", server.createCommunityMessage)
 	authRouter.GET("/getCommunityMessage", server.getCommuntiyMessage)
 	authRouter.GET("/getCommunityByMessage", server.getCommunityByMessage)
+	authRouter.GET("/getClubPlayedTournaments", server.getClubPlayedTournaments)
+	authRouter.GET("/getClubPlayedTournament", server.getClubPlayedTournament)
+	authRouter.GET("/getTournamentsByClub", server.getTournamentsByClub)
+	authRouter.GET("/getMatchByClubName", server.getMatchByClubName)
+	authRouter.PUT("/updateTournamentDate", server.updateTournamentDate)
 
 	authRouter.POST("/createClub", server.createClub)
 	authRouter.GET("/getClub/:id", server.getClub)
