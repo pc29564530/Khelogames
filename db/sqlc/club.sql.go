@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createClub = `-- name: CreateClub :one
@@ -121,6 +122,99 @@ func (q *Queries) GetClubsBySport(ctx context.Context, sport string) ([]Club, er
 			&i.Sport,
 			&i.Owner,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMatchByClubName = `-- name: GetMatchByClubName :many
+SELECT t.tournament_id, t.tournament_name, c1.club_name AS team1_name, c2.club_name AS team2_name, tm.start_at, tm.date_on
+FROM tournament_match tm
+JOIN tournament t ON tm.tournament_id = t.tournament_id
+JOIN club c1 ON tm.team1_id = c1.id
+JOIN club c2 ON tm.team2_id = c2.id
+WHERE c1.club_name=$1 OR c2.club_name=$1
+ORDER BY tm.match_id AND tm.start_at DESC
+`
+
+type GetMatchByClubNameRow struct {
+	TournamentID   int64     `json:"tournament_id"`
+	TournamentName string    `json:"tournament_name"`
+	Team1Name      string    `json:"team1_name"`
+	Team2Name      string    `json:"team2_name"`
+	StartAt        time.Time `json:"start_at"`
+	DateOn         time.Time `json:"date_on"`
+}
+
+func (q *Queries) GetMatchByClubName(ctx context.Context, clubName string) ([]GetMatchByClubNameRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMatchByClubName, clubName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMatchByClubNameRow
+	for rows.Next() {
+		var i GetMatchByClubNameRow
+		if err := rows.Scan(
+			&i.TournamentID,
+			&i.TournamentName,
+			&i.Team1Name,
+			&i.Team2Name,
+			&i.StartAt,
+			&i.DateOn,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTournamentsByClub = `-- name: GetTournamentsByClub :many
+SELECT t.tournament_id, t.tournament_name, t.format, t.sport_type , t.tournament_id from tournament t
+JOIN tournament_team tt ON t.tournament_id=tt.tournament_id
+JOIN club c ON tt.team_id=c.id
+WHERE c.club_name=$1
+`
+
+type GetTournamentsByClubRow struct {
+	TournamentID   int64  `json:"tournament_id"`
+	TournamentName string `json:"tournament_name"`
+	Format         string `json:"format"`
+	SportType      string `json:"sport_type"`
+	TournamentID_2 int64  `json:"tournament_id_2"`
+}
+
+func (q *Queries) GetTournamentsByClub(ctx context.Context, clubName string) ([]GetTournamentsByClubRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentsByClub, clubName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTournamentsByClubRow
+	for rows.Next() {
+		var i GetTournamentsByClubRow
+		if err := rows.Scan(
+			&i.TournamentID,
+			&i.TournamentName,
+			&i.Format,
+			&i.SportType,
+			&i.TournamentID_2,
 		); err != nil {
 			return nil, err
 		}

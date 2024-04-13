@@ -209,3 +209,30 @@ func (server *Server) getClubsBySport(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
+
+func (server *Server) getTournamentsByClub(ctx *gin.Context) {
+	clubName := ctx.Query("club_name")
+	response, err := server.store.GetTournamentsByClub(ctx, clubName)
+	if err != nil {
+		ctx.JSON(http.StatusNoContent, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+func (server *Server) getMatchByClubName(ctx *gin.Context) {
+	clubName := ctx.Query("club_name")
+	fmt.Println("ClubName: ", clubName)
+	response, err := server.store.GetMatchByClubName(ctx, clubName)
+	if err != nil {
+		ctx.JSON(http.StatusNoContent, errorResponse(err))
+		return
+	}
+
+	fmt.Println("Match: ", response)
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
