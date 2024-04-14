@@ -108,6 +108,42 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
 	return items, nil
 }
 
+const getTournamentsBySport = `-- name: GetTournamentsBySport :many
+SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on FROM tournament
+WHERE sport_type=$1
+`
+
+func (q *Queries) GetTournamentsBySport(ctx context.Context, sportType string) ([]Tournament, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentsBySport, sportType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tournament
+	for rows.Next() {
+		var i Tournament
+		if err := rows.Scan(
+			&i.TournamentID,
+			&i.TournamentName,
+			&i.SportType,
+			&i.Format,
+			&i.TeamsJoined,
+			&i.StartOn,
+			&i.EndOn,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateTeamsJoined = `-- name: UpdateTeamsJoined :one
 UPDATE tournament
 SET teams_joined=$1

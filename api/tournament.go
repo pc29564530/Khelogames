@@ -112,6 +112,20 @@ func (server *Server) getTournaments(ctx *gin.Context) {
 	return
 }
 
+func (server *Server) getTournamentsBySport(ctx *gin.Context) {
+
+	sport := ctx.Query("sport_type")
+
+	response, err := server.store.GetTournamentsBySport(ctx, sport)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
 type getTournamentRequest struct {
 	TournamentID int64 `uri:"tournament_id"`
 }
