@@ -4,16 +4,20 @@ import (
 	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 // tournament
 type createTournamentRequest struct {
-	TournamentName string `json:"tournament_name"`
-	SportType      string `json:"sport_type"`
-	Format         string `json:"format"`
-	TeamsJoined    int64  `json:"teams_joined`
+	TournamentName string    `json:"tournament_name"`
+	SportType      string    `json:"sport_type"`
+	Format         string    `json:"format"`
+	TeamsJoined    int64     `json:"teams_joined`
+	StartOn        time.Time `json:"start_on"`
+	EndOn          time.Time `json:"end_on"`
 }
 
 func (server *Server) createTournament(ctx *gin.Context) {
@@ -29,6 +33,8 @@ func (server *Server) createTournament(ctx *gin.Context) {
 		SportType:      req.SportType,
 		Format:         req.Format,
 		TeamsJoined:    req.TeamsJoined,
+		StartOn:        req.StartOn,
+		EndOn:          req.EndOn,
 	}
 
 	fmt.Println("Arg: line 34:L ", arg)
@@ -253,4 +259,44 @@ func (server *Server) getTeam(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 
+}
+
+func (server *Server) updateTournamentDate(ctx *gin.Context) {
+	tournamentIDStr := ctx.Query("tournament_id")
+
+	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+	startOnStr := ctx.Query("start_on")
+	layout := "2000-05-05"
+	startOn, err := time.Parse(layout, startOnStr)
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return
+	}
+
+	endOnStr := ctx.Query("end_on")
+
+	endOn, err := time.Parse(layout, endOnStr)
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return
+	}
+
+	arg := db.UpdateTournamentDateParams{
+		StartOn:      startOn,
+		EndOn:        endOn,
+		TournamentID: tournamentID,
+	}
+
+	response, err := server.store.UpdateTournamentDate(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
 }

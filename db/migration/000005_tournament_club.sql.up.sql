@@ -14,13 +14,21 @@ CREATE TABLE "club_member" (
     "joined_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
+CREATE TABLE club_played (
+    played_id bigserial PRIMARY KEY,
+    tournament_id bigserial NOT NULL REFERENCES tournament (tournament_id),
+    club_id bigserial NOT NULL REFERENCES club (id)
+);
+
 CREATE TABLE "tournament" (
     tournament_id bigserial PRIMARY KEY,
     tournament_name varchar(255) NOT NULL,
     sport_type varchar(100) NOT NULL,
     format varchar(100) NOT NULL,
     teams_joined bigInt NOT NULL,
-    CONSTRAINT format_check CHECK (format IN ('knockout', 'league', 'leagure+knockout', 'gourps+knockout', 'custom'))
+    start_on timestamp NOT NULL,
+    end_on timestamp NOT NULL,
+    CONSTRAINT format_check CHECK (format IN ('group', 'league', 'custom'))
 );
 
 CREATE TABLE organizer (
