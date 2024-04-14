@@ -17,3 +17,4 @@ WHERE tournament_id=$1;
 -- name: GetTeamsCount :one
 SELECT COUNT(*) FROM tournament_team
 WHERE tournament_id=$1;
+
