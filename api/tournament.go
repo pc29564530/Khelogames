@@ -31,8 +31,6 @@ func (server *Server) createTournament(ctx *gin.Context) {
 		TeamsJoined:    req.TeamsJoined,
 	}
 
-	fmt.Println("Arg: line 34:L ", arg)
-
 	response, err := server.store.CreateTournament(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
@@ -199,8 +197,11 @@ func (server *Server) addTeam(ctx *gin.Context) {
 		TeamID:       req.TeamID,
 	}
 
+<<<<<<< HEAD
 	fmt.Println("Team: params: ", arg)
 
+=======
+>>>>>>> 6140c65 (added functionality for tournament teams count)
 	response, err := server.store.AddTeam(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
@@ -246,6 +247,10 @@ func (server *Server) getTeam(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6140c65 (added functionality for tournament teams count)
 	response, err := server.store.GetTeam(ctx, req.TeamID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
