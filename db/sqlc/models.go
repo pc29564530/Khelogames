@@ -143,15 +143,6 @@ type Signup struct {
 	Otp          string `json:"otp"`
 }
 
-type Standing struct {
-	StandingID int64 `json:"standing_id"`
-	GroupID    int64 `json:"group_id"`
-	TeamID     int64 `json:"team_id"`
-	Wins       int64 `json:"wins"`
-	Loss       int64 `json:"loss"`
-	Draw       int64 `json:"draw"`
-}
-
 type Thread struct {
 	ID              int64     `json:"id"`
 	Username        string    `json:"username"`

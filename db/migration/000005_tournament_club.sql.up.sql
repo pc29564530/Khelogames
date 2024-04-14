@@ -78,10 +78,12 @@ CREATE TABLE tournament_standing (
     points bigint NOT NULL
 );
 
-CREATE TABLE tournament_group (
-    group_id bigserial PRIMARY KEY,
-    tournament_id bigint NOT NULL REFERENCES tournament (tournament_id),
-    team_id bigint NOT NULL REFERENCES club (id)
+CREATE TABLE "standing" (
+  "standing_id" bigserial PRIMARY KEY,
+  "team_id" bigserial,
+  "wins" bigint NOT NULL,
+  "loss" bigint NOT NULL,
+  "draw" bigint NOT NULL
 );
 CREATE TABLE group_team (
   group_team_id bigserial PRIMARY KEY,
@@ -90,11 +92,11 @@ CREATE TABLE group_team (
   tournament_id bigserial NOT NULL
 );
 
-CREATE TABLE group_league (
-  group_id bigserial PRIMARY KEY,
-  group_name varchar NOT NULL,
-  tournament_id bigserial NOT NULL,
-  group_strength bigserial NOT NULL
+CREATE TABLE "group_league" (
+  "group_id" bigserial PRIMARY KEY,
+  "group_name" varchar NOT NULL,
+  "tournament_id" bigserial NOT NULL,
+  "group_strength" bigserial NOT NULL
 );
 
 ALTER TABLE "group_team" ADD FOREIGN KEY ("group_id") REFERENCES "group_league" ("group_id");
