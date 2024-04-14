@@ -6,6 +6,7 @@
 package db
 
 import (
+	"fmt"
 	"context"
 )
 
@@ -139,6 +140,7 @@ func (q *Queries) GetTournamentStanding(ctx context.Context, arg GetTournamentSt
 		); err != nil {
 			return nil, err
 		}
+		fmt.Println("Lin3e no 143: ", items)
 		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
@@ -147,5 +149,6 @@ func (q *Queries) GetTournamentStanding(ctx context.Context, arg GetTournamentSt
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	fmt.Println("Line no 150L ", items)
 	return items, nil
 }
