@@ -28,3 +28,7 @@ UPDATE tournament
 SET teams_joined=$1
 WHERE tournament_id=$2
 RETURNING *;
+
+-- name: GetTournamentsBySport :many
+SELECT * FROM tournament
+WHERE sport_type=$1;
