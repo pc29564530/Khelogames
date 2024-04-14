@@ -12,6 +12,17 @@ INSERT INTO tournament_standing (
     points
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 ) RETURNING *;
 
+<<<<<<< HEAD
+=======
+-- name: CreateTournamentGroup :one
+INSERT INTO tournament_group (
+    tournament_id,
+    team_id
+) VALUES (
+    $1, $2
+) RETURNING *;
+
+>>>>>>> f44cecf (added the functionality for tournament standing)
 -- name: GetTournamentStanding :many
 SELECT 
     ts.standing_id, ts.tournament_id, ts.group_id, ts.team_id,
@@ -26,7 +37,12 @@ JOIN
     tournament t ON ts.tournament_id = t.tournament_id
 JOIN 
     club c ON ts.team_id = c.id
-WHERE 
-    ts.tournament_id = $1
-    AND tg.group_id = $2
-    AND t.sport_type = $3;
+WHERE t.tournament_id=$1 AND tg.group_id=$2 AND t.sport_type=$3;
+
+-- name: GetTournamentGroup :one
+SELECT * FROM tournament_group
+WHERE group_id=$1 AND tournament_id=$2;
+
+-- name: GetTournamentGroups :many
+SELECT * FROM tournament_group
+WHERE tournament_id=$1;

@@ -78,15 +78,11 @@ CREATE TABLE tournament_standing (
     points bigint NOT NULL
 );
 
-CREATE TABLE standing (
-  standing_id bigserial PRIMARY KEY,
-  group_id bigserial NOT NULL,
-  team_id bigserial NOT NULL,
-  wins bigint NOT NULL,
-  loss bigint NOT NULL,
-  draw bigint NOT NULL
+CREATE TABLE tournament_group (
+    group_id bigserial PRIMARY KEY,
+    tournament_id bigint NOT NULL REFERENCES tournament (tournament_id),
+    team_id bigint NOT NULL REFERENCES club (id)
 );
-
 CREATE TABLE group_team (
   group_team_id bigserial PRIMARY KEY,
   group_id bigserial NOT NULL,

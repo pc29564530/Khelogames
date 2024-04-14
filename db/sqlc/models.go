@@ -237,6 +237,12 @@ type Tournament struct {
 	TeamsJoined    int64  `json:"teams_joined"`
 }
 
+type TournamentGroup struct {
+	GroupID      int64 `json:"group_id"`
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
+}
+
 type TournamentMatch struct {
 	MatchID      int64        `json:"match_id"`
 	OrganizerID  int64        `json:"organizer_id"`
@@ -263,6 +269,20 @@ type TournamentOrganization struct {
 type TournamentOrganizer struct {
 	OrganizerID  int64 `json:"organizer_id"`
 	TournamentID int64 `json:"tournament_id"`
+}
+
+type TournamentStanding struct {
+	StandingID     int64 `json:"standing_id"`
+	TournamentID   int64 `json:"tournament_id"`
+	GroupID        int64 `json:"group_id"`
+	TeamID         int64 `json:"team_id"`
+	Wins           int64 `json:"wins"`
+	Loss           int64 `json:"loss"`
+	Draw           int64 `json:"draw"`
+	GoalFor        int64 `json:"goal_for"`
+	GoalAgainst    int64 `json:"goal_against"`
+	GoalDifference int64 `json:"goal_difference"`
+	Points         int64 `json:"points"`
 }
 
 type TournamentTeam struct {
