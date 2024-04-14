@@ -106,6 +106,11 @@ type Message struct {
 	MessageID int64 `json:"message_id"`
 	MediaID   int64 `json:"media_id"`
 }
+type Organizer struct {
+	OrganizerID   int64  `json:"organizer_id"`
+	OrganizerName string `json:"organizer_name"`
+	TournamentID  int64  `json:"tournament_id"`
+}
 
 type Organizer struct {
 	OrganizerID   int64  `json:"organizer_id"`
@@ -159,6 +164,7 @@ type Thread struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
+<<<<<<< HEAD
 type Tournament struct {
 	TournamentID   int64  `json:"tournament_id"`
 	TournamentName string `json:"tournament_name"`
@@ -214,11 +220,32 @@ type TournamentTeam struct {
 	TeamID       int64 `json:"team_id"`
 }
 
+=======
+<<<<<<< HEAD
+>>>>>>> 5d54c26 (second rebase)
 type Uploadmedium struct {
 	ID        int64     `json:"id"`
 	MediaUrl  string    `json:"media_url"`
 	MediaType string    `json:"media_type"`
 	SentAt    time.Time `json:"sent_at"`
+=======
+type Tournament struct {
+	TournamentID   int64  `json:"tournament_id"`
+	TournamentName string `json:"tournament_name"`
+	SportType      string `json:"sport_type"`
+	Format         string `json:"format"`
+	TeamsJoined    int64  `json:"teams_joined"`
+}
+
+type TournamentOrganizer struct {
+	OrganizerID  int64 `json:"organizer_id"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
+type TournamentTeam struct {
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
+>>>>>>> 1142144 (added the functionlity for tournament)
 }
 
 type User struct {
