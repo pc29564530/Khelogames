@@ -143,6 +143,7 @@ type Signup struct {
 	Otp          string `json:"otp"`
 }
 
+
 type Thread struct {
 	ID              int64     `json:"id"`
 	Username        string    `json:"username"`
@@ -155,7 +156,7 @@ type Thread struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
-<<<<<<< HEAD
+
 type Tournament struct {
 	TournamentID   int64  `json:"tournament_id"`
 	TournamentName string `json:"tournament_name"`
