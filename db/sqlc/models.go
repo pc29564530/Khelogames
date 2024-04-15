@@ -118,11 +118,6 @@ type Organizer struct {
 	TournamentID  int64  `json:"tournament_id"`
 }
 
-type Organizer struct {
-	OrganizerID   int64  `json:"organizer_id"`
-	OrganizerName string `json:"organizer_name"`
-	TournamentID  int64  `json:"tournament_id"`
-}
 
 type Profile struct {
 	ID        int64     `json:"id"`
