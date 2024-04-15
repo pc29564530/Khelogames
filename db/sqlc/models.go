@@ -65,6 +65,15 @@ type Follow struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+type FootballMatchesScore struct {
+	ID            int64     `json:"id"`
+	MatchID       int64     `json:"match_id"`
+	TournamentID  int64     `json:"tournament_id"`
+	TeamID        int64     `json:"team_id"`
+	GoalScore     int64     `json:"goal_score"`
+	GoalScoreTime time.Time `json:"goal_score_time"`
+}
+
 type GroupLeague struct {
 	GroupID       int64  `json:"group_id"`
 	GroupName     string `json:"group_name"`
