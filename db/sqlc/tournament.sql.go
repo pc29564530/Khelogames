@@ -18,7 +18,7 @@ INSERT INTO "tournament" (
     teams_joined,
     start_on,
     end_on
-) VALUES ($1, $2, $3, $4, $5, $6 )
+) VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on
 `
 

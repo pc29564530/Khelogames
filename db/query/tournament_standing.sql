@@ -13,15 +13,6 @@ INSERT INTO tournament_standing (
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10 ) RETURNING *;
 
 
--- name: CreateTournamentGroup :one
-INSERT INTO tournament_group (
-    tournament_id,
-    team_id
-) VALUES (
-    $1, $2
-) RETURNING *;
-
-
 -- name: GetTournamentStanding :many
 SELECT 
     ts.standing_id, ts.tournament_id, ts.group_id, ts.team_id,

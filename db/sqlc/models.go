@@ -112,24 +112,11 @@ type Messagemedium struct {
 	MediaID   int64 `json:"media_id"`
 }
 
-<<<<<<< HEAD
- type Messagemedium struct {
-	MessageID int64 `json:"message_id"`
-	MediaID   int64 `json:"media_id"`
-=======
-type Organizer struct {
-	OrganizerID   int64  `json:"organizer_id"`
-	OrganizerName string `json:"organizer_name"`
-	TournamentID  int64  `json:"tournament_id"`
->>>>>>> cd1ab18 (update the start and end date of the tournament)
-}
-
 type Organizer struct {
 	OrganizerID   int64  `json:"organizer_id"`
 	OrganizerName string `json:"organizer_name"`
 	TournamentID  int64  `json:"tournament_id"`
 }
-
 
 type Profile struct {
 	ID        int64     `json:"id"`
@@ -177,6 +164,15 @@ type Thread struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
+type Tournament struct {
+	TournamentID   int64     `json:"tournament_id"`
+	TournamentName string    `json:"tournament_name"`
+	SportType      string    `json:"sport_type"`
+	Format         string    `json:"format"`
+	TeamsJoined    int64     `json:"teams_joined"`
+	StartOn        time.Time `json:"start_on"`
+	EndOn          time.Time `json:"end_on"`
+}
 
 type TournamentMatch struct {
 	MatchID      int64        `json:"match_id"`
@@ -187,7 +183,7 @@ type TournamentMatch struct {
 	DateOn       time.Time    `json:"date_on"`
 	StartAt      time.Time    `json:"start_at"`
 	Stage        string       `json:"stage"`
-	CreatedAt    time.Time `json:"created_at"`
+	CreatedAt    sql.NullTime `json:"created_at"`
 	Sports       string       `json:"sports"`
 }
 
@@ -224,25 +220,6 @@ type TournamentTeam struct {
 	TournamentID int64 `json:"tournament_id"`
 	TeamID       int64 `json:"team_id"`
 }
-
-
-type Uploadmedium struct {
-	ID        int64     `json:"id"`
-	MediaUrl  string    `json:"media_url"`
-	MediaType string    `json:"media_type"`
-	SentAt    time.Time `json:"sent_at"`
-}
-
-type Tournament struct {
-	TournamentID   int64     `json:"tournament_id"`
-	TournamentName string    `json:"tournament_name"`
-	SportType      string    `json:"sport_type"`
-	Format         string    `json:"format"`
-	TeamsJoined    int64     `json:"teams_joined"`
-	StartOn        time.Time `json:"start_on"`
-	EndOn          time.Time `json:"end_on"`
-}
-
 
 type Uploadmedium struct {
 	ID        int64     `json:"id"`
