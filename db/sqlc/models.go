@@ -5,10 +5,33 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type Club struct {
+	ID        int64     `json:"id"`
+	ClubName  string    `json:"club_name"`
+	AvatarUrl string    `json:"avatar_url"`
+	Sport     string    `json:"sport"`
+	Owner     string    `json:"owner"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ClubMember struct {
+	ID         int64     `json:"id"`
+	ClubName   string    `json:"club_name"`
+	ClubMember string    `json:"club_member"`
+	JoinedAt   time.Time `json:"joined_at"`
+}
+
+type ClubPlayed struct {
+	PlayedID     int64 `json:"played_id"`
+	TournamentID int64 `json:"tournament_id"`
+	ClubID       int64 `json:"club_id"`
+}
 
 type Comment struct {
 	ID          int64     `json:"id"`
@@ -40,6 +63,20 @@ type Follow struct {
 	FollowerOwner  string    `json:"follower_owner"`
 	FollowingOwner string    `json:"following_owner"`
 	CreatedAt      time.Time `json:"created_at"`
+}
+
+type GroupLeague struct {
+	GroupID       int64  `json:"group_id"`
+	GroupName     string `json:"group_name"`
+	TournamentID  int64  `json:"tournament_id"`
+	GroupStrength int64  `json:"group_strength"`
+}
+
+type GroupTeam struct {
+	GroupTeamID  int64 `json:"group_team_id"`
+	GroupID      int64 `json:"group_id"`
+	TeamID       int64 `json:"team_id"`
+	TournamentID int64 `json:"tournament_id"`
 }
 
 type JoinCommunity struct {
@@ -75,6 +112,12 @@ type Messagemedium struct {
 	MediaID   int64 `json:"media_id"`
 }
 
+type Organizer struct {
+	OrganizerID   int64  `json:"organizer_id"`
+	OrganizerName string `json:"organizer_name"`
+	TournamentID  int64  `json:"tournament_id"`
+}
+
 type Profile struct {
 	ID        int64     `json:"id"`
 	Owner     string    `json:"owner"`
@@ -100,6 +143,15 @@ type Signup struct {
 	Otp          string `json:"otp"`
 }
 
+type Standing struct {
+	StandingID int64 `json:"standing_id"`
+	GroupID    int64 `json:"group_id"`
+	TeamID     int64 `json:"team_id"`
+	Wins       int64 `json:"wins"`
+	Loss       int64 `json:"loss"`
+	Draw       int64 `json:"draw"`
+}
+
 type Thread struct {
 	ID              int64     `json:"id"`
 	Username        string    `json:"username"`
@@ -110,6 +162,63 @@ type Thread struct {
 	MediaUrl        string    `json:"media_url"`
 	LikeCount       int64     `json:"like_count"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+type Tournament struct {
+	TournamentID   int64     `json:"tournament_id"`
+	TournamentName string    `json:"tournament_name"`
+	SportType      string    `json:"sport_type"`
+	Format         string    `json:"format"`
+	TeamsJoined    int64     `json:"teams_joined"`
+	StartOn        time.Time `json:"start_on"`
+	EndOn          time.Time `json:"end_on"`
+}
+
+type TournamentMatch struct {
+	MatchID      int64        `json:"match_id"`
+	OrganizerID  int64        `json:"organizer_id"`
+	TournamentID int64        `json:"tournament_id"`
+	Team1ID      int64        `json:"team1_id"`
+	Team2ID      int64        `json:"team2_id"`
+	DateOn       time.Time    `json:"date_on"`
+	StartAt      time.Time    `json:"start_at"`
+	Stage        string       `json:"stage"`
+	CreatedAt    sql.NullTime `json:"created_at"`
+	Sports       string       `json:"sports"`
+}
+
+type TournamentOrganization struct {
+	ID              int64     `json:"id"`
+	TournamentID    int64     `json:"tournament_id"`
+	TournamentStart time.Time `json:"tournament_start"`
+	PlayerCount     int64     `json:"player_count"`
+	TeamCount       int64     `json:"team_count"`
+	GroupCount      int64     `json:"group_count"`
+	AdvancedTeam    int64     `json:"advanced_team"`
+}
+
+type TournamentOrganizer struct {
+	OrganizerID  int64 `json:"organizer_id"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
+type TournamentStanding struct {
+	StandingID     int64 `json:"standing_id"`
+	TournamentID   int64 `json:"tournament_id"`
+	GroupID        int64 `json:"group_id"`
+	TeamID         int64 `json:"team_id"`
+	Wins           int64 `json:"wins"`
+	Loss           int64 `json:"loss"`
+	Draw           int64 `json:"draw"`
+	GoalFor        int64 `json:"goal_for"`
+	GoalAgainst    int64 `json:"goal_against"`
+	GoalDifference int64 `json:"goal_difference"`
+	Points         int64 `json:"points"`
+}
+
+type TournamentTeam struct {
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
 }
 
 type Uploadmedium struct {
