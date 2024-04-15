@@ -127,6 +127,16 @@ type Organizer struct {
 	TournamentID  int64  `json:"tournament_id"`
 }
 
+type PlayerProfile struct {
+	ID                    int64  `json:"id"`
+	PlayerName            string `json:"player_name"`
+	PlayerAvatarUrl       string `json:"player_avatar_url"`
+	PlayerBio             string `json:"player_bio"`
+	PlayerSport           string `json:"player_sport"`
+	PlayerPlayingCategory string `json:"player_playing_category"`
+	Nation                string `json:"nation"`
+}
+
 type Profile struct {
 	ID        int64     `json:"id"`
 	Owner     string    `json:"owner"`
