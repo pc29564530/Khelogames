@@ -66,10 +66,10 @@ CREATE TABLE tournament_match (
     team1_id bigint NOT NULL REFERENCES "club" ("id"),
     team2_id bigint NOT NULL REFERENCES "club" ("id"),
     date_on timestamp NOT NULL,
-    start_at timestamp NOT NULL,
+    start_time timestamp NOT NULL,
     stage varchar NOT NULL,
-    created_at timestamp DEFAULT 'now()',
-    sports varchar NOT NULL
+    sports varchar NOT NULL,
+    end_time timestamp NOT NULL
 );
 
 CREATE TABLE tournament_standing (

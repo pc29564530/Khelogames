@@ -13,7 +13,8 @@ type addFootballMatchScoreRequest struct {
 	MatchID      int64 `json:"match_id"`
 	TournamentID int64 `json:"tournament_id"`
 	TeamID       int64 `json:"team_id"`
-	GoalScore    int64 `json:"goal_score"`
+	GoalFor      int64 `json:"goal_for"`
+	GoalAgainst  int64 `json:"goal_against"`
 }
 
 func (server *Server) addFootballMatchScore(ctx *gin.Context) {
@@ -61,7 +62,8 @@ func (server *Server) addFootballMatchScore(ctx *gin.Context) {
 		MatchID:      req.MatchID,
 		TournamentID: req.TournamentID,
 		TeamID:       req.TeamID,
-		GoalScore:    req.GoalScore,
+		GoalFor:      req.GoalFor,
+		GoalAgainst:  req.GoalAgainst,
 	}
 
 	response, err := server.store.AddFootballMatchScore(ctx, arg)
@@ -106,45 +108,66 @@ func (server *Server) getFootballMatchScore(ctx *gin.Context) {
 
 }
 
+type updateFootballMatchScoreRequest struct {
+	// TournamentID int64 `json:"tournament_id"`
+	// MatchID      int64 `json:"match_id"`
+	// TeamID       int64 `json:"team_id"`
+
+	GoalFor     int64 `json:"goal_for"`
+	GoalAgainst int64 `json:"goal_against"`
+	MatchID     int64 `json:"match_id"`
+	TeamID      int64 `json:"team_id"`
+}
+
 func (server *Server) updateFootballMatchScore(ctx *gin.Context) {
-	tournamentIdStr := ctx.Query("tournament_id")
-	matchIdStr := ctx.Query("match_id")
-	teamIdStr := ctx.Query("team_id")
-	goalScoreStr := ctx.Query("goal_score")
-	matchID, err := strconv.ParseInt(matchIdStr, 10, 64)
+
+	var req updateFootballMatchScoreRequest
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("unable to parse the match Id")
-		ctx.JSON(http.StatusResetContent, err)
+		fmt.Errorf("unable to get the correct data or order ", err)
 		return
 	}
 
-	teamID, err := strconv.ParseInt(teamIdStr, 10, 64)
-	if err != nil {
-		fmt.Errorf("unable to parse the match Id")
-		ctx.JSON(http.StatusResetContent, err)
-		return
-	}
+	// tournamentIdStr := ctx.Query("tournament_id")
+	// matchIdStr := ctx.Query("match_id")
+	// teamIdStr := ctx.Query("team_id")
+	// goalScoreStr := ctx.Query("goal_score")
+	// matchID, err := strconv.ParseInt(matchIdStr, 10, 64)
+	// if err != nil {
+	// 	fmt.Errorf("unable to parse the match Id")
+	// 	ctx.JSON(http.StatusResetContent, err)
+	// 	return
+	// }
 
-	goalScore, err := strconv.ParseInt(goalScoreStr, 10, 64)
-	if err != nil {
-		fmt.Errorf("unable to parse the match Id")
-		ctx.JSON(http.StatusResetContent, err)
-		return
-	}
+	// teamID, err := strconv.ParseInt(teamIdStr, 10, 64)
+	// if err != nil {
+	// 	fmt.Errorf("unable to parse the match Id")
+	// 	ctx.JSON(http.StatusResetContent, err)
+	// 	return
+	// }
 
-	tournamentId, err := strconv.ParseInt(tournamentIdStr, 10, 64)
-	if err != nil {
-		fmt.Errorf("unable to parse the match Id")
-		ctx.JSON(http.StatusResetContent, err)
-		return
-	}
+	// goalScore, err := strconv.ParseInt(goalScoreStr, 10, 64)
+	// if err != nil {
+	// 	fmt.Errorf("unable to parse the match Id")
+	// 	ctx.JSON(http.StatusResetContent, err)
+	// 	return
+	// }
+
+	// tournamentId, err := strconv.ParseInt(tournamentIdStr, 10, 64)
+	// if err != nil {
+	// 	fmt.Errorf("unable to parse the match Id")
+	// 	ctx.JSON(http.StatusResetContent, err)
+	// 	return
+	// }
 
 	arg := db.UpdateFootballMatchScoreParams{
-		TournamentID: tournamentId,
-		MatchID:      matchID,
-		TeamID:       teamID,
-		GoalScore:    goalScore,
+		GoalFor:     req.GoalFor,
+		GoalAgainst: req.GoalAgainst,
+		MatchID:     req.MatchID,
+		TeamID:      req.TeamID,
 	}
+
+	fmt.Println("Arg: ", arg)
 
 	response, err := server.store.UpdateFootballMatchScore(ctx, arg)
 	if err != nil {

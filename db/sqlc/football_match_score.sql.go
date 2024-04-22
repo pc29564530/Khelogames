@@ -14,17 +14,19 @@ INSERT INTO football_matches_score (
     match_id,
     tournament_id,
     team_id,
-    goal_score,
+    goal_for,
+    goal_against,
     goal_score_time
-) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-RETURNING id, match_id, tournament_id, team_id, goal_score, goal_score_time
+) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+RETURNING id, match_id, tournament_id, team_id, goal_for, goal_against, goal_score_time
 `
 
 type AddFootballMatchScoreParams struct {
 	MatchID      int64 `json:"match_id"`
 	TournamentID int64 `json:"tournament_id"`
 	TeamID       int64 `json:"team_id"`
-	GoalScore    int64 `json:"goal_score"`
+	GoalFor      int64 `json:"goal_for"`
+	GoalAgainst  int64 `json:"goal_against"`
 }
 
 func (q *Queries) AddFootballMatchScore(ctx context.Context, arg AddFootballMatchScoreParams) (FootballMatchesScore, error) {
@@ -32,7 +34,8 @@ func (q *Queries) AddFootballMatchScore(ctx context.Context, arg AddFootballMatc
 		arg.MatchID,
 		arg.TournamentID,
 		arg.TeamID,
-		arg.GoalScore,
+		arg.GoalFor,
+		arg.GoalAgainst,
 	)
 	var i FootballMatchesScore
 	err := row.Scan(
@@ -40,14 +43,15 @@ func (q *Queries) AddFootballMatchScore(ctx context.Context, arg AddFootballMatc
 		&i.MatchID,
 		&i.TournamentID,
 		&i.TeamID,
-		&i.GoalScore,
+		&i.GoalFor,
+		&i.GoalAgainst,
 		&i.GoalScoreTime,
 	)
 	return i, err
 }
 
 const getFootballMatchScore = `-- name: GetFootballMatchScore :one
-SELECT id, match_id, tournament_id, team_id, goal_score, goal_score_time FROM football_matches_score
+SELECT id, match_id, tournament_id, team_id, goal_for, goal_against, goal_score_time FROM football_matches_score
 WHERE match_id=$1 AND team_id=$2
 `
 
@@ -64,7 +68,42 @@ func (q *Queries) GetFootballMatchScore(ctx context.Context, arg GetFootballMatc
 		&i.MatchID,
 		&i.TournamentID,
 		&i.TeamID,
-		&i.GoalScore,
+		&i.GoalFor,
+		&i.GoalAgainst,
+		&i.GoalScoreTime,
+	)
+	return i, err
+}
+
+const updateFootballMatchScore = `-- name: UpdateFootballMatchScore :one
+UPDATE football_matches_score
+SET goal_for=$1, goal_against=$2
+WHERE match_id=$3 AND team_id=$4
+RETURNING id, match_id, tournament_id, team_id, goal_for, goal_against, goal_score_time
+`
+
+type UpdateFootballMatchScoreParams struct {
+	GoalFor     int64 `json:"goal_for"`
+	GoalAgainst int64 `json:"goal_against"`
+	MatchID     int64 `json:"match_id"`
+	TeamID      int64 `json:"team_id"`
+}
+
+func (q *Queries) UpdateFootballMatchScore(ctx context.Context, arg UpdateFootballMatchScoreParams) (FootballMatchesScore, error) {
+	row := q.db.QueryRowContext(ctx, updateFootballMatchScore,
+		arg.GoalFor,
+		arg.GoalAgainst,
+		arg.MatchID,
+		arg.TeamID,
+	)
+	var i FootballMatchesScore
+	err := row.Scan(
+		&i.ID,
+		&i.MatchID,
+		&i.TournamentID,
+		&i.TeamID,
+		&i.GoalFor,
+		&i.GoalAgainst,
 		&i.GoalScoreTime,
 	)
 	return i, err

@@ -5,7 +5,6 @@
 package db
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -70,7 +69,8 @@ type FootballMatchesScore struct {
 	MatchID       int64     `json:"match_id"`
 	TournamentID  int64     `json:"tournament_id"`
 	TeamID        int64     `json:"team_id"`
-	GoalScore     int64     `json:"goal_score"`
+	GoalFor       int64     `json:"goal_for"`
+	GoalAgainst   int64     `json:"goal_against"`
 	GoalScoreTime time.Time `json:"goal_score_time"`
 }
 
@@ -194,16 +194,16 @@ type Tournament struct {
 }
 
 type TournamentMatch struct {
-	MatchID      int64        `json:"match_id"`
-	OrganizerID  int64        `json:"organizer_id"`
-	TournamentID int64        `json:"tournament_id"`
-	Team1ID      int64        `json:"team1_id"`
-	Team2ID      int64        `json:"team2_id"`
-	DateOn       time.Time    `json:"date_on"`
-	StartAt      time.Time    `json:"start_at"`
-	Stage        string       `json:"stage"`
-	CreatedAt    sql.NullTime `json:"created_at"`
-	Sports       string       `json:"sports"`
+	MatchID      int64     `json:"match_id"`
+	OrganizerID  int64     `json:"organizer_id"`
+	TournamentID int64     `json:"tournament_id"`
+	Team1ID      int64     `json:"team1_id"`
+	Team2ID      int64     `json:"team2_id"`
+	DateOn       time.Time `json:"date_on"`
+	StartTime    time.Time `json:"start_time"`
+	Stage        string    `json:"stage"`
+	Sports       string    `json:"sports"`
+	EndTime      time.Time `json:"end_time"`
 }
 
 type TournamentOrganization struct {

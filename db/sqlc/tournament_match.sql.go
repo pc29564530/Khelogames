@@ -17,13 +17,13 @@ INSERT INTO tournament_match (
     team1_id,
     team2_id,
     date_on,
-    start_at,
+    start_time,
     stage,
-    created_at,
-    sports
+    sports,
+    end_time
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, $8
-) RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_at, stage, created_at, sports
+    $1, $2, $3, $4, $5, $6, $7,$8, $9
+) RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time
 `
 
 type CreateMatchParams struct {
@@ -32,9 +32,10 @@ type CreateMatchParams struct {
 	Team1ID      int64     `json:"team1_id"`
 	Team2ID      int64     `json:"team2_id"`
 	DateOn       time.Time `json:"date_on"`
-	StartAt      time.Time `json:"start_at"`
+	StartTime    time.Time `json:"start_time"`
 	Stage        string    `json:"stage"`
 	Sports       string    `json:"sports"`
+	EndTime      time.Time `json:"end_time"`
 }
 
 func (q *Queries) CreateMatch(ctx context.Context, arg CreateMatchParams) (TournamentMatch, error) {
@@ -44,9 +45,10 @@ func (q *Queries) CreateMatch(ctx context.Context, arg CreateMatchParams) (Tourn
 		arg.Team1ID,
 		arg.Team2ID,
 		arg.DateOn,
-		arg.StartAt,
+		arg.StartTime,
 		arg.Stage,
 		arg.Sports,
+		arg.EndTime,
 	)
 	var i TournamentMatch
 	err := row.Scan(
@@ -56,16 +58,16 @@ func (q *Queries) CreateMatch(ctx context.Context, arg CreateMatchParams) (Tourn
 		&i.Team1ID,
 		&i.Team2ID,
 		&i.DateOn,
-		&i.StartAt,
+		&i.StartTime,
 		&i.Stage,
-		&i.CreatedAt,
 		&i.Sports,
+		&i.EndTime,
 	)
 	return i, err
 }
 
 const getMatch = `-- name: GetMatch :one
-SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_at, stage, created_at, sports FROM tournament_match
+SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
 WHERE match_id=$1
 `
 
@@ -79,16 +81,16 @@ func (q *Queries) GetMatch(ctx context.Context, matchID int64) (TournamentMatch,
 		&i.Team1ID,
 		&i.Team2ID,
 		&i.DateOn,
-		&i.StartAt,
+		&i.StartTime,
 		&i.Stage,
-		&i.CreatedAt,
 		&i.Sports,
+		&i.EndTime,
 	)
 	return i, err
 }
 
 const getTournamentMatch = `-- name: GetTournamentMatch :many
-SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_at, stage, created_at, sports FROM tournament_match
+SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
 WHERE (tournament_id=$1 AND sports=$2)
 ORDER BY match_id ASC
 `
@@ -114,10 +116,10 @@ func (q *Queries) GetTournamentMatch(ctx context.Context, arg GetTournamentMatch
 			&i.Team1ID,
 			&i.Team2ID,
 			&i.DateOn,
-			&i.StartAt,
+			&i.StartTime,
 			&i.Stage,
-			&i.CreatedAt,
 			&i.Sports,
+			&i.EndTime,
 		); err != nil {
 			return nil, err
 		}
@@ -136,7 +138,7 @@ const updateMatchSchedule = `-- name: UpdateMatchSchedule :one
 UPDATE tournament_match
 SET date_on=$1
 WHERE match_id=$2
-RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_at, stage, created_at, sports
+RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time
 `
 
 type UpdateMatchScheduleParams struct {
@@ -154,28 +156,29 @@ func (q *Queries) UpdateMatchSchedule(ctx context.Context, arg UpdateMatchSchedu
 		&i.Team1ID,
 		&i.Team2ID,
 		&i.DateOn,
-		&i.StartAt,
+		&i.StartTime,
 		&i.Stage,
-		&i.CreatedAt,
 		&i.Sports,
+		&i.EndTime,
 	)
 	return i, err
 }
 
 const updateMatchScheduleTime = `-- name: UpdateMatchScheduleTime :one
 UPDATE tournament_match
-SET start_at=$1
-WHERE match_id=$2
-RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_at, stage, created_at, sports
+SET start_time=$1 OR end_time=$2
+WHERE match_id=$3
+RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time
 `
 
 type UpdateMatchScheduleTimeParams struct {
-	StartAt time.Time `json:"start_at"`
-	MatchID int64     `json:"match_id"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	MatchID   int64     `json:"match_id"`
 }
 
 func (q *Queries) UpdateMatchScheduleTime(ctx context.Context, arg UpdateMatchScheduleTimeParams) (TournamentMatch, error) {
-	row := q.db.QueryRowContext(ctx, updateMatchScheduleTime, arg.StartAt, arg.MatchID)
+	row := q.db.QueryRowContext(ctx, updateMatchScheduleTime, arg.StartTime, arg.EndTime, arg.MatchID)
 	var i TournamentMatch
 	err := row.Scan(
 		&i.MatchID,
@@ -184,10 +187,10 @@ func (q *Queries) UpdateMatchScheduleTime(ctx context.Context, arg UpdateMatchSc
 		&i.Team1ID,
 		&i.Team2ID,
 		&i.DateOn,
-		&i.StartAt,
+		&i.StartTime,
 		&i.Stage,
-		&i.CreatedAt,
 		&i.Sports,
+		&i.EndTime,
 	)
 	return i, err
 }

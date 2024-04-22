@@ -31,3 +31,44 @@ WHERE
     ts.tournament_id = $1
     AND tg.group_id = $2
     AND t.sport_type = $3;
+
+
+
+-- name: UpdateTournamentStanding :one
+UPDATE tournament_standing AS ts
+SET 
+    goal_for = COALESCE((
+        SELECT SUM(CASE WHEN fs.goal_for IS NOT NULL THEN fs.goal_for ELSE 0 END)
+        SELECT SUM(CASE WHEN fs.goal_for IS NOT NULL THEN fs.goal_for ELSE 0 END)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id
+    ), 0),
+    goal_against = COALESCE((
+        SELECT SUM(CASE WHEN fs.goal_against IS NOT NULL THEN fs.goal_against ELSE 0 END)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id
+    ), 0),
+    goal_difference = COALESCE((
+        SELECT SUM(CASE WHEN fs.goal_for IS NOT NULL THEN fs.goal_for ELSE 0 END) -
+               SUM(CASE WHEN fs.goal_against IS NOT NULL THEN fs.goal_against ELSE 0 END)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id
+    ), 0),
+    wins = COALESCE((
+        SELECT COUNT(*)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id AND fs.goal_for > fs.goal_against
+    ), 0),
+    loss = COALESCE((
+        SELECT COUNT(*)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id AND fs.goal_for < fs.goal_against
+    ), 0),
+    draw = COALESCE((
+        SELECT COUNT(*)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id AND fs.goal_for = fs.goal_against
+    ), 0)
+    points = ((wins*3)+draw),
+WHERE ts.tournament_id = $1 AND ts.team_id=$2
+RETURNING *;

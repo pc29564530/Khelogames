@@ -137,13 +137,13 @@ func (q *Queries) GetClubsBySport(ctx context.Context, sport string) ([]Club, er
 }
 
 const getMatchByClubName = `-- name: GetMatchByClubName :many
-SELECT t.tournament_id, t.tournament_name, c1.club_name AS team1_name, c2.club_name AS team2_name, tm.start_at, tm.date_on
+SELECT t.tournament_id, t.tournament_name, c1.club_name AS team1_name, c2.club_name AS team2_name, tm.start_time, tm.end_time, tm.date_on
 FROM tournament_match tm
 JOIN tournament t ON tm.tournament_id = t.tournament_id
 JOIN club c1 ON tm.team1_id = c1.id
 JOIN club c2 ON tm.team2_id = c2.id
 WHERE c1.club_name=$1 OR c2.club_name=$1
-ORDER BY tm.match_id AND tm.start_at DESC
+ORDER BY tm.match_id AND tm.start_time DESC
 `
 
 type GetMatchByClubNameRow struct {
@@ -151,7 +151,8 @@ type GetMatchByClubNameRow struct {
 	TournamentName string    `json:"tournament_name"`
 	Team1Name      string    `json:"team1_name"`
 	Team2Name      string    `json:"team2_name"`
-	StartAt        time.Time `json:"start_at"`
+	StartTime      time.Time `json:"start_time"`
+	EndTime        time.Time `json:"end_time"`
 	DateOn         time.Time `json:"date_on"`
 }
 
@@ -169,7 +170,8 @@ func (q *Queries) GetMatchByClubName(ctx context.Context, clubName string) ([]Ge
 			&i.TournamentName,
 			&i.Team1Name,
 			&i.Team2Name,
-			&i.StartAt,
+			&i.StartTime,
+			&i.EndTime,
 			&i.DateOn,
 		); err != nil {
 			return nil, err
