@@ -15,9 +15,10 @@ type createTournamentMatchRequest struct {
 	Team1ID      int64     `json:"team1_id"`
 	Team2ID      int64     `json:"team2_id"`
 	DateON       time.Time `json:"date_on"`
-	StartAt      time.Time `json:"start_at"`
+	StartTime    time.Time `json:"start_time"`
 	Stage        string    `json:"stage"`
 	Sports       string    `json:"sports"`
+	EndTime      time.Time `json:"end_time"`
 }
 
 func (server *Server) createTournamentMatch(ctx *gin.Context) {
@@ -34,9 +35,10 @@ func (server *Server) createTournamentMatch(ctx *gin.Context) {
 		Team1ID:      req.Team1ID,
 		Team2ID:      req.Team2ID,
 		DateOn:       req.DateON,
-		StartAt:      req.StartAt,
+		StartTime:    req.StartTime,
 		Stage:        req.Stage,
 		Sports:       req.Sports,
+		EndTime:      req.EndTime,
 	}
 
 	response, err := server.store.CreateMatch(ctx, arg)
@@ -71,4 +73,38 @@ func (server *Server) getAllTournamentMatch(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
+}
+
+type updateMatchScheduleTimeRequest struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	MatchID   int64     `json:"match_id"`
+}
+
+func (server *Server) updateMatchScheduleTime(ctx *gin.Context) {
+	var req updateMatchScheduleTimeRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	arg := db.UpdateMatchScheduleTimeParams{
+		StartTime: req.StartTime,
+		EndTime:   req.EndTime,
+		MatchID:   req.MatchID,
+	}
+
+	response, err := server.store.UpdateMatchScheduleTime(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+func (server *Server) updateMatchsScore(ctx *gin.Context) {
+
 }

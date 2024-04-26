@@ -274,6 +274,9 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter.PUT("/updateMatchScheduleTime", server.updateMatchScheduleTime)
 	authRouter.PUT("/updateFootballMatchScore", server.updateFootballMatchScore)
 	authRouter.PUT("/updateTournamentStanding", server.updateTournamentStanding)
+	authRouter.POST("/addCricketMatchScore", server.addCricketMatchScore)
+	authRouter.GET("/getCricketMatchScore", server.getCricketMatchScore)
+	authRouter.PUT("/updateCricketMatchScore", server.updateCricketMatchScore)
 
 	server.router = router
 	return server, nil
