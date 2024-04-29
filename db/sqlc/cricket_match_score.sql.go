@@ -19,7 +19,7 @@ INSERT INTO cricket_match_score (
     overs,
     extras,
     innings
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING score_id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings
 `
 
 type CreateCricketMatchScoreParams struct {
@@ -46,7 +46,7 @@ func (q *Queries) CreateCricketMatchScore(ctx context.Context, arg CreateCricket
 	)
 	var i CricketMatchScore
 	err := row.Scan(
-		&i.ScoreID,
+		&i.ID,
 		&i.MatchID,
 		&i.TournamentID,
 		&i.TeamID,
@@ -60,7 +60,7 @@ func (q *Queries) CreateCricketMatchScore(ctx context.Context, arg CreateCricket
 }
 
 const getCricketMatchScore = `-- name: GetCricketMatchScore :one
-SELECT score_id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings FROM cricket_match_score
+SELECT id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings FROM cricket_match_score
 WHERE match_id=$1 AND team_id=$2
 `
 
@@ -73,7 +73,7 @@ func (q *Queries) GetCricketMatchScore(ctx context.Context, arg GetCricketMatchS
 	row := q.db.QueryRowContext(ctx, getCricketMatchScore, arg.MatchID, arg.TeamID)
 	var i CricketMatchScore
 	err := row.Scan(
-		&i.ScoreID,
+		&i.ID,
 		&i.MatchID,
 		&i.TournamentID,
 		&i.TeamID,
@@ -90,7 +90,7 @@ const updateCricketMatchScore = `-- name: UpdateCricketMatchScore :one
 UPDATE cricket_match_score
 SET score=$1, wickets=$2, extras=$3, innings=$4
 WHERE match_id=$5 AND team_id=$6
-RETURNING score_id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings
+RETURNING id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings
 `
 
 type UpdateCricketMatchScoreParams struct {
@@ -113,7 +113,7 @@ func (q *Queries) UpdateCricketMatchScore(ctx context.Context, arg UpdateCricket
 	)
 	var i CricketMatchScore
 	err := row.Scan(
-		&i.ScoreID,
+		&i.ID,
 		&i.MatchID,
 		&i.TournamentID,
 		&i.TeamID,
