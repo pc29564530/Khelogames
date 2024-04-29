@@ -20,10 +20,9 @@ type Club struct {
 }
 
 type ClubMember struct {
-	ID         int64     `json:"id"`
-	ClubName   string    `json:"club_name"`
-	ClubMember string    `json:"club_member"`
-	JoinedAt   time.Time `json:"joined_at"`
+	ID       int64 `json:"id"`
+	ClubID   int64 `json:"club_id"`
+	PlayerID int64 `json:"player_id"`
 }
 
 type ClubPlayed struct {
@@ -55,6 +54,18 @@ type Communitymessage struct {
 	SenderUsername string    `json:"sender_username"`
 	Content        string    `json:"content"`
 	SentAt         time.Time `json:"sent_at"`
+}
+
+type CricketMatchScore struct {
+	ID           int64 `json:"id"`
+	MatchID      int64 `json:"match_id"`
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
+	Score        int64 `json:"score"`
+	Wickets      int64 `json:"wickets"`
+	Overs        int64 `json:"overs"`
+	Extras       int64 `json:"extras"`
+	Innings      int64 `json:"innings"`
 }
 
 type Follow struct {
@@ -248,8 +259,8 @@ type Uploadmedium struct {
 }
 
 type User struct {
-	Username       string    `json:"username"`
-	MobileNumber   string    `json:"mobile_number"`
-	HashedPassword string    `json:"hashed_password"`
-	CreatedAt      time.Time `json:"created_at"`
+	Username       string `json:"username"`
+	MobileNumber   string `json:"mobile_number"`
+	HashedPassword string `json:"hashed_password"`
+	Role           string `json:"role"`
 }

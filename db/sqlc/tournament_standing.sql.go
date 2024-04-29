@@ -183,7 +183,8 @@ SET
         SELECT COUNT(*)
         FROM football_matches_score AS fs
         WHERE fs.team_id = ts.team_id AND fs.goal_for = fs.goal_against
-    ), 0)
+    ), 0),
+    points = ((wins*3)+draw)
 WHERE ts.tournament_id = $1 AND ts.team_id=$2
 RETURNING standing_id, tournament_id, group_id, team_id, wins, loss, draw, goal_for, goal_against, goal_difference, points
 `
