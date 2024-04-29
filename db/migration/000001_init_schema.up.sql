@@ -17,10 +17,10 @@ CREATE TABLE "like_thread" (
 );
 
 CREATE TABLE "users" (
-                "username" varchar UNIQUE NOT NULL,
-                "mobile_number" string UNIQUE NOT NULL,
-                "hashed_password" varchar UNIQUE NOT NULL,
-                "created_at" timestamptz NOT NULL DEFAULT NOW()
+        "username" varchar UNIQUE NOT NULL,
+        "mobile_number" string UNIQUE NOT NULL,
+        "hashed_password" varchar UNIQUE NOT NULL,
+        "role" varchar NOT NULL DEFAULT 'user'
 );
 
 CREATE TABLE "sessions" (

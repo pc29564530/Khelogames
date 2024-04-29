@@ -3,9 +3,9 @@ INSERT INTO users (
   username,
   mobile_number,
   hashed_password,
-  created_at
+  role
 ) VALUES (
-  $1, $2, $3, CURRENT_TIMESTAMP
+  $1, $2, $3, $4
 ) RETURNING *;
 
 -- name: GetUser :one
