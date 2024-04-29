@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -8,21 +9,30 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type addPlayerProfileRequest struct {
+	PlayerName            string `json:"player_name"`
+	PlayerAvatarUrl       string `json:"player_avatar_url"`
+	PlayerBio             string `json:"player_bio"`
+	PlayerSport           string `json:"player_sport"`
+	PlayerPlayingCategory string `json:"player_playing_category"`
+	Nation                string `json:"nation"`
+}
+
 func (server *Server) addPlayerProfile(ctx *gin.Context) {
-	playerName := ctx.Query("player_name")
-	playerAvatarURL := ctx.Query("player_avatar_url")
-	playerBio := ctx.Query("player_bio")
-	playerPlayingCategory := ctx.Query("player_playing_category")
-	playerSport := ctx.Query("player_sport")
-	nation := ctx.Query("nation")
+	var req addPlayerProfileRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		fmt.Println("unable to get the data from frontend: ", err)
+		return
+	}
 
 	arg := db.AddPlayerProfileParams{
-		PlayerName:            playerName,
-		PlayerAvatarUrl:       playerAvatarURL,
-		PlayerBio:             playerBio,
-		PlayerPlayingCategory: playerPlayingCategory,
-		PlayerSport:           playerSport,
-		Nation:                nation,
+		PlayerName:            req.PlayerName,
+		PlayerAvatarUrl:       req.PlayerAvatarUrl,
+		PlayerBio:             req.PlayerBio,
+		PlayerPlayingCategory: req.PlayerPlayingCategory,
+		PlayerSport:           req.PlayerSport,
+		Nation:                req.Nation,
 	}
 
 	response, err := server.store.AddPlayerProfile(ctx, arg)
@@ -49,6 +59,18 @@ func (server *Server) getPlayerProfile(ctx *gin.Context) {
 		return
 	}
 
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+func (server *Server) getAllPlayerProfile(ctx *gin.Context) {
+
+	response, err := server.store.GetAllPlayerProfile(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+	fmt.Println("Line no 73: ", response)
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }

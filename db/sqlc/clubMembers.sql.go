@@ -11,38 +11,32 @@ import (
 
 const addClubMember = `-- name: AddClubMember :one
 INSERT INTO "club_member" (
-    club_name,
-    club_member,
-    joined_at
-) VALUES ($1, $2, CURRENT_TIMESTAMP
-) RETURNING id, club_name, club_member, joined_at
+    club_id,
+    player_id
+) VALUES ($1, $2
+) RETURNING id, club_id, player_id
 `
 
 type AddClubMemberParams struct {
-	ClubName   string `json:"club_name"`
-	ClubMember string `json:"club_member"`
+	ClubID   int64 `json:"club_id"`
+	PlayerID int64 `json:"player_id"`
 }
 
 func (q *Queries) AddClubMember(ctx context.Context, arg AddClubMemberParams) (ClubMember, error) {
-	row := q.db.QueryRowContext(ctx, addClubMember, arg.ClubName, arg.ClubMember)
+	row := q.db.QueryRowContext(ctx, addClubMember, arg.ClubID, arg.PlayerID)
 	var i ClubMember
-	err := row.Scan(
-		&i.ID,
-		&i.ClubName,
-		&i.ClubMember,
-		&i.JoinedAt,
-	)
+	err := row.Scan(&i.ID, &i.ClubID, &i.PlayerID)
 	return i, err
 }
 
 const getClubMember = `-- name: GetClubMember :many
-SELECT id, club_name, club_member, joined_at FROM "club_member"
-WHERE club_name=$1
+SELECT id, club_id, player_id FROM "club_member"
+WHERE club_id=$1
 ORDER BY id ASC
 `
 
-func (q *Queries) GetClubMember(ctx context.Context, clubName string) ([]ClubMember, error) {
-	rows, err := q.db.QueryContext(ctx, getClubMember, clubName)
+func (q *Queries) GetClubMember(ctx context.Context, clubID int64) ([]ClubMember, error) {
+	rows, err := q.db.QueryContext(ctx, getClubMember, clubID)
 	if err != nil {
 		return nil, err
 	}
@@ -50,12 +44,7 @@ func (q *Queries) GetClubMember(ctx context.Context, clubName string) ([]ClubMem
 	var items []ClubMember
 	for rows.Next() {
 		var i ClubMember
-		if err := rows.Scan(
-			&i.ID,
-			&i.ClubName,
-			&i.ClubMember,
-			&i.JoinedAt,
-		); err != nil {
+		if err := rows.Scan(&i.ID, &i.ClubID, &i.PlayerID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

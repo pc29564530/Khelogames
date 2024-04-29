@@ -13,6 +13,9 @@ RETURNING *;
 SELECT * FROM player_profile
 WHERE id=$1;
 
+-- name: GetAllPlayerProfile :many
+SELECT * FROM player_profile;
+
 -- name: UpdatePlayerProfileAvatar :one
 UPDATE player_profile
 SET player_avatar_url=$1

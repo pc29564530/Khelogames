@@ -52,6 +52,41 @@ func (q *Queries) AddPlayerProfile(ctx context.Context, arg AddPlayerProfilePara
 	return i, err
 }
 
+const getAllPlayerProfile = `-- name: GetAllPlayerProfile :many
+SELECT id, player_name, player_avatar_url, player_bio, player_sport, player_playing_category, nation FROM player_profile
+`
+
+func (q *Queries) GetAllPlayerProfile(ctx context.Context) ([]PlayerProfile, error) {
+	rows, err := q.db.QueryContext(ctx, getAllPlayerProfile)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PlayerProfile
+	for rows.Next() {
+		var i PlayerProfile
+		if err := rows.Scan(
+			&i.ID,
+			&i.PlayerName,
+			&i.PlayerAvatarUrl,
+			&i.PlayerBio,
+			&i.PlayerSport,
+			&i.PlayerPlayingCategory,
+			&i.Nation,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPlayerProfile = `-- name: GetPlayerProfile :one
 SELECT id, player_name, player_avatar_url, player_bio, player_sport, player_playing_category, nation FROM player_profile
 WHERE id=$1
