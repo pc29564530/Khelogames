@@ -49,10 +49,11 @@ JOIN club c ON tt.team_id=c.id
 WHERE c.club_name=$1;
 
 -- name: GetMatchByClubName :many
-SELECT t.tournament_id, t.tournament_name, c1.club_name AS team1_name, c2.club_name AS team2_name, tm.start_time, tm.end_time, tm.date_on
+SELECT t.tournament_id, t.tournament_name, tm.match_id, tm.team1_id, tm.team2_id, c1.club_name AS team1_name, c2.club_name AS team2_name, tm.start_time, tm.end_time, tm.date_on
 FROM tournament_match tm
 JOIN tournament t ON tm.tournament_id = t.tournament_id
 JOIN club c1 ON tm.team1_id = c1.id
 JOIN club c2 ON tm.team2_id = c2.id
-WHERE c1.club_name=$1 OR c2.club_name=$1
-ORDER BY tm.match_id AND tm.start_time DESC;
+WHERE c1.id=$1 OR c2.id=$1
+ORDER BY tm.match_id DESC, tm.start_time DESC;
+
