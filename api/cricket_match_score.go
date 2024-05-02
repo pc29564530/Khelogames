@@ -232,3 +232,85 @@ func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
+
+type updateCricketMatchScoreBattingRequest struct {
+	Position      int64 `json:"position"`
+	RunsScored    int64 `json:"runs_scored"`
+	BallsFaced    int64 `json:"balls_faced"`
+	Fours         int64 `json:"fours"`
+	Sixes         int64 `json:"sixes"`
+	WicketTakenBy int64 `json:"wicket_taken_by"`
+	TournamentID  int64 `json:"tournament_id"`
+	MatchID       int64 `json:"match_id"`
+	TeamID        int64 `json:"team_id"`
+	PlayerID      int64 `json:"player_id"`
+}
+
+func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
+	var req updateCricketMatchScoreBattingRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	arg := db.UpdateCricketTeamPlayerScoreBattingParams{
+		Position:      req.Position,
+		RunsScored:    req.RunsScored,
+		BallsFaced:    req.BallsFaced,
+		Fours:         req.Fours,
+		Sixes:         req.Sixes,
+		WicketTakenBy: req.WicketTakenBy,
+		TournamentID:  req.TournamentID,
+		MatchID:       req.MatchID,
+		TeamID:        req.TeamID,
+		PlayerID:      req.PlayerID,
+	}
+
+	response, err := server.store.UpdateCricketTeamPlayerScoreBatting(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+type updateCricketMatchScoreBowlingRequest struct {
+	OversBowled  string `json:"overs_bowled"`
+	RunsConceded int64  `json:"runs_conceded"`
+	WicketsTaken int64  `json:"wickets_taken"`
+	TournamentID int64  `json:"tournament_id"`
+	MatchID      int64  `json:"match_id"`
+	TeamID       int64  `json:"team_id"`
+	PlayerID     int64  `json:"player_id"`
+}
+
+func (server *Server) updateCricketMatchScoreBowling(ctx *gin.Context) {
+	var req updateCricketMatchScoreBowlingRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	arg := db.UpdateCricketTeamPlayerScoreBowlingParams{
+		OversBowled:  req.OversBowled,
+		RunsConceded: req.RunsConceded,
+		WicketsTaken: req.WicketsTaken,
+		TournamentID: req.TournamentID,
+		MatchID:      req.MatchID,
+		TeamID:       req.TeamID,
+		PlayerID:     req.PlayerID,
+	}
+
+	response, err := server.store.UpdateCricketTeamPlayerScoreBowling(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}

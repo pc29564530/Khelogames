@@ -5,6 +5,7 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,6 +69,25 @@ type CricketMatchScore struct {
 	Innings      int64 `json:"innings"`
 }
 
+type CricketTeamPlayerScore struct {
+	ID               int64  `json:"id"`
+	MatchID          int64  `json:"match_id"`
+	TournamentID     int64  `json:"tournament_id"`
+	TeamID           int64  `json:"team_id"`
+	BattingOrBowling string `json:"batting_or_bowling"`
+	Position         int64  `json:"position"`
+	PlayerID         int64  `json:"player_id"`
+	RunsScored       int64  `json:"runs_scored"`
+	BallsFaced       int64  `json:"balls_faced"`
+	Fours            int64  `json:"fours"`
+	Sixes            int64  `json:"sixes"`
+	WicketsTaken     int64  `json:"wickets_taken"`
+	OversBowled      string `json:"overs_bowled"`
+	RunsConceded     int64  `json:"runs_conceded"`
+	WicketTakenBy    int64  `json:"wicket_taken_by"`
+	WicketOf         int64  `json:"wicket_of"`
+}
+
 type Follow struct {
 	ID             int64     `json:"id"`
 	FollowerOwner  string    `json:"follower_owner"`
@@ -83,6 +103,15 @@ type FootballMatchesScore struct {
 	GoalFor       int64     `json:"goal_for"`
 	GoalAgainst   int64     `json:"goal_against"`
 	GoalScoreTime time.Time `json:"goal_score_time"`
+}
+
+type FootballTeamPlayerScore struct {
+	ID            int64         `json:"id"`
+	MatchID       sql.NullInt64 `json:"match_id"`
+	TeamID        sql.NullInt64 `json:"team_id"`
+	PlayerID      sql.NullInt64 `json:"player_id"`
+	GoalScore     int64         `json:"goal_score"`
+	GoalScoreTime int64         `json:"goal_score_time"`
 }
 
 type GroupLeague struct {

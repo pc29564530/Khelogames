@@ -104,7 +104,3 @@ func (server *Server) updateMatchScheduleTime(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
-
-func (server *Server) updateMatchsScore(ctx *gin.Context) {
-
-}

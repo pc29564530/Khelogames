@@ -19,3 +19,31 @@ CREATE TABLE cricket_match_score (
     extras bigint NOT NULL,
     innings bigint NOT NULL
 );
+
+CREATE TABLE cricket_team_player_score (
+    id bigserial PRIMARY KEY,
+    match_id bigserial NOT NULL REFERENCES tournament_match(match_id),
+    tournament_id bigserial NOT NULL REFERENCES tournament (tournament_id),
+    team_id bigserial NOT NULL REFERENCES club(id),
+    batting_or_bowling VARCHAR(10) NOT NULL,
+    position bigint NOT NULL,
+    player_id bigserial NOT NULL REFERENCES player_profile(id),
+    runs_scored bigint NOT NULL,
+    balls_faced bigint NOT NULL,
+    fours bigint NOT NULL,
+    sixes bigint NOT NULL,
+    wickets_taken bigint NOT NULL,
+    overs_bowled DECIMAL(4,1) NOT NULL,
+    runs_conceded bigint NOT NULL,
+    wicket_taken_by bigint NOT NULL,
+    wicket_of bigint NOT NULL
+);
+
+CREATE TABLE football_team_player_score (
+    id bigserial PRIMARY KEY,
+    match_id bigserial REFERENCES tournament_match(match_id),
+    team_id bigserial REFERENCES club(id),
+    player_id bigserial REFERENCES player_profile (player_id),
+    goal_score bigint NOT NULL,
+    goal_score_time bigint NOT NULL DEFAULT now()
+);
