@@ -226,6 +226,10 @@ func (server *Server) getTournamentsByClub(ctx *gin.Context) {
 func (server *Server) getMatchByClubName(ctx *gin.Context) {
 	clubIdStr := ctx.Query("id")
 	clubID, err := strconv.ParseInt(clubIdStr, 10, 64)
+	if err != nil {
+		fmt.Errorf("Unable to parse the id: ", err)
+		return
+	}
 	// fmt.Println("ClubName: ", clubName)
 	response, err := server.store.GetMatchByClubName(ctx, clubID)
 	if err != nil {
