@@ -87,6 +87,47 @@ func (q *Queries) AddCricketTeamPlayerScore(ctx context.Context, arg AddCricketT
 	return i, err
 }
 
+const getCricketPlayerScore = `-- name: GetCricketPlayerScore :one
+SELECT id, match_id, tournament_id, team_id, batting_or_bowling, position, player_id, runs_scored, balls_faced, fours, sixes, wickets_taken, overs_bowled, runs_conceded, wicket_taken_by, wicket_of FROM cricket_team_player_score
+WHERE match_id=$1 AND tournament_id=$2 AND team_id=$3 AND player_id=$4
+`
+
+type GetCricketPlayerScoreParams struct {
+	MatchID      int64 `json:"match_id"`
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
+	PlayerID     int64 `json:"player_id"`
+}
+
+func (q *Queries) GetCricketPlayerScore(ctx context.Context, arg GetCricketPlayerScoreParams) (CricketTeamPlayerScore, error) {
+	row := q.db.QueryRowContext(ctx, getCricketPlayerScore,
+		arg.MatchID,
+		arg.TournamentID,
+		arg.TeamID,
+		arg.PlayerID,
+	)
+	var i CricketTeamPlayerScore
+	err := row.Scan(
+		&i.ID,
+		&i.MatchID,
+		&i.TournamentID,
+		&i.TeamID,
+		&i.BattingOrBowling,
+		&i.Position,
+		&i.PlayerID,
+		&i.RunsScored,
+		&i.BallsFaced,
+		&i.Fours,
+		&i.Sixes,
+		&i.WicketsTaken,
+		&i.OversBowled,
+		&i.RunsConceded,
+		&i.WicketTakenBy,
+		&i.WicketOf,
+	)
+	return i, err
+}
+
 const getCricketTeamPlayerScore = `-- name: GetCricketTeamPlayerScore :many
 SELECT id, match_id, tournament_id, team_id, batting_or_bowling, position, player_id, runs_scored, balls_faced, fours, sixes, wickets_taken, overs_bowled, runs_conceded, wicket_taken_by, wicket_of FROM cricket_team_player_score
 WHERE match_id=$1 AND tournament_id=$2 AND team_id=$3

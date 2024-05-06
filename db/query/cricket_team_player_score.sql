@@ -21,6 +21,10 @@ INSERT INTO cricket_team_player_score (
 SELECT * FROM cricket_team_player_score
 WHERE match_id=$1 AND tournament_id=$2 AND team_id=$3;
 
+-- name: GetCricketPlayerScore :one
+SELECT * FROM cricket_team_player_score
+WHERE match_id=$1 AND tournament_id=$2 AND team_id=$3 AND player_id=$4;
+
 -- name: UpdateCricketTeamPlayerScoreBatting :one
 UPDATE cricket_team_player_score
 SET position=$1, runs_scored=$2, balls_faced=$3, fours=$4, sixes=$5, wicket_taken_by=$6

@@ -129,47 +129,201 @@ type addCricketTeamPlayerScoreRequest struct {
 	MatchID          int64  `json:"match_id"`
 	TournamentID     int64  `json:"tournament_id"`
 	TeamID           int64  `json:"team_id"`
-	BattingOrBowling string `json:"batting_or_bowling"`
-	Position         int64  `json:"position"`
+	BattingOrBowling string `json:"batting_or_bowling, omit_empty"`
+	Position         string `json:"position"`
 	PlayerID         int64  `json:"player_id"`
-	RunsScored       int64  `json:"runs_scored",validate:"min=0"`
-	BallsFaced       int64  `json:"balls_faced",validate:"min=0"`
-	Fours            int64  `json:"fours", validate:"min=0"`
-	Sixes            int64  `json:"sixes", validate:"min=0"`
-	WicketsTaken     int64  `json:"wickets_taken", validate:"min=0"`
-	OversBowled      string `json:"overs_bowled", validate:"min=0"`
-	RunsConceded     int64  `json:"runs_conceded", validate:"min=0"`
-	WicketTakenBy    int64  `json:"wicket_taken_by"`
-	WicketOf         int64  `json:"wicket_of"`
+	RunsScored       string `json:"runs_scored"`
+	BallsFaced       string `json:"balls_faced"`
+	Fours            string `json:"fours"`
+	Sixes            string `json:"sixes"`
+	WicketsTaken     string `json:"wickets_taken"`
+	OversBowled      string `json:"overs_bowled"`
+	RunsConceded     string `json:"runs_conceded"`
+	WicketTakenBy    string `json:"wicket_taken_by"`
+	WicketOf         string `json:"wicket_of"`
 }
 
 func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	var req addCricketTeamPlayerScoreRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		fmt.Println("unable to get the err: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	var position int64
+	if req.Position == "" {
+		position = 0
+	} else {
+		position, err = strconv.ParseInt(req.Position, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint position")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
 
+	var runsScored int64
+	if req.RunsScored == "" {
+		runsScored = 0
+	} else {
+		runsScored, err = strconv.ParseInt(req.RunsScored, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint runsScored")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var ballsFaced int64
+	if req.BallsFaced == "" {
+		ballsFaced = 0
+	} else {
+		ballsFaced, err = strconv.ParseInt(req.BallsFaced, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint balls faced")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var fours int64
+	if req.Fours == "" {
+		fours = 0
+	} else {
+		fours, err = strconv.ParseInt(req.Fours, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint fours")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var sixes int64
+	if req.Sixes == "" {
+		runsScored = 0
+	} else {
+		sixes, err = strconv.ParseInt(req.Sixes, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint runs scored")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var wicketsTaken int64
+	if req.WicketsTaken == "" {
+		wicketsTaken = 0
+	} else {
+		wicketsTaken, err = strconv.ParseInt(req.WicketsTaken, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint wickets taken")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var runsConceded int64
+	if req.RunsConceded == "" {
+		runsConceded = 0
+	} else {
+		runsConceded, err = strconv.ParseInt(req.RunsConceded, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint runs conceded")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var wicketTakenBy int64
+	if req.WicketTakenBy == "" {
+		wicketTakenBy = 0
+	} else {
+		wicketTakenBy, err = strconv.ParseInt(req.WicketTakenBy, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint wicket taken by")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var wicketOf int64
+	if req.WicketOf == "" {
+		runsScored = 0
+	} else {
+		wicketOf, err = strconv.ParseInt(req.WicketOf, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint runsScored")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
 	arg := db.AddCricketTeamPlayerScoreParams{
 		MatchID:          req.MatchID,
 		TournamentID:     req.TournamentID,
 		TeamID:           req.TeamID,
 		BattingOrBowling: req.BattingOrBowling,
-		Position:         req.Position,
+		Position:         position,
 		PlayerID:         req.PlayerID,
-		RunsScored:       req.RunsScored,
-		BallsFaced:       req.BallsFaced,
-		Fours:            req.Fours,
-		Sixes:            req.Sixes,
-		WicketsTaken:     req.WicketsTaken,
+		RunsScored:       runsScored,
+		BallsFaced:       ballsFaced,
+		Fours:            fours,
+		Sixes:            sixes,
+		WicketsTaken:     wicketsTaken,
 		OversBowled:      req.OversBowled,
-		RunsConceded:     req.RunsConceded,
-		WicketTakenBy:    req.WicketTakenBy,
-		WicketOf:         req.WicketOf,
+		RunsConceded:     runsConceded,
+		WicketTakenBy:    wicketTakenBy,
+		WicketOf:         wicketOf,
 	}
 
 	response, err := server.store.AddCricketTeamPlayerScore(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+func (server *Server) getCricketPlayerScore(ctx *gin.Context) {
+
+	matchIDStr := ctx.Query("match_id")
+	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tournamentIDStr := ctx.Query("tournament_id")
+	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	teamIdStr := ctx.Query("team_id")
+	teamID, err := strconv.ParseInt(teamIdStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	playerIdStr := ctx.Query("player_id")
+	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	arg := db.GetCricketPlayerScoreParams{
+		MatchID:      matchID,
+		TournamentID: tournamentID,
+		TeamID:       teamID,
+		PlayerID:     playerID,
+	}
+
+	response, err := server.store.GetCricketPlayerScore(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -186,17 +340,10 @@ type getCricketTeamPlayerScoreRequest struct {
 }
 
 func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
-	// var req getCricketTeamPlayerScoreRequest
-	// err := ctx.ShouldBindJSON(&req)
-	// if err != nil {
-	// 	fmt.Println("error: ", err)
-	// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	// 	return
-	// }
+
 	matchIDStr := ctx.Query("match_id")
 	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("error: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -204,7 +351,6 @@ func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("error: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -212,7 +358,6 @@ func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
 	teamIdStr := ctx.Query("team_id")
 	teamID, err := strconv.ParseInt(teamIdStr, 10, 64)
 	if err != nil {
-		fmt.Println("error: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -234,16 +379,16 @@ func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
 }
 
 type updateCricketMatchScoreBattingRequest struct {
-	Position      int64 `json:"position"`
-	RunsScored    int64 `json:"runs_scored"`
-	BallsFaced    int64 `json:"balls_faced"`
-	Fours         int64 `json:"fours"`
-	Sixes         int64 `json:"sixes"`
-	WicketTakenBy int64 `json:"wicket_taken_by"`
-	TournamentID  int64 `json:"tournament_id"`
-	MatchID       int64 `json:"match_id"`
-	TeamID        int64 `json:"team_id"`
-	PlayerID      int64 `json:"player_id"`
+	Position      string `json:"position"`
+	RunsScored    string `json:"runs_scored"`
+	BallsFaced    string `json:"balls_faced"`
+	Fours         string `json:"fours"`
+	Sixes         string `json:"sixes"`
+	WicketTakenBy string `json:"wicket_taken_by"`
+	TournamentID  int64  `json:"tournament_id"`
+	MatchID       int64  `json:"match_id"`
+	TeamID        int64  `json:"team_id"`
+	PlayerID      int64  `json:"player_id"`
 }
 
 func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
@@ -254,13 +399,86 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 		return
 	}
 
+	var position int64
+	if req.Position == "" {
+		position = 0
+	} else {
+		position, err = strconv.ParseInt(req.Position, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint position")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var runsScored int64
+	if req.RunsScored == " " {
+		runsScored = 0
+	} else {
+
+		runsScored, err = strconv.ParseInt(req.RunsScored, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint runsScored")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var ballsFaced int64
+	if req.BallsFaced == "" {
+		ballsFaced = 0
+	} else {
+		ballsFaced, err = strconv.ParseInt(req.BallsFaced, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint ballsFaced")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var fours int64
+	if req.Fours == "" {
+		fours = 0
+	} else {
+		fours, err = strconv.ParseInt(req.Fours, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint fours")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var sixes int64
+	if req.Sixes == "" {
+		sixes = 0
+	} else {
+		sixes, err = strconv.ParseInt(req.Sixes, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint sixes")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var wicketTakenBy int64
+	if req.WicketTakenBy == "" {
+		wicketTakenBy = 0
+	} else {
+		wicketTakenBy, err = strconv.ParseInt(req.WicketTakenBy, 10, 64)
+		if err != nil {
+			fmt.Errorf("unable to parseint wicket taken by")
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
 	arg := db.UpdateCricketTeamPlayerScoreBattingParams{
-		Position:      req.Position,
-		RunsScored:    req.RunsScored,
-		BallsFaced:    req.BallsFaced,
-		Fours:         req.Fours,
-		Sixes:         req.Sixes,
-		WicketTakenBy: req.WicketTakenBy,
+		Position:      position,
+		RunsScored:    runsScored,
+		BallsFaced:    ballsFaced,
+		Fours:         fours,
+		Sixes:         sixes,
+		WicketTakenBy: wicketTakenBy,
 		TournamentID:  req.TournamentID,
 		MatchID:       req.MatchID,
 		TeamID:        req.TeamID,
@@ -279,8 +497,8 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 
 type updateCricketMatchScoreBowlingRequest struct {
 	OversBowled  string `json:"overs_bowled"`
-	RunsConceded int64  `json:"runs_conceded"`
-	WicketsTaken int64  `json:"wickets_taken"`
+	RunsConceded string `json:"runs_conceded"`
+	WicketsTaken string `json:"wickets_taken"`
 	TournamentID int64  `json:"tournament_id"`
 	MatchID      int64  `json:"match_id"`
 	TeamID       int64  `json:"team_id"`
@@ -295,10 +513,34 @@ func (server *Server) updateCricketMatchScoreBowling(ctx *gin.Context) {
 		return
 	}
 
+	var wicketsTaken int64
+	if req.WicketsTaken == "" {
+		wicketsTaken = 0
+	} else {
+		wicketsTaken, err = strconv.ParseInt(req.WicketsTaken, 10, 64)
+		if err != nil {
+			fmt.Println("unable to parse: 199 ", err)
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	var runsConceded int64
+	if req.RunsConceded == "" {
+		runsConceded = 0
+	} else {
+		runsConceded, err = strconv.ParseInt(req.RunsConceded, 10, 64)
+		if err != nil {
+			fmt.Println("unable to parse: 199 ", err)
+			ctx.JSON(http.StatusBadRequest, err)
+			return
+		}
+	}
+
 	arg := db.UpdateCricketTeamPlayerScoreBowlingParams{
 		OversBowled:  req.OversBowled,
-		RunsConceded: req.RunsConceded,
-		WicketsTaken: req.WicketsTaken,
+		RunsConceded: runsConceded,
+		WicketsTaken: wicketsTaken,
 		TournamentID: req.TournamentID,
 		MatchID:      req.MatchID,
 		TeamID:       req.TeamID,
