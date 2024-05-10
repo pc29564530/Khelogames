@@ -41,9 +41,9 @@ CREATE TABLE cricket_team_player_score (
 
 CREATE TABLE football_team_player_score (
     id bigserial PRIMARY KEY,
-    match_id bigserial REFERENCES tournament_match(match_id),
-    team_id bigserial REFERENCES club(id),
-    player_id bigserial REFERENCES player_profile (player_id),
-    goal_score bigint NOT NULL,
-    goal_score_time bigint NOT NULL DEFAULT now()
+    match_id bigserial NOT NULL REFERENCES tournament_match(match_id),
+    team_id bigserial NOT NULL REFERENCES club(id),
+    player_id bigserial NOT NULL REFERENCES player_profile (id),
+    tournament_id bigserial NOT NULL REFERENCES tournament (tournament_id),
+    goal_score_time timestamp NOT NULL DEFAULT NOW()
 );

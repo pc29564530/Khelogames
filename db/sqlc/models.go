@@ -5,7 +5,6 @@
 package db
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -106,12 +105,12 @@ type FootballMatchesScore struct {
 }
 
 type FootballTeamPlayerScore struct {
-	ID            int64         `json:"id"`
-	MatchID       sql.NullInt64 `json:"match_id"`
-	TeamID        sql.NullInt64 `json:"team_id"`
-	PlayerID      sql.NullInt64 `json:"player_id"`
-	GoalScore     int64         `json:"goal_score"`
-	GoalScoreTime int64         `json:"goal_score_time"`
+	ID            int64     `json:"id"`
+	MatchID       int64     `json:"match_id"`
+	TeamID        int64     `json:"team_id"`
+	PlayerID      int64     `json:"player_id"`
+	TournamentID  int64     `json:"tournament_id"`
+	GoalScoreTime time.Time `json:"goal_score_time"`
 }
 
 type GroupLeague struct {

@@ -5,6 +5,7 @@ import (
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -178,4 +179,40 @@ func (server *Server) updateFootballMatchScore(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
+}
+
+type addFootballteamPlayerScoreRequest struct {
+	MatchID       int64     `json:"match_id"`
+	TeamID        int64     `json:"team_id"`
+	PlayerID      int64     `json:"player_id"`
+	TournamentID  int64     `json:"tournament_id"`
+	GoalScoreTime time.Time `json:"goal_score_time"`
+}
+
+func (server *Server) addFootballGoalByPlayer(ctx *gin.Context) {
+
+	var req addFootballteamPlayerScoreRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	arg := db.AddFootballGoalByPlayerParams{
+		MatchID:       req.MatchID,
+		TeamID:        req.TeamID,
+		PlayerID:      req.PlayerID,
+		TournamentID:  req.TournamentID,
+		GoalScoreTime: req.GoalScoreTime,
+	}
+
+	response, err := server.store.AddFootballGoalByPlayer(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+
 }
