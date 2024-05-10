@@ -85,34 +85,124 @@ func (server *Server) getCricketMatchScore(ctx *gin.Context) {
 
 }
 
-type updateCricketMatchScoreRequest struct {
-	Score   int64 `json:"score"`
+type updateCricketMatchWicketRequest struct {
 	Wickets int64 `json:"wickets"`
-	Extras  int64 `json:"extras"`
-	Innings int64 `json:"innings"`
 	MatchID int64 `json:"match_id"`
 	TeamID  int64 `json:"team_id"`
 }
 
-func (server *Server) updateCricketMatchScore(ctx *gin.Context) {
+func (server *Server) updateCricketMatchWicket(ctx *gin.Context) {
 
-	var req updateCricketMatchScoreRequest
+	var req updateCricketMatchWicketRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		fmt.Errorf("unable to get the correct data or order ", err)
 		return
 	}
 
-	arg := db.UpdateCricketMatchScoreParams{
-		Score:   req.Score,
+	arg := db.UpdateCricketMatchWicketsParams{
 		Wickets: req.Wickets,
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	response, err := server.store.UpdateCricketMatchWickets(ctx, arg)
+	if err != nil {
+		fmt.Errorf("unable to get the response ")
+		ctx.JSON(http.StatusResetContent, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+type updateCricketMatchRunsScoreRequest struct {
+	Score   int64 `json:"score"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (server *Server) updateCricketMatchRunsScore(ctx *gin.Context) {
+
+	var req updateCricketMatchRunsScoreRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		fmt.Errorf("unable to get the correct data or order ", err)
+		return
+	}
+
+	arg := db.UpdateCricketMatchRunsScoreParams{
+		Score:   req.Score,
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	response, err := server.store.UpdateCricketMatchRunsScore(ctx, arg)
+	if err != nil {
+		fmt.Errorf("unable to get the response ")
+		ctx.JSON(http.StatusResetContent, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+type updateCricketMatchExtrasRequest struct {
+	Extras  int64 `json:"extras"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (server *Server) updateCricketMatchExtras(ctx *gin.Context) {
+
+	var req updateCricketMatchExtrasRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		fmt.Errorf("unable to get the correct data or order ", err)
+		return
+	}
+
+	arg := db.UpdateCricketMatchExtrasParams{
 		Extras:  req.Extras,
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	response, err := server.store.UpdateCricketMatchExtras(ctx, arg)
+	if err != nil {
+		fmt.Errorf("unable to get the response ")
+		ctx.JSON(http.StatusResetContent, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+type updateCricketMatchInningsRequest struct {
+	Innings int64 `json:"innings"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (server *Server) updateCricketMatchInnings(ctx *gin.Context) {
+
+	var req updateCricketMatchInningsRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		fmt.Errorf("unable to get the correct data or order ", err)
+		return
+	}
+
+	arg := db.UpdateCricketMatchInningsParams{
 		Innings: req.Innings,
 		MatchID: req.MatchID,
 		TeamID:  req.TeamID,
 	}
 
-	response, err := server.store.UpdateCricketMatchScore(ctx, arg)
+	response, err := server.store.UpdateCricketMatchInnings(ctx, arg)
 	if err != nil {
 		fmt.Errorf("unable to get the response ")
 		ctx.JSON(http.StatusResetContent, err)

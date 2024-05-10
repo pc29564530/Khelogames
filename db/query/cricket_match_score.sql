@@ -14,8 +14,26 @@ INSERT INTO cricket_match_score (
 SELECT * FROM cricket_match_score
 WHERE match_id=$1 AND team_id=$2;
 
--- name: UpdateCricketMatchScore :one
+-- name: UpdateCricketMatchRunsScore :one
 UPDATE cricket_match_score
-SET score=$1, wickets=$2, extras=$3, innings=$4
-WHERE match_id=$5 AND team_id=$6
+SET score=$1
+WHERE match_id=$2 AND team_id=$3
+RETURNING *;
+
+-- name: UpdateCricketMatchWickets :one
+UPDATE cricket_match_score
+SET wickets=$1
+WHERE match_id=$2 AND team_id=$3
+RETURNING *;
+
+-- name: UpdateCricketMatchExtras :one
+UPDATE cricket_match_score
+SET extras=$1
+WHERE match_id=$2 AND team_id=$3
+RETURNING *;
+
+-- name: UpdateCricketMatchInnings :one
+UPDATE cricket_match_score
+SET innings=$1
+WHERE match_id=$2 AND team_id=$3
 RETURNING *;

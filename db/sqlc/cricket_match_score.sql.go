@@ -86,31 +86,111 @@ func (q *Queries) GetCricketMatchScore(ctx context.Context, arg GetCricketMatchS
 	return i, err
 }
 
-const updateCricketMatchScore = `-- name: UpdateCricketMatchScore :one
+const updateCricketMatchExtras = `-- name: UpdateCricketMatchExtras :one
 UPDATE cricket_match_score
-SET score=$1, wickets=$2, extras=$3, innings=$4
-WHERE match_id=$5 AND team_id=$6
+SET extras=$1
+WHERE match_id=$2 AND team_id=$3
 RETURNING id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings
 `
 
-type UpdateCricketMatchScoreParams struct {
-	Score   int64 `json:"score"`
-	Wickets int64 `json:"wickets"`
+type UpdateCricketMatchExtrasParams struct {
 	Extras  int64 `json:"extras"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (q *Queries) UpdateCricketMatchExtras(ctx context.Context, arg UpdateCricketMatchExtrasParams) (CricketMatchScore, error) {
+	row := q.db.QueryRowContext(ctx, updateCricketMatchExtras, arg.Extras, arg.MatchID, arg.TeamID)
+	var i CricketMatchScore
+	err := row.Scan(
+		&i.ID,
+		&i.MatchID,
+		&i.TournamentID,
+		&i.TeamID,
+		&i.Score,
+		&i.Wickets,
+		&i.Overs,
+		&i.Extras,
+		&i.Innings,
+	)
+	return i, err
+}
+
+const updateCricketMatchInnings = `-- name: UpdateCricketMatchInnings :one
+UPDATE cricket_match_score
+SET innings=$1
+WHERE match_id=$2 AND team_id=$3
+RETURNING id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings
+`
+
+type UpdateCricketMatchInningsParams struct {
 	Innings int64 `json:"innings"`
 	MatchID int64 `json:"match_id"`
 	TeamID  int64 `json:"team_id"`
 }
 
-func (q *Queries) UpdateCricketMatchScore(ctx context.Context, arg UpdateCricketMatchScoreParams) (CricketMatchScore, error) {
-	row := q.db.QueryRowContext(ctx, updateCricketMatchScore,
-		arg.Score,
-		arg.Wickets,
-		arg.Extras,
-		arg.Innings,
-		arg.MatchID,
-		arg.TeamID,
+func (q *Queries) UpdateCricketMatchInnings(ctx context.Context, arg UpdateCricketMatchInningsParams) (CricketMatchScore, error) {
+	row := q.db.QueryRowContext(ctx, updateCricketMatchInnings, arg.Innings, arg.MatchID, arg.TeamID)
+	var i CricketMatchScore
+	err := row.Scan(
+		&i.ID,
+		&i.MatchID,
+		&i.TournamentID,
+		&i.TeamID,
+		&i.Score,
+		&i.Wickets,
+		&i.Overs,
+		&i.Extras,
+		&i.Innings,
 	)
+	return i, err
+}
+
+const updateCricketMatchRunsScore = `-- name: UpdateCricketMatchRunsScore :one
+UPDATE cricket_match_score
+SET score=$1
+WHERE match_id=$2 AND team_id=$3
+RETURNING id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings
+`
+
+type UpdateCricketMatchRunsScoreParams struct {
+	Score   int64 `json:"score"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (q *Queries) UpdateCricketMatchRunsScore(ctx context.Context, arg UpdateCricketMatchRunsScoreParams) (CricketMatchScore, error) {
+	row := q.db.QueryRowContext(ctx, updateCricketMatchRunsScore, arg.Score, arg.MatchID, arg.TeamID)
+	var i CricketMatchScore
+	err := row.Scan(
+		&i.ID,
+		&i.MatchID,
+		&i.TournamentID,
+		&i.TeamID,
+		&i.Score,
+		&i.Wickets,
+		&i.Overs,
+		&i.Extras,
+		&i.Innings,
+	)
+	return i, err
+}
+
+const updateCricketMatchWickets = `-- name: UpdateCricketMatchWickets :one
+UPDATE cricket_match_score
+SET wickets=$1
+WHERE match_id=$2 AND team_id=$3
+RETURNING id, match_id, tournament_id, team_id, score, wickets, overs, extras, innings
+`
+
+type UpdateCricketMatchWicketsParams struct {
+	Wickets int64 `json:"wickets"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (q *Queries) UpdateCricketMatchWickets(ctx context.Context, arg UpdateCricketMatchWicketsParams) (CricketMatchScore, error) {
+	row := q.db.QueryRowContext(ctx, updateCricketMatchWickets, arg.Wickets, arg.MatchID, arg.TeamID)
 	var i CricketMatchScore
 	err := row.Scan(
 		&i.ID,
