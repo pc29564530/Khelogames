@@ -68,11 +68,16 @@ func (q *Queries) CreateMatch(ctx context.Context, arg CreateMatchParams) (Tourn
 
 const getMatch = `-- name: GetMatch :one
 SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
-WHERE match_id=$1
+WHERE match_id=$1 AND tournament_id=$2
 `
 
-func (q *Queries) GetMatch(ctx context.Context, matchID int64) (TournamentMatch, error) {
-	row := q.db.QueryRowContext(ctx, getMatch, matchID)
+type GetMatchParams struct {
+	MatchID      int64 `json:"match_id"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
+func (q *Queries) GetMatch(ctx context.Context, arg GetMatchParams) (TournamentMatch, error) {
+	row := q.db.QueryRowContext(ctx, getMatch, arg.MatchID, arg.TournamentID)
 	var i TournamentMatch
 	err := row.Scan(
 		&i.MatchID,

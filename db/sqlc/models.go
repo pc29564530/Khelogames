@@ -68,6 +68,14 @@ type CricketMatchScore struct {
 	Innings      int64 `json:"innings"`
 }
 
+type CricketMatchTeamToss struct {
+	ID           int64  `json:"id"`
+	TournamentID int64  `json:"tournament_id"`
+	MatchID      int64  `json:"match_id"`
+	TossWon      int64  `json:"toss_won"`
+	BatOrBowl    string `json:"bat_or_bowl"`
+}
+
 type CricketTeamPlayerScore struct {
 	ID               int64  `json:"id"`
 	MatchID          int64  `json:"match_id"`

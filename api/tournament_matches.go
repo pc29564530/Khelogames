@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -41,11 +42,15 @@ func (server *Server) createTournamentMatch(ctx *gin.Context) {
 		EndTime:      req.EndTime,
 	}
 
+	fmt.Println("Line 45: ", arg)
+
 	response, err := server.store.CreateMatch(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+
+	fmt.Println("Line no 53: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
@@ -103,4 +108,50 @@ func (server *Server) updateMatchScheduleTime(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
+}
+
+type getMatchRequest struct {
+	MatchID      int64 `json:"match_id"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
+func (server *Server) getMatch(ctx *gin.Context) {
+	// var req getMatchRequest
+	// err := ctx.ShouldBindJSON(&req)
+	// if err != nil {
+	// 	fmt.Println("Error: ", err)
+	// 	ctx.JSON(http.StatusInternalServerError, err)
+	// 	return
+	// }
+
+	tournamentIDStr := ctx.Query("tournament_id")
+	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	if err != nil {
+		fmt.Println("Lien no 130: ", err)
+		ctx.JSON(http.StatusNotAcceptable, err)
+		return
+	}
+
+	matchIDStr := ctx.Query("match_id")
+	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
+	if err != nil {
+		fmt.Println("Lien no 138: ", err)
+		ctx.JSON(http.StatusNotAcceptable, err)
+		return
+	}
+
+	arg := db.GetMatchParams{
+		MatchID:      matchID,
+		TournamentID: tournamentID,
+	}
+
+	response, err := server.store.GetMatch(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+
 }

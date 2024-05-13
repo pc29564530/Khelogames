@@ -47,3 +47,11 @@ CREATE TABLE football_team_player_score (
     tournament_id bigserial NOT NULL REFERENCES tournament (tournament_id),
     goal_score_time timestamp NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE cricket_match_team_toss (
+    id bigserial PRIMARY KEY,
+    tournament_id bigserial NOT NULL REFERENCES tournament (tournament_id),
+    match_id bigserial NOT NULL REFERENCES tournament_match (match_id),
+    toss_won bigint NOT NULL REFERENCES club (id),
+    bat_or_bowl varchar NOT NULL
+);

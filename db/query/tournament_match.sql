@@ -15,7 +15,7 @@ INSERT INTO tournament_match (
 
 -- name: GetMatch :one
 SELECT * FROM tournament_match
-WHERE match_id=$1;
+WHERE match_id=$1 AND tournament_id=$2;
 
 -- name: GetTournamentMatch :many
 SELECT * FROM tournament_match
