@@ -15,15 +15,17 @@ type createUserRequest struct {
 	Username       string `json:"username"`
 	MobileNumber   string `json:"mobile_number"`
 	HashedPassword string `json:"password"`
+	Role           string `json:"role"`
 }
 
 type createUserResponse struct {
 	Username     string    `json:"username"`
 	MobileNumber string    `json:"mobile_number"`
 	CreatedAt    time.Time `json:"created_at"`
+	Role         string    `json:"role"`
 }
 
-func authorizationCode(ctx *gin.Context, username string, mobileNumber string, createdAt time.Time, server *Server) {
+func authorizationCode(ctx *gin.Context, username string, mobileNumber string, role string, server *Server) {
 	accessToken, accessPayload, err := server.tokenMaker.CreateToken(
 		username,
 		server.config.AccessTokenDuration,
@@ -66,7 +68,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, c
 		User: userResponse{
 			Username:     username,
 			MobileNumber: mobileNumber,
-			createdAt:    createdAt,
+			Role:         role,
 		},
 	}
 
@@ -105,6 +107,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		Username:       req.Username,
 		MobileNumber:   req.MobileNumber,
 		HashedPassword: hashedPassword,
+		Role:           req.Role,
 	}
 
 	user, err := server.store.CreateUser(ctx, arg)
@@ -118,10 +121,10 @@ func (server *Server) createUser(ctx *gin.Context) {
 	resp := createUserResponse{
 		Username:     user.Username,
 		MobileNumber: user.MobileNumber,
-		CreatedAt:    user.CreatedAt,
+		Role:         user.Role,
 	}
 
-	authorizationCode(ctx, resp.Username, resp.MobileNumber, resp.CreatedAt, server)
+	authorizationCode(ctx, resp.Username, resp.MobileNumber, resp.Role, server)
 
 	_, err = server.store.DeleteSignup(ctx, req.MobileNumber)
 	if err != nil {

@@ -20,9 +20,9 @@ type createLoginRequest struct {
 }
 
 type userResponse struct {
-	Username     string    `json:"username"`
-	MobileNumber string    `json:"mobile_number"`
-	createdAt    time.Time `json:"created_at"`
+	Username     string `json:"username"`
+	MobileNumber string `json:"mobile_number"`
+	Role         string `json:"role"`
 }
 
 type loginUserResponse struct {
@@ -106,10 +106,10 @@ func (server *Server) createLogin(ctx *gin.Context) {
 		User: userResponse{
 			Username:     user.Username,
 			MobileNumber: user.MobileNumber,
-			createdAt:    user.CreatedAt,
+			Role:         user.Role,
 		},
 	}
-
+	fmt.Println("Line no 122: ", rsp)
 	ctx.JSON(http.StatusOK, rsp)
 
 	fmt.Printf("Loggen in successfully")

@@ -4,13 +4,14 @@ import (
 	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type addClubMemberRequest struct {
-	ClubName   string `json:"club_name"`
-	ClubMember string `json:"club_member"`
+	ClubID   int64 `json:"club_id"`
+	PlayerID int64 `json:"player_id"`
 }
 
 func (server *Server) addClubMember(ctx *gin.Context) {
@@ -23,9 +24,11 @@ func (server *Server) addClubMember(ctx *gin.Context) {
 
 	// authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.AddClubMemberParams{
-		ClubName:   req.ClubName,
-		ClubMember: req.ClubMember,
+		ClubID:   req.ClubID,
+		PlayerID: req.PlayerID,
 	}
+
+	fmt.Println("Arg: lone no 29: ", arg)
 
 	members, err := server.store.AddClubMember(ctx, arg)
 	if err != nil {
@@ -38,20 +41,18 @@ func (server *Server) addClubMember(ctx *gin.Context) {
 }
 
 type getClubMemberRequest struct {
-	ClubName string `uri:"club_name"`
+	ClubID int64 `json:"club_id"`
 }
 
 func (server *Server) getClubMember(ctx *gin.Context) {
-	var req getClubMemberRequest
-	err := ctx.ShouldBindUri(&req)
+	clubIDStr := ctx.Query("club_id")
+	clubID, err := strconv.ParseInt(clubIDStr, 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		fmt.Println("unable to parse the clubIDStr: ", err)
 		return
 	}
-
-	fmt.Println("Club Name: ", req.ClubName)
-
-	members, err := server.store.GetClubMember(ctx, req.ClubName)
+	fmt.Println("Line no 53")
+	members, err := server.store.GetClubMember(ctx, clubID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
 		return

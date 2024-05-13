@@ -14,32 +14,38 @@ INSERT INTO users (
   username,
   mobile_number,
   hashed_password,
-  created_at
+  role
 ) VALUES (
-  $1, $2, $3, CURRENT_TIMESTAMP
-) RETURNING username, mobile_number, hashed_password, created_at
+  $1, $2, $3, $4
+) RETURNING username, mobile_number, hashed_password, role
 `
 
 type CreateUserParams struct {
 	Username       string `json:"username"`
 	MobileNumber   string `json:"mobile_number"`
 	HashedPassword string `json:"hashed_password"`
+	Role           string `json:"role"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.MobileNumber, arg.HashedPassword)
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.Username,
+		arg.MobileNumber,
+		arg.HashedPassword,
+		arg.Role,
+	)
 	var i User
 	err := row.Scan(
 		&i.Username,
 		&i.MobileNumber,
 		&i.HashedPassword,
-		&i.CreatedAt,
+		&i.Role,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT username, mobile_number, hashed_password, created_at FROM users
+SELECT username, mobile_number, hashed_password, role FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -50,13 +56,13 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 		&i.Username,
 		&i.MobileNumber,
 		&i.HashedPassword,
-		&i.CreatedAt,
+		&i.Role,
 	)
 	return i, err
 }
 
 const listUser = `-- name: ListUser :many
-SELECT DISTINCT username, mobile_number, hashed_password, created_at FROM users
+SELECT DISTINCT username, mobile_number, hashed_password, role FROM users
 WHERE username = $1
 ORDER BY username
 LIMIT $2
@@ -82,7 +88,7 @@ func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]User, err
 			&i.Username,
 			&i.MobileNumber,
 			&i.HashedPassword,
-			&i.CreatedAt,
+			&i.Role,
 		); err != nil {
 			return nil, err
 		}

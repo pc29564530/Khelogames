@@ -149,3 +149,66 @@ func (q *Queries) GetTournamentStanding(ctx context.Context, arg GetTournamentSt
 	}
 	return items, nil
 }
+
+const updateTournamentStanding = `-- name: UpdateTournamentStanding :one
+UPDATE tournament_standing AS ts
+SET 
+    goal_for = COALESCE((
+        SELECT SUM(CASE WHEN fs.goal_for IS NOT NULL THEN fs.goal_for ELSE 0 END)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id
+    ), 0),
+    goal_against = COALESCE((
+        SELECT SUM(CASE WHEN fs.goal_against IS NOT NULL THEN fs.goal_against ELSE 0 END)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id
+    ), 0),
+    goal_difference = COALESCE((
+        SELECT SUM(CASE WHEN fs.goal_for IS NOT NULL THEN fs.goal_for ELSE 0 END) -
+               SUM(CASE WHEN fs.goal_against IS NOT NULL THEN fs.goal_against ELSE 0 END)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id
+    ), 0),
+    wins = COALESCE((
+        SELECT COUNT(*)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id AND fs.goal_for > fs.goal_against
+    ), 0),
+    loss = COALESCE((
+        SELECT COUNT(*)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id AND fs.goal_for < fs.goal_against
+    ), 0),
+    draw = COALESCE((
+        SELECT COUNT(*)
+        FROM football_matches_score AS fs
+        WHERE fs.team_id = ts.team_id AND fs.goal_for = fs.goal_against
+    ), 0),
+    points = ((wins*3)+draw)
+WHERE ts.tournament_id = $1 AND ts.team_id=$2
+RETURNING standing_id, tournament_id, group_id, team_id, wins, loss, draw, goal_for, goal_against, goal_difference, points
+`
+
+type UpdateTournamentStandingParams struct {
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
+}
+
+func (q *Queries) UpdateTournamentStanding(ctx context.Context, arg UpdateTournamentStandingParams) (TournamentStanding, error) {
+	row := q.db.QueryRowContext(ctx, updateTournamentStanding, arg.TournamentID, arg.TeamID)
+	var i TournamentStanding
+	err := row.Scan(
+		&i.StandingID,
+		&i.TournamentID,
+		&i.GroupID,
+		&i.TeamID,
+		&i.Wins,
+		&i.Loss,
+		&i.Draw,
+		&i.GoalFor,
+		&i.GoalAgainst,
+		&i.GoalDifference,
+		&i.Points,
+	)
+	return i, err
+}

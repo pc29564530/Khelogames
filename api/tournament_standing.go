@@ -86,3 +86,31 @@ func (server *Server) getTournamentStanding(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
+
+type updateTournamentStandingRequest struct {
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
+}
+
+func (server *Server) updateTournamentStanding(ctx *gin.Context) {
+	var req updateTournamentStandingRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	arg := db.UpdateTournamentStandingParams{
+		TournamentID: req.TournamentID,
+		TeamID:       req.TeamID,
+	}
+
+	response, err := server.store.UpdateTournamentStanding(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}

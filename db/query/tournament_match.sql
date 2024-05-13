@@ -5,17 +5,17 @@ INSERT INTO tournament_match (
     team1_id,
     team2_id,
     date_on,
-    start_at,
+    start_time,
     stage,
-    created_at,
-    sports
+    sports,
+    end_time
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, $8
+    $1, $2, $3, $4, $5, $6, $7,$8, $9
 ) RETURNING *;
 
 -- name: GetMatch :one
 SELECT * FROM tournament_match
-WHERE match_id=$1;
+WHERE match_id=$1 AND tournament_id=$2;
 
 -- name: GetTournamentMatch :many
 SELECT * FROM tournament_match
@@ -31,6 +31,6 @@ RETURNING *;
 
 -- name: UpdateMatchScheduleTime :one
 UPDATE tournament_match
-SET start_at=$1
-WHERE match_id=$2
+SET start_time=$1 OR end_time=$2
+WHERE match_id=$3
 RETURNING *;

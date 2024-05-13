@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -15,9 +16,10 @@ type createTournamentMatchRequest struct {
 	Team1ID      int64     `json:"team1_id"`
 	Team2ID      int64     `json:"team2_id"`
 	DateON       time.Time `json:"date_on"`
-	StartAt      time.Time `json:"start_at"`
+	StartTime    time.Time `json:"start_time"`
 	Stage        string    `json:"stage"`
 	Sports       string    `json:"sports"`
+	EndTime      time.Time `json:"end_time"`
 }
 
 func (server *Server) createTournamentMatch(ctx *gin.Context) {
@@ -34,16 +36,21 @@ func (server *Server) createTournamentMatch(ctx *gin.Context) {
 		Team1ID:      req.Team1ID,
 		Team2ID:      req.Team2ID,
 		DateOn:       req.DateON,
-		StartAt:      req.StartAt,
+		StartTime:    req.StartTime,
 		Stage:        req.Stage,
 		Sports:       req.Sports,
+		EndTime:      req.EndTime,
 	}
+
+	fmt.Println("Line 45: ", arg)
 
 	response, err := server.store.CreateMatch(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+
+	fmt.Println("Line no 53: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
@@ -71,4 +78,80 @@ func (server *Server) getAllTournamentMatch(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
+}
+
+type updateMatchScheduleTimeRequest struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	MatchID   int64     `json:"match_id"`
+}
+
+func (server *Server) updateMatchScheduleTime(ctx *gin.Context) {
+	var req updateMatchScheduleTimeRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	arg := db.UpdateMatchScheduleTimeParams{
+		StartTime: req.StartTime,
+		EndTime:   req.EndTime,
+		MatchID:   req.MatchID,
+	}
+
+	response, err := server.store.UpdateMatchScheduleTime(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+type getMatchRequest struct {
+	MatchID      int64 `json:"match_id"`
+	TournamentID int64 `json:"tournament_id"`
+}
+
+func (server *Server) getMatch(ctx *gin.Context) {
+	// var req getMatchRequest
+	// err := ctx.ShouldBindJSON(&req)
+	// if err != nil {
+	// 	fmt.Println("Error: ", err)
+	// 	ctx.JSON(http.StatusInternalServerError, err)
+	// 	return
+	// }
+
+	tournamentIDStr := ctx.Query("tournament_id")
+	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	if err != nil {
+		fmt.Println("Lien no 130: ", err)
+		ctx.JSON(http.StatusNotAcceptable, err)
+		return
+	}
+
+	matchIDStr := ctx.Query("match_id")
+	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
+	if err != nil {
+		fmt.Println("Lien no 138: ", err)
+		ctx.JSON(http.StatusNotAcceptable, err)
+		return
+	}
+
+	arg := db.GetMatchParams{
+		MatchID:      matchID,
+		TournamentID: tournamentID,
+	}
+
+	response, err := server.store.GetMatch(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+
 }
