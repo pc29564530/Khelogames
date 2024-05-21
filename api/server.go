@@ -242,8 +242,12 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		authRouter.POST("/createCommunityMessage", server.createCommunityMessage)
 		authRouter.GET("/getCommunityMessage", server.getCommuntiyMessage)
 		authRouter.GET("/getCommunityByMessage", server.getCommunityByMessage)
+		authRouter.POST("/createOrganizer", server.createOrganizer)
+		authRouter.GET("/getOrganizer", server.getOrganizer)
+
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
+	sportRouter.POST("/createTournamentMatch", server.createTournamentMatch)
 	sportRouter.GET("/getTeamsByGroup", server.getTeamsByGroup)
 	sportRouter.GET("/getTeams/:tournament_id", server.getTeams)
 	sportRouter.GET("/getTournamentsBySport", server.getTournamentsBySport)
@@ -282,7 +286,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	sportRouter.GET("/getTournamentGroup", server.getTournamentGroup)
 	sportRouter.GET("/getTournamentGroups", server.getTournamentGroups)
 	sportRouter.GET("/getTournamentStanding", server.getTournamentStanding)
-	sportRouter.GET("/getClubBySport", server.getClubsBySport)
+	sportRouter.GET("/getClubsBySport", server.getClubsBySport)
 
 	server.router = router
 	return server, nil
