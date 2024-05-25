@@ -114,7 +114,7 @@ func (server *Server) getTournaments(ctx *gin.Context) {
 
 func (server *Server) getTournamentsBySport(ctx *gin.Context) {
 
-	sport := ctx.Query("sport_type")
+	sport := ctx.Param("sport")
 
 	response, err := server.store.GetTournamentsBySport(ctx, sport)
 	if err != nil {
@@ -177,20 +177,23 @@ func (server *Server) createOrganizer(ctx *gin.Context) {
 	return
 }
 
-type getOrganizerRequest struct {
-	TournamentID int64 `uri:"tournament_id"`
-}
-
 func (server *Server) getOrganizer(ctx *gin.Context) {
-	var req getOrganizerRequest
-	err := ctx.ShouldBindUri(&req)
+
+	tournamentIDStr := ctx.Query("tournament_id")
+	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
-	fmt.Println("Id: ", req.TournamentID)
-	response, err := server.store.GetOrganizer(ctx, req.TournamentID)
+	organizerName := ctx.Query("organizer_name")
+
+	arg := db.GetOrganizerParams{
+		TournamentID:  tournamentID,
+		OrganizerName: organizerName,
+	}
+
+	response, err := server.store.GetOrganizer(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
 		return
@@ -238,13 +241,13 @@ func (server *Server) getTeams(ctx *gin.Context) {
 	var req getTeamsRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	response, err := server.store.GetTeams(ctx, req.TournamentID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, err)
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
 

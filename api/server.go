@@ -213,6 +213,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		authRouter.GET("/getFollowing", server.getAllFollowing)
 		authRouter.POST("/createComment/:threadId", server.createComment)
 		authRouter.GET("/getComment/:thread_id", server.getAllComment)
+		authRouter.GET("/getCommentByUser/:username", server.getCommentByUser)
 		authRouter.DELETE("/unFollow/:following_owner", server.deleteFollowing)
 		authRouter.POST("/createLikeThread/:thread_id", server.createLike)
 		authRouter.GET("/countLike/:thread_id", server.countLike)
@@ -287,6 +288,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	sportRouter.GET("/getTournamentGroups", server.getTournamentGroups)
 	sportRouter.GET("/getTournamentStanding", server.getTournamentStanding)
 	sportRouter.GET("/getClubsBySport", server.getClubsBySport)
+	sportRouter.POST("/addTeam", server.addTeam)
 
 	server.router = router
 	return server, nil

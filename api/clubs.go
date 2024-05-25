@@ -190,18 +190,11 @@ func (server *Server) searchTeam(ctx *gin.Context) {
 	return
 }
 
-type getClubsBySportRequest struct {
-	Sport string `uri:"sport"`
-}
-
 func (server *Server) getClubsBySport(ctx *gin.Context) {
-	var req getClubsBySportRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-	response, err := server.store.GetClubsBySport(ctx, req.Sport)
+
+	sports := ctx.Param("sport")
+
+	response, err := server.store.GetClubsBySport(ctx, sports)
 	if err != nil {
 		ctx.JSON(http.StatusNoContent, errorResponse(err))
 		return
@@ -230,7 +223,6 @@ func (server *Server) getMatchByClubName(ctx *gin.Context) {
 		fmt.Errorf("Unable to parse the id: ", err)
 		return
 	}
-	// fmt.Println("ClubName: ", clubName)
 	response, err := server.store.GetMatchByClubName(ctx, clubID)
 	if err != nil {
 		ctx.JSON(http.StatusNoContent, errorResponse(err))

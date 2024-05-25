@@ -76,6 +76,17 @@ type CricketMatchTeamToss struct {
 	BatOrBowl    string `json:"bat_or_bowl"`
 }
 
+type CricketStanding struct {
+	StandingID   int64 `json:"standing_id"`
+	TournamentID int64 `json:"tournament_id"`
+	GroupID      int64 `json:"group_id"`
+	TeamID       int64 `json:"team_id"`
+	Wins         int64 `json:"wins"`
+	Loss         int64 `json:"loss"`
+	Draw         int64 `json:"draw"`
+	Points       int64 `json:"points"`
+}
+
 type CricketTeamPlayerScore struct {
 	ID               int64  `json:"id"`
 	MatchID          int64  `json:"match_id"`
@@ -110,6 +121,20 @@ type FootballMatchesScore struct {
 	GoalFor       int64     `json:"goal_for"`
 	GoalAgainst   int64     `json:"goal_against"`
 	GoalScoreTime time.Time `json:"goal_score_time"`
+}
+
+type FootballStanding struct {
+	StandingID     int64 `json:"standing_id"`
+	TournamentID   int64 `json:"tournament_id"`
+	GroupID        int64 `json:"group_id"`
+	TeamID         int64 `json:"team_id"`
+	Wins           int64 `json:"wins"`
+	Loss           int64 `json:"loss"`
+	Draw           int64 `json:"draw"`
+	GoalFor        int64 `json:"goal_for"`
+	GoalAgainst    int64 `json:"goal_against"`
+	GoalDifference int64 `json:"goal_difference"`
+	Points         int64 `json:"points"`
 }
 
 type FootballTeamPlayerScore struct {
