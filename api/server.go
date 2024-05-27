@@ -289,6 +289,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	sportRouter.GET("/getTournamentStanding", server.getTournamentStanding)
 	sportRouter.GET("/getClubsBySport", server.getClubsBySport)
 	sportRouter.POST("/addTeam", server.addTeam)
+	sportRouter.GET("/getMatch", server.getMatch)
 
 	server.router = router
 	return server, nil
