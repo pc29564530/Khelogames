@@ -193,7 +193,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
 		authRouter.GET("/ws", server.handleWebSocket)
-		authRouter.POST("/joinUserCommunity/:community_name", server.addJoinCommunity)
+		authRouter.POST("/addJoinCommunity", server.addJoinCommunity)
 		authRouter.GET("/getUserByCommunity/:community_name", server.getUserByCommunity)
 		authRouter.GET("/getCommunityByUser", server.getCommunityByUser)
 		authRouter.GET("/user_list", server.listUsers)
@@ -245,6 +245,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		authRouter.GET("/getCommunityByMessage", server.getCommunityByMessage)
 		authRouter.POST("/createOrganizer", server.createOrganizer)
 		authRouter.GET("/getOrganizer", server.getOrganizer)
+		authRouter.POST("/createClub", server.createClub)
 
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))

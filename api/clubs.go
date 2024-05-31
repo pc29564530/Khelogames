@@ -1,19 +1,21 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 type createClubRequest struct {
 	ClubName  string `json:"club_name"`
-	AvatarURL string `json:"avatar_url,omit_emtpy"`
-	Sport     string `json:"sport,omit_empty"`
+	AvatarURL string `json:"avatar_url"`
+	Sport     string `json:"sport"`
 }
 
 func (server *Server) createClub(ctx *gin.Context) {
@@ -24,15 +26,30 @@ func (server *Server) createClub(ctx *gin.Context) {
 		return
 	}
 
-	//add the path for avatar url
+	var path string
+	if req.AvatarURL != "" {
+		b64Data := req.AvatarURL[strings.IndexByte(req.AvatarURL, ',')+1:]
+
+		data, err := base64.StdEncoding.DecodeString(b64Data)
+		if err != nil {
+			fmt.Println("unable to decode :", err)
+			return
+		}
+
+		path, err = saveImageToFile(data, "image")
+		if err != nil {
+			fmt.Println("unable to create a file")
+			return
+		}
+	}
+
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateClubParams{
 		ClubName:  req.ClubName,
-		AvatarUrl: req.AvatarURL,
-		Owner:     authPayload.Username,
+		AvatarUrl: path,
 		Sport:     req.Sport,
+		Owner:     authPayload.Username,
 	}
-	fmt.Println("arg: ", arg)
 
 	response, err := server.store.CreateClub(ctx, arg)
 	if err != nil {
