@@ -28,30 +28,19 @@ func (q *Queries) CreateOrganizer(ctx context.Context, arg CreateOrganizerParams
 	return i, err
 }
 
-const getOrganizer = `-- name: GetOrganizer :many
+const getOrganizer = `-- name: GetOrganizer :one
 SELECT organizer_id, organizer_name, tournament_id FROM organizer
-WHERE tournament_id=$1
+WHERE tournament_id=$1 AND organizer_name=$2
 `
 
-func (q *Queries) GetOrganizer(ctx context.Context, tournamentID int64) ([]Organizer, error) {
-	rows, err := q.db.QueryContext(ctx, getOrganizer, tournamentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Organizer
-	for rows.Next() {
-		var i Organizer
-		if err := rows.Scan(&i.OrganizerID, &i.OrganizerName, &i.TournamentID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+type GetOrganizerParams struct {
+	TournamentID  int64  `json:"tournament_id"`
+	OrganizerName string `json:"organizer_name"`
+}
+
+func (q *Queries) GetOrganizer(ctx context.Context, arg GetOrganizerParams) (Organizer, error) {
+	row := q.db.QueryRowContext(ctx, getOrganizer, arg.TournamentID, arg.OrganizerName)
+	var i Organizer
+	err := row.Scan(&i.OrganizerID, &i.OrganizerName, &i.TournamentID)
+	return i, err
 }

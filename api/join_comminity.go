@@ -10,12 +10,12 @@ import (
 )
 
 type addJoinCommunityRequest struct {
-	CommunityName string `uri:"community_name"`
+	CommunityName string `json:"community_name"`
 }
 
 func (server *Server) addJoinCommunity(ctx *gin.Context) {
 	var req addJoinCommunityRequest
-	err := ctx.ShouldBindUri(&req)
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

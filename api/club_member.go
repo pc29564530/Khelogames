@@ -28,8 +28,6 @@ func (server *Server) addClubMember(ctx *gin.Context) {
 		PlayerID: req.PlayerID,
 	}
 
-	fmt.Println("Arg: lone no 29: ", arg)
-
 	members, err := server.store.AddClubMember(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)

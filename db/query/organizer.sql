@@ -4,6 +4,6 @@ INSERT INTO organizer (
     tournament_id
 ) VALUES ($1, $2) RETURNING *;
 
--- name: GetOrganizer :many
+-- name: GetOrganizer :one
 SELECT * FROM organizer
-WHERE tournament_id=$1;
+WHERE tournament_id=$1 AND organizer_name=$2;

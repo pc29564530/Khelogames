@@ -34,3 +34,10 @@ UPDATE tournament_match
 SET start_time=$1 OR end_time=$2
 WHERE match_id=$3
 RETURNING *;
+
+-- name: GetMatchesByTournamentID :many
+SELECT * FROM tournament_match
+WHERE tournament_id=$1
+ORDER BY match_id ASC;
+
+

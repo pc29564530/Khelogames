@@ -94,6 +94,46 @@ func (q *Queries) GetMatch(ctx context.Context, arg GetMatchParams) (TournamentM
 	return i, err
 }
 
+const getMatchesByTournamentID = `-- name: GetMatchesByTournamentID :many
+SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
+WHERE tournament_id=$1
+ORDER BY match_id ASC
+`
+
+func (q *Queries) GetMatchesByTournamentID(ctx context.Context, tournamentID int64) ([]TournamentMatch, error) {
+	rows, err := q.db.QueryContext(ctx, getMatchesByTournamentID, tournamentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TournamentMatch
+	for rows.Next() {
+		var i TournamentMatch
+		if err := rows.Scan(
+			&i.MatchID,
+			&i.OrganizerID,
+			&i.TournamentID,
+			&i.Team1ID,
+			&i.Team2ID,
+			&i.DateOn,
+			&i.StartTime,
+			&i.Stage,
+			&i.Sports,
+			&i.EndTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTournamentMatch = `-- name: GetTournamentMatch :many
 SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
 WHERE (tournament_id=$1 AND sports=$2)
