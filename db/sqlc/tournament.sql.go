@@ -17,9 +17,10 @@ INSERT INTO "tournament" (
     format,
     teams_joined,
     start_on,
-    end_on
-) VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on
+    end_on,
+    category
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category
 `
 
 type CreateTournamentParams struct {
@@ -29,6 +30,7 @@ type CreateTournamentParams struct {
 	TeamsJoined    int64     `json:"teams_joined"`
 	StartOn        time.Time `json:"start_on"`
 	EndOn          time.Time `json:"end_on"`
+	Category       string    `json:"category"`
 }
 
 func (q *Queries) CreateTournament(ctx context.Context, arg CreateTournamentParams) (Tournament, error) {
@@ -39,6 +41,7 @@ func (q *Queries) CreateTournament(ctx context.Context, arg CreateTournamentPara
 		arg.TeamsJoined,
 		arg.StartOn,
 		arg.EndOn,
+		arg.Category,
 	)
 	var i Tournament
 	err := row.Scan(
@@ -49,12 +52,13 @@ func (q *Queries) CreateTournament(ctx context.Context, arg CreateTournamentPara
 		&i.TeamsJoined,
 		&i.StartOn,
 		&i.EndOn,
+		&i.Category,
 	)
 	return i, err
 }
 
 const getTournament = `-- name: GetTournament :one
-SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on FROM tournament
+SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category FROM tournament
 WHERE tournament_id=$1
 `
 
@@ -69,12 +73,55 @@ func (q *Queries) GetTournament(ctx context.Context, tournamentID int64) (Tourna
 		&i.TeamsJoined,
 		&i.StartOn,
 		&i.EndOn,
+		&i.Category,
 	)
 	return i, err
 }
 
+const getTournamentByLevel = `-- name: GetTournamentByLevel :many
+SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category FROM tournament
+WHERE sport_type=$1 AND category=$2
+`
+
+type GetTournamentByLevelParams struct {
+	SportType string `json:"sport_type"`
+	Category  string `json:"category"`
+}
+
+func (q *Queries) GetTournamentByLevel(ctx context.Context, arg GetTournamentByLevelParams) ([]Tournament, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentByLevel, arg.SportType, arg.Category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tournament
+	for rows.Next() {
+		var i Tournament
+		if err := rows.Scan(
+			&i.TournamentID,
+			&i.TournamentName,
+			&i.SportType,
+			&i.Format,
+			&i.TeamsJoined,
+			&i.StartOn,
+			&i.EndOn,
+			&i.Category,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTournaments = `-- name: GetTournaments :many
-SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on FROM tournament
+SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category FROM tournament
 `
 
 func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
@@ -94,6 +141,7 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
 			&i.TeamsJoined,
 			&i.StartOn,
 			&i.EndOn,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -109,7 +157,7 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
 }
 
 const getTournamentsBySport = `-- name: GetTournamentsBySport :many
-SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on FROM tournament
+SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category FROM tournament
 WHERE sport_type=$1
 `
 
@@ -130,6 +178,7 @@ func (q *Queries) GetTournamentsBySport(ctx context.Context, sportType string) (
 			&i.TeamsJoined,
 			&i.StartOn,
 			&i.EndOn,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -148,7 +197,7 @@ const updateTeamsJoined = `-- name: UpdateTeamsJoined :one
 UPDATE tournament
 SET teams_joined=$1
 WHERE tournament_id=$2
-RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on
+RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category
 `
 
 type UpdateTeamsJoinedParams struct {
@@ -167,6 +216,7 @@ func (q *Queries) UpdateTeamsJoined(ctx context.Context, arg UpdateTeamsJoinedPa
 		&i.TeamsJoined,
 		&i.StartOn,
 		&i.EndOn,
+		&i.Category,
 	)
 	return i, err
 }
@@ -175,7 +225,7 @@ const updateTournamentDate = `-- name: UpdateTournamentDate :one
 UPDATE tournament
 SET start_on=$1 OR end_on=$2
 WHERE tournament_id=$3
-RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on
+RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category
 `
 
 type UpdateTournamentDateParams struct {
@@ -195,6 +245,7 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		&i.TeamsJoined,
 		&i.StartOn,
 		&i.EndOn,
+		&i.Category,
 	)
 	return i, err
 }

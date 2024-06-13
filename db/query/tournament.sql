@@ -5,8 +5,9 @@ INSERT INTO "tournament" (
     format,
     teams_joined,
     start_on,
-    end_on
-) VALUES ($1, $2, $3, $4, $5, $6)
+    end_on,
+    category
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetTournaments :many
@@ -31,3 +32,8 @@ UPDATE tournament
 SET start_on=$1 OR end_on=$2
 WHERE tournament_id=$3
 RETURNING *;
+
+
+-- name: GetTournamentByLevel :many
+SELECT * FROM tournament
+WHERE sport_type=$1 AND category=$2;

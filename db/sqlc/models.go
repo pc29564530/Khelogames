@@ -5,10 +5,16 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type CategoryLocation struct {
+	ID           int64  `json:"id"`
+	CategoryName string `json:"category_name"`
+}
 
 type Club struct {
 	ID        int64     `json:"id"`
@@ -54,6 +60,11 @@ type Communitymessage struct {
 	SenderUsername string    `json:"sender_username"`
 	Content        string    `json:"content"`
 	SentAt         time.Time `json:"sent_at"`
+}
+
+type Country struct {
+	ID          int64  `json:"id"`
+	CountryName string `json:"country_name"`
 }
 
 type CricketMatchScore struct {
@@ -104,6 +115,13 @@ type CricketTeamPlayerScore struct {
 	RunsConceded     int64  `json:"runs_conceded"`
 	WicketTakenBy    int64  `json:"wicket_taken_by"`
 	WicketOf         int64  `json:"wicket_of"`
+}
+
+type Event struct {
+	ID         int64  `json:"id"`
+	EventsName string `json:"events_name"`
+	CategoryID int64  `json:"category_id"`
+	CountryID  int64  `json:"country_id"`
 }
 
 type Follow struct {
@@ -177,6 +195,15 @@ type Login struct {
 	Password string `json:"password"`
 }
 
+type Medium struct {
+	ID               int64        `json:"id"`
+	Url              string       `json:"url"`
+	MediaType        string       `json:"media_type"`
+	AssociatedEntity string       `json:"associated_entity"`
+	EntityID         int64        `json:"entity_id"`
+	CreatedAt        sql.NullTime `json:"created_at"`
+}
+
 type Message struct {
 	ID               int64     `json:"id"`
 	Content          string    `json:"content"`
@@ -234,13 +261,9 @@ type Signup struct {
 	Otp          string `json:"otp"`
 }
 
-type Standing struct {
-	StandingID int64 `json:"standing_id"`
-	GroupID    int64 `json:"group_id"`
-	TeamID     int64 `json:"team_id"`
-	Wins       int64 `json:"wins"`
-	Loss       int64 `json:"loss"`
-	Draw       int64 `json:"draw"`
+type Sport struct {
+	ID        int64  `json:"id"`
+	SportName string `json:"sport_name"`
 }
 
 type Thread struct {
@@ -263,6 +286,7 @@ type Tournament struct {
 	TeamsJoined    int64     `json:"teams_joined"`
 	StartOn        time.Time `json:"start_on"`
 	EndOn          time.Time `json:"end_on"`
+	Category       string    `json:"category"`
 }
 
 type TournamentMatch struct {
