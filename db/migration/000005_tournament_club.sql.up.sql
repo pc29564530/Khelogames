@@ -3,7 +3,7 @@ CREATE TABLE "club" (
     "club_name" varchar NOT NULL,
     "avatar_url" varchar NOT NULL,
     "sport" varchar NOT NULL,
-    "owner" varchar NOT NULL,
+    "owner" varchar NOT NULL, -- remove the owner club cannot have the owner it only applicable for the local or school club
     "created_at" timestamp NOT NULL DEFAULT 'now()'
 );
 
@@ -27,15 +27,18 @@ CREATE TABLE "tournament" (
     teams_joined bigInt NOT NULL,
     start_on timestamp NOT NULL,
     end_on timestamp NOT NULL,
+    category varchar NOT NULL DEFAULT 'Global',
     CONSTRAINT format_check CHECK (format IN ('group', 'league', 'custom'))
 );
 
+-- organizer only work for the local or school tournament or matches
 CREATE TABLE organizer (
     organizer_id bigserial PRIMARY KEY,
     organizer_name varchar NOT NULL,
     tournament_id bigserial  NOT NULL
 );
 
+-- we need the organizer for only the local event
 CREATE TABLE tournament_organizer (
     organizer_id bigserial REFERENCES organizer(organizer_id),
     tournament_id bigserial REFERENCES tournament(tournament_id),
@@ -83,15 +86,6 @@ CREATE TABLE tournament_standing (
     goal_against bigint NOT NULL,
     goal_difference bigint NOT NULL,
     points bigint NOT NULL
-);
-
-CREATE TABLE standing (
-  standing_id bigserial PRIMARY KEY,
-  group_id bigserial NOT NULL,
-  team_id bigserial NOT NULL,
-  wins bigint NOT NULL,
-  loss bigint NOT NULL,
-  draw bigint NOT NULL
 );
 
 CREATE TABLE group_team (

@@ -177,7 +177,6 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	router.Use(corsHandle())
 	router.StaticFS("/api/images", http.Dir("/Users/pawan/database/Khelogames/images"))
 	router.StaticFS("/api/videos", http.Dir("/Users/pawan/database/Khelogames/videos"))
-	fmt.Println("Lien no 180")
 	public := router.Group("/auth")
 	{
 		public.POST("/send_otp", server.Otp)
@@ -291,6 +290,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 	sportRouter.GET("/getClubsBySport", server.getClubsBySport)
 	sportRouter.POST("/addTeam", server.addTeam)
 	sportRouter.GET("/getMatch", server.getMatch)
+	sportRouter.GET("/getTournamentByLevel", server.getTournamentByLevel)
 
 	server.router = router
 	return server, nil

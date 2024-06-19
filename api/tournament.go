@@ -18,6 +18,7 @@ type createTournamentRequest struct {
 	TeamsJoined    int64     `json:"teams_joined`
 	StartOn        time.Time `json:"start_on"`
 	EndOn          time.Time `json:"end_on"`
+	Category       string    `json:"category"`
 }
 
 func (server *Server) createTournament(ctx *gin.Context) {
@@ -35,6 +36,7 @@ func (server *Server) createTournament(ctx *gin.Context) {
 		TeamsJoined:    req.TeamsJoined,
 		StartOn:        req.StartOn,
 		EndOn:          req.EndOn,
+		Category:       req.Category,
 	}
 
 	fmt.Println("Arg: line 34:L ", arg)
@@ -309,6 +311,27 @@ func (server *Server) updateTournamentDate(ctx *gin.Context) {
 	}
 
 	response, err := server.store.UpdateTournamentDate(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+func (server *Server) getTournamentByLevel(ctx *gin.Context) {
+	sport := ctx.Param("sport")
+	category := ctx.Query("category")
+	fmt.Println("Category: ", category)
+	arg := db.GetTournamentByLevelParams{
+		SportType: sport,
+		Category:  category,
+	}
+
+	fmt.Println("Arg: ", arg)
+
+	response, err := server.store.GetTournamentByLevel(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
 		return
