@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -27,15 +26,11 @@ func (server *Server) addJoinCommunity(ctx *gin.Context) {
 		Username:      authPayload.Username,
 	}
 
-	fmt.Println("Args: ", arg)
-
 	communityUser, err := server.store.AddJoinCommunity(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
-	fmt.Println("Community User: ", communityUser)
 
 	ctx.JSON(http.StatusOK, communityUser)
 	return
@@ -49,12 +44,14 @@ func (server *Server) getUserByCommunity(ctx *gin.Context) {
 	var req getUserByCommunityRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind : %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	communityUserList, err := server.store.GetUserByCommunity(ctx, req.CommunityName)
 	if err != nil {
+		server.logger.Error("Failed to get user by community: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -69,6 +66,7 @@ func (server *Server) getCommunityByUser(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	communityList, err := server.store.GetCommunityByUser(ctx, authPayload.Username)
 	if err != nil {
+		server.logger.Error("Failed to get community by user: %v", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}

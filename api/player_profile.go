@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -22,7 +21,7 @@ func (server *Server) addPlayerProfile(ctx *gin.Context) {
 	var req addPlayerProfileRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Println("unable to get the data from frontend: ", err)
+		server.logger.Error("Failed to bind: %v", err)
 		return
 	}
 
@@ -37,6 +36,7 @@ func (server *Server) addPlayerProfile(ctx *gin.Context) {
 
 	response, err := server.store.AddPlayerProfile(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to add player profile: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -49,12 +49,14 @@ func (server *Server) getPlayerProfile(ctx *gin.Context) {
 	playerIdStr := ctx.Query("player_id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse player id: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
 
 	response, err := server.store.GetPlayerProfile(ctx, playerID)
 	if err != nil {
+		server.logger.Error("Failed to get player profile: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -67,10 +69,11 @@ func (server *Server) getAllPlayerProfile(ctx *gin.Context) {
 
 	response, err := server.store.GetAllPlayerProfile(ctx)
 	if err != nil {
+		server.logger.Error("Failed to get player profile: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
-	fmt.Println("Line no 73: ", response)
+
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
@@ -79,6 +82,7 @@ func (server *Server) updatePlayerProfileAvatar(ctx *gin.Context) {
 	playerIdStr := ctx.Query("id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse player id: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -92,6 +96,7 @@ func (server *Server) updatePlayerProfileAvatar(ctx *gin.Context) {
 
 	response, err := server.store.UpdatePlayerProfileAvatar(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update player profile avatar: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}

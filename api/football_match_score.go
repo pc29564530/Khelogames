@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -23,7 +22,7 @@ func (server *Server) addFootballMatchScore(ctx *gin.Context) {
 	var req addFootballMatchScoreRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
+		server.logger.Error("Failed to bind football match score: %v", err)
 		return
 	}
 
@@ -69,6 +68,7 @@ func (server *Server) addFootballMatchScore(ctx *gin.Context) {
 
 	response, err := server.store.AddFootballMatchScore(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to add football match score: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -82,14 +82,14 @@ func (server *Server) getFootballMatchScore(ctx *gin.Context) {
 	matchIdStr := ctx.Query("match_id")
 	matchId, err := strconv.ParseInt(matchIdStr, 10, 64)
 	if err != nil {
-		ctx.Error(err)
+		server.logger.Error("Failed to parse match id: %v", err)
 		return
 	}
 
 	teamIdStr := ctx.Query("team_id")
 	teamID, err := strconv.ParseInt(teamIdStr, 10, 64)
 	if err != nil {
-		ctx.Error(err)
+		server.logger.Error("Failed to parse team id: %v", err)
 		return
 	}
 
@@ -100,6 +100,7 @@ func (server *Server) getFootballMatchScore(ctx *gin.Context) {
 
 	response, err := server.store.GetFootballMatchScore(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get football match score: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -125,7 +126,7 @@ func (server *Server) updateFootballMatchScore(ctx *gin.Context) {
 	var req updateFootballMatchScoreRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("unable to get the correct data or order ", err)
+		server.logger.Error("Failed to bind update football match score: %v", err)
 		return
 	}
 
@@ -168,12 +169,9 @@ func (server *Server) updateFootballMatchScore(ctx *gin.Context) {
 		TeamID:      req.TeamID,
 	}
 
-	fmt.Println("Arg: ", arg)
-
 	response, err := server.store.UpdateFootballMatchScore(ctx, arg)
 	if err != nil {
-		fmt.Errorf("unable to get the response ")
-		ctx.JSON(http.StatusResetContent, err)
+		server.logger.Error("Failed to update football match score: %v", err)
 		return
 	}
 
@@ -194,6 +192,7 @@ func (server *Server) addFootballGoalByPlayer(ctx *gin.Context) {
 	var req addFootballteamPlayerScoreRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind add football goal: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -208,6 +207,7 @@ func (server *Server) addFootballGoalByPlayer(ctx *gin.Context) {
 
 	response, err := server.store.AddFootballGoalByPlayer(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to add football goal by player : %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}

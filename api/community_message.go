@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/base64"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -21,6 +20,7 @@ func (server *Server) createCommunityMessage(ctx *gin.Context) {
 	var req createCommunityMessageRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -35,6 +35,7 @@ func (server *Server) createCommunityMessage(ctx *gin.Context) {
 
 	response, err := server.store.CreateCommunityMessage(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create community message: %v", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
@@ -47,6 +48,7 @@ func (server *Server) createUploadMedia(ctx *gin.Context) {
 
 	r := ctx.Request
 	if err := r.ParseMultipartForm(40 << 30); err != nil {
+		server.logger.Error("Failed to parse multipart form create upload media: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -60,13 +62,13 @@ func (server *Server) createUploadMedia(ctx *gin.Context) {
 
 		data, err := base64.StdEncoding.DecodeString(b64data)
 		if err != nil {
-			fmt.Println("unable to decode :", err)
+			server.logger.Error("Failed to decode string: %v", err)
 			return
 		}
 
 		path, err = saveImageToFile(data, mediaType)
 		if err != nil {
-			fmt.Println("unable to create a file")
+			server.logger.Error("Failed to save image to file: %v", err)
 			return
 		}
 	}
@@ -78,6 +80,7 @@ func (server *Server) createUploadMedia(ctx *gin.Context) {
 
 	response, err := server.store.CreateUploadMedia(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create upload media: %v", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
@@ -95,6 +98,7 @@ func (server *Server) createMessageMedia(ctx *gin.Context) {
 	var req createMessageMediaRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusBadGateway, errorResponse(err))
 		return
 	}
@@ -106,6 +110,7 @@ func (server *Server) createMessageMedia(ctx *gin.Context) {
 
 	response, err := server.store.CreateMessageMedia(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create message media: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -116,8 +121,8 @@ func (server *Server) createMessageMedia(ctx *gin.Context) {
 
 func (server *Server) getCommuntiyMessage(ctx *gin.Context) {
 	response, err := server.store.GetCommuntiyMessage(ctx)
-	fmt.Println("Error: ", err)
 	if err != nil {
+		server.logger.Error("Failed to get community message: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -128,10 +133,11 @@ func (server *Server) getCommuntiyMessage(ctx *gin.Context) {
 func (server *Server) getCommunityByMessage(ctx *gin.Context) {
 	response, err := server.store.GetCommunityByMessage(ctx)
 	if err != nil {
+		server.logger.Error("Failed to get community by message: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println(response)
+
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }

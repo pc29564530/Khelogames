@@ -16,6 +16,7 @@ func (server *Server) getMessageByReceiver(ctx *gin.Context) {
 	var req getMessageByReceiverRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -28,6 +29,7 @@ func (server *Server) getMessageByReceiver(ctx *gin.Context) {
 
 	messageContent, err := server.store.GetMessageByReceiver(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get message by receiver: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -42,6 +44,7 @@ func (server *Server) getUserByMessageSend(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	messageUserName, err := server.store.GetUserByMessageSend(ctx, authPayload.Username)
 	if err != nil {
+		server.logger.Error("Failed to get user by message send: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

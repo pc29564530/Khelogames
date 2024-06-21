@@ -18,6 +18,7 @@ func (server *Server) createTournamentGroup(ctx *gin.Context) {
 	var req createTournamentGroupRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -30,6 +31,7 @@ func (server *Server) createTournamentGroup(ctx *gin.Context) {
 
 	response, err := server.store.CreateTournamentGroup(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create tournament group: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -43,11 +45,13 @@ func (server *Server) getTournamentGroup(ctx *gin.Context) {
 
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
 	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse group id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -59,6 +63,7 @@ func (server *Server) getTournamentGroup(ctx *gin.Context) {
 
 	response, err := server.store.GetTournamentGroup(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get tournament group: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -71,12 +76,14 @@ func (server *Server) getTournamentGroups(ctx *gin.Context) {
 
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
 
 	response, err := server.store.GetTournamentGroups(ctx, tournamentID)
 	if err != nil {
+		server.logger.Error("Failed to get tournament group: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

@@ -18,6 +18,7 @@ func (server *Server) addGroupTeam(ctx *gin.Context) {
 	var req addGroupTeamRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind : %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -30,6 +31,7 @@ func (server *Server) addGroupTeam(ctx *gin.Context) {
 
 	response, err := server.store.AddGroupTeam(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to add group team: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -43,11 +45,13 @@ func (server *Server) getTeamsByGroup(ctx *gin.Context) {
 
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
 	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to group id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -59,6 +63,7 @@ func (server *Server) getTeamsByGroup(ctx *gin.Context) {
 
 	response, err := server.store.GetTeamByGroup(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get team by group: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

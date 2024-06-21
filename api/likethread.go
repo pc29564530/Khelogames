@@ -16,6 +16,7 @@ func (server *Server) createLike(ctx *gin.Context) {
 	var req createLikeRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind : %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -28,6 +29,7 @@ func (server *Server) createLike(ctx *gin.Context) {
 
 	likeThread, err := server.store.CreateLike(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create like : %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -44,12 +46,14 @@ func (server *Server) countLike(ctx *gin.Context) {
 	var req countLikeRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	countLike, err := server.store.CountLikeUser(ctx, req.ThreadID)
 	if err != nil {
+		server.logger.Error("Failed to count like user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -67,6 +71,7 @@ func (server *Server) checkLikeByUser(ctx *gin.Context) {
 
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -80,6 +85,7 @@ func (server *Server) checkLikeByUser(ctx *gin.Context) {
 
 	userFound, err := server.store.CheckUserCount(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to check user count: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

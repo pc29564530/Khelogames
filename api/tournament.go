@@ -25,6 +25,7 @@ func (server *Server) createTournament(ctx *gin.Context) {
 	var req createTournamentRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -39,10 +40,9 @@ func (server *Server) createTournament(ctx *gin.Context) {
 		Category:       req.Category,
 	}
 
-	fmt.Println("Arg: line 34:L ", arg)
-
 	response, err := server.store.CreateTournament(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create tournament: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -59,12 +59,14 @@ func (server *Server) getTournamentTeamCount(ctx *gin.Context) {
 	var req getTournamentTeamRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
 	response, err := server.store.GetTeamsCount(ctx, req.TouurnamentID)
 	if err != nil {
+		server.logger.Error("Failed to get team count: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -83,6 +85,7 @@ func (server *Server) updateTeamsJoined(ctx *gin.Context) {
 	var req updateTeamsJoinedRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -94,6 +97,7 @@ func (server *Server) updateTeamsJoined(ctx *gin.Context) {
 
 	response, err := server.store.UpdateTeamsJoined(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update team joined: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -106,6 +110,7 @@ func (server *Server) getTournaments(ctx *gin.Context) {
 
 	response, err := server.store.GetTournaments(ctx)
 	if err != nil {
+		server.logger.Error("Failed to get tournament: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -120,6 +125,7 @@ func (server *Server) getTournamentsBySport(ctx *gin.Context) {
 
 	response, err := server.store.GetTournamentsBySport(ctx, sport)
 	if err != nil {
+		server.logger.Error("Failed to get tournament by sport: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -136,12 +142,14 @@ func (server *Server) getTournament(ctx *gin.Context) {
 	var req getTournamentRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
 	response, err := server.store.GetTournament(ctx, req.TournamentID)
 	if err != nil {
+		server.logger.Error("Failed to get tournament: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -159,6 +167,7 @@ func (server *Server) createOrganizer(ctx *gin.Context) {
 	var req createOrganizerRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -168,9 +177,11 @@ func (server *Server) createOrganizer(ctx *gin.Context) {
 		TournamentID:  req.TournamentID,
 	}
 
-	fmt.Println("Arg: ", arg)
+	server.logger.Info("organizer arg: %v", arg)
+
 	response, err := server.store.CreateOrganizer(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create organizer: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -184,6 +195,7 @@ func (server *Server) getOrganizer(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -197,11 +209,11 @@ func (server *Server) getOrganizer(ctx *gin.Context) {
 
 	response, err := server.store.GetOrganizer(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get organizer: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
 
-	fmt.Println("Respoonse: ", response)
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
@@ -215,6 +227,7 @@ func (server *Server) addTeam(ctx *gin.Context) {
 	var req addTournamentTeamRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -226,6 +239,7 @@ func (server *Server) addTeam(ctx *gin.Context) {
 
 	response, err := server.store.AddTeam(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to add team: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -243,12 +257,14 @@ func (server *Server) getTeams(ctx *gin.Context) {
 	var req getTeamsRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	response, err := server.store.GetTeams(ctx, req.TournamentID)
 	if err != nil {
+		server.logger.Error("Failed to get teams: %v", err)
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
@@ -266,6 +282,7 @@ func (server *Server) getTeam(ctx *gin.Context) {
 	var req getTeamRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -300,7 +317,7 @@ func (server *Server) updateTournamentDate(ctx *gin.Context) {
 
 	endOn, err := time.Parse(layout, endOnStr)
 	if err != nil {
-		fmt.Println("Error parsing date:", err)
+		server.logger.Error("Failed to parse data: %v", err)
 		return
 	}
 
@@ -312,6 +329,7 @@ func (server *Server) updateTournamentDate(ctx *gin.Context) {
 
 	response, err := server.store.UpdateTournamentDate(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update tournament date: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -329,10 +347,11 @@ func (server *Server) getTournamentByLevel(ctx *gin.Context) {
 		Category:  category,
 	}
 
-	fmt.Println("Arg: ", arg)
+	server.logger.Info("Tournament by level arg: %v", arg)
 
 	response, err := server.store.GetTournamentByLevel(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get tournament by level: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

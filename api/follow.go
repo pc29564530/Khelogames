@@ -20,9 +20,11 @@ func (server *Server) createFollowing(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -35,6 +37,7 @@ func (server *Server) createFollowing(ctx *gin.Context) {
 
 	follower, err := server.store.CreateFollowing(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create following: %v", err)
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
@@ -47,6 +50,7 @@ func (server *Server) getAllFollower(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	follower, err := server.store.GetAllFollower(ctx, authPayload.Username)
 	if err != nil {
+		server.logger.Error("Failed to get follwer: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -58,6 +62,7 @@ func (server *Server) getAllFollowing(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	follower, err := server.store.GetAllFollowing(ctx, authPayload.Username)
 	if err != nil {
+		server.logger.Error("Failed to get following: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -76,15 +81,18 @@ func (server *Server) deleteFollowing(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	following, err := server.store.DeleteFollowing(ctx, req.FollowingOwner)
 	if err != nil {
+		server.logger.Error("Failed to unfollow user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

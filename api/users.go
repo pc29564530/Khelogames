@@ -2,13 +2,13 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type createUserRequest struct {
@@ -30,8 +30,9 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 		username,
 		server.config.AccessTokenDuration,
 	)
-	fmt.Println("AccessToken: ", accessToken)
+	server.logger.Info("AccessToken: ", accessToken)
 	if err != nil {
+		server.logger.Error("Failed to create access token", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -41,6 +42,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 		server.config.RefreshTokenDuration,
 	)
 	if err != nil {
+		server.logger.Error("Failed to create refresh token", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -55,6 +57,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 	})
 
 	if err != nil {
+		server.logger.Error("Failed to create session", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -71,10 +74,12 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 			Role:         role,
 		},
 	}
-
-	ctx.JSON(http.StatusOK, rsp)
-
-	fmt.Printf("Loggen in successfully")
+	server.logger.WithFields(logrus.Fields{
+		"username":  username,
+		"operation": "user_logged_in",
+	}).Info("User logged in successfully")
+	ctx.JSON(http.StatusAccepted, rsp)
+	return
 }
 
 func (server *Server) createUser(ctx *gin.Context) {
@@ -86,19 +91,23 @@ func (server *Server) createUser(ctx *gin.Context) {
 	if err != nil {
 		errCode := db.ErrorCode(err)
 		if errCode == db.UniqueViolation {
+			server.logger.Error("Unique violation error ", err)
 			ctx.JSON(http.StatusForbidden, errorResponse(err))
 			return
 		}
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row data", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Error while binding JSON", err)
 		ctx.JSON(http.StatusBadGateway, errorResponse(err))
 		return
 	}
 
 	hashedPassword, err := util.HashPassword(req.HashedPassword)
 	if err != nil {
+		server.logger.Error("Failed to hash password", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -113,8 +122,9 @@ func (server *Server) createUser(ctx *gin.Context) {
 	user, err := server.store.CreateUser(ctx, arg)
 
 	if err != nil {
-		fmt.Println("unable to create a new user: ", err)
+		server.logger.Error("Unable to create user")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+
 		return
 	}
 
@@ -128,7 +138,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	_, err = server.store.DeleteSignup(ctx, req.MobileNumber)
 	if err != nil {
-		fmt.Errorf("unable to delete the mobile number details: ", err)
+		server.logger.Error("Unable to delete signup details: ", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -147,8 +157,8 @@ func (server *Server) createUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println("Profile created successfully")
-	fmt.Println("Successfully created the user account")
+	server.logger.Info("Profile created successfully")
+	server.logger.Info("Successfully created the user")
 	return
 }
 
@@ -160,12 +170,14 @@ func (server *Server) getUsers(ctx *gin.Context) {
 	var req getUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	users, err := server.store.GetUser(ctx, req.Username)
 	if err != nil {
+		server.logger.Error("Failed to get user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -183,6 +195,7 @@ func (server *Server) listUsers(ctx *gin.Context) {
 	var req getListUsersRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -193,6 +206,7 @@ func (server *Server) listUsers(ctx *gin.Context) {
 
 	userList, err := server.store.ListUser(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get list: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

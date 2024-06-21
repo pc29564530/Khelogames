@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -23,9 +22,11 @@ func (server *Server) createCommunites(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -39,6 +40,7 @@ func (server *Server) createCommunites(ctx *gin.Context) {
 
 	communities, err := server.store.CreateCommunity(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create community: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -64,15 +66,18 @@ func (server *Server) getCommunity(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	community, err := server.store.GetCommunity(ctx, req.ID)
 	if err != nil {
+		server.logger.Error("Failed to get community: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -93,6 +98,7 @@ func (server *Server) getAllCommunities(ctx *gin.Context) {
 
 	user, err := server.store.GetAllCommunities(ctx)
 	if err != nil {
+		server.logger.Error("Failed to  get communities: %v", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
@@ -110,15 +116,18 @@ func (server *Server) getCommunitiesMember(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	usersList, err := server.store.GetCommunitiesMember(ctx, req.CommunitiesName)
 	if err != nil {
+		server.logger.Error("Failed to get community member: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -134,16 +143,18 @@ func (server *Server) getCommunityByCommunityName(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row error %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
-		fmt.Println(err)
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	usersList, err := server.store.GetCommunityByCommunityName(ctx, req.CommunitiesName)
 	if err != nil {
+		server.logger.Error("Failed to get community by community name: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

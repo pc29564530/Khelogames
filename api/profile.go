@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/base64"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/token"
 	"net/http"
@@ -22,6 +21,7 @@ func (server *Server) createProfile(ctx *gin.Context) {
 	var req createProfileRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -38,9 +38,11 @@ func (server *Server) createProfile(ctx *gin.Context) {
 
 	profile, err := server.store.CreateProfile(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create profile: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	server.logger.Info("Successfully created profile")
 	ctx.JSON(http.StatusOK, profile)
 	return
 }
@@ -53,16 +55,19 @@ func (server *Server) getProfile(ctx *gin.Context) {
 	var req getProfileRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	profile, err := server.store.GetProfile(ctx, req.Owner)
 	if err != nil {
+		server.logger.Error("Failed to get profile: %v", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
 
+	server.logger.Info("Successfully created profile")
 	ctx.JSON(http.StatusOK, profile)
 	return
 }
@@ -79,6 +84,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 	var req editProfileRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -87,7 +93,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 
 	avatarData, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		fmt.Println("unable to decode avatar :", err)
+		server.logger.Error("Failed to decode avatar string: %v", err)
 		return
 	}
 
@@ -95,7 +101,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 
 	coverData, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		fmt.Println("unable to decode cover  :", err)
+		server.logger.Error("Failed to decode cover string: %v", err)
 		return
 	}
 
@@ -104,7 +110,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 	if req.AvatarUrl != "" {
 		avatarPath, err = saveImageToFile(avatarData, mediaType)
 		if err != nil {
-			fmt.Println("unable to create a avatar file")
+			server.logger.Error("Failed to create the avatar path: %v", err)
 			return
 		}
 	}
@@ -112,7 +118,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 	if req.CoverUrl != "" {
 		coverPath, err = saveImageToFile(coverData, mediaType)
 		if err != nil {
-			fmt.Println("unable to create a cover file")
+			server.logger.Error("Failed to create cover path: %v", err)
 			return
 		}
 	}
@@ -121,6 +127,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 
 	profile, err := server.store.GetProfile(ctx, authPayload.Username)
 	if err != nil {
+		server.logger.Error("Failed to get profile: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -135,6 +142,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 
 	updatedProfile, err := server.store.EditProfile(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to edit profile: %v", err)
 		ctx.JSON(http.StatusNotAcceptable, errorResponse(err))
 		return
 	}
@@ -151,6 +159,7 @@ func (server *Server) updateFullName(ctx *gin.Context) {
 	var req editFullNameRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -164,9 +173,11 @@ func (server *Server) updateFullName(ctx *gin.Context) {
 
 	profileFullName, err := server.store.UpdateFullName(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update full name: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	server.logger.Info("Successfully updated full name")
 	ctx.JSON(http.StatusAccepted, profileFullName)
 	return
 }
@@ -179,6 +190,7 @@ func (server *Server) updateBio(ctx *gin.Context) {
 	var req editBioRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -192,6 +204,7 @@ func (server *Server) updateBio(ctx *gin.Context) {
 
 	profileBio, err := server.store.UpdateBio(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update bio: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -207,6 +220,7 @@ func (server *Server) updateAvatarUrl(ctx *gin.Context) {
 	var req editAvatarUrlRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to update avatar url: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -215,13 +229,13 @@ func (server *Server) updateAvatarUrl(ctx *gin.Context) {
 
 	avatarData, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		fmt.Println("unable to decode avatar :", err)
+		server.logger.Error("Failed to decode avatar: %v", err)
 		return
 	}
 	mediaType := "image"
 	path, err := saveImageToFile(avatarData, mediaType)
 	if err != nil {
-		fmt.Println("unable to create a avatar file")
+		server.logger.Error("Failed to create avatar file: %v", err)
 		return
 	}
 
@@ -234,6 +248,7 @@ func (server *Server) updateAvatarUrl(ctx *gin.Context) {
 
 	profileAvatarUrl, err := server.store.UpdateAvatar(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update avatar: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -249,6 +264,7 @@ func (server *Server) updateCoverUrl(ctx *gin.Context) {
 	var req editCoverUrlRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -257,13 +273,13 @@ func (server *Server) updateCoverUrl(ctx *gin.Context) {
 
 	coverData, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		fmt.Println("unable to decode cover  :", err)
+		server.logger.Error("Failed to decode covert url: %v", err)
 		return
 	}
 	mediaType := "image"
 	path, err := saveImageToFile(coverData, mediaType)
 	if err != nil {
-		fmt.Println("unable to create a cover file")
+		server.logger.Error("Failed to create file: %v", err)
 		return
 	}
 
@@ -276,6 +292,7 @@ func (server *Server) updateCoverUrl(ctx *gin.Context) {
 
 	profileCoverUrl, err := server.store.UpdateCover(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update cover: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

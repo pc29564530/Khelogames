@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
 	"khelogames/util"
 	"net/http"
 	"time"
@@ -20,16 +19,17 @@ type renewAccessTokenResponse struct {
 }
 
 func (server *Server) renewAccessToken(ctx *gin.Context) {
-	fmt.Println("access token lin no 23")
 	config, err := util.LoadConfig(".")
 	var req renewAccessTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
 	refreshPayload, err := server.tokenMaker.VerifyToken(req.RefreshToken)
 	if err != nil {
+		server.logger.Error("Failed to verify token: %v", err)
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
@@ -37,6 +37,7 @@ func (server *Server) renewAccessToken(ctx *gin.Context) {
 	session, err := server.store.GetSessions(ctx, refreshPayload.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
@@ -45,20 +46,17 @@ func (server *Server) renewAccessToken(ctx *gin.Context) {
 	}
 
 	if session.Username != refreshPayload.Username {
-		err := fmt.Errorf("incorrect session user")
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		server.logger.Error("Failed to get correct session user")
 		return
 	}
 
 	if session.RefreshToken != req.RefreshToken {
-		err := fmt.Errorf("mismatched session token")
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		server.logger.Error("mismatched session token")
 		return
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		err := fmt.Errorf("expired session")
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		server.logger.Error("Expired session")
 		return
 	}
 
@@ -67,7 +65,7 @@ func (server *Server) renewAccessToken(ctx *gin.Context) {
 		config.AccessTokenDuration,
 	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		server.logger.Error("Failed to create token: %v", err)
 		return
 	}
 

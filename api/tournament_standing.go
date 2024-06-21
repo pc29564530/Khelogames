@@ -25,6 +25,7 @@ func (server *Server) createTournamentStanding(ctx *gin.Context) {
 	var req createTournamentStandingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -43,6 +44,7 @@ func (server *Server) createTournamentStanding(ctx *gin.Context) {
 	}
 	response, err := server.store.CreateTournamentStanding(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create tournament standing: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -63,11 +65,13 @@ func (server *Server) getTournamentStanding(ctx *gin.Context) {
 	sport := ctx.Query("sport_type")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
 	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse group id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -80,6 +84,7 @@ func (server *Server) getTournamentStanding(ctx *gin.Context) {
 
 	response, err := server.store.GetTournamentStanding(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get tournament standing: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -96,6 +101,7 @@ func (server *Server) updateTournamentStanding(ctx *gin.Context) {
 	var req updateTournamentStandingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -107,6 +113,7 @@ func (server *Server) updateTournamentStanding(ctx *gin.Context) {
 
 	response, err := server.store.UpdateTournamentStanding(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update tournament standing: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"khelogames/token"
 	"khelogames/util"
 	"net/http"
@@ -27,6 +28,7 @@ type Server struct {
 	rabbitConn *ampq.Connection
 	rabbitChan *ampq.Channel
 	mutex      sync.Mutex
+	logger     *logger.Logger
 }
 
 func (server *Server) startWebSocketHub() {
@@ -62,7 +64,6 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 	}
 
 	conn, err := server.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
-	fmt.Println("Error: ", err)
 	if err != nil {
 		return
 	}
@@ -82,7 +83,7 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 		var message map[string]string
 		err = json.Unmarshal(msg, &message)
 		if err != nil {
-			fmt.Errorf("unable to unmarshal msg ", err)
+			server.logger.Error("unable to unmarshal msg ", err)
 			return
 		}
 
@@ -101,13 +102,13 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 		b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
 		data, err := base64.StdEncoding.DecodeString(b64data)
 		if err != nil {
-			fmt.Println("unable to decode :", err)
+			server.logger.Error("unable to decode :", err)
 			return
 		}
 		mediaType := "image"
 		path, err := saveImageToFile(data, mediaType)
 		if err != nil {
-			fmt.Println("unable to create a file")
+			server.logger.Error("unable to create a file")
 			return
 		}
 
@@ -122,12 +123,11 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 
 		_, err = server.store.CreateNewMessage(ctx, arg)
 		if err != nil {
-			fmt.Errorf("unable to store new message: ", err)
+			server.logger.Error("unable to store new message: ", err)
 			return
 		}
 
 		server.broadcast <- msg
-		fmt.Println("Server Message: ", server.broadcast)
 	}
 }
 
@@ -143,7 +143,7 @@ func startRabbitMQ(config util.Config) (*ampq.Connection, *ampq.Channel, error) 
 	return rabbitConn, rabbitChan, nil
 }
 
-func NewServer(config util.Config, store *db.Store) (*Server, error) {
+func NewServer(config util.Config, store *db.Store, logger *logger.Logger) (*Server, error) {
 	tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
@@ -170,6 +170,7 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		rabbitConn: rabbitConn,
 		rabbitChan: rabbitChan,
 		mutex:      sync.Mutex{},
+		logger:     logger,
 	}
 
 	router := gin.Default()

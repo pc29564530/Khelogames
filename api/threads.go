@@ -84,10 +84,10 @@ func (server *Server) createThread(ctx *gin.Context) {
 	var req createThreadRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	fmt.Println("Hello line no 99")
 
 	var path string
 	if req.MediaType != "" {
@@ -95,15 +95,13 @@ func (server *Server) createThread(ctx *gin.Context) {
 
 		data, err := base64.StdEncoding.DecodeString(b64data)
 		if err != nil {
-			fmt.Println("unable to decode :", err)
+			server.logger.Error("Failed to decode string", err)
 			return
 		}
 
-		fmt.Println("hello line no 109")
-
 		path, err = saveImageToFile(data, req.MediaType)
 		if err != nil {
-			fmt.Println("unable to create a file")
+			server.logger.Error("Failed to save image to file ", err)
 			return
 		}
 	}
@@ -122,10 +120,11 @@ func (server *Server) createThread(ctx *gin.Context) {
 
 	thread, err := server.store.CreateThread(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create new thread ", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
+	server.logger.Info("Thread successfully created ")
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -138,15 +137,18 @@ func (server *Server) getThread(ctx *gin.Context) {
 	var req getThreadRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind ", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	thread, err := server.store.GetThread(ctx, req.ID)
 	if err != nil {
+		server.logger.Error("Failed to get thread: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	server.logger.Info("Successfully get the thread")
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -160,12 +162,14 @@ func (server *Server) getThreadByUser(ctx *gin.Context) {
 	var req getThreadUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	thread, err := server.store.GetThreadUser(ctx, req.Username)
 	if err != nil {
+		server.logger.Error("Failed to get thread by user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -176,6 +180,7 @@ func (server *Server) getThreadByUser(ctx *gin.Context) {
 func (server *Server) getAllThreads(ctx *gin.Context) {
 	threads, err := server.store.GetAllThreads(ctx)
 	if err != nil {
+		server.logger.Error("Failed to find the all threads ", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
@@ -192,15 +197,17 @@ func (server *Server) getAllThreadsByCommunities(ctx *gin.Context) {
 
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 	}
 
 	threads, err := server.store.GetAllThreadsByCommunities(ctx, req.CommunitiesName)
 	if err != nil {
+		server.logger.Error("Failed to get thread by communities: %v", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
-	fmt.Println("Thread Data: ", threads)
+	server.logger.Info("Successfully get the thread")
 	ctx.JSON(http.StatusOK, threads)
 	return
 }
@@ -214,6 +221,7 @@ func (server *Server) updateThreadLike(ctx *gin.Context) {
 	var req updateThreadLikeRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind ", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -225,10 +233,12 @@ func (server *Server) updateThreadLike(ctx *gin.Context) {
 
 	thread, err := server.store.UpdateThreadLike(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update like: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
+	server.logger.Info("Successfully update the thread ", err)
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -241,15 +251,17 @@ func (server *Server) getThreadByThreadID(ctx *gin.Context) {
 	var req threadByThreadIdRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind ", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 	thread, err := server.store.GetThreadByThreadID(ctx, req.ID)
 	if err != nil {
+		server.logger.Error("Failed to get thread by thread id ", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return
 	}
-	fmt.Println("Thread Thread IDS: ", thread)
+	server.logger.Info("Successfully get thread by thread id ")
 	ctx.JSON(http.StatusAccepted, thread)
 	return
 }

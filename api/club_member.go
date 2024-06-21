@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -18,6 +17,7 @@ func (server *Server) addClubMember(ctx *gin.Context) {
 	var req addClubMemberRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -30,6 +30,7 @@ func (server *Server) addClubMember(ctx *gin.Context) {
 
 	members, err := server.store.AddClubMember(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to add club member: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -46,12 +47,13 @@ func (server *Server) getClubMember(ctx *gin.Context) {
 	clubIDStr := ctx.Query("club_id")
 	clubID, err := strconv.ParseInt(clubIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("unable to parse the clubIDStr: ", err)
+		server.logger.Error("Failed to parse club id string: %v", err)
 		return
 	}
-	fmt.Println("Line no 53")
+
 	members, err := server.store.GetClubMember(ctx, clubID)
 	if err != nil {
+		server.logger.Error("Failed to get club member: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

@@ -23,18 +23,21 @@ func (server *Server) createComment(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			server.logger.Error("No row error: %v", err)
 			return
 		}
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 	err = ctx.ShouldBindUri(&reqThreadId)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -48,6 +51,7 @@ func (server *Server) createComment(ctx *gin.Context) {
 
 	comment, err := server.store.CreateComment(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to create comment: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -64,12 +68,14 @@ func (server *Server) getAllComment(ctx *gin.Context) {
 	var req getAllCommentRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	comments, err := server.store.GetAllComment(ctx, req.ThreadID)
 	if err != nil {
+		server.logger.Error("Failed to get comment: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -86,16 +92,19 @@ func (server *Server) getCommentByUser(ctx *gin.Context) {
 	var req getCommentByUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 	if req.Owner == "undefined" {
+		server.logger.Error("Failed to get defined owner: %v", err)
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
 	comments, err := server.store.GetCommentByUser(ctx, req.Owner)
 	if err != nil {
+		server.logger.Error("Failed to get comment by user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -20,6 +19,7 @@ func (server *Server) addCricketMatchToss(ctx *gin.Context) {
 	var req addCricketMatchTossRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind : %v", err)
 		ctx.JSON(http.StatusBadGateway, err)
 		return
 	}
@@ -33,6 +33,7 @@ func (server *Server) addCricketMatchToss(ctx *gin.Context) {
 
 	response, err := server.store.AddCricketMatchToss(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to add cricket match toss : %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -56,16 +57,14 @@ func (server *Server) getCricketMatchToss(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("Lien no 130: ", err)
-		ctx.JSON(http.StatusNotAcceptable, err)
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		return
 	}
 
 	matchIDStr := ctx.Query("match_id")
 	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
 	if err != nil {
-		fmt.Println("Lien no 138: ", err)
-		ctx.JSON(http.StatusNotAcceptable, err)
+		server.logger.Error("Failed to parse match id: %v", err)
 		return
 	}
 
@@ -74,12 +73,9 @@ func (server *Server) getCricketMatchToss(ctx *gin.Context) {
 		MatchID:      matchID,
 	}
 
-	fmt.Println("arg: ", arg)
-
 	response, err := server.store.GetCricketMatchToss(ctx, arg)
 	if err != nil {
-		fmt.Println(err)
-		ctx.JSON(http.StatusNotFound, err)
+		server.logger.Error("Failed to get the cricket match toss: %v", err)
 		return
 	}
 	ctx.JSON(http.StatusAccepted, response)

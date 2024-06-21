@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -24,7 +23,7 @@ func (server *Server) createTournamentOrganization(ctx *gin.Context) {
 	var req createTournamentOrganizationRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Println("Unable to get the struct name: ", err)
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -52,12 +51,14 @@ func (server *Server) getTournamentOrganization(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil || tournamentIDStr == " " {
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
 	response, err := server.store.GetTournamentOrganization(ctx, tournamentID)
 	if err != nil {
+		server.logger.Error("Failed to get tournament organization: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

@@ -3,7 +3,6 @@ package api
 import (
 	"database/sql"
 	"encoding/base64"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
 	"math/rand"
@@ -38,12 +37,13 @@ func (server *Server) createLogin(ctx *gin.Context) {
 	var req createLoginRequest
 
 	err := ctx.ShouldBindJSON(&req)
-	fmt.Println(err)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row found: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -51,15 +51,18 @@ func (server *Server) createLogin(ctx *gin.Context) {
 	user, err := server.store.GetUser(ctx, req.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			server.logger.Error("No row found: %v", err)
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+		server.logger.Error("Failed to get the user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	err = util.CheckPassword(req.Password, user.HashedPassword)
 	if err != nil {
+		server.logger.Error("Failed to match password: %v", err)
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
@@ -69,6 +72,7 @@ func (server *Server) createLogin(ctx *gin.Context) {
 		server.config.AccessTokenDuration,
 	)
 	if err != nil {
+		server.logger.Error("Failed to create access token: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -79,6 +83,7 @@ func (server *Server) createLogin(ctx *gin.Context) {
 	)
 
 	if err != nil {
+		server.logger.Error("Failed to create refresh token: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -93,6 +98,7 @@ func (server *Server) createLogin(ctx *gin.Context) {
 	})
 
 	if err != nil {
+		server.logger.Error("Failed to create session: %v", err)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -109,39 +115,38 @@ func (server *Server) createLogin(ctx *gin.Context) {
 			Role:         user.Role,
 		},
 	}
-	fmt.Println("Line no 122: ", rsp)
+	server.logger.Info("Logged in successfully")
 	ctx.JSON(http.StatusOK, rsp)
-
-	fmt.Printf("Loggen in successfully")
 	return
 }
 
-func verifyMobileAndPassword(ctx *gin.Context, username string, password string, userData db.User) error {
+func (server *Server) verifyMobileAndPassword(ctx *gin.Context, username string, password string, userData db.User) error {
 	var err error
 	if userData.Username != username {
-		fmt.Errorf("username does not exist")
+		server.logger.Error("Failed to verify mobile and password: %v", err)
 		ctx.JSON(http.StatusNotFound, errorResponse(err))
 		return err
 	}
 	pass, err := util.HashPassword(password)
 	if err != nil {
-		fmt.Errorf("Not able to convert the password to hashed string:%w", err)
+		server.logger.Debug("Failed to convert password: %v", err)
 		return err
 	}
-	fmt.Println(pass)
-	fmt.Println(userData.HashedPassword)
+	server.logger.Info(pass)
+	server.logger.Info(userData.HashedPassword)
 	err = util.CheckPassword(pass, userData.HashedPassword)
 	if err != nil {
-		fmt.Errorf("password does not match: %w", err)
+		server.logger.Error("Failed to verify mobile and password: %v", err)
 		return err
 	}
 	return nil
 }
 
-func generateSessionToken() (string, error) {
+func (server *Server) generateSessionToken() (string, error) {
 	token := make([]byte, 32)
 	_, err := rand.Read(token)
 	if err != nil {
+		server.logger.Error("Failed to generate session token: %v", err)
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(token), nil

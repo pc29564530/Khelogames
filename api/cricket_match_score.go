@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -39,7 +38,7 @@ func (server *Server) addCricketMatchScore(ctx *gin.Context) {
 		Extras:       req.Extras,
 		Innings:      req.Innings,
 	}
-	fmt.Println("Line no 42: ", arg)
+
 	response, err := server.store.CreateCricketMatchScore(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNoContent, err)
@@ -70,15 +69,12 @@ func (server *Server) getCricketMatchScore(ctx *gin.Context) {
 		MatchID: matchId,
 		TeamID:  teamID,
 	}
-	fmt.Println("Arg: ", arg)
 
 	response, err := server.store.GetCricketMatchScore(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
-
-	fmt.Println("Score: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
@@ -96,7 +92,7 @@ func (server *Server) updateCricketMatchWicket(ctx *gin.Context) {
 	var req updateCricketMatchWicketRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("unable to get the correct data or order ", err)
+		server.logger.Error("Failed to bind wicket: %v", err)
 		return
 	}
 
@@ -108,7 +104,6 @@ func (server *Server) updateCricketMatchWicket(ctx *gin.Context) {
 
 	response, err := server.store.UpdateCricketMatchWickets(ctx, arg)
 	if err != nil {
-		fmt.Errorf("unable to get the response ")
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -128,7 +123,7 @@ func (server *Server) updateCricketMatchRunsScore(ctx *gin.Context) {
 	var req updateCricketMatchRunsScoreRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("unable to get the correct data or order ", err)
+		server.logger.Error("Failed to bind the cricket match score: %v", err)
 		return
 	}
 
@@ -140,7 +135,7 @@ func (server *Server) updateCricketMatchRunsScore(ctx *gin.Context) {
 
 	response, err := server.store.UpdateCricketMatchRunsScore(ctx, arg)
 	if err != nil {
-		fmt.Errorf("unable to get the response ")
+		server.logger.Error("Failed to update runs score : %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -160,7 +155,7 @@ func (server *Server) updateCricketMatchExtras(ctx *gin.Context) {
 	var req updateCricketMatchExtrasRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("unable to get the correct data or order ", err)
+		server.logger.Error("Failed to bind the cricket extras: %v", err)
 		return
 	}
 
@@ -172,7 +167,7 @@ func (server *Server) updateCricketMatchExtras(ctx *gin.Context) {
 
 	response, err := server.store.UpdateCricketMatchExtras(ctx, arg)
 	if err != nil {
-		fmt.Errorf("unable to get the response ")
+		server.logger.Error("Failed to update cricket extras: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -192,7 +187,7 @@ func (server *Server) updateCricketMatchInnings(ctx *gin.Context) {
 	var req updateCricketMatchInningsRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("unable to get the correct data or order ", err)
+		server.logger.Error("Failed to bind cricket match innings ", err)
 		return
 	}
 
@@ -204,7 +199,7 @@ func (server *Server) updateCricketMatchInnings(ctx *gin.Context) {
 
 	response, err := server.store.UpdateCricketMatchInnings(ctx, arg)
 	if err != nil {
-		fmt.Errorf("unable to get the response ")
+		server.logger.Error("Failed to update cricket innings : %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -237,7 +232,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	var req addCricketTeamPlayerScoreRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Println("unable to get the err: ", err)
+		server.logger.Error("Failed to bind : %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -247,8 +242,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		position, err = strconv.ParseInt(req.Position, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint position")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse position: %v", err)
 			return
 		}
 	}
@@ -259,8 +253,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		runsScored, err = strconv.ParseInt(req.RunsScored, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint runsScored")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse runs scored: %v", err)
 			return
 		}
 	}
@@ -271,8 +264,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		ballsFaced, err = strconv.ParseInt(req.BallsFaced, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint balls faced")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse ball faced: %v", err)
 			return
 		}
 	}
@@ -283,8 +275,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		fours, err = strconv.ParseInt(req.Fours, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint fours")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse fours: %v", err)
 			return
 		}
 	}
@@ -295,8 +286,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		sixes, err = strconv.ParseInt(req.Sixes, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint runs scored")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse sixes: %v", err)
 			return
 		}
 	}
@@ -307,8 +297,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		wicketsTaken, err = strconv.ParseInt(req.WicketsTaken, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint wickets taken")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse wicket taken: %v", err)
 			return
 		}
 	}
@@ -319,8 +308,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		runsConceded, err = strconv.ParseInt(req.RunsConceded, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint runs conceded")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse runs conceded: %v", err)
 			return
 		}
 	}
@@ -331,8 +319,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		wicketTakenBy, err = strconv.ParseInt(req.WicketTakenBy, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint wicket taken by")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse wicket taken by: %v", err)
 			return
 		}
 	}
@@ -343,8 +330,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 	} else {
 		wicketOf, err = strconv.ParseInt(req.WicketOf, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint runsScored")
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse wicket of: %v", err)
 			return
 		}
 	}
@@ -368,7 +354,7 @@ func (server *Server) addCricketTeamPlayerScore(ctx *gin.Context) {
 
 	response, err := server.store.AddCricketTeamPlayerScore(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		server.logger.Error("Failed to add the cricket player score: %v", gin.H{"error": err.Error()})
 		return
 	}
 
@@ -381,28 +367,28 @@ func (server *Server) getCricketPlayerScore(ctx *gin.Context) {
 	matchIDStr := ctx.Query("match_id")
 	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		server.logger.Error("Failed to parse match id: %v", err)
 		return
 	}
 
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		return
 	}
 
 	teamIdStr := ctx.Query("team_id")
 	teamID, err := strconv.ParseInt(teamIdStr, 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		server.logger.Error("Failed to parse team id: %v", err)
 		return
 	}
 
 	playerIdStr := ctx.Query("player_id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		server.logger.Error("Failed to parse player id: %v", err)
 		return
 	}
 
@@ -415,6 +401,7 @@ func (server *Server) getCricketPlayerScore(ctx *gin.Context) {
 
 	response, err := server.store.GetCricketPlayerScore(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to cricket player score : %v", err)
 		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
@@ -434,6 +421,7 @@ func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
 	matchIDStr := ctx.Query("match_id")
 	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse match id: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -441,6 +429,7 @@ func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -448,6 +437,7 @@ func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
 	teamIdStr := ctx.Query("team_id")
 	teamID, err := strconv.ParseInt(teamIdStr, 10, 64)
 	if err != nil {
+		server.logger.Error("Failed to team id: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -460,6 +450,7 @@ func (server *Server) getCricketTeamPlayerScore(ctx *gin.Context) {
 
 	response, err := server.store.GetCricketTeamPlayerScore(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to get cricket team player score : %v", err)
 		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
@@ -485,6 +476,7 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 	var req updateCricketMatchScoreBattingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind : %v", err)
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
@@ -495,7 +487,7 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 	} else {
 		position, err = strconv.ParseInt(req.Position, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint position")
+			server.logger.Error("Failed to parse the position: %v", err)
 			ctx.JSON(http.StatusBadRequest, err)
 			return
 		}
@@ -508,7 +500,7 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 
 		runsScored, err = strconv.ParseInt(req.RunsScored, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint runsScored")
+			server.logger.Error("Failed to parse runs scored %v", err)
 			ctx.JSON(http.StatusBadRequest, err)
 			return
 		}
@@ -520,7 +512,7 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 	} else {
 		ballsFaced, err = strconv.ParseInt(req.BallsFaced, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint ballsFaced")
+			server.logger.Error("Failed to parse balls faced: %v", err)
 			ctx.JSON(http.StatusBadRequest, err)
 			return
 		}
@@ -532,7 +524,7 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 	} else {
 		fours, err = strconv.ParseInt(req.Fours, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint fours")
+			server.logger.Error("Failed to parse fours: %v", err)
 			ctx.JSON(http.StatusBadRequest, err)
 			return
 		}
@@ -544,7 +536,7 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 	} else {
 		sixes, err = strconv.ParseInt(req.Sixes, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint sixes")
+			server.logger.Error("Failed to parse sixes: %v", err)
 			ctx.JSON(http.StatusBadRequest, err)
 			return
 		}
@@ -556,7 +548,7 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 	} else {
 		wicketTakenBy, err = strconv.ParseInt(req.WicketTakenBy, 10, 64)
 		if err != nil {
-			fmt.Errorf("unable to parseint wicket taken by")
+			server.logger.Error("Failed to parse wicket taken by: %v", err)
 			ctx.JSON(http.StatusBadRequest, err)
 			return
 		}
@@ -577,6 +569,7 @@ func (server *Server) updateCricketMatchScoreBatting(ctx *gin.Context) {
 
 	response, err := server.store.UpdateCricketTeamPlayerScoreBatting(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update cricket team score batting: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -599,6 +592,7 @@ func (server *Server) updateCricketMatchScoreBowling(ctx *gin.Context) {
 	var req updateCricketMatchScoreBowlingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
+		server.logger.Error("Failed to bind : %v", err)
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
@@ -609,8 +603,7 @@ func (server *Server) updateCricketMatchScoreBowling(ctx *gin.Context) {
 	} else {
 		wicketsTaken, err = strconv.ParseInt(req.WicketsTaken, 10, 64)
 		if err != nil {
-			fmt.Println("unable to parse: 199 ", err)
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse wicket taken: %v", err)
 			return
 		}
 	}
@@ -621,8 +614,7 @@ func (server *Server) updateCricketMatchScoreBowling(ctx *gin.Context) {
 	} else {
 		runsConceded, err = strconv.ParseInt(req.RunsConceded, 10, 64)
 		if err != nil {
-			fmt.Println("unable to parse: 199 ", err)
-			ctx.JSON(http.StatusBadRequest, err)
+			server.logger.Error("Failed to parse runs conceded: %v", err)
 			return
 		}
 	}
@@ -639,6 +631,7 @@ func (server *Server) updateCricketMatchScoreBowling(ctx *gin.Context) {
 
 	response, err := server.store.UpdateCricketTeamPlayerScoreBowling(ctx, arg)
 	if err != nil {
+		server.logger.Error("Failed to update cricket score bowling: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
