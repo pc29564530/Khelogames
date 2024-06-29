@@ -1,12 +1,23 @@
-package api
+package handlers
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
+type PlayerProfileServer struct {
+	store  *db.Store
+	logger *logger.Logger
+}
+
+func NewPlayerProfileServer(store *db.Store, logger *logger.Logger) *PlayerProfileServer {
+	return &PlayerProfileServer{store: store, logger: logger}
+}
 
 type addPlayerProfileRequest struct {
 	PlayerName            string `json:"player_name"`
@@ -17,11 +28,11 @@ type addPlayerProfileRequest struct {
 	Nation                string `json:"nation"`
 }
 
-func (server *Server) addPlayerProfile(ctx *gin.Context) {
+func (s *PlayerProfileServer) AddPlayerProfileFunc(ctx *gin.Context) {
 	var req addPlayerProfileRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind: %v", err)
+		fmt.Errorf("Failed to bind: %v", err)
 		return
 	}
 
@@ -34,9 +45,9 @@ func (server *Server) addPlayerProfile(ctx *gin.Context) {
 		Nation:                req.Nation,
 	}
 
-	response, err := server.store.AddPlayerProfile(ctx, arg)
+	response, err := s.store.AddPlayerProfile(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to add player profile: %v", err)
+		fmt.Errorf("Failed to add player profile: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -45,18 +56,18 @@ func (server *Server) addPlayerProfile(ctx *gin.Context) {
 	return
 }
 
-func (server *Server) getPlayerProfile(ctx *gin.Context) {
+func (s *PlayerProfileServer) GetPlayerProfileFunc(ctx *gin.Context) {
 	playerIdStr := ctx.Query("player_id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse player id: %v", err)
+		fmt.Errorf("Failed to parse player id: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
 
-	response, err := server.store.GetPlayerProfile(ctx, playerID)
+	response, err := s.store.GetPlayerProfile(ctx, playerID)
 	if err != nil {
-		server.logger.Error("Failed to get player profile: %v", err)
+		fmt.Errorf("Failed to get player profile: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -65,11 +76,11 @@ func (server *Server) getPlayerProfile(ctx *gin.Context) {
 	return
 }
 
-func (server *Server) getAllPlayerProfile(ctx *gin.Context) {
+func (s *PlayerProfileServer) GetAllPlayerProfileFunc(ctx *gin.Context) {
 
-	response, err := server.store.GetAllPlayerProfile(ctx)
+	response, err := s.store.GetAllPlayerProfile(ctx)
 	if err != nil {
-		server.logger.Error("Failed to get player profile: %v", err)
+		fmt.Errorf("Failed to get player profile: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -78,11 +89,11 @@ func (server *Server) getAllPlayerProfile(ctx *gin.Context) {
 	return
 }
 
-func (server *Server) updatePlayerProfileAvatar(ctx *gin.Context) {
+func (s *PlayerProfileServer) UpdatePlayerProfileAvatarFunc(ctx *gin.Context) {
 	playerIdStr := ctx.Query("id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse player id: %v", err)
+		fmt.Errorf("Failed to parse player id: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -94,9 +105,9 @@ func (server *Server) updatePlayerProfileAvatar(ctx *gin.Context) {
 		ID:              playerID,
 	}
 
-	response, err := server.store.UpdatePlayerProfileAvatar(ctx, arg)
+	response, err := s.store.UpdatePlayerProfileAvatar(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to update player profile avatar: %v", err)
+		fmt.Errorf("Failed to update player profile avatar: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}

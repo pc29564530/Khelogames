@@ -1,12 +1,23 @@
-package api
+package handlers
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
+type TournamentStandingServer struct {
+	store  *db.Store
+	logger *logger.Logger
+}
+
+func NewTournamentStanding(store *db.Store, logger *logger.Logger) *TournamentStandingServer {
+	return &TournamentStandingServer{store: store, logger: logger}
+}
 
 type createTournamentStandingRequest struct {
 	TournamentID   int64 `json:"tournament_id"`
@@ -21,11 +32,11 @@ type createTournamentStandingRequest struct {
 	Points         int64 `json:"points"`
 }
 
-func (server *Server) createTournamentStanding(ctx *gin.Context) {
+func (s *TournamentStandingServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 	var req createTournamentStandingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind: %v", err)
+		fmt.Errorf("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -42,9 +53,9 @@ func (server *Server) createTournamentStanding(ctx *gin.Context) {
 		GoalDifference: req.GoalDifference,
 		Points:         req.Points,
 	}
-	response, err := server.store.CreateTournamentStanding(ctx, arg)
+	response, err := s.store.CreateTournamentStanding(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to create tournament standing: %v", err)
+		fmt.Errorf("Failed to create tournament standing: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -58,20 +69,20 @@ type getTournamentStandingRequest struct {
 	SportType    string `json:"sport_type"`
 }
 
-func (server *Server) getTournamentStanding(ctx *gin.Context) {
+func (s *TournamentStandingServer) GetTournamentStandingFunc(ctx *gin.Context) {
 
 	tournamentIDStr := ctx.Query("tournament_id")
 	groupIDStr := ctx.Query("group_id")
 	sport := ctx.Query("sport_type")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse tournament id: %v", err)
+		fmt.Errorf("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
 	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse group id: %v", err)
+		fmt.Errorf("Failed to parse group id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -82,9 +93,9 @@ func (server *Server) getTournamentStanding(ctx *gin.Context) {
 		SportType:    sport,
 	}
 
-	response, err := server.store.GetTournamentStanding(ctx, arg)
+	response, err := s.store.GetTournamentStanding(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to get tournament standing: %v", err)
+		fmt.Errorf("Failed to get tournament standing: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -97,11 +108,11 @@ type updateTournamentStandingRequest struct {
 	TeamID       int64 `json:"team_id"`
 }
 
-func (server *Server) updateTournamentStanding(ctx *gin.Context) {
+func (s *TournamentStandingServer) UpdateTournamentStandingFunc(ctx *gin.Context) {
 	var req updateTournamentStandingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind: %v", err)
+		fmt.Errorf("Failed to bind: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -111,9 +122,9 @@ func (server *Server) updateTournamentStanding(ctx *gin.Context) {
 		TeamID:       req.TeamID,
 	}
 
-	response, err := server.store.UpdateTournamentStanding(ctx, arg)
+	response, err := s.store.UpdateTournamentStanding(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to update tournament standing: %v", err)
+		fmt.Errorf("Failed to update tournament standing: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}

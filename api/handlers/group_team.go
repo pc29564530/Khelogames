@@ -1,12 +1,23 @@
-package api
+package handlers
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
+type GroupTeamServer struct {
+	store  *db.Store
+	logger *logger.Logger
+}
+
+func NewGroupTeamServer(store *db.Store, logger *logger.Logger) *GroupTeamServer {
+	return &GroupTeamServer{store: store, logger: logger}
+}
 
 type addGroupTeamRequest struct {
 	GroupID      int64 `json:"group_id"`
@@ -14,11 +25,11 @@ type addGroupTeamRequest struct {
 	TeamID       int64 `json:"team_id"`
 }
 
-func (server *Server) addGroupTeam(ctx *gin.Context) {
+func (s *GroupTeamServer) AddGroupTeamFunc(ctx *gin.Context) {
 	var req addGroupTeamRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind : %v", err)
+		fmt.Errorf("Failed to bind : %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -29,9 +40,9 @@ func (server *Server) addGroupTeam(ctx *gin.Context) {
 		TeamID:       req.TeamID,
 	}
 
-	response, err := server.store.AddGroupTeam(ctx, arg)
+	response, err := s.store.AddGroupTeam(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to add group team: %v", err)
+		fmt.Errorf("Failed to add group team: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -39,19 +50,19 @@ func (server *Server) addGroupTeam(ctx *gin.Context) {
 	return
 }
 
-func (server *Server) getTeamsByGroup(ctx *gin.Context) {
+func (s *GroupTeamServer) GetTeamsByGroupFunc(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	groupIDStr := ctx.Query("group_id")
 
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse tournament id: %v", err)
+		fmt.Errorf("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
 	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to group id: %v", err)
+		fmt.Errorf("Failed to group id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -61,9 +72,9 @@ func (server *Server) getTeamsByGroup(ctx *gin.Context) {
 		GroupID:      groupID,
 	}
 
-	response, err := server.store.GetTeamByGroup(ctx, arg)
+	response, err := s.store.GetTeamByGroup(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to get team by group: %v", err)
+		fmt.Errorf("Failed to get team by group: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

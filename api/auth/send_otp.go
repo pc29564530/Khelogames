@@ -1,9 +1,10 @@
-package api
+package auth
 
 import (
 	"database/sql"
 	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"math/rand"
 	"net/http"
 	"os"
@@ -15,8 +16,20 @@ import (
 	"github.com/sfreiberg/gotwilio"
 )
 
+type OtpServer struct {
+	store  *db.Store
+	logger *logger.Logger
+}
+
 type createSendOtpRequest struct {
 	MobileNumber string `json:"mobile_number"`
+}
+
+func NewOtpServer(store *db.Store, logger *logger.Logger) *OtpServer {
+	return &OtpServer{
+		store:  store,
+		logger: logger,
+	}
 }
 
 func generateOtp() string {
@@ -25,7 +38,7 @@ func generateOtp() string {
 	return otp
 }
 
-func (server *Server) Otp(ctx *gin.Context) {
+func (s *OtpServer) Otp(ctx *gin.Context) {
 
 	var reqSendOTP createSendOtpRequest
 	err := ctx.ShouldBindJSON(&reqSendOTP)
@@ -37,10 +50,10 @@ func (server *Server) Otp(ctx *gin.Context) {
 
 	otp := generateOtp()
 
-	err = server.sendOTP(reqSendOTP.MobileNumber, otp)
+	err = s.sendOTP(reqSendOTP.MobileNumber, otp)
 	fmt.Println("line no 40: ", err)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, errorResponse(err))
+		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
 	fmt.Println("Otp has been send successfully")
@@ -50,15 +63,14 @@ func (server *Server) Otp(ctx *gin.Context) {
 		Otp:          otp,
 	}
 
-	fmt.Println("line no 51:", arg)
-	signup, err := server.store.CreateSignup(ctx, arg)
+	signup, err := s.store.CreateSignup(ctx, arg)
 	if err != nil {
 
 		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
@@ -66,7 +78,7 @@ func (server *Server) Otp(ctx *gin.Context) {
 
 }
 
-func (server *Server) sendOTP(mobileNumber string, otp string) error {
+func (s *OtpServer) sendOTP(mobileNumber string, otp string) error {
 
 	err := godotenv.Load("./app.env")
 	if err != nil {

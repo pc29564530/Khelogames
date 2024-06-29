@@ -1,12 +1,23 @@
-package api
+package handlers
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
+type TournamentGroupServer struct {
+	store  *db.Store
+	logger *logger.Logger
+}
+
+func NewTournamentGroup(store *db.Store, logger *logger.Logger) *TournamentGroupServer {
+	return &TournamentGroupServer{store: store, logger: logger}
+}
 
 type createTournamentGroupRequest struct {
 	GroupName     string `json:"group_name"`
@@ -14,11 +25,11 @@ type createTournamentGroupRequest struct {
 	GroupStrength int64  `json:"group_strength"`
 }
 
-func (server *Server) createTournamentGroup(ctx *gin.Context) {
+func (s *TournamentGroupServer) CreateTournamentGroupFunc(ctx *gin.Context) {
 	var req createTournamentGroupRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind: %v", err)
+		fmt.Errorf("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -29,9 +40,9 @@ func (server *Server) createTournamentGroup(ctx *gin.Context) {
 		GroupStrength: req.GroupStrength,
 	}
 
-	response, err := server.store.CreateTournamentGroup(ctx, arg)
+	response, err := s.store.CreateTournamentGroup(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to create tournament group: %v", err)
+		fmt.Errorf("Failed to create tournament group: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -39,19 +50,19 @@ func (server *Server) createTournamentGroup(ctx *gin.Context) {
 	return
 }
 
-func (server *Server) getTournamentGroup(ctx *gin.Context) {
+func (s *TournamentGroupServer) GetTournamentGroupFunc(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	groupIDStr := ctx.Query("group_id")
 
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse tournament id: %v", err)
+		fmt.Errorf("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
 	groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse group id: %v", err)
+		fmt.Errorf("Failed to parse group id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
@@ -61,9 +72,9 @@ func (server *Server) getTournamentGroup(ctx *gin.Context) {
 		TournamentID: tournamentID,
 	}
 
-	response, err := server.store.GetTournamentGroup(ctx, arg)
+	response, err := s.store.GetTournamentGroup(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to get tournament group: %v", err)
+		fmt.Errorf("Failed to get tournament group: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -71,19 +82,19 @@ func (server *Server) getTournamentGroup(ctx *gin.Context) {
 	return
 }
 
-func (server *Server) getTournamentGroups(ctx *gin.Context) {
+func (s *TournamentGroupServer) GetTournamentGroupsFunc(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse tournament id: %v", err)
+		fmt.Errorf("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusResetContent, err)
 		return
 	}
 
-	response, err := server.store.GetTournamentGroups(ctx, tournamentID)
+	response, err := s.store.GetTournamentGroups(ctx, tournamentID)
 	if err != nil {
-		server.logger.Error("Failed to get tournament group: %v", err)
+		fmt.Errorf("Failed to get tournament group: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

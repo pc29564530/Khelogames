@@ -1,13 +1,24 @@
-package api
+package handlers
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+type TournamentOrganizerServer struct {
+	store  *db.Store
+	logger *logger.Logger
+}
+
+func NewTournamentOrganizerServer(store *db.Store, logger *logger.Logger) *TournamentOrganizerServer {
+	return &TournamentOrganizerServer{store: store, logger: logger}
+}
 
 type createTournamentOrganizationRequest struct {
 	TournamentID    int64     `json:"tournament_id"`
@@ -18,12 +29,12 @@ type createTournamentOrganizationRequest struct {
 	TournamentStart time.Time `json:"tournament_start"`
 }
 
-func (server *Server) createTournamentOrganization(ctx *gin.Context) {
+func (s *TournamentOrganizerServer) CreateTournamentOrganizationFunc(ctx *gin.Context) {
 
 	var req createTournamentOrganizationRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind: %v", err)
+		fmt.Errorf("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -37,7 +48,7 @@ func (server *Server) createTournamentOrganization(ctx *gin.Context) {
 		AdvancedTeam:    req.AdvancedTeam,
 	}
 
-	response, err := server.store.CreateTournamentOrganization(ctx, arg)
+	response, err := s.store.CreateTournamentOrganization(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
 		return
@@ -47,18 +58,18 @@ func (server *Server) createTournamentOrganization(ctx *gin.Context) {
 	return
 }
 
-func (server *Server) getTournamentOrganization(ctx *gin.Context) {
+func (s *TournamentOrganizerServer) GetTournamentOrganizationFunc(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil || tournamentIDStr == " " {
-		server.logger.Error("Failed to parse tournament id: %v", err)
+		fmt.Errorf("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
-	response, err := server.store.GetTournamentOrganization(ctx, tournamentID)
+	response, err := s.store.GetTournamentOrganization(ctx, tournamentID)
 	if err != nil {
-		server.logger.Error("Failed to get tournament organization: %v", err)
+		fmt.Errorf("Failed to get tournament organization: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

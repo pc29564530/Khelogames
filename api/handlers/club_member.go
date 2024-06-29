@@ -1,24 +1,35 @@
-package api
+package handlers
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
+type ClubMemberServer struct {
+	store  *db.Store
+	logger *logger.Logger
+}
+
+func NewClubMemberServer(store *db.Store, logger *logger.Logger) *ClubMemberServer {
+	return &ClubMemberServer{store: store, logger: logger}
+}
+
 type addClubMemberRequest struct {
 	ClubID   int64 `json:"club_id"`
 	PlayerID int64 `json:"player_id"`
 }
 
-func (server *Server) addClubMember(ctx *gin.Context) {
+func (s *ClubMemberServer) AddClubMemberFunc(ctx *gin.Context) {
 	var req addClubMemberRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind: %v", err)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		fmt.Errorf("Failed to bind: %v", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
@@ -28,9 +39,9 @@ func (server *Server) addClubMember(ctx *gin.Context) {
 		PlayerID: req.PlayerID,
 	}
 
-	members, err := server.store.AddClubMember(ctx, arg)
+	members, err := s.store.AddClubMember(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to add club member: %v", err)
+		fmt.Errorf("Failed to add club member: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -43,17 +54,17 @@ type getClubMemberRequest struct {
 	ClubID int64 `json:"club_id"`
 }
 
-func (server *Server) getClubMember(ctx *gin.Context) {
+func (s *ClubMemberServer) GetClubMemberFunc(ctx *gin.Context) {
 	clubIDStr := ctx.Query("club_id")
 	clubID, err := strconv.ParseInt(clubIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse club id string: %v", err)
+		fmt.Errorf("Failed to parse club id string: %v", err)
 		return
 	}
 
-	members, err := server.store.GetClubMember(ctx, clubID)
+	members, err := s.store.GetClubMember(ctx, clubID)
 	if err != nil {
-		server.logger.Error("Failed to get club member: %v", err)
+		fmt.Errorf("Failed to get club member: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}

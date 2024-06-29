@@ -1,13 +1,24 @@
-package api
+package handlers
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/logger"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+type TournamentMatchServer struct {
+	store  *db.Store
+	logger *logger.Logger
+}
+
+func NewTournamentMatch(store *db.Store, logger *logger.Logger) *TournamentMatchServer {
+	return &TournamentMatchServer{store: store, logger: logger}
+}
 
 type createTournamentMatchRequest struct {
 	OrganizerID  int64     `json:"organizer_id"`
@@ -21,12 +32,12 @@ type createTournamentMatchRequest struct {
 	EndTime      time.Time `json:"end_time"`
 }
 
-func (server *Server) createTournamentMatch(ctx *gin.Context) {
+func (s *TournamentMatchServer) CreateTournamentMatchFunc(ctx *gin.Context) {
 	var req createTournamentMatchRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind: %v", err)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		fmt.Errorf("Failed to bind: %v", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
@@ -42,27 +53,27 @@ func (server *Server) createTournamentMatch(ctx *gin.Context) {
 		EndTime:      req.EndTime,
 	}
 
-	server.logger.Info("Create match params: %v", arg)
+	//server.GetLogger().Info("Create match params: %v", arg)
 
-	response, err := server.store.CreateMatch(ctx, arg)
+	response, err := s.store.CreateMatch(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to create match: %v", err)
+		fmt.Errorf("Failed to create match: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
 
-	server.logger.Info("Create match response: %v", response)
+	//server.GetLogger().Info("Create match response: %v", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
 
-func (server *Server) getAllTournamentMatch(ctx *gin.Context) {
+func (s *TournamentMatchServer) GetAllTournamentMatchFunc(ctx *gin.Context) {
 
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse tournament id: %v", err)
+		fmt.Errorf("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusNotAcceptable, err)
 		return
 	}
@@ -72,9 +83,9 @@ func (server *Server) getAllTournamentMatch(ctx *gin.Context) {
 		Sports:       sports,
 	}
 
-	response, err := server.store.GetTournamentMatch(ctx, arg)
+	response, err := s.store.GetTournamentMatch(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to get tournament match: %v", err)
+		fmt.Errorf("Failed to get tournament match: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -89,11 +100,11 @@ type updateMatchScheduleTimeRequest struct {
 	MatchID   int64     `json:"match_id"`
 }
 
-func (server *Server) updateMatchScheduleTime(ctx *gin.Context) {
+func (s *TournamentMatchServer) updateMatchScheduleTime(ctx *gin.Context) {
 	var req updateMatchScheduleTimeRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		server.logger.Error("Failed to bind: %v", err)
+		fmt.Errorf("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -104,9 +115,9 @@ func (server *Server) updateMatchScheduleTime(ctx *gin.Context) {
 		MatchID:   req.MatchID,
 	}
 
-	response, err := server.store.UpdateMatchScheduleTime(ctx, arg)
+	response, err := s.store.UpdateMatchScheduleTime(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to update match schedule time: %v", err)
+		fmt.Errorf("Failed to update match schedule time: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -120,7 +131,7 @@ type getMatchRequest struct {
 	TournamentID int64 `json:"tournament_id"`
 }
 
-func (server *Server) getMatch(ctx *gin.Context) {
+func (s *TournamentMatchServer) GetMatchFunc(ctx *gin.Context) {
 	// var req getMatchRequest
 	// err := ctx.ShouldBindJSON(&req)
 	// if err != nil {
@@ -132,7 +143,7 @@ func (server *Server) getMatch(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse tournament id: %v", err)
+		fmt.Errorf("Failed to parse tournament id: %v", err)
 		ctx.JSON(http.StatusNotAcceptable, err)
 		return
 	}
@@ -140,7 +151,7 @@ func (server *Server) getMatch(ctx *gin.Context) {
 	matchIDStr := ctx.Query("match_id")
 	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
 	if err != nil {
-		server.logger.Error("Failed to parse match id: %v", err)
+		fmt.Errorf("Failed to parse match id: %v", err)
 		ctx.JSON(http.StatusNotAcceptable, err)
 		return
 	}
@@ -150,9 +161,9 @@ func (server *Server) getMatch(ctx *gin.Context) {
 		TournamentID: tournamentID,
 	}
 
-	response, err := server.store.GetMatch(ctx, arg)
+	response, err := s.store.GetMatch(ctx, arg)
 	if err != nil {
-		server.logger.Error("Failed to get match: %v", err)
+		fmt.Errorf("Failed to get match: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
