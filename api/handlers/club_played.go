@@ -51,7 +51,7 @@ func (s *ClubTournamentServer) GetClubPlayedTournamentFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *ClubTournamentServer) FetClubPlayedTournamentsFunc(ctx *gin.Context) {
+func (s *ClubTournamentServer) GetClubPlayedTournamentsFunc(ctx *gin.Context) {
 	clubIDStr := ctx.Query("club_id")
 	clubID, err := strconv.ParseInt(clubIDStr, 10, 64)
 	if err != nil {
