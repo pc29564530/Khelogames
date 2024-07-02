@@ -2,26 +2,30 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	"log"
+	"net/http"
+	"os"
+
 	"khelogames/api/auth"
 	"khelogames/api/cricket"
 	"khelogames/api/football"
 	"khelogames/api/handlers"
+	"khelogames/api/messenger"
 	"khelogames/api/server"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"khelogames/token"
 	"khelogames/util"
-	"log"
-	"os"
 
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	_ "github.com/lib/pq"
 )
 
 func main() {
 	newLogger := logger.NewLogger()
 
-	config, err := util.LoadConfig(".")
+	config, _ := util.LoadConfig(".")
 
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
@@ -32,9 +36,30 @@ func main() {
 
 	tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
-		fmt.Errorf("cannot create token maker: %w", err)
+		log.Errorf("cannot create token maker: %v", err)
+		os.Exit(1)
 	}
 
+	rabbitConn, rabbitChan, err := messenger.StartRabbitMQ(config)
+	if err != nil {
+		log.Fatal("cannot start RabbitMQ:", err)
+	}
+	defer rabbitConn.Close()
+
+	// Define clients map for WebSocket connections
+	clients := make(map[*websocket.Conn]bool)
+
+	// WebSocket upgrader configuration
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	// Channel for broadcasting messages to WebSocket clients
+	broadcast := make(chan []byte)
+
+	// Initialize HTTP servers and handlers
 	otpServer := auth.NewOtpServer(store, log)
 	loginServer := auth.NewLoginServer(store, log, tokenMaker, config)
 	signupServer := auth.NewSignupServer(store, log)
@@ -52,22 +77,25 @@ func main() {
 	commentServer := handlers.NewCommentServer(store, log)
 	clubMemberServer := handlers.NewClubMemberServer(store, log)
 	groupTeamServer := handlers.NewGroupTeamServer(store, log)
-
-	//handlers.NewCommunityMessageSever(store, log)
-	//handlers.NewClubMemberServer(store, log)
 	playerProfileServer := handlers.NewPlayerProfileServer(store, log)
 	tournamentGroupServer := handlers.NewTournamentGroup(store, log)
 	tournamentMatchServer := handlers.NewTournamentMatch(store, log)
 	tournamentOrganizerServer := handlers.NewTournamentOrganizerServer(store, log)
 	tournamentStanding := handlers.NewTournamentStanding(store, log)
-	//handlers.NewClubMemberServer(store, log)
 	footballMatchServer := football.NewFootballMatches(store, log)
 	cricketMatchServer := cricket.NewCricketMatch(store, log)
 	tournamentServer := handlers.NewTournamentServer(store, log)
 	cricketMatchTossServer := cricket.NewCricketMatchToss(store, log)
 	cricketMatchPlayerScoreServer := cricket.NewCricketMatchScore(store, log)
 	ClubTournamentServer := handlers.NewClubTournamentServer(store, log)
+	footballUpdateServer := football.NewFootballUpdate(store, log)
 
+	// Initialize WebSocket handler
+	webSocketHandlerImpl := messenger.NewWebSocketHandler(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
+	messageServer := messenger.NewMessageServer(store, log, broadcast)
+
+	// Initialize Gin router
+	router := gin.Default()
 	server, err := server.NewServer(config,
 		store,
 		tokenMaker,
@@ -99,18 +127,20 @@ func main() {
 		cricketMatchTossServer,
 		cricketMatchPlayerScoreServer,
 		ClubTournamentServer,
+		footballUpdateServer,
+		webSocketHandlerImpl,
+		messageServer,
+		router,
 	)
 	if err != nil {
-		newLogger.Error("Server does not created", err)
+		newLogger.Error("Server creation failed", err)
+		os.Exit(1)
 	}
 
+	// Start server
 	err = server.Start(config.ServerAddress)
 	if err != nil {
-		newLogger.Error("cannot start server", err)
-	}
-
-	if err != nil {
-		fmt.Println("Error:", err)
+		newLogger.Error("Server start failed", err)
 		os.Exit(1)
 	}
 }
