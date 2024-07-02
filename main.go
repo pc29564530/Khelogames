@@ -94,6 +94,8 @@ func main() {
 	webSocketHandlerImpl := messenger.NewWebSocketHandler(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
 	messageServer := messenger.NewMessageServer(store, log, broadcast)
 
+	communityMessageServer := messenger.NewCommunityMessageSever(store, log, broadcast)
+
 	// Initialize Gin router
 	router := gin.Default()
 	server, err := server.NewServer(config,
@@ -131,6 +133,7 @@ func main() {
 		webSocketHandlerImpl,
 		messageServer,
 		router,
+		communityMessageServer,
 	)
 	if err != nil {
 		newLogger.Error("Server creation failed", err)

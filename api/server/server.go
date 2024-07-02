@@ -1,11 +1,11 @@
 package server
 
 import (
-	"fmt"
 	"khelogames/api/auth"
 	"khelogames/api/cricket"
 	"khelogames/api/football"
 	"khelogames/api/handlers"
+	"khelogames/api/messenger"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"khelogames/token"
@@ -13,168 +13,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
-	ampq "github.com/rabbitmq/amqp091-go"
 )
 
-// type ServerInterface interface {
-// 	Start(address string) error
-// 	HandleWebSocket(ctx *gin.Context)
-// 	GetLogger() *logger.Logger
-// 	GetStore() *db.Store
-// }
-
-// type Server struct {
-// 	config     util.Config
-// 	store      *db.Store
-// 	tokenMaker token.Maker
-// 	router     *gin.Engine
-// 	upgrader   websocket.Upgrader
-// 	clients    map[*websocket.Conn]bool
-// 	broadcast  chan []byte
-// 	rabbitConn *ampq.Connection
-// 	rabbitChan *ampq.Channel
-// 	mutex      sync.Mutex
-// 	logger     *logger.Logger
-// }
-
 type Server struct {
-	config     util.Config
-	store      *db.Store
-	tokenMaker token.Maker
-	logger     *logger.Logger
-	upgrader   websocket.Upgrader
-	router     *gin.Engine
-	rabbitConn *ampq.Connection
-	rabbitChan *ampq.Channel
-}
-
-// func (server *Server) GetLogger() *logger.Logger {
-// 	return server.logger
-// }
-
-// func (server *Server) GetStore() *db.Store {
-// 	return server.store
-// }
-
-// func (server *Server) TokenMaker() token.Maker {
-// 	return server.tokenMaker
-// }
-
-// func (server *Server) Users() *Users {
-// 	return server.Usersse
-// }
-
-// func startWebSocketHub() {
-// 	for {
-// 		select {
-// 		case message := <-server.broadcast:
-// 			server.mutex.Lock()
-// 			for client := range server.clients {
-// 				err := client.WriteMessage(websocket.TextMessage, message)
-// 				if err != nil {
-// 					delete(server.clients, client)
-// 					client.Close()
-// 				}
-// 			}
-// 			server.mutex.Unlock()
-// 		}
-// 	}
-// }
-
-// func (server *Server) HandleWebSocket(ctx *gin.Context) {
-// 	authHeader := ctx.GetHeader("Authorization")
-// 	auth := strings.Split(authHeader, " ")
-
-// 	if len(auth) == 0 {
-// 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
-// 		return
-// 	}
-
-// 	_, err := server.tokenMaker.VerifyToken(auth[1])
-// 	if err != nil {
-// 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-// 		return
-// 	}
-
-// 	conn, err := server.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
-// 	if err != nil {
-// 		return
-// 	}
-
-// 	defer conn.Close()
-
-// 	server.clients[conn] = true
-
-// 	for {
-// 		_, msg, err := conn.ReadMessage()
-
-// 		if err != nil {
-// 			delete(server.clients, conn)
-// 			break
-// 		}
-
-// 		var message map[string]string
-// 		err = json.Unmarshal(msg, &message)
-// 		if err != nil {
-// 			fmt.Print("unable to unmarshal msg ", err)
-// 			return
-// 		}
-
-// 		err = server.rabbitChan.Publish(
-// 			"",
-// 			"message",
-// 			false,
-// 			false,
-// 			ampq.Publishing{
-// 				ContentType: "application/json",
-// 				Body:        msg,
-// 			},
-// 		)
-
-// 		authToken := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-// 		b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
-// 		data, err := base64.StdEncoding.DecodeString(b64data)
-// 		if err != nil {
-// 			fmt.Print("unable to decode :", err)
-// 			return
-// 		}
-// 		mediaType := "image"
-// 		path, err := util.SaveImageToFile(data, mediaType)
-// 		if err != nil {
-// 			fmt.Print("unable to create a file")
-// 			return
-// 		}
-
-// 		arg := db.CreateNewMessageParams{
-// 			Content:          message["content"],
-// 			IsSeen:           false,
-// 			SenderUsername:   authToken.Username,
-// 			ReceiverUsername: message["receiver_username"],
-// 			MediaUrl:         path,
-// 			MediaType:        message["media_type"],
-// 		}
-
-// 		_, err = server.store.CreateNewMessage(ctx, arg)
-// 		if err != nil {
-// 			fmt.Print("unable to store new message: ", err)
-// 			return
-// 		}
-
-// 		server.broadcast <- msg
-// 	}
-// }
-
-func startRabbitMQ(config util.Config) (*ampq.Connection, *ampq.Channel, error) {
-	rabbitConn, err := ampq.Dial(config.RabbitSource)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to connect to RabbitMQ :%w", err)
-	}
-	rabbitChan, err := rabbitConn.Channel()
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to open RabbitMQ channel :%w", err)
-	}
-	return rabbitConn, rabbitChan, nil
+	config               util.Config
+	store                *db.Store
+	tokenMaker           token.Maker
+	logger               *logger.Logger
+	router               *gin.Engine
+	webSocketHandlerImpl *messenger.WebSocketHandlerImpl
 }
 
 func NewServer(config util.Config,
@@ -208,34 +55,21 @@ func NewServer(config util.Config,
 	cricketMatchTossServer *cricket.CricketMatchTossServer,
 	cricketMatchPlayerScoreServer *cricket.CricketMatchScoreServer,
 	clubTournamentServer *handlers.ClubTournamentServer,
+	footballUpdateServer *football.FootballUpdateServer,
+	webSocketHandlerImpl *messenger.WebSocketHandlerImpl,
+	messageServer *messenger.MessageSever,
+	router *gin.Engine,
+	communityMessageServer *messenger.CommunityMessageServer,
 ) (*Server, error) {
-	// tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("cannot create token maker: %w", err)
-	// }
-
-	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-
-	rabbitConn, rabbitChan, err := startRabbitMQ(config)
-	if err != nil {
-		return nil, fmt.Errorf("cannot run the rabbit mq :%w", err)
-	}
 
 	server := &Server{
-		config:     config,
-		store:      store,
-		tokenMaker: tokenMaker,
-		upgrader:   upgrader,
-		rabbitConn: rabbitConn,
-		rabbitChan: rabbitChan,
-		logger:     logger,
+		config:               config,
+		store:                store,
+		tokenMaker:           tokenMaker,
+		logger:               logger,
+		router:               router,
+		webSocketHandlerImpl: webSocketHandlerImpl,
 	}
-
-	router := gin.Default()
 
 	router.Use(corsHandle())
 	router.StaticFS("/api/images", http.Dir("/Users/pawan/database/Khelogames/images"))
@@ -253,7 +87,7 @@ func NewServer(config util.Config,
 	}
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
-		//authRouter.GET("/ws", wsHandler.HandleWebSocket)
+		authRouter.GET("/ws", webSocketHandlerImpl.HandleWebSocket)
 		authRouter.POST("/addJoinCommunity", joinCommunityServer.AddJoinCommunityFunc)
 		authRouter.GET("/getUserByCommunity/:community_name", joinCommunityServer.GetUserByCommunityFunc)
 		authRouter.GET("/getCommunityByUser", joinCommunityServer.GetCommunityByUserFunc)
@@ -286,7 +120,7 @@ func NewServer(config util.Config,
 		authRouter.PUT("/updateFullName", profileServer.UpdateFullNameFunc)
 		authRouter.PUT("/updateBio", profileServer.UpdateBioFunc)
 		authRouter.GET("getThreadByUser/:username", threadServer.GetThreadByUserFunc)
-		//authRouter.GET("/getMessage/:receiver_username", threadServer.GetMessageByReceiverFunc)
+		authRouter.GET("/getMessage/:receiver_username", messageServer.GetMessageByReceiverFunc)
 		authRouter.PUT("/updateAvatarUrl", profileServer.UpdateAvatarUrlFunc)
 		authRouter.PUT("/updateClubSport", clubServer.UpdateClubSportFunc)
 		authRouter.POST("/addClubMember", clubMemberServer.AddClubMemberFunc)
@@ -297,34 +131,34 @@ func NewServer(config util.Config,
 		authRouter.PUT("/updatePlayerProfileAvatarUrl", playerProfileServer.UpdatePlayerProfileAvatarFunc)
 		authRouter.POST("/addGroupTeam", groupTeamServer.AddGroupTeamFunc)
 		authRouter.POST("/createTournamentOrganization", tournamentOrganizerServer.CreateTournamentOrganizationFunc)
-		//authRouter.GET("/getMessagedUser", server.GetUserByMessageSendFunc)
-		// authRouter.POST("/createUploadMedia", server.CreateUploadMediaFunc)
-		// authRouter.POST("/createMessageMedia", server.CreateMessageMediaFunc)
-		// authRouter.POST("/createCommunityMessage", server.CreateCommunityMessageFunc)
-		// authRouter.GET("/getCommunityMessage", server.GetCommunityMessageFunc)
-		// authRouter.GET("/getCommunityByMessage", server.GetCommunityByMessageFunc)
+		authRouter.GET("/getMessagedUser", messageServer.GetUserByMessageSendFunc)
+		authRouter.POST("/createUploadMedia", communityMessageServer.CreateUploadMediaFunc)
+		authRouter.POST("/createMessageMedia", communityMessageServer.CreateMessageMediaFunc)
+		authRouter.POST("/createCommunityMessage", communityMessageServer.CreateCommunityMessageFunc)
+		authRouter.GET("/getCommunityMessage", communityMessageServer.GetCommuntiyMessageFunc)
+		authRouter.GET("/getCommunityByMessage", communityMessageServer.GetCommunityByMessageFunc)
 		authRouter.POST("/createOrganizer", tournamentServer.CreateOrganizerFunc)
 		authRouter.GET("/getOrganizer", tournamentServer.GetOrganizerFunc)
 		authRouter.POST("/createClub", clubServer.CreateClubFunc)
-
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	sportRouter.POST("/createTournamentMatch", tournamentMatchServer.CreateTournamentMatchFunc)
 	sportRouter.GET("/getTeamsByGroup", groupTeamServer.GetTeamsByGroupFunc)
-	sportRouter.GET("/getTeams/:tournament_id", tournamentServer.GetTeamFunc)
+	sportRouter.GET("/getTeams/:tournament_id", tournamentServer.GetTeamsFunc)
+	sportRouter.GET("/getTeam/:team_id", tournamentServer.GetTeamFunc)
 	sportRouter.GET("/getTournamentsBySport", tournamentServer.GetTournamentsBySportFunc)
 	sportRouter.GET("/getTournament/:tournament_id", tournamentServer.GetTournamentFunc)
-	//sportRouter.POST("/addFootballMatchScore", footballMatchServer.AddFootballMatchScoreFunc)
+	sportRouter.POST("/addFootballMatchScore", footballMatchServer.AddFootballMatchScoreFunc)
 	//sportRouter.GET("/getFootballMatchScore", footballMatchServer.GetFootballMatchScoreFunc)
-	//sportRouter.PUT("/updateFootballMatchScore", football.UpdateFootballMatchScoreFunc)
-	//sportRouter.POST("/addFootballGoalByPlayer", server.AddFootballGoalByPlayerFunc)
+	sportRouter.PUT("/updateFootballMatchScore", footballUpdateServer.UpdateFootballMatchScoreFunc)
+	sportRouter.POST("/addFootballGoalByPlayer", footballUpdateServer.AddFootballGoalByPlayerFunc)
 	sportRouter.GET("/getClub/:id", clubServer.GetClubFunc)
 	sportRouter.GET("/getClubs", clubServer.GetClubsFunc)
 	sportRouter.GET("/getClubMember", clubMemberServer.GetClubMemberFunc)
 	sportRouter.GET("/getAllTournamentMatch", tournamentMatchServer.GetAllTournamentMatchFunc)
 
 	sportRouter.POST("/addCricketMatchScore", cricketMatchPlayerScoreServer.AddCricketMatchScoreFunc)
-	//sportRouter.GET("/getCricketMatchScore", cricketMatchServer.GetCricketTournamentMatchesFunc)
+	sportRouter.GET("/getCricketTournamentMatches", cricketMatchServer.GetCricketTournamentMatchesFunc)
 	sportRouter.PUT("/updateCricketMatchRunsScore", cricketMatchPlayerScoreServer.UpdateCricketMatchRunsScoreFunc)
 	sportRouter.PUT("/updateCricketMatchWicket", cricketMatchPlayerScoreServer.UpdateCricketMatchWicketFunc)
 	sportRouter.PUT("/updateCricketMatchExtras", cricketMatchPlayerScoreServer.UpdateCricketMatchExtrasFunc)
@@ -350,9 +184,9 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTournamentStanding", tournamentStanding.GetTournamentStandingFunc)
 	sportRouter.GET("/getClubsBySport", clubServer.GetClubsBySportFunc)
 	sportRouter.POST("/addTeam", tournamentServer.AddTeamFunc)
+	//sportRouter.GET("/getTeams", tournamentServer.GetTeamsFunc)
 	sportRouter.GET("/getMatch", tournamentMatchServer.GetMatchFunc)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
-	// fm := football.NewFootballMatches(server)
 	sportRouter.GET("/getFootballTournamentMatches", footballMatchServer.GetFootballTournamentMatchesFunc)
 
 	server.router = router
@@ -360,7 +194,7 @@ func NewServer(config util.Config,
 }
 
 func (server *Server) Start(address string) error {
-	// go server.wsHandler.startWebSocketHub()
+	go server.webSocketHandlerImpl.StartWebSocketHub()
 	return server.router.Run(address)
 }
 
