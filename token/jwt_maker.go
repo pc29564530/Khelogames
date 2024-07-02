@@ -3,8 +3,9 @@ package token
 import (
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 const minSecretKeySize = 32
