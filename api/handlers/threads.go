@@ -36,7 +36,7 @@ func (s *ThreadServer) CreateThreadFunc(ctx *gin.Context) {
 	var req createThreadRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -47,13 +47,13 @@ func (s *ThreadServer) CreateThreadFunc(ctx *gin.Context) {
 
 		data, err := base64.StdEncoding.DecodeString(b64data)
 		if err != nil {
-			fmt.Errorf("Failed to decode string", err)
+			s.logger.Error("Failed to decode string", err)
 			return
 		}
 
 		path, err = util.SaveImageToFile(data, req.MediaType)
 		if err != nil {
-			fmt.Errorf("Failed to save image to file ", err)
+			s.logger.Error("Failed to save image to file ", err)
 			return
 		}
 	}
@@ -70,13 +70,15 @@ func (s *ThreadServer) CreateThreadFunc(ctx *gin.Context) {
 		LikeCount:       0,
 	}
 
+	s.logger.Debug("received arg of create thread params: %s", arg)
+
 	thread, err := s.store.CreateThread(ctx, arg)
 	if err != nil {
-		fmt.Errorf("Failed to create new thread ", err)
+		s.logger.Error("Failed to create new thread ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	fmt.Println("Thread successfully created ")
+	s.logger.Info("Thread successfully created ")
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -129,10 +131,52 @@ func (s *ThreadServer) GetThreadByUserFunc(ctx *gin.Context) {
 	return
 }
 
+func (s *ThreadServer) GetAllThreadDetailFunc(ctx *gin.Context) {
+	threads, err := s.store.GetAllThreads(ctx)
+	if err != nil {
+		s.logger.Error("Failed to find the all threads ", err)
+		ctx.JSON(http.StatusNotFound, (err))
+		return
+	}
+	s.logger.Debug("Received threads from database")
+	var threadsDetails []map[string]interface{}
+
+	for _, thread := range threads {
+		profile, err := s.store.GetProfile(ctx, thread.Username)
+		if err != nil {
+			s.logger.Error("Failed to find the profile ", err)
+			return
+		}
+		var displayText string
+		if profile.AvatarUrl == "" {
+			displayText = strings.ToUpper(string(profile.FullName[0]))
+		}
+
+		threadsDetail := map[string]interface{}{
+			"id":               thread.ID,
+			"username":         thread.Username,
+			"communities_name": thread.CommunitiesName,
+			"title":            thread.Title,
+			"content":          thread.Content,
+			"media_type":       thread.MediaType,
+			"media_url":        thread.MediaUrl,
+			"like_count":       thread.LikeCount,
+			"full_name":        profile.FullName,
+			"avatar_url":       profile.AvatarUrl,
+			"display_text":     displayText,
+			"created_at":       thread.CreatedAt,
+		}
+		threadsDetails = append(threadsDetails, threadsDetail)
+	}
+	ctx.JSON(http.StatusOK, threadsDetails)
+	return
+
+}
+
 func (s *ThreadServer) GetAllThreadsFunc(ctx *gin.Context) {
 	threads, err := s.store.GetAllThreads(ctx)
 	if err != nil {
-		fmt.Errorf("Failed to find the all threads ", err)
+		s.logger.Error("Failed to find the all threads ", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
@@ -142,6 +186,59 @@ func (s *ThreadServer) GetAllThreadsFunc(ctx *gin.Context) {
 
 type getThreadsByCommunitiesRequest struct {
 	CommunitiesName string `uri:"communities_name"`
+}
+
+func (s *ThreadServer) GetAllThreadsByCommunityDetailsFunc(ctx *gin.Context) {
+	var req getThreadsByCommunitiesRequest
+
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+	}
+
+	s.logger.Info("get community name: %s", req.CommunitiesName)
+
+	threads, err := s.store.GetAllThreadsByCommunities(ctx, req.CommunitiesName)
+	if err != nil {
+		s.logger.Error("Failed to get thread by communities: %v", err)
+		ctx.JSON(http.StatusNotFound, (err))
+		return
+	}
+
+	s.logger.Info("Received threads from database", threads)
+	var threadsDetails []map[string]interface{}
+
+	for _, thread := range threads {
+		profile, err := s.store.GetProfile(ctx, thread.Username)
+		if err != nil {
+			s.logger.Error("Failed to find the profile ", err)
+			return
+		}
+
+		var displayText string
+		if profile.AvatarUrl == "" {
+			displayText = strings.ToUpper(string(profile.FullName[0]))
+		}
+
+		threadsDetail := map[string]interface{}{
+			"id":               thread.ID,
+			"username":         thread.Username,
+			"communities_name": thread.CommunitiesName,
+			"title":            thread.Title,
+			"content":          thread.Content,
+			"media_type":       thread.MediaType,
+			"media_url":        thread.MediaUrl,
+			"like_count":       thread.LikeCount,
+			"full_name":        profile.FullName,
+			"avatar_url":       profile.AvatarUrl,
+			"display_text":     displayText,
+			"created_at":       thread.CreatedAt,
+		}
+		threadsDetails = append(threadsDetails, threadsDetail)
+	}
+	ctx.JSON(http.StatusOK, threadsDetails)
+	return
 }
 
 func (s *ThreadServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
