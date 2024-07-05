@@ -53,56 +53,56 @@ func (s *LoginServer) CreateLoginFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row found: %v", err)
+			s.logger.Error("No row found: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	fmt.Println("linen no 64: ", req.Username)
-	fmt.Println("line no 65: ", s)
-	fmt.Println("Line no 66: ", s.store)
+
+	s.logger.Debug(fmt.Sprintf("successfully get the login request: %v", req))
+
 	user, err := s.store.GetUser(ctx, req.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row found: %v", err)
+			s.logger.Error("No row found: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Failed to get the user: %v", err)
+		s.logger.Error("Failed to get the user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	fmt.Println("Line no 68 Login: ", user)
+	s.logger.Debug(fmt.Sprintf("successfully get the user: %v", user))
 
 	err = util.CheckPassword(req.Password, user.HashedPassword)
 	if err != nil {
-		fmt.Errorf("Failed to match password: %v", err)
+		s.logger.Error("Failed to match password: %v", err)
 		ctx.JSON(http.StatusUnauthorized, (err))
 		return
 	}
 
-	fmt.Println("Line no 8: N7", s.tokenMaker)
+	s.logger.Debug(fmt.Sprintf("successfully check password"))
 
 	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
 		user.Username,
 		s.config.AccessTokenDuration,
 	)
 	if err != nil {
-		fmt.Errorf("Failed to create access token: %v", err)
+		s.logger.Error("Failed to create access token: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-
+	s.logger.Debug(fmt.Sprintf("successfully create a access token %s and access payload %s", accessToken, accessPayload))
 	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
 		user.Username,
 		s.config.RefreshTokenDuration,
 	)
 
 	if err != nil {
-		fmt.Errorf("Failed to create refresh token: %v", err)
+		s.logger.Error("Failed to create refresh token: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -117,7 +117,7 @@ func (s *LoginServer) CreateLoginFunc(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		fmt.Errorf("Failed to create session: %v", err)
+		s.logger.Error("Failed to create session: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -134,7 +134,7 @@ func (s *LoginServer) CreateLoginFunc(ctx *gin.Context) {
 			Role:         user.Role,
 		},
 	}
-	fmt.Println("Logged in successfully")
+	s.logger.Info("Logged in successfully")
 	ctx.JSON(http.StatusOK, rsp)
 	return
 }
@@ -142,22 +142,24 @@ func (s *LoginServer) CreateLoginFunc(ctx *gin.Context) {
 func (s *LoginServer) VerifyMobileAndPasswordFunc(ctx *gin.Context, username string, password string, userData db.User) error {
 	var err error
 	if userData.Username != username {
-		fmt.Errorf("Failed to verify mobile and password: %v", err)
+		s.logger.Error("Failed to verify mobile and password: %v", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return err
 	}
+	s.logger.Debug(fmt.Sprintf("successfully matches the username: %v", username))
 	pass, err := util.HashPassword(password)
 	if err != nil {
 		s.logger.Debug("Failed to convert password: %v", err)
 		return err
 	}
-	fmt.Println(pass)
-	fmt.Println(userData.HashedPassword)
+	s.logger.Debug(fmt.Sprintf("input password of user: %v", pass))
+	s.logger.Debug(fmt.Sprintf("store password of the user: %v", userData.HashedPassword))
 	err = util.CheckPassword(pass, userData.HashedPassword)
 	if err != nil {
-		fmt.Errorf("Failed to verify mobile and password: %v", err)
+		s.logger.Error("Failed to verify mobile and password: %v", err)
 		return err
 	}
+	s.logger.Info("successfully verify the password")
 	return nil
 }
 
@@ -165,7 +167,7 @@ func (s *LoginServer) GenerateSessionTokenFunc() (string, error) {
 	token := make([]byte, 32)
 	_, err := rand.Read(token)
 	if err != nil {
-		fmt.Errorf("Failed to generate session token: %v", err)
+		s.logger.Error("Failed to generate session token: %v", err)
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(token), nil

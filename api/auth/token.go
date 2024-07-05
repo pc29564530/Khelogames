@@ -36,41 +36,44 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	config, err := util.LoadConfig(".")
 	var req renewAccessTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusBadRequest, (err))
 		return
 	}
-
+	s.logger.Debug(fmt.Sprintf("access token request: %v", req))
 	refreshPayload, err := s.tokenMaker.VerifyToken(req.RefreshToken)
 	if err != nil {
-		fmt.Errorf("Failed to verify token: %v", err)
+		s.logger.Error("Failed to verify token: %v", err)
 		ctx.JSON(http.StatusUnauthorized, (err))
 		return
 	}
 
+	s.logger.Debug(fmt.Sprintf("verify refresh token: %v", refreshPayload))
+
 	session, err := s.store.GetSessions(ctx, refreshPayload.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row error: %v", err)
+			s.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
+		s.logger.Error("successfully get sessions")
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
 	if session.Username != refreshPayload.Username {
-		fmt.Errorf("Failed to get correct session user")
+		s.logger.Error("Failed to get correct session user")
 		return
 	}
 
 	if session.RefreshToken != req.RefreshToken {
-		fmt.Errorf("mismatched session token")
+		s.logger.Error("mismatched session token")
 		return
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		fmt.Errorf("Expired session")
+		s.logger.Error("Expired session")
 		return
 	}
 
@@ -79,7 +82,7 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 		config.AccessTokenDuration,
 	)
 	if err != nil {
-		fmt.Errorf("Failed to create token: %v", err)
+		s.logger.Error("Failed to create token: %v", err)
 		return
 	}
 

@@ -75,15 +75,19 @@ func (h *WebSocketHandlerImpl) HandleWebSocket(ctx *gin.Context) {
 	auth := strings.Split(authHeader, " ")
 
 	if len(auth) != 2 {
+		h.logger.Error("no token provided")
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
 		return
 	}
 
 	payload, err := h.tokenMaker.VerifyToken(auth[1])
 	if err != nil {
+		h.logger.Debug("unable to get valid token: %v", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 		return
 	}
+
+	h.logger.Debug("payload of verify token: %v", payload)
 
 	conn, err := h.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -91,6 +95,8 @@ func (h *WebSocketHandlerImpl) HandleWebSocket(ctx *gin.Context) {
 		return
 	}
 	defer conn.Close()
+
+	h.logger.Debug("upgrade the websocket: %v", conn)
 
 	h.mutex.Lock()
 	h.clients[conn] = true
@@ -107,21 +113,22 @@ func (h *WebSocketHandlerImpl) HandleWebSocket(ctx *gin.Context) {
 	for {
 		fmt.Println("Line no 196")
 		_, msg, err := conn.ReadMessage()
-		fmt.Println("Error: ", err)
-		fmt.Println("Line no 108: ", string(msg))
 		if err != nil {
+			h.logger.Error("unable to read message: %v", err)
 			delete(h.clients, conn)
 			break
 		}
 
+		h.logger.Debug("successfully read message: %v", msg)
+
 		var message map[string]string
 		err = json.Unmarshal(msg, &message)
 		if err != nil {
-			fmt.Print("unable to unmarshal msg ", err)
+			h.logger.Error("unable to unmarshal msg ", err)
 			return
 		}
 
-		fmt.Println("WebSocket: ", message)
+		h.logger.Debug("unmarshal message successfully ", message)
 		err = h.rabbitChan.Publish(
 			"",
 			"message",
@@ -133,19 +140,27 @@ func (h *WebSocketHandlerImpl) HandleWebSocket(ctx *gin.Context) {
 			},
 		)
 
+		if err != nil {
+			h.logger.Error("unable to publish message to rabbitchannel: %v", err)
+			return
+		}
+
 		authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 		b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
 		data, err := base64.StdEncoding.DecodeString(b64data)
 		if err != nil {
-			fmt.Print("unable to decode :", err)
+			h.logger.Error("unable to decode string: %v", err)
 			return
 		}
 		mediaType := "image"
 		path, err := util.SaveImageToFile(data, mediaType)
 		if err != nil {
-			fmt.Print("unable to create a file")
+			h.logger.Error("unable to create a file")
 			return
 		}
+
+		h.logger.Debug("image path successfully created: %v", path)
+		h.logger.Info("successfully created image path")
 
 		arg := db.CreateNewMessageParams{
 			Content:          message["content"],
@@ -156,12 +171,18 @@ func (h *WebSocketHandlerImpl) HandleWebSocket(ctx *gin.Context) {
 			MediaType:        message["media_type"],
 		}
 
+		h.logger.Debug("create new message params: %v", arg)
+
 		_, err = h.store.CreateNewMessage(ctx, arg)
 		if err != nil {
-			fmt.Print("unable to store new message: ", err)
+			h.logger.Error("unable to store new message: ", err)
 			return
 		}
 
+		h.logger.Info("successfully created a new message")
+
 		h.broadcast <- msg
+
+		h.logger.Debug("Successfully broad cast message")
 	}
 }

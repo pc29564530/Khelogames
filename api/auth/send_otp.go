@@ -2,7 +2,6 @@ package auth
 
 import (
 	"database/sql"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"math/rand"
@@ -43,46 +42,54 @@ func (s *OtpServer) Otp(ctx *gin.Context) {
 	var reqSendOTP createSendOtpRequest
 	err := ctx.ShouldBindJSON(&reqSendOTP)
 
-	fmt.Println(err)
 	if err != nil {
+		s.logger.Error("unable to bind mobile number: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 	}
 
+	s.logger.Debug("mobile number request: %v", err)
+
 	otp := generateOtp()
 
+	s.logger.Debug("Otp generate: %v", otp)
+
 	err = s.sendOTP(reqSendOTP.MobileNumber, otp)
-	fmt.Println("line no 40: ", err)
 	if err != nil {
+		s.logger.Error("unable to send otp: %v", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
-	fmt.Println("Otp has been send successfully")
+	s.logger.Info("Otp has been send successfully")
 
 	arg := db.CreateSignupParams{
 		MobileNumber: reqSendOTP.MobileNumber,
 		Otp:          otp,
 	}
 
+	s.logger.Debug("signup arg: %v", err)
+
 	signup, err := s.store.CreateSignup(ctx, arg)
 	if err != nil {
-
 		if err == sql.ErrNoRows {
+			s.logger.Error("no row in signup: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
+		s.logger.Error("unable to bind signup: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Info("successfully singup")
 
 	ctx.JSON(http.StatusOK, signup)
-
 }
 
 func (s *OtpServer) sendOTP(mobileNumber string, otp string) error {
 
 	err := godotenv.Load("./app.env")
 	if err != nil {
-		fmt.Errorf("Unable to read env file: ", err)
+		s.logger.Error("Unable to read env file: ", err)
+		return err
 	}
 	AccountSid := os.Getenv("ACCOUNT_SID")
 	AuthToken := os.Getenv("AUTH_TOKEN")
