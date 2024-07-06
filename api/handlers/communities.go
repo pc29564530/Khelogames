@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"khelogames/pkg"
@@ -34,14 +33,15 @@ func (s *CommunityServer) CreateCommunitesFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row error: %v", err)
+			s.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("bind the request: %v", req)
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.CreateCommunityParams{
 		Owner:           authPayload.Username,
@@ -49,14 +49,15 @@ func (s *CommunityServer) CreateCommunitesFunc(ctx *gin.Context) {
 		Description:     req.Description,
 		CommunityType:   req.CommunityType,
 	}
+	s.logger.Debug("params arg: %v", arg)
 
 	communities, err := s.store.CreateCommunity(ctx, arg)
 	if err != nil {
-		fmt.Errorf("Failed to create community: %v", err)
+		s.logger.Error("Failed to create community: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-
+	s.logger.Debug("created community: %v", communities)
 	ctx.JSON(http.StatusOK, communities)
 	return
 }
@@ -78,18 +79,19 @@ func (s *CommunityServer) GetCommunityFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row error: %v", err)
+			s.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("bind the request: %v", req)
 
 	community, err := s.store.GetCommunity(ctx, req.ID)
 	if err != nil {
-		fmt.Errorf("Failed to get community: %v", err)
+		s.logger.Error("Failed to get community: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -100,6 +102,7 @@ func (s *CommunityServer) GetCommunityFunc(ctx *gin.Context) {
 		CommunityType:   community.CommunityType,
 		CreatedAt:       community.CreatedAt,
 	}
+	s.logger.Debug("get community response: %v", resp)
 
 	ctx.JSON(http.StatusOK, resp)
 	return
@@ -110,10 +113,11 @@ func (s *CommunityServer) GetAllCommunitiesFunc(ctx *gin.Context) {
 
 	user, err := s.store.GetAllCommunities(ctx)
 	if err != nil {
-		fmt.Errorf("Failed to  get communities: %v", err)
+		s.logger.Error("Failed to  get communities: %v", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
+	s.logger.Debug("get all community: %v", user)
 	ctx.JSON(http.StatusOK, user)
 	return
 }
@@ -128,21 +132,23 @@ func (s *CommunityServer) GetCommunitiesMemberFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row error: %v", err)
+			s.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("bind the request: %v", req)
 
 	usersList, err := s.store.GetCommunitiesMember(ctx, req.CommunitiesName)
 	if err != nil {
-		fmt.Errorf("Failed to get community member: %v", err)
+		s.logger.Error("Failed to get community member: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("get community member: %v", usersList)
 	ctx.JSON(http.StatusOK, usersList)
 }
 
@@ -155,21 +161,23 @@ func (s *CommunityServer) GetCommunityByCommunityNameFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row error %v", err)
+			s.logger.Error("No row error %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("bind the request: %v", req)
 
 	usersList, err := s.store.GetCommunityByCommunityName(ctx, req.CommunitiesName)
 	if err != nil {
-		fmt.Errorf("Failed to get community by community name: %v", err)
+		s.logger.Error("Failed to get community by community name: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("get community by commmunity name: %v", usersList)
 
 	ctx.JSON(http.StatusOK, usersList)
 }

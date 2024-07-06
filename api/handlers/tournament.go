@@ -187,7 +187,7 @@ func (s *TournamentServer) CreateOrganizerFunc(ctx *gin.Context) {
 		TournamentID:  req.TournamentID,
 	}
 
-	fmt.Println("organizer arg: %v", arg)
+	s.logger.Debug("organizer arg: %v", arg)
 
 	response, err := s.store.CreateOrganizer(ctx, arg)
 	if err != nil {
@@ -319,7 +319,7 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 	layout := "2000-05-05"
 	startOn, err := time.Parse(layout, startOnStr)
 	if err != nil {
-		fmt.Println("Error parsing date:", err)
+		s.logger.Debug("Error parsing date:", err)
 		return
 	}
 
@@ -351,13 +351,13 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 func (s *TournamentServer) GetTournamentByLevelFunc(ctx *gin.Context) {
 	sport := ctx.Param("sport")
 	category := ctx.Query("category")
-	fmt.Println("Category: ", category)
+	s.logger.Debug("Category: ", category)
 	arg := db.GetTournamentByLevelParams{
 		SportType: sport,
 		Category:  category,
 	}
 
-	fmt.Println("Tournament by level arg: %v", arg)
+	s.logger.Debug("Tournament by level arg: %v", arg)
 
 	response, err := s.store.GetTournamentByLevel(ctx, arg)
 	if err != nil {

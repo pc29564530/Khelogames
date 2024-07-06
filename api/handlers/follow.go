@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"khelogames/pkg"
@@ -32,27 +31,30 @@ func (s *FollowServer) CreateFollowingFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row error: %v", err)
+			s.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("bind the request: %v", req)
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	arg := db.CreateFollowingParams{
 		FollowerOwner:  authPayload.Username,
 		FollowingOwner: req.FollowingOwner,
 	}
+	s.logger.Debug("params arg: %v", arg)
 
 	follower, err := s.store.CreateFollowing(ctx, arg)
 	if err != nil {
-		fmt.Errorf("Failed to create following: %v", err)
+		s.logger.Error("Failed to create following: %v", err)
 		ctx.JSON(http.StatusBadRequest, (err))
 		return
 	}
+	s.logger.Debug("successfully created: %v", follower)
 	ctx.JSON(http.StatusOK, follower)
 	return
 
@@ -62,10 +64,11 @@ func (s *FollowServer) GetAllFollowerFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	follower, err := s.store.GetAllFollower(ctx, authPayload.Username)
 	if err != nil {
-		fmt.Errorf("Failed to get follwer: %v", err)
+		s.logger.Error("Failed to get follwer: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("successfully get %v", follower)
 	ctx.JSON(http.StatusOK, follower)
 	return
 }
@@ -74,10 +77,11 @@ func (s *FollowServer) GetAllFollowingFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	follower, err := s.store.GetAllFollowing(ctx, authPayload.Username)
 	if err != nil {
-		fmt.Errorf("Failed to get following: %v", err)
+		s.logger.Error("Failed to get following: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("successfully get: %v", follower)
 
 	ctx.JSON(http.StatusOK, follower)
 	return
@@ -93,21 +97,23 @@ func (s *FollowServer) DeleteFollowingFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row error: %v", err)
+			s.logger.Error("No row error: %v", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("bind the request: %v", req)
 
 	following, err := s.store.DeleteFollowing(ctx, req.FollowingOwner)
 	if err != nil {
-		fmt.Errorf("Failed to unfollow user: %v", err)
+		s.logger.Error("Failed to unfollow user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("successfully get: %v", following)
 
 	ctx.JSON(http.StatusOK, following)
 	return

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/base64"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"khelogames/pkg"
@@ -91,18 +90,18 @@ func (s *ThreadServer) GetThreadFunc(ctx *gin.Context) {
 	var req getThreadRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind ", err)
+		s.logger.Error("Failed to bind ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
 	thread, err := s.store.GetThread(ctx, req.ID)
 	if err != nil {
-		fmt.Errorf("Failed to get thread: %v", err)
+		s.logger.Error("Failed to get thread: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	fmt.Println("Successfully get the thread")
+	s.logger.Info("Successfully get the thread")
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -116,14 +115,14 @@ func (s *ThreadServer) GetThreadByUserFunc(ctx *gin.Context) {
 	var req getThreadUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
 	thread, err := s.store.GetThreadUser(ctx, req.Username)
 	if err != nil {
-		fmt.Errorf("Failed to get thread by user: %v", err)
+		s.logger.Error("Failed to get thread by user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -246,17 +245,17 @@ func (s *ThreadServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind", err)
+		s.logger.Error("Failed to bind", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 	}
 
 	threads, err := s.store.GetAllThreadsByCommunities(ctx, req.CommunitiesName)
 	if err != nil {
-		fmt.Errorf("Failed to get thread by communities: %v", err)
+		s.logger.Error("Failed to get thread by communities: %v", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
-	fmt.Println("Successfully get the thread")
+	s.logger.Info("Successfully get the thread")
 	ctx.JSON(http.StatusOK, threads)
 	return
 }
@@ -270,7 +269,7 @@ func (s *ThreadServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 	var req updateThreadLikeRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind ", err)
+		s.logger.Error("Failed to bind ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -282,12 +281,12 @@ func (s *ThreadServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 
 	thread, err := s.store.UpdateThreadLike(ctx, arg)
 	if err != nil {
-		fmt.Errorf("Failed to update like: %v", err)
+		s.logger.Error("Failed to update like: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	fmt.Println("Successfully update the thread ", err)
+	s.logger.Debug("Successfully update the thread ", thread)
 	ctx.JSON(http.StatusOK, thread)
 	return
 }
@@ -300,17 +299,17 @@ func (s *ThreadServer) GetThreadByThreadIDFunc(ctx *gin.Context) {
 	var req threadByThreadIdRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind ", err)
+		s.logger.Error("Failed to bind ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 	thread, err := s.store.GetThreadByThreadID(ctx, req.ID)
 	if err != nil {
-		fmt.Errorf("Failed to get thread by thread id ", err)
+		s.logger.Error("Failed to get thread by thread id ", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
-	fmt.Println("Successfully get thread by thread id ")
+	s.logger.Info("Successfully get thread by thread id ")
 	ctx.JSON(http.StatusAccepted, thread)
 	return
 }

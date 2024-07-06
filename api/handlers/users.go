@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"khelogames/token"
@@ -59,22 +58,24 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 		username,
 		s.config.AccessTokenDuration,
 	)
-	fmt.Println("AccessToken: ", accessToken)
 	if err != nil {
-		fmt.Errorf("Failed to create access token", err)
+		s.logger.Error("Failed to create access token", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("created a accesstoken: %v", accessToken)
 
 	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
 		username,
 		s.config.RefreshTokenDuration,
 	)
 	if err != nil {
-		fmt.Errorf("Failed to create refresh token", err)
+		s.logger.Error("Failed to create refresh token", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+
+	s.logger.Debug("created a refresh token: %v", refreshToken)
 
 	session, err := s.store.CreateSessions(ctx, db.CreateSessionsParams{
 		ID:           refreshPayload.ID,
@@ -86,11 +87,10 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 	})
 
 	if err != nil {
-		fmt.Errorf("Failed to create session", err)
+		s.logger.Error("Failed to create session", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-
 	rsp := loginUserResponse{
 		SessionID:             session.ID,
 		AccessToken:           accessToken,
@@ -103,7 +103,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 			Role:         role,
 		},
 	}
-	fmt.Println("User logged in successfully")
+	s.logger.Info("User logged in successfully")
 	ctx.JSON(http.StatusAccepted, rsp)
 	return
 }
@@ -117,23 +117,25 @@ func (s *UserServer) CreateUserFunc(ctx *gin.Context) {
 	if err != nil {
 		errCode := db.ErrorCode(err)
 		if errCode == db.UniqueViolation {
-			fmt.Errorf("Unique violation error ", err)
+			s.logger.Error("Unique violation error ", err)
 			ctx.JSON(http.StatusForbidden, (err))
 			return
 		}
 		if err == sql.ErrNoRows {
-			fmt.Errorf("No row data", err)
+			s.logger.Error("No row data", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		fmt.Errorf("Error while binding JSON", err)
+		s.logger.Error("Error while binding JSON", err)
 		ctx.JSON(http.StatusBadGateway, (err))
 		return
 	}
 
+	s.logger.Debug("bind the request: %v", req)
+
 	hashedPassword, err := util.HashPassword(req.HashedPassword)
 	if err != nil {
-		fmt.Errorf("Failed to hash password", err)
+		s.logger.Error("Failed to hash password", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -148,9 +150,8 @@ func (s *UserServer) CreateUserFunc(ctx *gin.Context) {
 	user, err := s.store.CreateUser(ctx, arg)
 
 	if err != nil {
-		fmt.Errorf("Unable to create user")
+		s.logger.Error("Unable to create user")
 		ctx.JSON(http.StatusUnauthorized, (err))
-
 		return
 	}
 
@@ -160,14 +161,18 @@ func (s *UserServer) CreateUserFunc(ctx *gin.Context) {
 		Role:         user.Role,
 	}
 
+	s.logger.Debug("successfully created user: %v", resp)
+
 	authorizationCode(ctx, resp.Username, resp.MobileNumber, resp.Role, s)
 
 	_, err = s.store.DeleteSignup(ctx, req.MobileNumber)
 	if err != nil {
-		fmt.Errorf("Unable to delete signup details: ", err)
+		s.logger.Error("Unable to delete signup details: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+
+	s.logger.Debug("delete the signup details")
 
 	//createProfile
 	argProfile := db.CreateProfileParams{
@@ -183,8 +188,8 @@ func (s *UserServer) CreateUserFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	fmt.Println("Profile created successfully")
-	fmt.Println("Successfully created the user")
+	s.logger.Info("Profile created successfully")
+	s.logger.Info("Successfully created the user")
 	return
 }
 
@@ -196,20 +201,19 @@ func (s *UserServer) GetUsersFunc(ctx *gin.Context) {
 	var req getUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	fmt.Println("Server: ", s)
-	fmt.Println("Store: ", s.store)
+	s.logger.Debug("bind the reqeust: %v", req)
 
 	users, err := s.store.GetUser(ctx, req.Username)
 	if err != nil {
-		fmt.Errorf("Failed to get user: %v", err)
+		s.logger.Error("Failed to get user: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-
+	s.logger.Debug("get the user data: %v", users)
 	ctx.JSON(http.StatusOK, users)
 	return
 }
@@ -223,10 +227,11 @@ func (s *UserServer) ListUsersFunc(ctx *gin.Context) {
 	var req getListUsersRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("bind the request: %v", req)
 	arg := db.ListUserParams{
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
@@ -234,9 +239,10 @@ func (s *UserServer) ListUsersFunc(ctx *gin.Context) {
 
 	userList, err := s.store.ListUser(ctx, arg)
 	if err != nil {
-		fmt.Errorf("Failed to get list: %v", err)
+		s.logger.Error("Failed to get list: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("get the users list: %v", userList)
 	ctx.JSON(http.StatusOK, userList)
 }

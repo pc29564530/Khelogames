@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"net/http"
@@ -28,7 +27,7 @@ func (s *ClubMemberServer) AddClubMemberFunc(ctx *gin.Context) {
 	var req addClubMemberRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Errorf("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: %v", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -41,11 +40,11 @@ func (s *ClubMemberServer) AddClubMemberFunc(ctx *gin.Context) {
 
 	members, err := s.store.AddClubMember(ctx, arg)
 	if err != nil {
-		fmt.Errorf("Failed to add club member: %v", err)
+		s.logger.Error("Failed to add club member: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
-
+	s.logger.Info("successfully added member to the club")
 	ctx.JSON(http.StatusAccepted, members)
 	return
 }
@@ -58,16 +57,19 @@ func (s *ClubMemberServer) GetClubMemberFunc(ctx *gin.Context) {
 	clubIDStr := ctx.Query("club_id")
 	clubID, err := strconv.ParseInt(clubIDStr, 10, 64)
 	if err != nil {
-		fmt.Errorf("Failed to parse club id string: %v", err)
+		s.logger.Error("Failed to parse club id string: %v", err)
 		return
 	}
+	s.logger.Debug("get club id from reqeust: %v", clubID)
 
 	members, err := s.store.GetClubMember(ctx, clubID)
 	if err != nil {
-		fmt.Errorf("Failed to get club member: %v", err)
+		s.logger.Error("Failed to get club member: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+
+	s.logger.Info("successfully get club member")
 
 	ctx.JSON(http.StatusAccepted, members)
 	return
