@@ -152,8 +152,9 @@ func (h *WebSocketHandlerImpl) HandleWebSocket(ctx *gin.Context) {
 			h.logger.Error("unable to decode string: %v", err)
 			return
 		}
+		saveImageStruct := util.NewSaveImageStruct(h.logger)
 		mediaType := "image"
-		path, err := util.SaveImageToFile(data, mediaType)
+		path, err := saveImageStruct.SaveImageToFile(data, mediaType)
 		if err != nil {
 			h.logger.Error("unable to create a file")
 			return

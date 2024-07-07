@@ -40,6 +40,8 @@ func (s *ThreadServer) CreateThreadFunc(ctx *gin.Context) {
 		return
 	}
 
+	saveImageStruct := util.NewSaveImageStruct(s.logger)
+
 	var path string
 	if req.MediaType != "" {
 		b64data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
@@ -50,7 +52,7 @@ func (s *ThreadServer) CreateThreadFunc(ctx *gin.Context) {
 			return
 		}
 
-		path, err = util.SaveImageToFile(data, req.MediaType)
+		path, err = saveImageStruct.SaveImageToFile(data, req.MediaType)
 		if err != nil {
 			s.logger.Error("Failed to save image to file ", err)
 			return

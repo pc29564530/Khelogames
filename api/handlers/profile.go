@@ -122,20 +122,21 @@ func (s *ProfileServer) UpdateProfileFunc(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("Cover string decoded successfully")
-
+	saveImageStruct := util.NewSaveImageStruct(s.logger)
 	var avatarPath string
 	mediaType := "image"
 	if req.AvatarUrl != "" {
-		avatarPath, err = util.SaveImageToFile(avatarData, mediaType)
+		avatarPath, err = saveImageStruct.SaveImageToFile(avatarData, mediaType)
 		if err != nil {
 			s.logger.Error("Failed to save avatar image: %v", err)
 			return
 		}
 		s.logger.Debug("Avatar saved successfully at %s", avatarPath)
 	}
+
 	var coverPath string
 	if req.CoverUrl != "" {
-		coverPath, err = util.SaveImageToFile(coverData, mediaType)
+		coverPath, err = saveImageStruct.SaveImageToFile(coverData, mediaType)
 		if err != nil {
 			s.logger.Error("Failed to save cover image: %v", err)
 			return
@@ -260,9 +261,9 @@ func (s *ProfileServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("Avatar string decoded successfully")
-
+	saveImageStruct := util.NewSaveImageStruct(s.logger)
 	mediaType := "image"
-	path, err := util.SaveImageToFile(avatarData, mediaType)
+	path, err := saveImageStruct.SaveImageToFile(avatarData, mediaType)
 	if err != nil {
 		s.logger.Error("Failed to save avatar image: %v", err)
 		return
@@ -310,9 +311,9 @@ func (s *ProfileServer) UpdateCoverUrlFunc(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("Cover string decoded successfully")
-
+	saveImageStruct := util.NewSaveImageStruct(s.logger)
 	mediaType := "image"
-	path, err := util.SaveImageToFile(coverData, mediaType)
+	path, err := saveImageStruct.SaveImageToFile(coverData, mediaType)
 	if err != nil {
 		s.logger.Error("Failed to save cover image: %v", err)
 		return

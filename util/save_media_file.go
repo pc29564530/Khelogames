@@ -5,17 +5,29 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"khelogames/logger"
 	"math/rand"
 	"os"
 	"strings"
 )
 
-func SaveImageToFile(data []byte, mediaType string) (string, error) {
-	randomString, err := generateRandomString(12)
+type SaveImageStruct struct {
+	logger *logger.Logger
+}
+
+func NewSaveImageStruct(logger *logger.Logger) *SaveImageStruct {
+	return &SaveImageStruct{logger: logger}
+}
+
+func (s *SaveImageStruct) SaveImageToFile(data []byte, mediaType string) (string, error) {
+	s.logger.Info("Starting SaveImageToFile function")
+
+	randomString, err := s.generateRandomString(12)
 	if err != nil {
-		fmt.Printf("Error generating random string: %v\n", err)
+		s.logger.Error("Error generating random string: %v", err)
 		return "", err
 	}
+	s.logger.Debug("Generated random string: %s", randomString)
 
 	var mediaFolder string
 	switch mediaType {
@@ -24,43 +36,60 @@ func SaveImageToFile(data []byte, mediaType string) (string, error) {
 	case "video":
 		mediaFolder = "videos"
 	default:
-		return "", fmt.Errorf("unsupported media type for inserting in mediaFolder: %s", mediaType)
+		err := fmt.Errorf("unsupported media type: %s", mediaType)
+		s.logger.Error("Unsupported media type: %v", err)
+		return "", err
 	}
 
 	filePath := fmt.Sprintf("/Users/pawan/database/Khelogames/%s/%s", mediaFolder, randomString)
 	file, err := os.Create(filePath)
 	if err != nil {
+		s.logger.Error("Failed to create file: %v", err)
 		return "", err
 	}
-
 	defer file.Close()
 
 	_, err = io.Copy(file, bytes.NewReader(data))
 	if err != nil {
+		s.logger.Error("Failed to copy data to file: %v", err)
 		return "", err
 	}
 
-	path := convertLocalPathToURL(filePath, mediaFolder)
+	s.logger.Debug("File created successfully at path: %s", filePath)
+
+	path := s.convertLocalPathToURL(filePath, mediaFolder)
+	s.logger.Info("Image saved successfully, URL: %s", path)
+
 	return path, nil
 }
 
-func generateRandomString(length int) (string, error) {
+func (s *SaveImageStruct) generateRandomString(length int) (string, error) {
+	s.logger.Info("Starting generateRandomString function")
+
 	if length%2 != 0 {
-		return "", fmt.Errorf("length must be even for generating hex string")
+		err := fmt.Errorf("length must be even for generating hex string")
+		s.logger.Error("Invalid length for random string generation: %v", err)
+		return "", err
 	}
 
 	randomBytes := make([]byte, length/2)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
+		s.logger.Error("Failed to read random bytes: %v", err)
 		return "", err
 	}
 
-	return hex.EncodeToString(randomBytes), nil
+	randomString := hex.EncodeToString(randomBytes)
+	s.logger.Debug("Generated random hex string: %s", randomString)
+	return randomString, nil
 }
 
-func convertLocalPathToURL(localPath string, mediaFolder string) string {
+func (s *SaveImageStruct) convertLocalPathToURL(localPath string, mediaFolder string) string {
+	s.logger.Info("Starting convertLocalPathToURL function")
+
 	baseURL := fmt.Sprintf("http://10.0.2.2:8080/%s/", mediaFolder)
 	imagePath := baseURL + strings.TrimPrefix(localPath, fmt.Sprintf("/Users/pawan/database/Khelogames/%s/", mediaFolder))
-	filePath := imagePath
-	return filePath
+	s.logger.Debug("Converted local path to URL: %s", imagePath)
+
+	return imagePath
 }

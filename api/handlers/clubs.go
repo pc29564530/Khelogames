@@ -35,7 +35,7 @@ func (s *ClubServer) CreateClubFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind create club request: %v", err)
 		return
 	}
-
+	saveImageStruct := util.NewSaveImageStruct(s.logger)
 	var path string
 	if req.AvatarURL != "" {
 		b64Data := req.AvatarURL[strings.IndexByte(req.AvatarURL, ',')+1:]
@@ -46,7 +46,7 @@ func (s *ClubServer) CreateClubFunc(ctx *gin.Context) {
 			return
 		}
 
-		path, err = util.SaveImageToFile(data, "image")
+		path, err = saveImageStruct.SaveImageToFile(data, "image")
 		if err != nil {
 			s.logger.Error("Failed to create file: %v", err)
 			return
