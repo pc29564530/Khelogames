@@ -2,7 +2,7 @@ package server
 
 import (
 	"errors"
-	"fmt"
+	"khelogames/logger"
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
@@ -12,6 +12,7 @@ import (
 )
 
 func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
+	var logger *logger.Logger
 	return func(ctx *gin.Context) {
 		authorizationHeader := ctx.GetHeader(pkg.AuthorizationHeaderKey)
 		if len(authorizationHeader) == 0 {
@@ -29,8 +30,7 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 
 		authorizationType := strings.ToLower(fields[0])
 		if authorizationType != pkg.AuthorizationTypeBearer {
-			err := fmt.Errorf("unsupported authorization type %s", authorizationType)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, (err))
+			logger.Error("unsupported authorization type %s", authorizationType)
 			return
 		}
 

@@ -2,10 +2,12 @@ package server
 
 import (
 	"khelogames/api/auth"
-	"khelogames/api/cricket"
-	"khelogames/api/football"
+
 	"khelogames/api/handlers"
 	"khelogames/api/messenger"
+	"khelogames/api/sports/cricket"
+	"khelogames/api/sports/football"
+	"khelogames/api/tournaments"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"khelogames/token"
@@ -45,21 +47,22 @@ func NewServer(config util.Config,
 	clubMemberServer *handlers.ClubMemberServer,
 	groupTeamServer *handlers.GroupTeamServer,
 	playerProfileServer *handlers.PlayerProfileServer,
-	tournamentGroupServer *handlers.TournamentGroupServer,
-	tournamentOrganizerServer *handlers.TournamentOrganizerServer,
-	tournamentMatchServer *handlers.TournamentMatchServer,
-	tournamentStanding *handlers.TournamentStandingServer,
-	footballMatchServer *football.FootballMatches,
+	tournamentGroupServer *tournaments.TournamentGroupServer,
+	tournamentMatchServer *tournaments.TournamentMatchServer,
+	tournamentStanding *tournaments.TournamentStandingServer,
+	footballMatchServer *football.FootballMatchServer,
 	cricketMatchServer *cricket.CricketMatchServer,
-	tournamentServer *handlers.TournamentServer,
+	tournamentServer *tournaments.TournamentServer,
 	cricketMatchTossServer *cricket.CricketMatchTossServer,
-	cricketMatchPlayerScoreServer *cricket.CricketMatchScoreServer,
+	cricketMatchPlayerScoreServer *cricket.CricketPlayerScoreServer,
 	clubTournamentServer *handlers.ClubTournamentServer,
-	footballUpdateServer *football.FootballUpdateServer,
+	footballUpdateServer *football.FootballServer,
 	webSocketHandlerImpl *messenger.WebSocketHandlerImpl,
 	messageServer *messenger.MessageSever,
 	router *gin.Engine,
 	communityMessageServer *messenger.CommunityMessageServer,
+	footballServer *football.FootballServer,
+	cricketUpdateServer *cricket.CricketUpdateServer,
 ) (*Server, error) {
 
 	server := &Server{
@@ -130,46 +133,49 @@ func NewServer(config util.Config,
 		authRouter.POST("/addPlayerProfile", playerProfileServer.AddPlayerProfileFunc)
 		authRouter.PUT("/updatePlayerProfileAvatarUrl", playerProfileServer.UpdatePlayerProfileAvatarFunc)
 		authRouter.POST("/addGroupTeam", groupTeamServer.AddGroupTeamFunc)
-		authRouter.POST("/createTournamentOrganization", tournamentOrganizerServer.CreateTournamentOrganizationFunc)
+		//authRouter.POST("/createTournamentOrganization", tournamentOrganizerServer.CreateTournamentOrganizationFunc)
 		authRouter.GET("/getMessagedUser", messageServer.GetUserByMessageSendFunc)
 		authRouter.POST("/createUploadMedia", communityMessageServer.CreateUploadMediaFunc)
 		authRouter.POST("/createMessageMedia", communityMessageServer.CreateMessageMediaFunc)
 		authRouter.POST("/createCommunityMessage", communityMessageServer.CreateCommunityMessageFunc)
-		authRouter.GET("/getCommunityMessage", communityMessageServer.GetCommuntiyMessageFunc)
+		authRouter.GET("/getCommunityMessage", communityMessageServer.GetCommunityByMessageFunc)
 		authRouter.GET("/getCommunityByMessage", communityMessageServer.GetCommunityByMessageFunc)
 		authRouter.POST("/createOrganizer", tournamentServer.CreateOrganizerFunc)
 		authRouter.GET("/getOrganizer", tournamentServer.GetOrganizerFunc)
 		authRouter.POST("/createClub", clubServer.CreateClubFunc)
+		//whole page routes
+		authRouter.GET("/GetAllThreadDetailFunc", threadServer.GetAllThreadDetailFunc)
+		authRouter.GET("/GetAllThreadsByCommunityDetailsFunc/:communities_name", threadServer.GetAllThreadsByCommunityDetailsFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
-	sportRouter.POST("/createTournamentMatch", tournamentMatchServer.CreateTournamentMatchFunc)
+	sportRouter.POST("/createTournamentMatch", tournamentMatchServer.CreateTournamentMatch)
 	sportRouter.GET("/getTeamsByGroup", groupTeamServer.GetTeamsByGroupFunc)
 	sportRouter.GET("/getTeams/:tournament_id", tournamentServer.GetTeamsFunc)
 	sportRouter.GET("/getTeam/:team_id", tournamentServer.GetTeamFunc)
 	sportRouter.GET("/getTournamentsBySport", tournamentServer.GetTournamentsBySportFunc)
 	sportRouter.GET("/getTournament/:tournament_id", tournamentServer.GetTournamentFunc)
-	sportRouter.POST("/addFootballMatchScore", footballMatchServer.AddFootballMatchScoreFunc)
+	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
 	//sportRouter.GET("/getFootballMatchScore", footballMatchServer.GetFootballMatchScoreFunc)
 	sportRouter.PUT("/updateFootballMatchScore", footballUpdateServer.UpdateFootballMatchScoreFunc)
-	sportRouter.POST("/addFootballGoalByPlayer", footballUpdateServer.AddFootballGoalByPlayerFunc)
+	//sportRouter.POST("/addFootballGoalByPlayer", footballUpdateServer)
 	sportRouter.GET("/getClub/:id", clubServer.GetClubFunc)
 	sportRouter.GET("/getClubs", clubServer.GetClubsFunc)
 	sportRouter.GET("/getClubMember", clubMemberServer.GetClubMemberFunc)
-	sportRouter.GET("/getAllTournamentMatch", tournamentMatchServer.GetAllTournamentMatchFunc)
+	sportRouter.GET("/getAllTournamentMatch", tournamentMatchServer.GetTournamentMatch)
 
-	sportRouter.POST("/addCricketMatchScore", cricketMatchPlayerScoreServer.AddCricketMatchScoreFunc)
-	sportRouter.GET("/getCricketTournamentMatches", cricketMatchServer.GetCricketTournamentMatchesFunc)
-	sportRouter.PUT("/updateCricketMatchRunsScore", cricketMatchPlayerScoreServer.UpdateCricketMatchRunsScoreFunc)
-	sportRouter.PUT("/updateCricketMatchWicket", cricketMatchPlayerScoreServer.UpdateCricketMatchWicketFunc)
-	sportRouter.PUT("/updateCricketMatchExtras", cricketMatchPlayerScoreServer.UpdateCricketMatchExtrasFunc)
-	sportRouter.PUT("/updateCricketMatchInnings", cricketMatchPlayerScoreServer.UpdateCricketMatchInningsFunc)
+	sportRouter.POST("/addCricketMatchScore", cricketMatchServer.AddCricketMatchScoreFunc)
+	//sportRouter.GET("/getCricketTournamentMatches", cricketMatchServer.)
+	sportRouter.PUT("/updateCricketMatchRunsScore", cricketUpdateServer.UpdateCricketMatchRunsScoreFunc)
+	sportRouter.PUT("/updateCricketMatchWicket", cricketUpdateServer.UpdateCricketMatchWicketFunc)
+	sportRouter.PUT("/updateCricketMatchExtras", cricketUpdateServer.UpdateCricketMatchExtrasFunc)
+	sportRouter.PUT("/updateCricketMatchInnings", cricketUpdateServer.UpdateCricketMatchInningsFunc)
 	sportRouter.POST("/addCricketMatchToss", cricketMatchTossServer.AddCricketMatchTossFunc)
 	sportRouter.GET("/getCricketMatchToss", cricketMatchTossServer.GetCricketMatchTossFunc)
 	sportRouter.POST("/addCricketTeamPlayerScore", cricketMatchPlayerScoreServer.AddCricketPlayerScoreFunc)
 	sportRouter.GET("/getCricketTeamPlayerScore", cricketMatchPlayerScoreServer.GetCricketPlayerScoreFunc)
 	sportRouter.GET("/getCricketPlayerScore", cricketMatchPlayerScoreServer.GetCricketPlayerScoreFunc)
-	sportRouter.PUT("/updateCricketMatchScoreBatting", cricketMatchPlayerScoreServer.UpdateCricketMatchScoreBattingFunc)
-	sportRouter.PUT("/updateCricketMatchScoreBowling", cricketMatchPlayerScoreServer.UpdateCricketMatchScoreBowlingFunc)
+	sportRouter.PUT("/updateCricketMatchScoreBatting", cricketUpdateServer.UpdateCricketMatchScoreBattingFunc)
+	sportRouter.PUT("/updateCricketMatchScoreBowling", cricketUpdateServer.UpdateCricketMatchScoreBowlingFunc)
 
 	sportRouter.GET("/getClubPlayedTournaments", clubTournamentServer.GetClubPlayedTournamentsFunc)
 	sportRouter.GET("/getClubPlayedTournament", clubTournamentServer.GetClubPlayedTournamentFunc)
@@ -185,10 +191,14 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getClubsBySport", clubServer.GetClubsBySportFunc)
 	sportRouter.POST("/addTeam", tournamentServer.AddTeamFunc)
 	//sportRouter.GET("/getTeams", tournamentServer.GetTeamsFunc)
-	sportRouter.GET("/getMatch", tournamentMatchServer.GetMatchFunc)
+	sportRouter.GET("/getMatch", tournamentMatchServer.GetTournamentMatch)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
-	sportRouter.GET("/getFootballTournamentMatches", footballMatchServer.GetFootballTournamentMatchesFunc)
-
+	//Football
+	//sportRouter.GET("/getFootballTournamentMatches", footballMatchServer.GetFootballMatchScore())
+	//Cricket
+	//sportRouter.GET("/GetMatchByClubFunc", clubServer.GetMatchByClubFunc)
+	//sportRouter.GET("/getCricketTournamentMatches", cricketMatchServer.GetCricketTournamentMatchesFunc)
+	sportRouter.GET("/getTournamentMatches", tournamentMatchServer.GetTournamentMatch)
 	server.router = router
 	return server, nil
 }

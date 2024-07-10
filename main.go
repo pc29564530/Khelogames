@@ -7,11 +7,13 @@ import (
 	"os"
 
 	"khelogames/api/auth"
-	"khelogames/api/cricket"
-	"khelogames/api/football"
+
 	"khelogames/api/handlers"
 	"khelogames/api/messenger"
 	"khelogames/api/server"
+	"khelogames/api/sports/cricket"
+	"khelogames/api/sports/football"
+	"khelogames/api/tournaments"
 	db "khelogames/db/sqlc"
 	"khelogames/logger"
 	"khelogames/token"
@@ -78,23 +80,26 @@ func main() {
 	clubMemberServer := handlers.NewClubMemberServer(store, log)
 	groupTeamServer := handlers.NewGroupTeamServer(store, log)
 	playerProfileServer := handlers.NewPlayerProfileServer(store, log)
-	tournamentGroupServer := handlers.NewTournamentGroup(store, log)
-	tournamentMatchServer := handlers.NewTournamentMatch(store, log)
-	tournamentOrganizerServer := handlers.NewTournamentOrganizerServer(store, log)
-	tournamentStanding := handlers.NewTournamentStanding(store, log)
-	footballMatchServer := football.NewFootballMatches(store, log)
-	cricketMatchServer := cricket.NewCricketMatch(store, log)
-	tournamentServer := handlers.NewTournamentServer(store, log)
+	tournamentGroupServer := tournaments.NewTournamentGroup(store, log)
+	tournamentMatchServer := tournaments.NewTournamentMatchServer(store, log)
+	//tournamentOrganizerServer := tournaments.NewTournamentOrganizerServer(store, log) function should be added in the tournaments
+	tournamentStanding := tournaments.NewTournamentStanding(store, log)
+	footballMatchServer := football.NewFootballMatchServer(store, log)
+	cricketMatchServer := cricket.NewCricketMatchServer(store, log)
+	tournamentServer := tournaments.NewTournamentServer(store, log)
 	cricketMatchTossServer := cricket.NewCricketMatchToss(store, log)
-	cricketMatchPlayerScoreServer := cricket.NewCricketMatchScore(store, log)
+	cricketMatchPlayerScoreServer := cricket.NewCricketPlayerServer(store, log)
 	ClubTournamentServer := handlers.NewClubTournamentServer(store, log)
-	footballUpdateServer := football.NewFootballUpdate(store, log)
+	footballUpdateServer := football.NewFootballServer(store, log)
 
 	// Initialize WebSocket handler
 	webSocketHandlerImpl := messenger.NewWebSocketHandler(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
 	messageServer := messenger.NewMessageServer(store, log, broadcast)
 
-	communityMessageServer := messenger.NewCommunityMessageSever(store, log, broadcast)
+	communityMessageServer := messenger.NewCommunityMessageServer(store, log, broadcast)
+	footballServer := football.NewFootballServer(store, log)
+
+	cricketUpdateServer := cricket.NewCricketUpdateServer(store, log)
 
 	// Initialize Gin router
 	router := gin.Default()
@@ -120,7 +125,6 @@ func main() {
 		groupTeamServer,
 		playerProfileServer,
 		tournamentGroupServer,
-		tournamentOrganizerServer,
 		tournamentMatchServer,
 		tournamentStanding,
 		footballMatchServer,
@@ -134,6 +138,8 @@ func main() {
 		messageServer,
 		router,
 		communityMessageServer,
+		footballServer,
+		cricketUpdateServer,
 	)
 	if err != nil {
 		newLogger.Error("Server creation failed", err)
