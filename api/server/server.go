@@ -143,7 +143,6 @@ func NewServer(config util.Config,
 		authRouter.POST("/createOrganizer", tournamentServer.CreateOrganizerFunc)
 		authRouter.GET("/getOrganizer", tournamentServer.GetOrganizerFunc)
 		authRouter.POST("/createClub", clubServer.CreateClubFunc)
-		//whole page routes
 		authRouter.GET("/GetAllThreadDetailFunc", threadServer.GetAllThreadDetailFunc)
 		authRouter.GET("/GetAllThreadsByCommunityDetailsFunc/:communities_name", threadServer.GetAllThreadsByCommunityDetailsFunc)
 	}
@@ -157,7 +156,7 @@ func NewServer(config util.Config,
 	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
 	//sportRouter.GET("/getFootballMatchScore", footballMatchServer.GetFootballMatchScoreFunc)
 	sportRouter.PUT("/updateFootballMatchScore", footballUpdateServer.UpdateFootballMatchScoreFunc)
-	//sportRouter.POST("/addFootballGoalByPlayer", footballUpdateServer)
+	sportRouter.POST("/addFootballGoalByPlayer", footballUpdateServer.UpdateFootballMatchScoreFunc)
 	sportRouter.GET("/getClub/:id", clubServer.GetClubFunc)
 	sportRouter.GET("/getClubs", clubServer.GetClubsFunc)
 	sportRouter.GET("/getClubMember", clubMemberServer.GetClubMemberFunc)
@@ -190,12 +189,11 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTournamentStanding", tournamentStanding.GetTournamentStandingFunc)
 	sportRouter.GET("/getClubsBySport", clubServer.GetClubsBySportFunc)
 	sportRouter.POST("/addTeam", tournamentServer.AddTeamFunc)
-	//sportRouter.GET("/getTeams", tournamentServer.GetTeamsFunc)
+	sportRouter.PUT("/updateTeamJoinedTournament", tournamentServer.UpdateTeamsJoinedFunc)
+	sportRouter.GET("/getTeams", tournamentServer.GetTeamsFunc)
 	sportRouter.GET("/getMatch", tournamentMatchServer.GetTournamentMatch)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
-	//Football
 	//sportRouter.GET("/getFootballTournamentMatches", footballMatchServer.GetFootballMatchScore())
-	//Cricket
 	//sportRouter.GET("/GetMatchByClubFunc", clubServer.GetMatchByClubFunc)
 	//sportRouter.GET("/getCricketTournamentMatches", cricketMatchServer.GetCricketTournamentMatchesFunc)
 	sportRouter.GET("/getTournamentMatches", tournamentMatchServer.GetTournamentMatch)
@@ -207,10 +205,6 @@ func (server *Server) Start(address string) error {
 	go server.webSocketHandlerImpl.StartWebSocketHub()
 	return server.router.Run(address)
 }
-
-// func (err error) gin.H {
-// 	return gin.H{"error": err.Error()}
-// }
 
 func corsHandle() gin.HandlerFunc {
 	return func(c *gin.Context) {
