@@ -62,7 +62,7 @@ func (s *CricketMatchServer) AddCricketMatchScoreFunc(ctx *gin.Context) {
 
 func (s *CricketMatchServer) GetCricketMatchScore(matches []db.TournamentMatch, matchDetails []map[string]interface{}) []map[string]interface{} {
 	ctx := context.Background()
-	for _, match := range matches {
+	for i, match := range matches {
 		arg1 := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.Team1ID}
 		arg2 := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.Team2ID}
 		matchScoreData1, err := s.store.GetCricketMatchScore(ctx, arg1)
@@ -75,19 +75,17 @@ func (s *CricketMatchServer) GetCricketMatchScore(matches []db.TournamentMatch, 
 			s.logger.Error("Failed to get cricket match score for team 2:", err)
 			return nil
 		}
-		matchDetail := map[string]interface{}{
-			"team1_score":   matchScoreData1.Score,
-			"team1_wickets": matchScoreData1.Wickets,
-			"team1_extras":  matchScoreData1.Extras,
-			"team1_overs":   matchScoreData1.Overs,
-			"team1_innings": matchScoreData1.Innings,
-			"team2_score":   matchScoreData2.Score,
-			"team2_wickets": matchScoreData2.Wickets,
-			"team2_extras":  matchScoreData2.Extras,
-			"team2_overs":   matchScoreData2.Overs,
-			"team2_innings": matchScoreData2.Innings,
-		}
-		matchDetails = append(matchDetails, matchDetail)
+
+		matchDetails[i]["team1_score"] = matchScoreData1.Score
+		matchDetails[i]["team1_wickets"] = matchScoreData1.Wickets
+		matchDetails[i]["team1_extras"] = matchScoreData1.Extras
+		matchDetails[i]["team1_overs"] = matchScoreData1.Overs
+		matchDetails[i]["team1_innings"] = matchScoreData1.Innings
+		matchDetails[i]["team2_score"] = matchScoreData2.Score
+		matchDetails[i]["team2_wickets"] = matchScoreData2.Wickets
+		matchDetails[i]["team2_extras"] = matchScoreData2.Extras
+		matchDetails[i]["team2_overs"] = matchScoreData2.Overs
+		matchDetails[i]["team2_innings"] = matchScoreData2.Innings
 	}
 	return matchDetails
 }
