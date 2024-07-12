@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/base64"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"khelogames/pkg"
 	"khelogames/token"
 	"khelogames/util"
@@ -20,16 +19,7 @@ type createProfileRequest struct {
 	CoverUrl  string `json:"cover_url,omitempty"`
 }
 
-type ProfileServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewProfileServer(store *db.Store, logger *logger.Logger) *ProfileServer {
-	return &ProfileServer{store: store, logger: logger}
-}
-
-func (s *ProfileServer) CreateProfileFunc(ctx *gin.Context) {
+func (s *HandlersServer) CreateProfileFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to create profile")
 	var req createProfileRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -65,7 +55,7 @@ type getProfileRequest struct {
 	Owner string `uri:"owner"`
 }
 
-func (s *ProfileServer) GetProfileFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get profile")
 	var req getProfileRequest
 	err := ctx.ShouldBindUri(&req)
@@ -94,7 +84,7 @@ type editProfileRequest struct {
 	CoverUrl  string `json:"cover_url,omitempty"`
 }
 
-func (s *ProfileServer) UpdateProfileFunc(ctx *gin.Context) {
+func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to update profile")
 	var req editProfileRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -176,7 +166,7 @@ type editFullNameRequest struct {
 	FullName string `json:"full_name"`
 }
 
-func (s *ProfileServer) UpdateFullNameFunc(ctx *gin.Context) {
+func (s *HandlersServer) UpdateFullNameFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to update full name")
 	var req editFullNameRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -209,7 +199,7 @@ type editBioRequest struct {
 	Bio string `json:"bio"`
 }
 
-func (s *ProfileServer) UpdateBioFunc(ctx *gin.Context) {
+func (s *HandlersServer) UpdateBioFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to update bio")
 	var req editBioRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -242,7 +232,7 @@ type editAvatarUrlRequest struct {
 	AvatarUrl string `json:"avatar_url,omitempty"`
 }
 
-func (s *ProfileServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
+func (s *HandlersServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to update avatar URL")
 	var req editAvatarUrlRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -292,7 +282,7 @@ type editCoverUrlRequest struct {
 	CoverUrl string `json:"cover_url,omitempty"`
 }
 
-func (s *ProfileServer) UpdateCoverUrlFunc(ctx *gin.Context) {
+func (s *HandlersServer) UpdateCoverUrlFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to update cover URL")
 	var req editCoverUrlRequest
 	err := ctx.ShouldBindJSON(&req)

@@ -3,7 +3,7 @@ package handlers
 import (
 	"database/sql"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
+
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
@@ -11,15 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-type CommentServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewCommentServer(store *db.Store, logger *logger.Logger) *CommentServer {
-	return &CommentServer{store: store, logger: logger}
-}
 
 type createCommentRequest struct {
 	CommentText string `json:"comment_text"`
@@ -29,7 +20,7 @@ type createCommentThreadIdRequest struct {
 	ThreadID int64 `uri:"threadId"`
 }
 
-func (s *CommentServer) CreateCommentFunc(ctx *gin.Context) {
+func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 	var req createCommentRequest
 	var reqThreadId createCommentThreadIdRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -81,7 +72,7 @@ type getAllCommentRequest struct {
 	ThreadID int64 `uri:"thread_id"`
 }
 
-func (s *CommentServer) GetAllCommentFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllCommentFunc(ctx *gin.Context) {
 	var req getAllCommentRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -133,7 +124,7 @@ type getCommentByUserRequest struct {
 	Owner string `uri:"owner"`
 }
 
-func (s *CommentServer) GetCommentByUserFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetCommentByUserFunc(ctx *gin.Context) {
 	var req getCommentByUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {

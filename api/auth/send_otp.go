@@ -3,7 +3,6 @@ package auth
 import (
 	"database/sql"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"math/rand"
 	"net/http"
 	"os"
@@ -15,20 +14,8 @@ import (
 	"github.com/sfreiberg/gotwilio"
 )
 
-type OtpServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
 type createSendOtpRequest struct {
 	MobileNumber string `json:"mobile_number"`
-}
-
-func NewOtpServer(store *db.Store, logger *logger.Logger) *OtpServer {
-	return &OtpServer{
-		store:  store,
-		logger: logger,
-	}
 }
 
 func generateOtp() string {
@@ -37,7 +24,7 @@ func generateOtp() string {
 	return otp
 }
 
-func (s *OtpServer) Otp(ctx *gin.Context) {
+func (s *AuthServer) Otp(ctx *gin.Context) {
 
 	var reqSendOTP createSendOtpRequest
 	err := ctx.ShouldBindJSON(&reqSendOTP)
@@ -84,7 +71,7 @@ func (s *OtpServer) Otp(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, signup)
 }
 
-func (s *OtpServer) sendOTP(mobileNumber string, otp string) error {
+func (s *AuthServer) sendOTP(mobileNumber string, otp string) error {
 
 	err := godotenv.Load("./app.env")
 	if err != nil {

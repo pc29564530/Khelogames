@@ -3,8 +3,7 @@ package handlers
 import (
 	"database/sql"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
-	"khelogames/token"
+
 	"khelogames/util"
 	"net/http"
 	"time"
@@ -12,13 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
-
-type UserServer struct {
-	store      *db.Store
-	logger     *logger.Logger
-	tokenMaker token.Maker
-	config     util.Config
-}
 
 type userResponse struct {
 	Username     string    `json:"username"`
@@ -49,11 +41,7 @@ type createUserResponse struct {
 	Role         string    `json:"role"`
 }
 
-func NewUserServer(store *db.Store, logger *logger.Logger, tokenMaker token.Maker, config util.Config) *UserServer {
-	return &UserServer{store: store, logger: logger, tokenMaker: tokenMaker, config: config}
-}
-
-func authorizationCode(ctx *gin.Context, username string, mobileNumber string, role string, s *UserServer) {
+func authorizationCode(ctx *gin.Context, username string, mobileNumber string, role string, s *HandlersServer) {
 	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
 		username,
 		s.config.AccessTokenDuration,
@@ -108,7 +96,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 	return
 }
 
-func (s *UserServer) CreateUserFunc(ctx *gin.Context) {
+func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 
 	var req createUserRequest
 
@@ -197,7 +185,7 @@ type getUserRequest struct {
 	Username string `uri:"username"`
 }
 
-func (s *UserServer) GetUsersFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	var req getUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -223,7 +211,7 @@ type getListUsersRequest struct {
 	PageSize int32 `form:"page_size" binding:"required,min=5,max=10"`
 }
 
-func (s *UserServer) ListUsersFunc(ctx *gin.Context) {
+func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 	var req getListUsersRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {

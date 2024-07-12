@@ -2,7 +2,7 @@ package handlers
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
+
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
@@ -10,20 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type JoinCommunityServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
 type addJoinCommunityRequest struct {
 	CommunityName string `json:"community_name"`
 }
 
-func NewJoinCommunityServer(store *db.Store, logger *logger.Logger) *JoinCommunityServer {
-	return &JoinCommunityServer{store: store, logger: logger}
-}
-
-func (s *JoinCommunityServer) AddJoinCommunityFunc(ctx *gin.Context) {
+func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	var req addJoinCommunityRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -54,7 +45,7 @@ type getUserByCommunityRequest struct {
 	CommunityName string `uri:"community_name"`
 }
 
-func (s *JoinCommunityServer) GetUserByCommunityFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetUserByCommunityFunc(ctx *gin.Context) {
 	var req getUserByCommunityRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -77,7 +68,7 @@ func (s *JoinCommunityServer) GetUserByCommunityFunc(ctx *gin.Context) {
 }
 
 // get the community joined by the users
-func (s *JoinCommunityServer) GetCommunityByUserFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	communityList, err := s.store.GetCommunityByUser(ctx, authPayload.Username)
 	if err != nil {

@@ -4,27 +4,17 @@ import (
 	"database/sql"
 	"fmt"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
-
-type SignupServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
 
 type createSignupRequest struct {
 	MobileNumber string `json:"mobile_number"`
 	Otp          string `json:"otp"`
 }
 
-func NewSignupServer(store *db.Store, logger *logger.Logger) *SignupServer {
-	return &SignupServer{store: store, logger: logger}
-}
-
-func (s *SignupServer) CreateSignupFunc(ctx *gin.Context) {
+func (s *AuthServer) CreateSignupFunc(ctx *gin.Context) {
 
 	var req createSignupRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -55,7 +45,7 @@ func (s *SignupServer) CreateSignupFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
-	
+
 	s.logger.Debug(fmt.Sprintf("successfully get the otp: %v ", verifyOTP))
 
 	if verifyOTP.Otp != req.Otp {

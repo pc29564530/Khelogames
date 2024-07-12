@@ -5,8 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
-	"khelogames/token"
 	"khelogames/util"
 	"math/rand"
 	"net/http"
@@ -15,13 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
-
-type LoginServer struct {
-	store      *db.Store
-	logger     *logger.Logger
-	tokenMaker token.Maker
-	config     util.Config
-}
 
 type createLoginRequest struct {
 	Username string `json:"username"`
@@ -43,11 +34,7 @@ type loginUserResponse struct {
 	User                  userResponse `json:"user"`
 }
 
-func NewLoginServer(store *db.Store, logger *logger.Logger, tokenMaker token.Maker, config util.Config) *LoginServer {
-	return &LoginServer{store: store, logger: logger, tokenMaker: tokenMaker, config: config}
-}
-
-func (s *LoginServer) CreateLoginFunc(ctx *gin.Context) {
+func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 	var req createLoginRequest
 
 	err := ctx.ShouldBindJSON(&req)
@@ -139,7 +126,7 @@ func (s *LoginServer) CreateLoginFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *LoginServer) VerifyMobileAndPasswordFunc(ctx *gin.Context, username string, password string, userData db.User) error {
+func (s *AuthServer) VerifyMobileAndPasswordFunc(ctx *gin.Context, username string, password string, userData db.User) error {
 	var err error
 	if userData.Username != username {
 		s.logger.Error("Failed to verify mobile and password: %v", err)
@@ -163,7 +150,7 @@ func (s *LoginServer) VerifyMobileAndPasswordFunc(ctx *gin.Context, username str
 	return nil
 }
 
-func (s *LoginServer) GenerateSessionTokenFunc() (string, error) {
+func (s *AuthServer) GenerateSessionTokenFunc() (string, error) {
 	token := make([]byte, 32)
 	_, err := rand.Read(token)
 	if err != nil {

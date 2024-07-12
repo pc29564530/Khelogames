@@ -2,22 +2,12 @@ package tournaments
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
-
-type TournamentServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewTournamentServer(store *db.Store, logger *logger.Logger) *TournamentServer {
-	return &TournamentServer{store: store, logger: logger}
-}
 
 // tournament
 type createTournamentRequest struct {

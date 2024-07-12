@@ -2,21 +2,11 @@ package cricket
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
-
-type CricketMatchTossServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewCricketMatchToss(store *db.Store, logger *logger.Logger) *CricketMatchTossServer {
-	return &CricketMatchTossServer{store: store, logger: logger}
-}
 
 type addCricketMatchTossRequest struct {
 	TournamentID int64  `json:"tournament_id"`
@@ -25,7 +15,7 @@ type addCricketMatchTossRequest struct {
 	BatOrBowl    string `json:"bat_or_bowl"`
 }
 
-func (s *CricketMatchTossServer) AddCricketMatchTossFunc(ctx *gin.Context) {
+func (s *CricketServer) AddCricketMatchTossFunc(ctx *gin.Context) {
 	var req addCricketMatchTossRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -56,7 +46,7 @@ type getCricketMatchTossRequest struct {
 	MatchID      int64 `json:"match_id"`
 }
 
-func (s *CricketMatchTossServer) GetCricketMatchTossFunc(ctx *gin.Context) {
+func (s *CricketServer) GetCricketMatchTossFunc(ctx *gin.Context) {
 	// var req getCricketMatchTossRequest
 	// err := ctx.ShouldBindJSON(&req)
 	// if err != nil {

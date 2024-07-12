@@ -17,8 +17,8 @@ func NewCheckSport(store *db.Store, logger *logger.Logger) *CheckSportServer {
 }
 
 func (s *CheckSportServer) CheckSport(sports string, matches []db.TournamentMatch, matchDetails []map[string]interface{}) []map[string]interface{} {
-	footballServer := football.NewFootballMatchServer(s.store, s.logger)
-	cricketServer := cricket.NewCricketMatchServer(s.store, s.logger)
+	footballServer := football.NewFootballServer(s.store, s.logger)
+	cricketServer := cricket.NewCricketServer(s.store, s.logger)
 	switch sports {
 	case "Cricket":
 		return cricketServer.GetCricketMatchScore(matches, matchDetails)

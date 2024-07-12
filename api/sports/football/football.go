@@ -2,20 +2,10 @@ package football
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
-
-type FootballServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewFootballServer(store *db.Store, logger *logger.Logger) *FootballServer {
-	return &FootballServer{store: store, logger: logger}
-}
 
 type addFootballMatchScoreRequest struct {
 	MatchID      int64 `json:"match_id"`

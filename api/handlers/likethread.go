@@ -2,7 +2,7 @@ package handlers
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
+
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
@@ -10,20 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type LikethreadServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewLikeThreadServer(store *db.Store, logger *logger.Logger) *LikethreadServer {
-	return &LikethreadServer{store: store, logger: logger}
-}
-
 type createLikeRequest struct {
 	ThreadID int64 `uri:"thread_id"`
 }
 
-func (s *LikethreadServer) CreateLikeFunc(ctx *gin.Context) {
+func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 	var req createLikeRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -55,7 +46,7 @@ type countLikeRequest struct {
 	ThreadID int64 `uri:"thread_id"`
 }
 
-func (s *LikethreadServer) CountLikeFunc(ctx *gin.Context) {
+func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
 	var req countLikeRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -80,7 +71,7 @@ type checkUserRequest struct {
 	ThreadID int64 `uri:"thread_id"`
 }
 
-func (s *LikethreadServer) CheckLikeByUserFunc(ctx *gin.Context) {
+func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
 	var req checkUserRequest
 
 	err := ctx.ShouldBindUri(&req)

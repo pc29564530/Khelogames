@@ -2,21 +2,11 @@ package football
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
-
-type FootballPlayerServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewFootballPlayer(store *db.Store, logger *logger.Logger) *FootballPlayerServer {
-	return &FootballPlayerServer{store: store, logger: logger}
-}
 
 type addFootballteamPlayerScoreRequest struct {
 	MatchID       int64     `json:"match_id"`
@@ -26,7 +16,7 @@ type addFootballteamPlayerScoreRequest struct {
 	GoalScoreTime time.Time `json:"goal_score_time"`
 }
 
-func (server *FootballPlayerServer) addFootballGoalByPlayer(ctx *gin.Context) {
+func (server *FootballServer) addFootballGoalByPlayer(ctx *gin.Context) {
 
 	var req addFootballteamPlayerScoreRequest
 	err := ctx.ShouldBindJSON(&req)

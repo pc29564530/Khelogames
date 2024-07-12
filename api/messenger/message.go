@@ -3,7 +3,6 @@ package messenger
 import (
 	"fmt"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
@@ -11,21 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type MessageSever struct {
-	store     *db.Store
-	logger    *logger.Logger
-	broadcast chan []byte
-}
-
-func NewMessageServer(store *db.Store, logger *logger.Logger, broadcast chan []byte) *MessageSever {
-	return &MessageSever{store: store, logger: logger, broadcast: broadcast}
-}
-
 type getMessageByReceiverRequest struct {
 	ReceiverUsername string `uri:"receiver_username"`
 }
 
-func (s *MessageSever) GetMessageByReceiverFunc(ctx *gin.Context) {
+func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 	var req getMessageByReceiverRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -60,7 +49,7 @@ func (s *MessageSever) GetMessageByReceiverFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *MessageSever) GetUserByMessageSendFunc(ctx *gin.Context) {
+func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	messageUserName, err := s.store.GetUserByMessageSend(ctx, authPayload.Username)
 	if err != nil {

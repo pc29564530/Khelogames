@@ -3,7 +3,7 @@ package clubs
 import (
 	"encoding/base64"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
+
 	"khelogames/pkg"
 	"khelogames/token"
 	"khelogames/util"
@@ -13,18 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type ClubServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
 type createClubRequest struct {
 	ClubName  string `json:"club_name"`
 	AvatarURL string `json:"avatar_url"`
 	Sport     string `json:"sport"`
-}
-
-func NewClubServer(store *db.Store, logger *logger.Logger) *ClubServer {
-	return &ClubServer{store: store, logger: logger}
 }
 
 func (s *ClubServer) CreateClubFunc(ctx *gin.Context) {

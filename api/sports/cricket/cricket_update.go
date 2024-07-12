@@ -2,21 +2,11 @@ package cricket
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
-
-type CricketUpdateServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewCricketUpdateServer(store *db.Store, logger *logger.Logger) *CricketUpdateServer {
-	return &CricketUpdateServer{store: store, logger: logger}
-}
 
 type updateCricketMatchWicketRequest struct {
 	Wickets int64 `json:"wickets"`
@@ -24,7 +14,7 @@ type updateCricketMatchWicketRequest struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (s *CricketUpdateServer) UpdateCricketMatchWicketFunc(ctx *gin.Context) {
+func (s *CricketServer) UpdateCricketMatchWicketFunc(ctx *gin.Context) {
 
 	var req updateCricketMatchWicketRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -55,7 +45,7 @@ type updateCricketMatchRunsScoreRequest struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (s *CricketUpdateServer) UpdateCricketMatchRunsScoreFunc(ctx *gin.Context) {
+func (s *CricketServer) UpdateCricketMatchRunsScoreFunc(ctx *gin.Context) {
 
 	var req updateCricketMatchRunsScoreRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -87,7 +77,7 @@ type updateCricketMatchExtrasRequest struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (s *CricketUpdateServer) UpdateCricketMatchExtrasFunc(ctx *gin.Context) {
+func (s *CricketServer) UpdateCricketMatchExtrasFunc(ctx *gin.Context) {
 
 	var req updateCricketMatchExtrasRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -119,7 +109,7 @@ type updateCricketMatchInningsRequest struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (s *CricketUpdateServer) UpdateCricketMatchInningsFunc(ctx *gin.Context) {
+func (s *CricketServer) UpdateCricketMatchInningsFunc(ctx *gin.Context) {
 
 	var req updateCricketMatchInningsRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -158,7 +148,7 @@ type updateCricketMatchScoreBattingRequest struct {
 	PlayerID      int64  `json:"player_id"`
 }
 
-func (s *CricketUpdateServer) UpdateCricketMatchScoreBattingFunc(ctx *gin.Context) {
+func (s *CricketServer) UpdateCricketMatchScoreBattingFunc(ctx *gin.Context) {
 	var req updateCricketMatchScoreBattingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -274,7 +264,7 @@ type updateCricketMatchScoreBowlingRequest struct {
 	PlayerID     int64  `json:"player_id"`
 }
 
-func (s *CricketUpdateServer) UpdateCricketMatchScoreBowlingFunc(ctx *gin.Context) {
+func (s *CricketServer) UpdateCricketMatchScoreBowlingFunc(ctx *gin.Context) {
 	var req updateCricketMatchScoreBowlingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {

@@ -5,29 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
+
 	"khelogames/pkg"
 	"khelogames/token"
 	"khelogames/util"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	ampq "github.com/rabbitmq/amqp091-go"
 )
-
-type WebSocketHandlerImpl struct {
-	store      *db.Store
-	tokenMaker token.Maker
-	upgrader   websocket.Upgrader
-	clients    map[*websocket.Conn]bool
-	broadcast  chan []byte
-	rabbitChan *ampq.Channel
-	mutex      sync.Mutex
-	logger     *logger.Logger
-}
 
 func StartRabbitMQ(config util.Config) (*ampq.Connection, *ampq.Channel, error) {
 	rabbitConn, err := ampq.Dial(config.RabbitSource)
@@ -41,7 +29,7 @@ func StartRabbitMQ(config util.Config) (*ampq.Connection, *ampq.Channel, error) 
 	return rabbitConn, rabbitChan, nil
 }
 
-func (s *WebSocketHandlerImpl) StartWebSocketHub() {
+func (s *MessageServer) StartWebSocketHub() {
 	for {
 		select {
 		case message := <-s.broadcast:
@@ -58,19 +46,7 @@ func (s *WebSocketHandlerImpl) StartWebSocketHub() {
 	}
 }
 
-func NewWebSocketHandler(store *db.Store, tokenMaker token.Maker, clients map[*websocket.Conn]bool, broadcast chan []byte, upgrader websocket.Upgrader, rabbitChan *ampq.Channel, logger *logger.Logger) *WebSocketHandlerImpl {
-	return &WebSocketHandlerImpl{
-		store:      store,
-		tokenMaker: tokenMaker,
-		upgrader:   upgrader,
-		clients:    clients,
-		broadcast:  broadcast,
-		rabbitChan: rabbitChan,
-		logger:     logger,
-	}
-}
-
-func (h *WebSocketHandlerImpl) HandleWebSocket(ctx *gin.Context) {
+func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 	authHeader := ctx.GetHeader("Authorization")
 	auth := strings.Split(authHeader, " ")
 

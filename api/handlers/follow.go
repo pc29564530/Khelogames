@@ -3,7 +3,7 @@ package handlers
 import (
 	"database/sql"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
+
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
@@ -12,21 +12,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type FollowServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewFollowServer(store *db.Store, logger *logger.Logger) *FollowServer {
-	return &FollowServer{store: store, logger: logger}
-}
-
 type createFollowingRequest struct {
 	FollowingOwner string `uri:"following_owner"`
 }
 
 // this is function i have to call the get_following endpoint so that using that i can verify the following list
-func (s *FollowServer) CreateFollowingFunc(ctx *gin.Context) {
+func (s *HandlersServer) CreateFollowingFunc(ctx *gin.Context) {
 	var req createFollowingRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -60,7 +51,7 @@ func (s *FollowServer) CreateFollowingFunc(ctx *gin.Context) {
 
 }
 
-func (s *FollowServer) GetAllFollowerFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllFollowerFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	follower, err := s.store.GetAllFollower(ctx, authPayload.Username)
 	if err != nil {
@@ -73,7 +64,7 @@ func (s *FollowServer) GetAllFollowerFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *FollowServer) GetAllFollowingFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllFollowingFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	follower, err := s.store.GetAllFollowing(ctx, authPayload.Username)
 	if err != nil {
@@ -91,7 +82,7 @@ type deleteFollowingRequest struct {
 	FollowingOwner string `uri:"following_owner"`
 }
 
-func (s *FollowServer) DeleteFollowingFunc(ctx *gin.Context) {
+func (s *HandlersServer) DeleteFollowingFunc(ctx *gin.Context) {
 
 	var req deleteFollowingRequest
 	err := ctx.ShouldBindUri(&req)

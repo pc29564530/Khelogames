@@ -7,8 +7,9 @@ import (
 	"os"
 
 	"khelogames/api/auth"
-
+	"khelogames/api/clubs"
 	"khelogames/api/handlers"
+
 	"khelogames/api/messenger"
 	"khelogames/api/server"
 	"khelogames/api/sports/cricket"
@@ -62,44 +63,53 @@ func main() {
 	broadcast := make(chan []byte)
 
 	// Initialize HTTP servers and handlers
-	otpServer := auth.NewOtpServer(store, log)
-	loginServer := auth.NewLoginServer(store, log, tokenMaker, config)
-	signupServer := auth.NewSignupServer(store, log)
 
-	sessionServer := auth.NewSessionServer(store, log)
-	threadServer := handlers.NewThreadServer(store, log)
-	tokenServer := auth.NewTokenServer(store, log, tokenMaker)
-	profileServer := handlers.NewProfileServer(store, log)
-	likeThread := handlers.NewLikeThreadServer(store, log)
-	clubServer := handlers.NewClubServer(store, log)
-	userServer := handlers.NewUserServer(store, log, tokenMaker, config)
-	followServer := handlers.NewFollowServer(store, log)
-	communityServer := handlers.NewCommunityServer(store, log)
-	joinCommunityServer := handlers.NewJoinCommunityServer(store, log)
-	commentServer := handlers.NewCommentServer(store, log)
-	clubMemberServer := handlers.NewClubMemberServer(store, log)
-	groupTeamServer := handlers.NewGroupTeamServer(store, log)
-	playerProfileServer := handlers.NewPlayerProfileServer(store, log)
-	tournamentGroupServer := tournaments.NewTournamentGroup(store, log)
-	tournamentMatchServer := tournaments.NewTournamentMatchServer(store, log)
-	//tournamentOrganizerServer := tournaments.NewTournamentOrganizerServer(store, log) function should be added in the tournaments
-	tournamentStanding := tournaments.NewTournamentStanding(store, log)
-	footballMatchServer := football.NewFootballMatchServer(store, log)
-	cricketMatchServer := cricket.NewCricketMatchServer(store, log)
-	tournamentServer := tournaments.NewTournamentServer(store, log)
-	cricketMatchTossServer := cricket.NewCricketMatchToss(store, log)
-	cricketMatchPlayerScoreServer := cricket.NewCricketPlayerServer(store, log)
-	ClubTournamentServer := handlers.NewClubTournamentServer(store, log)
-	footballUpdateServer := football.NewFootballServer(store, log)
-
-	// Initialize WebSocket handler
-	webSocketHandlerImpl := messenger.NewWebSocketHandler(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
-	messageServer := messenger.NewMessageServer(store, log, broadcast)
-
-	communityMessageServer := messenger.NewCommunityMessageServer(store, log, broadcast)
+	authServer := auth.NewAuthServer(store, log, tokenMaker, config)
+	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config)
 	footballServer := football.NewFootballServer(store, log)
+	cricketServer := cricket.NewCricketServer(store, log)
 
-	cricketUpdateServer := cricket.NewCricketUpdateServer(store, log)
+	clubsServer := clubs.NewClubsServer(store, log, tokenMaker, config)
+	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config)
+	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
+
+	// AuthServer := auth.NewAuthServer(store, log)
+	// AuthServer := auth.NewAuthServer(store, log, tokenMaker, config)
+	// AuthServer := auth.NewAuthServer(store, log)
+
+	// sessionServer := auth.NewSessionServer(store, log)
+	// HandlersServer := handlers.NewHandlersServer(store, log)
+	// AuthServer := auth.NewAuthServer(store, log, tokenMaker)
+	// HandlersServer := handlers.NewHandlersServer(store, log)
+	// likeThread := handlers.NewHandlersServer(store, log)
+	// clubServer := clubs.NewClubServer(store, log)
+	// HandlersServer := handlers.NewHandlersServer(store, log, tokenMaker, config)
+	// HandlersServer := handlers.NewHandlersServer(store, log)
+	// HandlersServer := handlers.NewHandlersServer(store, log)
+	// HandlersServer := handlers.NewHandlersServer(store, log)
+	// HandlersServer := handlers.NewHandlersServer(store, log)
+	// groupTeamServer := handlers.NewGroupTeamServer(store, log)
+	// HandlersServer := handlers.NewHandlersServer(store, log)
+	// TournamentServer := tournaments.NewTournamentGroup(store, log)
+	// TournamentServer := tournaments.NewTournamentServer(store, log)
+	// //tournamentOrganizerServer := tournaments.NewTournamentOrganizerServer(store, log) function should be added in the tournaments
+	// tournamentStanding := tournaments.NewTournamentStanding(store, log)
+	// FootballServer := football.NewFootballServer(store, log)
+	// CricketServer := cricket.NewCricketServer(store, log)
+	// tournamentServer := tournaments.NewTournamentServer(store, log)
+	// CricketServer := cricket.NewCricketMatchToss(store, log)
+	// cricketMatchPlayerScoreServer := cricket.NewCricketPlayerServer(store, log)
+	// ClubTournamentServer := handlers.NewClubTournamentServer(store, log)
+	// footballUpdateServer := football.NewFootballServer(store, log)
+
+	// // Initialize WebSocket handler
+	// webSocketHandlerImpl := messenger.NewWebSocketHandler(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
+	// messageServer := messenger.NewMessageServer(store, log, broadcast)
+
+	// MessageServer := messenger.NewMessageServer(store, log, broadcast)
+	// footballServer := football.NewFootballServer(store, log)
+
+	// CricketServer := cricket.NewCricketServer(store, log)
 
 	// Initialize Gin router
 	router := gin.Default()
@@ -107,39 +117,14 @@ func main() {
 		store,
 		tokenMaker,
 		log,
-		otpServer,
-		signupServer,
-		loginServer,
-		tokenServer,
-		sessionServer,
-		threadServer,
-		profileServer,
-		likeThread,
-		clubServer,
-		userServer,
-		followServer,
-		communityServer,
-		joinCommunityServer,
-		commentServer,
-		clubMemberServer,
-		groupTeamServer,
-		playerProfileServer,
-		tournamentGroupServer,
-		tournamentMatchServer,
-		tournamentStanding,
-		footballMatchServer,
-		cricketMatchServer,
+		authServer,
+		handlerServer,
 		tournamentServer,
-		cricketMatchTossServer,
-		cricketMatchPlayerScoreServer,
-		ClubTournamentServer,
-		footballUpdateServer,
-		webSocketHandlerImpl,
-		messageServer,
-		router,
-		communityMessageServer,
 		footballServer,
-		cricketUpdateServer,
+		cricketServer,
+		clubsServer,
+		messengerServer,
+		router,
 	)
 	if err != nil {
 		newLogger.Error("Server creation failed", err)

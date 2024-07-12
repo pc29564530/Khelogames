@@ -3,20 +3,10 @@ package cricket
 import (
 	"context"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
-
-type CricketMatchServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewCricketMatchServer(store *db.Store, logger *logger.Logger) *CricketMatchServer {
-	return &CricketMatchServer{store: store, logger: logger}
-}
 
 type addCricketMatchScoreRequest struct {
 	MatchID      int64 `json:"match_id"`
@@ -29,7 +19,7 @@ type addCricketMatchScoreRequest struct {
 	Innings      int64 `json:"innings"`
 }
 
-func (s *CricketMatchServer) AddCricketMatchScoreFunc(ctx *gin.Context) {
+func (s *CricketServer) AddCricketMatchScoreFunc(ctx *gin.Context) {
 
 	var req addCricketMatchScoreRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -60,7 +50,7 @@ func (s *CricketMatchServer) AddCricketMatchScoreFunc(ctx *gin.Context) {
 
 }
 
-func (s *CricketMatchServer) GetCricketMatchScore(matches []db.TournamentMatch, matchDetails []map[string]interface{}) []map[string]interface{} {
+func (s *CricketServer) GetCricketMatchScore(matches []db.TournamentMatch, matchDetails []map[string]interface{}) []map[string]interface{} {
 	ctx := context.Background()
 	for i, match := range matches {
 		arg1 := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.Team1ID}

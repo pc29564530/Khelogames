@@ -3,7 +3,6 @@ package messenger
 import (
 	"encoding/base64"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"khelogames/pkg"
 	"khelogames/token"
 	"khelogames/util"
@@ -13,23 +12,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type CommunityMessageServer struct {
-	store     *db.Store
-	logger    *logger.Logger
-	broadcast chan []byte
-}
-
-func NewCommunityMessageServer(store *db.Store, logger *logger.Logger, broadcast chan []byte) *CommunityMessageServer {
-	return &CommunityMessageServer{store: store, logger: logger, broadcast: broadcast}
-}
-
 type createCommunityMessageRequest struct {
 	CommunityName  string `json:"community_name"`
 	SenderUsername string `json:"sender_username"`
 	Content        string `json:"content"`
 }
 
-func (s *CommunityMessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
+func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to create community message")
 
 	var req createCommunityMessageRequest
@@ -60,7 +49,7 @@ func (s *CommunityMessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 }
 
-func (s *CommunityMessageServer) CreateUploadMediaFunc(ctx *gin.Context) {
+func (s *MessageServer) CreateUploadMediaFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to create upload media")
 
 	r := ctx.Request
@@ -116,7 +105,7 @@ type createMessageMediaRequest struct {
 	MediaID   int64 `json:"media_id"`
 }
 
-func (s *CommunityMessageServer) CreateMessageMediaFunc(ctx *gin.Context) {
+func (s *MessageServer) CreateMessageMediaFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to create message media")
 
 	var req createMessageMediaRequest
@@ -144,7 +133,7 @@ func (s *CommunityMessageServer) CreateMessageMediaFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 }
 
-func (s *CommunityMessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
+func (s *MessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get community message")
 
 	response, err := s.store.GetCommuntiyMessage(ctx) //spelling mistake
@@ -157,7 +146,7 @@ func (s *CommunityMessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func (s *CommunityMessageServer) GetCommunityByMessageFunc(ctx *gin.Context) {
+func (s *MessageServer) GetCommunityByMessageFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get community by message")
 
 	response, err := s.store.GetCommunityByMessage(ctx)

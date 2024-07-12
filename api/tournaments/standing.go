@@ -2,21 +2,11 @@ package tournaments
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
-
-type TournamentStandingServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewTournamentStanding(store *db.Store, logger *logger.Logger) *TournamentStandingServer {
-	return &TournamentStandingServer{store: store, logger: logger}
-}
 
 type createTournamentStandingRequest struct {
 	TournamentID   int64 `json:"tournament_id"`
@@ -31,7 +21,7 @@ type createTournamentStandingRequest struct {
 	Points         int64 `json:"points"`
 }
 
-func (s *TournamentStandingServer) CreateTournamentStandingFunc(ctx *gin.Context) {
+func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 	var req createTournamentStandingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -68,7 +58,7 @@ type getTournamentStandingRequest struct {
 	SportType    string `json:"sport_type"`
 }
 
-func (s *TournamentStandingServer) GetTournamentStandingFunc(ctx *gin.Context) {
+func (s *TournamentServer) GetTournamentStandingFunc(ctx *gin.Context) {
 
 	tournamentIDStr := ctx.Query("tournament_id")
 	groupIDStr := ctx.Query("group_id")
@@ -107,7 +97,7 @@ type updateTournamentStandingRequest struct {
 	TeamID       int64 `json:"team_id"`
 }
 
-func (s *TournamentStandingServer) UpdateTournamentStandingFunc(ctx *gin.Context) {
+func (s *TournamentServer) UpdateTournamentStandingFunc(ctx *gin.Context) {
 	var req updateTournamentStandingRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {

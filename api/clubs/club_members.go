@@ -1,29 +1,19 @@
-package handlers
+package clubs
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-type ClubMemberServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewClubMemberServer(store *db.Store, logger *logger.Logger) *ClubMemberServer {
-	return &ClubMemberServer{store: store, logger: logger}
-}
-
 type addClubMemberRequest struct {
 	ClubID   int64 `json:"club_id"`
 	PlayerID int64 `json:"player_id"`
 }
 
-func (s *ClubMemberServer) AddClubMemberFunc(ctx *gin.Context) {
+func (s *ClubServer) AddClubMemberFunc(ctx *gin.Context) {
 	var req addClubMemberRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -53,7 +43,7 @@ type getClubMemberRequest struct {
 	ClubID int64 `json:"club_id"`
 }
 
-func (s *ClubMemberServer) GetClubMemberFunc(ctx *gin.Context) {
+func (s *ClubServer) GetClubMemberFunc(ctx *gin.Context) {
 	clubIDStr := ctx.Query("club_id")
 	clubID, err := strconv.ParseInt(clubIDStr, 10, 64)
 	if err != nil {

@@ -2,21 +2,12 @@ package handlers
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
+
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
-
-type PlayerProfileServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewPlayerProfileServer(store *db.Store, logger *logger.Logger) *PlayerProfileServer {
-	return &PlayerProfileServer{store: store, logger: logger}
-}
 
 type addPlayerProfileRequest struct {
 	PlayerName            string `json:"player_name"`
@@ -27,7 +18,7 @@ type addPlayerProfileRequest struct {
 	Nation                string `json:"nation"`
 }
 
-func (s *PlayerProfileServer) AddPlayerProfileFunc(ctx *gin.Context) {
+func (s *HandlersServer) AddPlayerProfileFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to add player profile")
 	var req addPlayerProfileRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -56,7 +47,7 @@ func (s *PlayerProfileServer) AddPlayerProfileFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *PlayerProfileServer) GetPlayerProfileFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetPlayerProfileFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get player profile")
 	playerIdStr := ctx.Query("player_id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
@@ -80,7 +71,7 @@ func (s *PlayerProfileServer) GetPlayerProfileFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *PlayerProfileServer) GetAllPlayerProfileFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllPlayerProfileFunc(ctx *gin.Context) {
 
 	response, err := s.store.GetAllPlayerProfile(ctx)
 	if err != nil {
@@ -93,7 +84,7 @@ func (s *PlayerProfileServer) GetAllPlayerProfileFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *PlayerProfileServer) UpdatePlayerProfileAvatarFunc(ctx *gin.Context) {
+func (s *HandlersServer) UpdatePlayerProfileAvatarFunc(ctx *gin.Context) {
 	playerIdStr := ctx.Query("id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
 	if err != nil {

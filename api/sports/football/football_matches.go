@@ -3,19 +3,9 @@ package football
 import (
 	"context"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 )
 
-type FootballMatchServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewFootballMatchServer(store *db.Store, logger *logger.Logger) *FootballMatchServer {
-	return &FootballMatchServer{store: store, logger: logger}
-}
-
-func (s *FootballMatchServer) GetFootballMatchScore(matches []db.TournamentMatch, matchDetails []map[string]interface{}) []map[string]interface{} {
+func (s *FootballServer) GetFootballMatchScore(matches []db.TournamentMatch, matchDetails []map[string]interface{}) []map[string]interface{} {
 	s.logger.Info("Get football match score")
 	ctx := context.Background()
 	for i, match := range matches {

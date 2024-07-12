@@ -3,7 +3,6 @@ package tournaments
 import (
 	"fmt"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"khelogames/util"
 	"net/http"
 	"strconv"
@@ -12,16 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type TournamentMatchServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewTournamentMatchServer(store *db.Store, logger *logger.Logger) *TournamentMatchServer {
-	return &TournamentMatchServer{store: store, logger: logger}
-}
-
-func (s *TournamentMatchServer) GetTournamentMatch(ctx *gin.Context) {
+func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
@@ -127,7 +117,7 @@ type createTournamentMatchRequest struct {
 	EndTime      time.Time `json:"end_time"`
 }
 
-func (s *TournamentMatchServer) CreateTournamentMatch(ctx *gin.Context) {
+func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	var req createTournamentMatchRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {

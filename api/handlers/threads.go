@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/base64"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
+
 	"khelogames/pkg"
 	"khelogames/token"
 	util "khelogames/util"
@@ -12,15 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-type ThreadServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewThreadServer(store *db.Store, logger *logger.Logger) *ThreadServer {
-	return &ThreadServer{store: store, logger: logger}
-}
 
 type createThreadRequest struct {
 	CommunitiesName string `json:"communities_name,omitempty"`
@@ -31,7 +22,7 @@ type createThreadRequest struct {
 	LikeCount       int64  `json:"likeCount"`
 }
 
-func (s *ThreadServer) CreateThreadFunc(ctx *gin.Context) {
+func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 	var req createThreadRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -88,7 +79,7 @@ type getThreadRequest struct {
 	ID int64 `uri:"id"`
 }
 
-func (s *ThreadServer) GetThreadFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
 	var req getThreadRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -113,7 +104,7 @@ type getThreadUserRequest struct {
 }
 
 // get thread by user
-func (s *ThreadServer) GetThreadByUserFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetThreadByUserFunc(ctx *gin.Context) {
 	var req getThreadUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -132,7 +123,7 @@ func (s *ThreadServer) GetThreadByUserFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *ThreadServer) GetAllThreadDetailFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllThreadDetailFunc(ctx *gin.Context) {
 	threads, err := s.store.GetAllThreads(ctx)
 	if err != nil {
 		s.logger.Error("Failed to find the all threads ", err)
@@ -174,7 +165,7 @@ func (s *ThreadServer) GetAllThreadDetailFunc(ctx *gin.Context) {
 
 }
 
-func (s *ThreadServer) GetAllThreadsFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllThreadsFunc(ctx *gin.Context) {
 	threads, err := s.store.GetAllThreads(ctx)
 	if err != nil {
 		s.logger.Error("Failed to find the all threads ", err)
@@ -189,7 +180,7 @@ type getThreadsByCommunitiesRequest struct {
 	CommunitiesName string `uri:"communities_name"`
 }
 
-func (s *ThreadServer) GetAllThreadsByCommunityDetailsFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllThreadsByCommunityDetailsFunc(ctx *gin.Context) {
 	var req getThreadsByCommunitiesRequest
 
 	err := ctx.ShouldBindUri(&req)
@@ -242,7 +233,7 @@ func (s *ThreadServer) GetAllThreadsByCommunityDetailsFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *ThreadServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 	var req getThreadsByCommunitiesRequest
 
 	err := ctx.ShouldBindUri(&req)
@@ -267,7 +258,7 @@ type updateThreadLikeRequest struct {
 	ID        int64 `json:"id"`
 }
 
-func (s *ThreadServer) UpdateThreadLikeFunc(ctx *gin.Context) {
+func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 	var req updateThreadLikeRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -297,7 +288,7 @@ type threadByThreadIdRequest struct {
 	ID int64 `uri:"id"`
 }
 
-func (s *ThreadServer) GetThreadByThreadIDFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetThreadByThreadIDFunc(ctx *gin.Context) {
 	var req threadByThreadIdRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {

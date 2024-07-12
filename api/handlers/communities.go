@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
@@ -12,15 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type CommunityServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewCommunityServer(store *db.Store, logger *logger.Logger) *CommunityServer {
-	return &CommunityServer{store: store, logger: logger}
-}
-
 type createCommunitiesRequest struct {
 	CommunityName string `json:"communityName"`
 	Description   string `json:"description"`
@@ -28,7 +18,7 @@ type createCommunitiesRequest struct {
 }
 
 // Create communities function
-func (s *CommunityServer) CreateCommunitesFunc(ctx *gin.Context) {
+func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 	var req createCommunitiesRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -73,7 +63,7 @@ type getCommunityResponse struct {
 }
 
 // get Community by id.
-func (s *CommunityServer) GetCommunityFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetCommunityFunc(ctx *gin.Context) {
 	var req getCommunityRequest
 
 	err := ctx.ShouldBindUri(&req)
@@ -109,7 +99,7 @@ func (s *CommunityServer) GetCommunityFunc(ctx *gin.Context) {
 }
 
 // Get all communities by owner.
-func (s *CommunityServer) GetAllCommunitiesFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetAllCommunitiesFunc(ctx *gin.Context) {
 
 	user, err := s.store.GetAllCommunities(ctx)
 	if err != nil {
@@ -127,7 +117,7 @@ type getCommunitiesMemberRequest struct {
 	CommunitiesName string `uri:"communities_name"`
 }
 
-func (s *CommunityServer) GetCommunitiesMemberFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetCommunitiesMemberFunc(ctx *gin.Context) {
 	var req getCommunitiesMemberRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -156,7 +146,7 @@ type getCommunityByCommunityNameRequest struct {
 	CommunitiesName string `uri:"communities_name"`
 }
 
-func (s *CommunityServer) GetCommunityByCommunityNameFunc(ctx *gin.Context) {
+func (s *HandlersServer) GetCommunityByCommunityNameFunc(ctx *gin.Context) {
 	var req getCommunityByCommunityNameRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {

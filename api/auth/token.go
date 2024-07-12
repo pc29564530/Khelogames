@@ -3,9 +3,6 @@ package auth
 import (
 	"database/sql"
 	"fmt"
-	db "khelogames/db/sqlc"
-	"khelogames/logger"
-	"khelogames/token"
 	"khelogames/util"
 	"net/http"
 	"time"
@@ -22,17 +19,7 @@ type renewAccessTokenResponse struct {
 	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
 }
 
-type TokenServer struct {
-	store      *db.Store
-	logger     *logger.Logger
-	tokenMaker token.Maker
-}
-
-func NewTokenServer(store *db.Store, logger *logger.Logger, tokenMaker token.Maker) *TokenServer {
-	return &TokenServer{store: store, logger: logger, tokenMaker: tokenMaker}
-}
-
-func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
+func (s *AuthServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	config, err := util.LoadConfig(".")
 	var req renewAccessTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
