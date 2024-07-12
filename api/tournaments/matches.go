@@ -53,8 +53,29 @@ func (s *TournamentMatchServer) GetTournamentMatch(ctx *gin.Context) {
 	}
 
 	var matchDetails []map[string]interface{}
-
 	for _, matchData := range matches {
+		argScore1 := db.GetFootballMatchScoreParams{
+			MatchID:      matchData.MatchID,
+			TeamID:       matchData.Team1ID,
+			TournamentID: matchData.TournamentID,
+		}
+		argScore2 := db.GetFootballMatchScoreParams{
+			MatchID:      matchData.MatchID,
+			TeamID:       matchData.Team2ID,
+			TournamentID: matchData.TournamentID,
+		}
+		_, err := s.store.GetFootballMatchScore(ctx, argScore1)
+		if err != nil {
+			s.logger.Error("Failed to get football match score for team1: %v", err)
+			continue
+		}
+
+		_, err = s.store.GetFootballMatchScore(ctx, argScore2)
+		if err != nil {
+			s.logger.Error("Failed to get football match score for team1: %v", err)
+			continue
+		}
+
 		team1Name, err1 := s.store.GetClub(ctx, matchData.Team1ID)
 		if err1 != nil {
 			s.logger.Error("Failed to get club details for team1: %v", err1)
