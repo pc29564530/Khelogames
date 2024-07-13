@@ -1,15 +1,18 @@
 package util
 
 import (
-	"fmt"
+	"khelogames/logger"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
 // Generate hashed password for particular user
 func HashPassword(password string) (string, error) {
+	logger := logger.NewLogger()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate hashed password: %w", err)
+		logger.Errorf("failed to generate hashed password: %v", err)
+		return "", err
 	}
 	return string(hashedPassword), nil
 }

@@ -20,7 +20,7 @@ WHERE match_id=$1 AND tournament_id=$2;
 -- name: GetTournamentMatch :many
 SELECT * FROM tournament_match
 WHERE (tournament_id=$1 AND sports=$2)
-ORDER BY match_id ASC;
+ORDER BY match_id DESC;
 
 -- name: UpdateMatchSchedule :one
 UPDATE tournament_match

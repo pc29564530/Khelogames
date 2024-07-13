@@ -137,7 +137,7 @@ func (q *Queries) GetMatchesByTournamentID(ctx context.Context, tournamentID int
 const getTournamentMatch = `-- name: GetTournamentMatch :many
 SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
 WHERE (tournament_id=$1 AND sports=$2)
-ORDER BY match_id ASC
+ORDER BY match_id DESC
 `
 
 type GetTournamentMatchParams struct {

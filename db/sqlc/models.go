@@ -5,16 +5,10 @@
 package db
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-type CategoryLocation struct {
-	ID           int64  `json:"id"`
-	CategoryName string `json:"category_name"`
-}
 
 type Club struct {
 	ID        int64     `json:"id"`
@@ -62,11 +56,6 @@ type Communitymessage struct {
 	SentAt         time.Time `json:"sent_at"`
 }
 
-type Country struct {
-	ID          int64  `json:"id"`
-	CountryName string `json:"country_name"`
-}
-
 type CricketMatchScore struct {
 	ID           int64 `json:"id"`
 	MatchID      int64 `json:"match_id"`
@@ -85,17 +74,6 @@ type CricketMatchTeamToss struct {
 	MatchID      int64  `json:"match_id"`
 	TossWon      int64  `json:"toss_won"`
 	BatOrBowl    string `json:"bat_or_bowl"`
-}
-
-type CricketStanding struct {
-	StandingID   int64 `json:"standing_id"`
-	TournamentID int64 `json:"tournament_id"`
-	GroupID      int64 `json:"group_id"`
-	TeamID       int64 `json:"team_id"`
-	Wins         int64 `json:"wins"`
-	Loss         int64 `json:"loss"`
-	Draw         int64 `json:"draw"`
-	Points       int64 `json:"points"`
 }
 
 type CricketTeamPlayerScore struct {
@@ -117,13 +95,6 @@ type CricketTeamPlayerScore struct {
 	WicketOf         int64  `json:"wicket_of"`
 }
 
-type Event struct {
-	ID         int64  `json:"id"`
-	EventsName string `json:"events_name"`
-	CategoryID int64  `json:"category_id"`
-	CountryID  int64  `json:"country_id"`
-}
-
 type Follow struct {
 	ID             int64     `json:"id"`
 	FollowerOwner  string    `json:"follower_owner"`
@@ -139,20 +110,6 @@ type FootballMatchesScore struct {
 	GoalFor       int64     `json:"goal_for"`
 	GoalAgainst   int64     `json:"goal_against"`
 	GoalScoreTime time.Time `json:"goal_score_time"`
-}
-
-type FootballStanding struct {
-	StandingID     int64 `json:"standing_id"`
-	TournamentID   int64 `json:"tournament_id"`
-	GroupID        int64 `json:"group_id"`
-	TeamID         int64 `json:"team_id"`
-	Wins           int64 `json:"wins"`
-	Loss           int64 `json:"loss"`
-	Draw           int64 `json:"draw"`
-	GoalFor        int64 `json:"goal_for"`
-	GoalAgainst    int64 `json:"goal_against"`
-	GoalDifference int64 `json:"goal_difference"`
-	Points         int64 `json:"points"`
 }
 
 type FootballTeamPlayerScore struct {
@@ -193,15 +150,6 @@ type LikeThread struct {
 type Login struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
-}
-
-type Medium struct {
-	ID               int64        `json:"id"`
-	Url              string       `json:"url"`
-	MediaType        string       `json:"media_type"`
-	AssociatedEntity string       `json:"associated_entity"`
-	EntityID         int64        `json:"entity_id"`
-	CreatedAt        sql.NullTime `json:"created_at"`
 }
 
 type Message struct {
@@ -259,11 +207,6 @@ type Session struct {
 type Signup struct {
 	MobileNumber string `json:"mobile_number"`
 	Otp          string `json:"otp"`
-}
-
-type Sport struct {
-	ID        int64  `json:"id"`
-	SportName string `json:"sport_name"`
 }
 
 type Thread struct {

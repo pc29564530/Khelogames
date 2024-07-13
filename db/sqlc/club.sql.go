@@ -137,7 +137,7 @@ func (q *Queries) GetClubsBySport(ctx context.Context, sport string) ([]Club, er
 }
 
 const getMatchByClubName = `-- name: GetMatchByClubName :many
-SELECT t.tournament_id, t.tournament_name, tm.match_id, tm.team1_id, tm.team2_id, c1.club_name AS team1_name, c2.club_name AS team2_name, tm.start_time, tm.end_time, tm.date_on
+SELECT t.tournament_id, t.tournament_name, tm.match_id, tm.team1_id, tm.team2_id, c1.club_name AS team1_name, c2.club_name AS team2_name, tm.start_time, tm.end_time, tm.date_on, tm.sports
 FROM tournament_match tm
 JOIN tournament t ON tm.tournament_id = t.tournament_id
 JOIN club c1 ON tm.team1_id = c1.id
@@ -157,6 +157,7 @@ type GetMatchByClubNameRow struct {
 	StartTime      time.Time `json:"start_time"`
 	EndTime        time.Time `json:"end_time"`
 	DateOn         time.Time `json:"date_on"`
+	Sports         string    `json:"sports"`
 }
 
 func (q *Queries) GetMatchByClubName(ctx context.Context, id int64) ([]GetMatchByClubNameRow, error) {
@@ -179,6 +180,7 @@ func (q *Queries) GetMatchByClubName(ctx context.Context, id int64) ([]GetMatchB
 			&i.StartTime,
 			&i.EndTime,
 			&i.DateOn,
+			&i.Sports,
 		); err != nil {
 			return nil, err
 		}
