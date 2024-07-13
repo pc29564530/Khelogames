@@ -45,10 +45,6 @@ func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
 }
 
 type updateFootballMatchScoreRequest struct {
-	// TournamentID int64 `json:"tournament_id"`
-	// MatchID      int64 `json:"match_id"`
-	// TeamID       int64 `json:"team_id"`
-
 	GoalFor     int64 `json:"goal_for"`
 	GoalAgainst int64 `json:"goal_against"`
 	MatchID     int64 `json:"match_id"`
@@ -63,38 +59,6 @@ func (s *FootballServer) UpdateFootballMatchScoreFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind update football match score: %v", err)
 		return
 	}
-
-	// tournamentIdStr := ctx.Query("tournament_id")
-	// matchIdStr := ctx.Query("match_id")
-	// teamIdStr := ctx.Query("team_id")
-	// goalScoreStr := ctx.Query("goal_score")
-	// matchID, err := strconv.ParseInt(matchIdStr, 10, 64)
-	// if err != nil {
-	// 	s.logger.Error("unable to parse the match Id")
-	// 	ctx.JSON(http.StatusResetContent, err)
-	// 	return
-	// }
-
-	// teamID, err := strconv.ParseInt(teamIdStr, 10, 64)
-	// if err != nil {
-	// 	s.logger.Error("unable to parse the match Id")
-	// 	ctx.JSON(http.StatusResetContent, err)
-	// 	return
-	// }
-
-	// goalScore, err := strconv.ParseInt(goalScoreStr, 10, 64)
-	// if err != nil {
-	// 	s.logger.Error("unable to parse the match Id")
-	// 	ctx.JSON(http.StatusResetContent, err)
-	// 	return
-	// }
-
-	// tournamentId, err := strconv.ParseInt(tournamentIdStr, 10, 64)
-	// if err != nil {
-	// 	s.logger.Error("unable to parse the match Id")
-	// 	ctx.JSON(http.StatusResetContent, err)
-	// 	return
-	// }
 
 	arg := db.UpdateFootballMatchScoreParams{
 		GoalFor:     req.GoalFor,
