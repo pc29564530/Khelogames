@@ -34,7 +34,7 @@ func NewServer(config util.Config,
 	authServer *auth.AuthServer,
 	handlersServer *handlers.HandlersServer,
 	tournamentServer *tournaments.TournamentServer,
-	
+
 	footballServer *football.FootballServer,
 	cricketServer *cricket.CricketServer,
 	clubServer *clubs.ClubServer,
@@ -67,7 +67,7 @@ func NewServer(config util.Config,
 	}
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
-		authRouter.GET("/ws", messageServer.)
+		authRouter.GET("/ws", messageServer.HandleWebSocket)
 		authRouter.POST("/addJoinCommunity", handlersServer.AddJoinCommunityFunc)
 		authRouter.GET("/getUserByCommunity/:community_name", handlersServer.GetUserByCommunityFunc)
 		authRouter.GET("/getCommunityByUser", handlersServer.GetCommunityByUserFunc)
@@ -153,8 +153,8 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateCricketMatchScoreBatting", cricketServer.UpdateCricketMatchScoreBattingFunc)
 	sportRouter.PUT("/updateCricketMatchScoreBowling", cricketServer.UpdateCricketMatchScoreBowlingFunc)
 
-	//sportRouter.GET("/getClubPlayedTournaments", clubServer.GetClubPlayedTournamentsFunc)
-	//sportRouter.GET("/getClubPlayedTournament", clubServer.GetClubPlayedTournamentFunc)
+	sportRouter.GET("/getClubPlayedTournaments", clubServer.GetClubPlayedTournamentsFunc)
+	sportRouter.GET("/getClubPlayedTournament", clubServer.GetClubPlayedTournamentFunc)
 	sportRouter.GET("/getTournamentsByClub", clubServer.GetTournamentsByClubFunc)
 	sportRouter.GET("/getMatchByClubName", clubServer.GetMatchByClubNameFunc)
 	sportRouter.PUT("/updateTournamentDate", tournamentServer.UpdateTournamentDateFunc)

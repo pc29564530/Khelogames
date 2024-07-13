@@ -1,24 +1,14 @@
-package handlers
+package clubs
 
 import (
 	db "khelogames/db/sqlc"
-	"khelogames/logger"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-type ClubTournamentServer struct {
-	store  *db.Store
-	logger *logger.Logger
-}
-
-func NewClubTournamentServer(store *db.Store, logger *logger.Logger) *ClubTournamentServer {
-	return &ClubTournamentServer{store, logger}
-}
-
-func (s *ClubTournamentServer) GetClubPlayedTournamentFunc(ctx *gin.Context) {
+func (s *ClubServer) GetClubPlayedTournamentFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get club played tournament")
 
 	tournamentIDStr := ctx.Query("tournament_id")
@@ -55,7 +45,7 @@ func (s *ClubTournamentServer) GetClubPlayedTournamentFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func (s *ClubTournamentServer) GetClubPlayedTournamentsFunc(ctx *gin.Context) {
+func (s *ClubServer) GetClubPlayedTournamentsFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get club played tournaments")
 
 	clubIDStr := ctx.Query("club_id")

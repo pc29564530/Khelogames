@@ -63,7 +63,6 @@ func main() {
 	broadcast := make(chan []byte)
 
 	// Initialize HTTP servers and handlers
-
 	authServer := auth.NewAuthServer(store, log, tokenMaker, config)
 	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config)
 	footballServer := football.NewFootballServer(store, log)
@@ -72,44 +71,6 @@ func main() {
 	clubsServer := clubs.NewClubsServer(store, log, tokenMaker, config)
 	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config)
 	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
-
-	// AuthServer := auth.NewAuthServer(store, log)
-	// AuthServer := auth.NewAuthServer(store, log, tokenMaker, config)
-	// AuthServer := auth.NewAuthServer(store, log)
-
-	// sessionServer := auth.NewSessionServer(store, log)
-	// HandlersServer := handlers.NewHandlersServer(store, log)
-	// AuthServer := auth.NewAuthServer(store, log, tokenMaker)
-	// HandlersServer := handlers.NewHandlersServer(store, log)
-	// likeThread := handlers.NewHandlersServer(store, log)
-	// clubServer := clubs.NewClubServer(store, log)
-	// HandlersServer := handlers.NewHandlersServer(store, log, tokenMaker, config)
-	// HandlersServer := handlers.NewHandlersServer(store, log)
-	// HandlersServer := handlers.NewHandlersServer(store, log)
-	// HandlersServer := handlers.NewHandlersServer(store, log)
-	// HandlersServer := handlers.NewHandlersServer(store, log)
-	// groupTeamServer := handlers.NewGroupTeamServer(store, log)
-	// HandlersServer := handlers.NewHandlersServer(store, log)
-	// TournamentServer := tournaments.NewTournamentGroup(store, log)
-	// TournamentServer := tournaments.NewTournamentServer(store, log)
-	// //tournamentOrganizerServer := tournaments.NewTournamentOrganizerServer(store, log) function should be added in the tournaments
-	// tournamentStanding := tournaments.NewTournamentStanding(store, log)
-	// FootballServer := football.NewFootballServer(store, log)
-	// CricketServer := cricket.NewCricketServer(store, log)
-	// tournamentServer := tournaments.NewTournamentServer(store, log)
-	// CricketServer := cricket.NewCricketMatchToss(store, log)
-	// cricketMatchPlayerScoreServer := cricket.NewCricketPlayerServer(store, log)
-	// ClubTournamentServer := handlers.NewClubTournamentServer(store, log)
-	// footballUpdateServer := football.NewFootballServer(store, log)
-
-	// // Initialize WebSocket handler
-	// webSocketHandlerImpl := messenger.NewWebSocketHandler(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
-	// messageServer := messenger.NewMessageServer(store, log, broadcast)
-
-	// MessageServer := messenger.NewMessageServer(store, log, broadcast)
-	// footballServer := football.NewFootballServer(store, log)
-
-	// CricketServer := cricket.NewCricketServer(store, log)
 
 	// Initialize Gin router
 	router := gin.Default()
