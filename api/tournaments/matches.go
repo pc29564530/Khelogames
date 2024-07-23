@@ -6,7 +6,6 @@ import (
 	"khelogames/util"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,13 +21,9 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	}
 	sports := ctx.Query("sports")
 	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", tournamentID, sports))
-	arg := db.GetTournamentMatchParams{
-		TournamentID: tournamentID,
-		Sports:       sports,
-	}
-	s.logger.Debug("Tournament match params: %v", arg)
+	s.logger.Debug("Tournament match params: %v", tournamentID)
 
-	matches, err := s.store.GetTournamentMatch(ctx, arg)
+	matches, err := s.store.GetMatchesByTournamentID(ctx, tournamentID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament match: %v", err)
 		ctx.JSON(http.StatusNotFound, err)
@@ -44,34 +39,34 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 
 	var matchDetails []map[string]interface{}
 	for _, matchData := range matches {
-		argScore1 := db.GetFootballMatchScoreParams{
-			MatchID:      matchData.MatchID,
-			TeamID:       matchData.Team1ID,
-			TournamentID: matchData.TournamentID,
-		}
-		argScore2 := db.GetFootballMatchScoreParams{
-			MatchID:      matchData.MatchID,
-			TeamID:       matchData.Team2ID,
-			TournamentID: matchData.TournamentID,
-		}
-		_, err := s.store.GetFootballMatchScore(ctx, argScore1)
-		if err != nil {
-			s.logger.Error("Failed to get football match score for team1: %v", err)
-			continue
-		}
+		// argScore1 := db.GetFootballMatchScoreParams{
+		// 	MatchID:      matchData.MatchID,
+		// 	TeamID:       matchData.Team1ID,
+		// 	TournamentID: matchData.TournamentID,
+		// }
+		// argScore2 := db.GetFootballMatchScoreParams{
+		// 	MatchID:      matchData.MatchID,
+		// 	TeamID:       matchData.Team2ID,
+		// 	TournamentID: matchData.TournamentID,
+		// }
+		// _, err := s.store.GetFootballMatchScore(ctx, argScore1)
+		// if err != nil {
+		// 	s.logger.Error("Failed to get football match score for team1: %v", err)
+		// 	continue
+		// }
 
-		_, err = s.store.GetFootballMatchScore(ctx, argScore2)
-		if err != nil {
-			s.logger.Error("Failed to get football match score for team1: %v", err)
-			continue
-		}
+		// _, err = s.store.GetFootballMatchScore(ctx, argScore2)
+		// if err != nil {
+		// 	s.logger.Error("Failed to get football match score for team1: %v", err)
+		// 	continue
+		// }
 
-		team1Name, err1 := s.store.GetClub(ctx, matchData.Team1ID)
+		homeTeamID, err1 := s.store.GetTeam(ctx, matchData.HomeTeamID)
 		if err1 != nil {
 			s.logger.Error("Failed to get club details for team1: %v", err1)
 			continue
 		}
-		team2Name, err2 := s.store.GetClub(ctx, matchData.Team2ID)
+		awayTeamID, err2 := s.store.GetTeam(ctx, matchData.AwayTeamID)
 		if err2 != nil {
 			s.logger.Error("Failed to get club details for team2: %v", err2)
 			continue
@@ -80,15 +75,13 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 		matchDetail := map[string]interface{}{
 			"tournament_id":   matchData.TournamentID,
 			"tournament_name": tournament.TournamentName,
-			"match_id":        matchData.MatchID,
-			"team1_id":        matchData.Team1ID,
-			"team2_id":        matchData.Team2ID,
-			"team1_name":      team1Name.ClubName,
-			"team2_name":      team2Name.ClubName,
-			"start_time":      matchData.StartTime,
-			"end_time":        matchData.EndTime,
-			"date_on":         matchData.DateOn,
-			"sports":          matchData.Sports,
+			"match_id":        matchData.ID,
+			"home_team_id":    matchData.HomeTeamID,
+			"away_team_id":    matchData.AwayTeamID,
+			"away_team_name":  awayTeamID.Name,
+			"home_team_name":  homeTeamID.Name,
+			"start_time":      matchData.StartTimestamp,
+			"sports":          matchData.EndTimestamp,
 		}
 		//s.logger.Debug("football match details: %v ", matchDetails)
 		matchDetails = append(matchDetails, matchDetail)
@@ -105,16 +98,17 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 
 //add the sport matches:
 
+//update the start time of the match when match is delayed
+
 type createTournamentMatchRequest struct {
-	OrganizerID  int64     `json:"organizer_id"`
-	TournamentID int64     `json:"tournament_id"`
-	Team1ID      int64     `json:"team1_id"`
-	Team2ID      int64     `json:"team2_id"`
-	DateON       time.Time `json:"date_on"`
-	StartTime    time.Time `json:"start_time"`
-	Stage        string    `json:"stage"`
-	Sports       string    `json:"sports"`
-	EndTime      time.Time `json:"end_time"`
+	ID             int64  `json:"id"`
+	TournamentID   int64  `json:"tournament_id"`
+	AwayTeamID     int64  `json:"away_team_id"`
+	HomeTeamID     int64  `json:"home_team_id"`
+	StartTimestamp int64  `json:"start_timestamp"`
+	EndTimestamp   int64  `json:"end_timestamp"`
+	StatusCode     int64  `json:"status_code"`
+	Type           string `json:"type"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -126,21 +120,19 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("bind the request: %v", req)
-	arg := db.CreateMatchParams{
-		OrganizerID:  req.OrganizerID,
-		TournamentID: req.TournamentID,
-		Team1ID:      req.Team1ID,
-		Team2ID:      req.Team2ID,
-		DateOn:       req.DateON,
-		StartTime:    req.StartTime,
-		Stage:        req.Stage,
-		Sports:       req.Sports,
-		EndTime:      req.EndTime,
+	arg := db.NewMatchParams{
+		TournamentID:   req.TournamentID,
+		AwayTeamID:     req.AwayTeamID,
+		HomeTeamID:     req.HomeTeamID,
+		StartTimestamp: req.StartTimestamp,
+		EndTimestamp:   req.EndTimestamp,
+		StatusCode:     req.StatusCode,
+		Type:           req.Type,
 	}
 
 	s.logger.Debug("Create match params: %v", arg)
 
-	response, err := s.store.CreateMatch(ctx, arg)
+	response, err := s.store.NewMatch(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to create match: %v", err)
 		ctx.JSON(http.StatusNotFound, err)

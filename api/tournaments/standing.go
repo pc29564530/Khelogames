@@ -79,7 +79,7 @@ func (s *TournamentServer) GetTournamentStandingFunc(ctx *gin.Context) {
 	arg := db.GetTournamentStandingParams{
 		TournamentID: tournamentID,
 		GroupID:      groupID,
-		SportType:    sport,
+		Sports:       sport,
 	}
 
 	response, err := s.store.GetTournamentStanding(ctx, arg)

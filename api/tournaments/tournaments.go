@@ -4,25 +4,24 @@ import (
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 // tournament
-type createTournamentRequest struct {
-	TournamentName string    `json:"tournament_name"`
-	SportType      string    `json:"sport_type"`
-	Format         string    `json:"format"`
-	TeamsJoined    int64     `json:"teams_joined"`
-	StartOn        time.Time `json:"start_on"`
-	EndOn          time.Time `json:"end_on"`
-	Category       string    `json:"category"`
+type addTournamentRequest struct {
+	TournamentName string `json:"tournament_name"`
+	Slug           string `json:"slug"`
+	Sports         string `json:"sports"`
+	Country        string `json:"country"`
+	StatusCode     int64  `json:"status_code"`
+	Level          string `json:"level"`
+	StartTimestamp int64  `json:"start_timestamp"`
 }
 
-func (s *TournamentServer) CreateTournamentFunc(ctx *gin.Context) {
+func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to create a tournament")
-	var req createTournamentRequest
+	var req addTournamentRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind request: %v", err)
@@ -31,17 +30,17 @@ func (s *TournamentServer) CreateTournamentFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("Request data: %v", req)
 
-	arg := db.CreateTournamentParams{
+	arg := db.NewTournamentParams{
 		TournamentName: req.TournamentName,
-		SportType:      req.SportType,
-		Format:         req.Format,
-		TeamsJoined:    req.TeamsJoined,
-		StartOn:        req.StartOn,
-		EndOn:          req.EndOn,
-		Category:       req.Category,
+		Slug:           req.Slug, // need to convert to slub
+		Sports:         req.Sports,
+		Country:        req.Country,
+		StatusCode:     req.StatusCode,
+		Level:          req.Level,
+		StartTimestamp: req.StartTimestamp, // need to convert to bigint
 	}
 
-	response, err := s.store.CreateTournament(ctx, arg)
+	response, err := s.store.NewTournament(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to create tournament: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -67,7 +66,7 @@ func (s *TournamentServer) GetTournamentTeamCountFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTeamsCount(ctx, req.TournamentID)
+	response, err := s.store.GetTournamentTeamsCount(ctx, req.TournamentID)
 	if err != nil {
 		s.logger.Error("Failed to get team count: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -79,37 +78,37 @@ func (s *TournamentServer) GetTournamentTeamCountFunc(ctx *gin.Context) {
 	return
 }
 
-type updateTeamsJoinedRequest struct {
-	TeamsJoined  int64 `json:"teams_joined"`
-	TournamentID int64 `json:"tournament_id"`
-}
+// type updateTeamsJoinedRequest struct {
+// 	TeamsJoined  int64 `json:"teams_joined"`
+// 	TournamentID int64 `json:"tournament_id"`
+// }
 
-func (s *TournamentServer) UpdateTeamsJoinedFunc(ctx *gin.Context) {
-	s.logger.Info("Received request to update teams joined")
-	var req updateTeamsJoinedRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind request: %v", err)
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
+// func (s *TournamentServer) UpdateTeamsJoinedFunc(ctx *gin.Context) {
+// 	s.logger.Info("Received request to update teams joined")
+// 	var req updateTeamsJoinedRequest
+// 	err := ctx.ShouldBindJSON(&req)
+// 	if err != nil {
+// 		s.logger.Error("Failed to bind request: %v", err)
+// 		ctx.JSON(http.StatusInternalServerError, err)
+// 		return
+// 	}
 
-	arg := db.UpdateTeamsJoinedParams{
-		TeamsJoined:  req.TeamsJoined,
-		TournamentID: req.TournamentID,
-	}
+// 	arg := db.UpdateTeamsJoinedParams{
+// 		TeamsJoined:  req.TeamsJoined,
+// 		TournamentID: req.TournamentID,
+// 	}
 
-	response, err := s.store.UpdateTeamsJoined(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to update teams joined: %v", err)
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-	s.logger.Info("Successfully updated teams joined: %v", response)
+// 	response, err := s.store.UpdateTeamsJoined(ctx, arg)
+// 	if err != nil {
+// 		s.logger.Error("Failed to update teams joined: %v", err)
+// 		ctx.JSON(http.StatusInternalServerError, err)
+// 		return
+// 	}
+// 	s.logger.Info("Successfully updated teams joined: %v", response)
 
-	ctx.JSON(http.StatusAccepted, response)
-	return
-}
+// 	ctx.JSON(http.StatusAccepted, response)
+// 	return
+// }
 
 func (s *TournamentServer) GetTournamentsFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get tournaments")
@@ -247,12 +246,12 @@ func (s *TournamentServer) AddTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.AddTeamParams{
+	arg := db.NewTournamentTeamParams{
 		TournamentID: req.TournamentID,
 		TeamID:       req.TeamID,
 	}
 
-	response, err := s.store.AddTeam(ctx, arg)
+	response, err := s.store.NewTournamentTeam(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add team: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -264,13 +263,13 @@ func (s *TournamentServer) AddTeamFunc(ctx *gin.Context) {
 	return
 }
 
-type getTeamsRequest struct {
+type getTournamentTeamsRequest struct {
 	TournamentID int64 `uri:"tournament_id"`
 }
 
-func (s *TournamentServer) GetTeamsFunc(ctx *gin.Context) {
+func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get teams for a tournament")
-	var req getTeamsRequest
+	var req getTournamentTeamsRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind request: %v", err)
@@ -278,7 +277,7 @@ func (s *TournamentServer) GetTeamsFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTeams(ctx, req.TournamentID)
+	response, err := s.store.GetTournamentTeams(ctx, req.TournamentID)
 	if err != nil {
 		s.logger.Error("Failed to get teams: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Not found"})
@@ -327,26 +326,26 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 	}
 
 	startOnStr := ctx.Query("start_on")
-	layout := "2006-01-02"
-	startOn, err := time.Parse(layout, startOnStr)
+	// layout := "2006-01-02"
+	//startOn, err := time.Parse(layout, startOnStr)
+	startTimeStamp, err := strconv.ParseInt(startOnStr, 10, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse start date: %v", err)
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	endOnStr := ctx.Query("end_on")
-	endOn, err := time.Parse(layout, endOnStr)
-	if err != nil {
-		s.logger.Error("Failed to parse end date: %v", err)
-		ctx.JSON(http.StatusBadRequest, err)
-		return
-	}
+	//endOnStr := ctx.Query("end_on")
+	// endOn, err := time.Parse(layout, endOnStr)
+	// if err != nil {
+	// 	s.logger.Error("Failed to parse end date: %v", err)
+	// 	ctx.JSON(http.StatusBadRequest, err)
+	// 	return
+	// }
 
 	arg := db.UpdateTournamentDateParams{
-		StartOn:      startOn,
-		EndOn:        endOn,
-		TournamentID: tournamentID,
+		StartTimestamp: startTimeStamp,
+		ID:             tournamentID,
 	}
 
 	response, err := s.store.UpdateTournamentDate(ctx, arg)
@@ -364,18 +363,18 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 func (s *TournamentServer) GetTournamentByLevelFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get tournaments by level")
 
-	sport := ctx.Param("sport")
-	category := ctx.Query("category")
-	s.logger.Debug("Category: %v", category)
+	sports := ctx.Param("sport")
+	level := ctx.Query("category")
+	s.logger.Debug("Category: %v", level)
 
-	arg := db.GetTournamentByLevelParams{
-		SportType: sport,
-		Category:  category,
+	arg := db.GetTournamentsByLevelParams{
+		Sports: sports,
+		Level:  level,
 	}
 
 	s.logger.Debug("GetTournamentByLevelParams: %v", arg)
 
-	response, err := s.store.GetTournamentByLevel(ctx, arg)
+	response, err := s.store.GetTournamentsByLevel(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to get tournaments by level: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
