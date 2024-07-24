@@ -2,6 +2,7 @@ package tournaments
 
 import (
 	db "khelogames/db/sqlc"
+	"khelogames/util"
 	"net/http"
 	"strconv"
 
@@ -16,7 +17,7 @@ type addTournamentRequest struct {
 	Country        string `json:"country"`
 	StatusCode     int64  `json:"status_code"`
 	Level          string `json:"level"`
-	StartTimestamp int64  `json:"start_timestamp"`
+	StartTimestamp string `json:"start_timestamp"`
 }
 
 func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
@@ -29,15 +30,23 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("Request data: %v", req)
+	timestamp := req.StartTimestamp
+
+	slug := util.GenerateSlug(req.TournamentName)
+	startTimeStamp, err := util.ConvertTimeStamp(timestamp)
+	if err != nil {
+		s.logger.Error("unable to convert time to second: ", err)
+		return
+	}
 
 	arg := db.NewTournamentParams{
 		TournamentName: req.TournamentName,
-		Slug:           req.Slug, // need to convert to slub
+		Slug:           slug,
 		Sports:         req.Sports,
 		Country:        req.Country,
 		StatusCode:     req.StatusCode,
 		Level:          req.Level,
-		StartTimestamp: req.StartTimestamp, // need to convert to bigint
+		StartTimestamp: startTimeStamp,
 	}
 
 	response, err := s.store.NewTournament(ctx, arg)
@@ -328,12 +337,17 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 	startOnStr := ctx.Query("start_on")
 	// layout := "2006-01-02"
 	//startOn, err := time.Parse(layout, startOnStr)
-	startTimeStamp, err := strconv.ParseInt(startOnStr, 10, 64)
+	startTimeStamp, err := util.ConvertTimeStamp(startOnStr)
 	if err != nil {
-		s.logger.Error("Failed to parse start date: %v", err)
-		ctx.JSON(http.StatusBadRequest, err)
+		s.logger.Error("unable to convert time to second: ", err)
 		return
 	}
+	// startTimeStamp, err := strconv.ParseInt(startOnStr, 10, 64)
+	// if err != nil {
+	// 	s.logger.Error("Failed to parse start date: %v", err)
+	// 	ctx.JSON(http.StatusBadRequest, err)
+	// 	return
+	// }
 
 	//endOnStr := ctx.Query("end_on")
 	// endOn, err := time.Parse(layout, endOnStr)
