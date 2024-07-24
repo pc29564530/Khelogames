@@ -94,19 +94,13 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	return
 }
 
-//add the instance from method
-
-//add the sport matches:
-
-//update the start time of the match when match is delayed
-
 type createTournamentMatchRequest struct {
 	ID             int64  `json:"id"`
 	TournamentID   int64  `json:"tournament_id"`
 	AwayTeamID     int64  `json:"away_team_id"`
 	HomeTeamID     int64  `json:"home_team_id"`
-	StartTimestamp int64  `json:"start_timestamp"`
-	EndTimestamp   int64  `json:"end_timestamp"`
+	StartTimestamp string `json:"start_timestamp"`
+	EndTimestamp   string `json:"end_timestamp"`
 	StatusCode     int64  `json:"status_code"`
 	Type           string `json:"type"`
 }
@@ -120,12 +114,27 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("bind the request: %v", req)
+
+	startTimeStamp, err := util.ConvertTimeStamp(req.StartTimestamp)
+	if err != nil {
+		s.logger.Error("unable to convert time to second: ", err)
+		return
+	}
+	var endTimeStamp int64
+	if req.EndTimestamp != "" {
+		endTimeStamp, err = util.ConvertTimeStamp(req.EndTimestamp)
+		if err != nil {
+			s.logger.Error("unable to convert time to second: ", err)
+			return
+		}
+	}
+
 	arg := db.NewMatchParams{
 		TournamentID:   req.TournamentID,
 		AwayTeamID:     req.AwayTeamID,
 		HomeTeamID:     req.HomeTeamID,
-		StartTimestamp: req.StartTimestamp,
-		EndTimestamp:   req.EndTimestamp,
+		StartTimestamp: startTimeStamp,
+		EndTimestamp:   endTimeStamp,
 		StatusCode:     req.StatusCode,
 		Type:           req.Type,
 	}
