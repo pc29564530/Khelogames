@@ -9,60 +9,45 @@ import (
 	"context"
 )
 
-const addTeam = `-- name: AddTeam :one
-INSERT INTO tournament_team (
-    tournament_id,
-    team_id
-) VALUES ( $1, $2 )
-RETURNING tournament_id, team_id
-`
-
-type AddTeamParams struct {
-	TournamentID int64 `json:"tournament_id"`
-	TeamID       int64 `json:"team_id"`
-}
-
-func (q *Queries) AddTeam(ctx context.Context, arg AddTeamParams) (TournamentTeam, error) {
-	row := q.db.QueryRowContext(ctx, addTeam, arg.TournamentID, arg.TeamID)
-	var i TournamentTeam
-	err := row.Scan(&i.TournamentID, &i.TeamID)
-	return i, err
-}
-
-const getTeam = `-- name: GetTeam :one
+const getTournamentTeam = `-- name: GetTournamentTeam :one
 SELECT tournament_id, team_id FROM tournament_team
 WHERE team_id=$1
 `
 
-func (q *Queries) GetTeam(ctx context.Context, teamID int64) (TournamentTeam, error) {
-	row := q.db.QueryRowContext(ctx, getTeam, teamID)
+func (q *Queries) GetTournamentTeam(ctx context.Context, teamID int64) (TournamentTeam, error) {
+	row := q.db.QueryRowContext(ctx, getTournamentTeam, teamID)
 	var i TournamentTeam
 	err := row.Scan(&i.TournamentID, &i.TeamID)
 	return i, err
 }
 
-const getTeams = `-- name: GetTeams :many
-SELECT c.id, c.club_name, c.avatar_url, c.sport, c.owner, c.created_at FROM tournament_team tt
-JOIN club c ON c.id = tt.team_id
+const getTournamentTeams = `-- name: GetTournamentTeams :many
+SELECT c.id, c.name, c.slug, c.shortname, c.admin, c.media_url, c.gender, c.national, c.country, c.type, c.sports FROM tournament_team tt
+JOIN teams c ON c.id = tt.team_id
 WHERE tournament_id=$1
 `
 
-func (q *Queries) GetTeams(ctx context.Context, tournamentID int64) ([]Club, error) {
-	rows, err := q.db.QueryContext(ctx, getTeams, tournamentID)
+func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([]Team, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentTeams, tournamentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Club
+	var items []Team
 	for rows.Next() {
-		var i Club
+		var i Team
 		if err := rows.Scan(
 			&i.ID,
-			&i.ClubName,
-			&i.AvatarUrl,
-			&i.Sport,
-			&i.Owner,
-			&i.CreatedAt,
+			&i.Name,
+			&i.Slug,
+			&i.Shortname,
+			&i.Admin,
+			&i.MediaUrl,
+			&i.Gender,
+			&i.National,
+			&i.Country,
+			&i.Type,
+			&i.Sports,
 		); err != nil {
 			return nil, err
 		}
@@ -77,14 +62,34 @@ func (q *Queries) GetTeams(ctx context.Context, tournamentID int64) ([]Club, err
 	return items, nil
 }
 
-const getTeamsCount = `-- name: GetTeamsCount :one
+const getTournamentTeamsCount = `-- name: GetTournamentTeamsCount :one
 SELECT COUNT(*) FROM tournament_team
 WHERE tournament_id=$1
 `
 
-func (q *Queries) GetTeamsCount(ctx context.Context, tournamentID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getTeamsCount, tournamentID)
+func (q *Queries) GetTournamentTeamsCount(ctx context.Context, tournamentID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTournamentTeamsCount, tournamentID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const newTournamentTeam = `-- name: NewTournamentTeam :one
+INSERT INTO tournament_team (
+    tournament_id,
+    team_id
+) VALUES ( $1, $2 )
+RETURNING tournament_id, team_id
+`
+
+type NewTournamentTeamParams struct {
+	TournamentID int64 `json:"tournament_id"`
+	TeamID       int64 `json:"team_id"`
+}
+
+func (q *Queries) NewTournamentTeam(ctx context.Context, arg NewTournamentTeamParams) (TournamentTeam, error) {
+	row := q.db.QueryRowContext(ctx, newTournamentTeam, arg.TournamentID, arg.TeamID)
+	var i TournamentTeam
+	err := row.Scan(&i.TournamentID, &i.TeamID)
+	return i, err
 }

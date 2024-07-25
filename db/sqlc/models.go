@@ -6,6 +6,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -224,14 +225,14 @@ type Login struct {
 }
 
 type Match struct {
-	ID             int64  `json:"id"`
-	TournamentID   int64  `json:"tournament_id"`
-	AwayTeamID     int64  `json:"away_team_id"`
-	HomeTeamID     int64  `json:"home_team_id"`
-	StartTimestamp int64  `json:"start_timestamp"`
-	EndTimestamp   int64  `json:"end_timestamp"`
-	StatusCode     int64  `json:"status_code"`
-	Type           string `json:"type"`
+	ID             int64           `json:"id"`
+	TournamentID   int64           `json:"tournament_id"`
+	AwayTeamID     int64           `json:"away_team_id"`
+	HomeTeamID     int64           `json:"home_team_id"`
+	StartTimestamp int64           `json:"start_timestamp"`
+	EndTimestamp   int64           `json:"end_timestamp"`
+	Type           string          `json:"type"`
+	StatusCode     json.RawMessage `json:"status_code"`
 }
 
 type Message struct {
@@ -316,6 +317,11 @@ type Team struct {
 	Sports    string `json:"sports"`
 }
 
+type TeamPlayer struct {
+	TeamID   int64 `json:"team_id"`
+	PlayerID int64 `json:"player_id"`
+}
+
 type Thread struct {
 	ID              int64     `json:"id"`
 	Username        string    `json:"username"`
@@ -329,14 +335,14 @@ type Thread struct {
 }
 
 type Tournament struct {
-	ID             int64  `json:"id"`
-	TournamentName string `json:"tournament_name"`
-	Slug           string `json:"slug"`
-	Sports         string `json:"sports"`
-	Country        string `json:"country"`
-	StatusCode     int64  `json:"status_code"`
-	Level          string `json:"level"`
-	StartTimestamp int64  `json:"start_timestamp"`
+	ID             int64           `json:"id"`
+	TournamentName string          `json:"tournament_name"`
+	Slug           string          `json:"slug"`
+	Sports         string          `json:"sports"`
+	Country        string          `json:"country"`
+	Level          string          `json:"level"`
+	StartTimestamp int64           `json:"start_timestamp"`
+	StatusCode     json.RawMessage `json:"status_code"`
 }
 
 type TournamentMatch struct {
