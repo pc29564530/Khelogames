@@ -50,11 +50,12 @@ func (s *CricketServer) AddCricketMatchScoreFunc(ctx *gin.Context) {
 
 }
 
-func (s *CricketServer) GetCricketMatchScore(matches []db.TournamentMatch, matchDetails []map[string]interface{}) []map[string]interface{} {
+func (s *CricketServer) GetCricketMatchScore(matches []db.Match, matchDetails []map[string]interface{}) []map[string]interface{} {
 	ctx := context.Background()
 	for i, match := range matches {
-		arg1 := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.Team1ID}
-		arg2 := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.Team2ID}
+
+		arg1 := db.GetCricketMatchScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
+		arg2 := db.GetCricketMatchScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
 		matchScoreData1, err := s.store.GetCricketMatchScore(ctx, arg1)
 		if err != nil {
 			s.logger.Error("Failed to get cricket match score for team 1:", err)
