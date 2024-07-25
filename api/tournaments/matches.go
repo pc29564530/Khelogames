@@ -1,6 +1,7 @@
 package tournaments
 
 import (
+	"encoding/json"
 	"fmt"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
@@ -95,14 +96,14 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 }
 
 type createTournamentMatchRequest struct {
-	ID             int64  `json:"id"`
-	TournamentID   int64  `json:"tournament_id"`
-	AwayTeamID     int64  `json:"away_team_id"`
-	HomeTeamID     int64  `json:"home_team_id"`
-	StartTimestamp string `json:"start_timestamp"`
-	EndTimestamp   string `json:"end_timestamp"`
-	StatusCode     int64  `json:"status_code"`
-	Type           string `json:"type"`
+	ID             int64             `json:"id"`
+	TournamentID   int64             `json:"tournament_id"`
+	AwayTeamID     int64             `json:"away_team_id"`
+	HomeTeamID     int64             `json:"home_team_id"`
+	StartTimestamp string            `json:"start_timestamp"`
+	EndTimestamp   string            `json:"end_timestamp"`
+	StatusCode     map[string]string `json:"status_code"`
+	Type           string            `json:"type"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -128,6 +129,10 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 			return
 		}
 	}
+	statusCodeJSON, err := json.Marshal(req.StatusCode)
+	if err != nil {
+		s.logger.Error("failed to marshal status code: %v", err)
+	}
 
 	arg := db.NewMatchParams{
 		TournamentID:   req.TournamentID,
@@ -135,7 +140,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		HomeTeamID:     req.HomeTeamID,
 		StartTimestamp: startTimeStamp,
 		EndTimestamp:   endTimeStamp,
-		StatusCode:     req.StatusCode,
+		StatusCode:     statusCodeJSON,
 		Type:           req.Type,
 	}
 
