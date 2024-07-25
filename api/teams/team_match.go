@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (s *TeamsServer) GetTournamentsByClubFunc(ctx *gin.Context) {
+func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
 	idStr := ctx.Query("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	response, err := s.store.GetTournamentsByTeam(ctx, id)
@@ -22,7 +22,7 @@ func (s *TeamsServer) GetTournamentsByClubFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *TeamsServer) GetMatchByClubNameFunc(ctx *gin.Context) {
+func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 	teamIDStr := ctx.Query("id")
 	teamID, err := strconv.ParseInt(teamIDStr, 10, 64)
 	if err != nil {

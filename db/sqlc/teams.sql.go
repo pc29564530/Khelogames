@@ -9,6 +9,26 @@ import (
 	"context"
 )
 
+const addTeamPlayers = `-- name: AddTeamPlayers :one
+INSERT INTO team_players (
+    team_id,
+    player_id
+) VALUES ($1, $2)
+RETURNING team_id, player_id
+`
+
+type AddTeamPlayersParams struct {
+	TeamID   int64 `json:"team_id"`
+	PlayerID int64 `json:"player_id"`
+}
+
+func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) (TeamPlayer, error) {
+	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID)
+	var i TeamPlayer
+	err := row.Scan(&i.TeamID, &i.PlayerID)
+	return i, err
+}
+
 const getMatchByTeam = `-- name: GetMatchByTeam :many
 SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports
 FROM matches tm
@@ -86,6 +106,34 @@ func (q *Queries) GetTeam(ctx context.Context, id int64) (Team, error) {
 		&i.Sports,
 	)
 	return i, err
+}
+
+const getTeamPlayers = `-- name: GetTeamPlayers :many
+SELECT team_id, player_id FROM team_players
+WHERE team_id=$1
+`
+
+func (q *Queries) GetTeamPlayers(ctx context.Context, teamID int64) ([]TeamPlayer, error) {
+	rows, err := q.db.QueryContext(ctx, getTeamPlayers, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TeamPlayer
+	for rows.Next() {
+		var i TeamPlayer
+		if err := rows.Scan(&i.TeamID, &i.PlayerID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getTeams = `-- name: GetTeams :many

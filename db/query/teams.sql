@@ -14,6 +14,17 @@ INSERT INTO teams (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 ) RETURNING *;
 
+-- name: AddTeamPlayers :one
+INSERT INTO team_players (
+    team_id,
+    player_id
+) VALUES ($1, $2)
+RETURNING *;
+
+-- name: GetTeamPlayers :many
+SELECT * FROM team_players
+WHERE team_id=$1;
+
 
 -- name: GetTeamsBySport :many
 SELECT * FROM teams
