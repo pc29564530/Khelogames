@@ -1,7 +1,6 @@
 package tournaments
 
 import (
-	"encoding/json"
 	db "khelogames/db/sqlc"
 	"khelogames/util"
 	"net/http"
@@ -11,13 +10,13 @@ import (
 )
 
 type addTournamentRequest struct {
-	TournamentName string            `json:"tournament_name"`
-	Slug           string            `json:"slug"`
-	Sports         string            `json:"sports"`
-	Country        string            `json:"country"`
-	Level          string            `json:"level"`
-	StartTimestamp string            `json:"start_timestamp"`
-	StatusCode     map[string]string `json:"status_code"`
+	TournamentName string `json:"tournament_name"`
+	Slug           string `json:"slug"`
+	Sports         string `json:"sports"`
+	Country        string `json:"country"`
+	StatusCode     string `json:"status_code"`
+	Level          string `json:"level"`
+	StartTimestamp string `json:"start_timestamp"`
 }
 
 func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
@@ -38,20 +37,21 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		s.logger.Error("unable to convert time to second: ", err)
 		return
 	}
+	// fmt.Println("req.StatusCode", req.StatusCode)
 
-	statusCodeJSON, err := json.Marshal(req.StatusCode)
-	if err != nil {
-		s.logger.Error("failed to marshal status code: %v", err)
-	}
+	// statusCodeJSON, err := json.Marshal(req.StatusCode)
+	// if err != nil {
+	// 	s.logger.Error("failed to marshal status code: %v", err)
+	// }
 
 	arg := db.NewTournamentParams{
 		TournamentName: req.TournamentName,
 		Slug:           slug,
 		Sports:         req.Sports,
 		Country:        req.Country,
+		StatusCode:     req.StatusCode,
 		Level:          req.Level,
 		StartTimestamp: startTimeStamp,
-		StatusCode:     statusCodeJSON,
 	}
 
 	response, err := s.store.NewTournament(ctx, arg)

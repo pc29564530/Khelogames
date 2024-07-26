@@ -335,14 +335,14 @@ type Thread struct {
 }
 
 type Tournament struct {
-	ID             int64           `json:"id"`
-	TournamentName string          `json:"tournament_name"`
-	Slug           string          `json:"slug"`
-	Sports         string          `json:"sports"`
-	Country        string          `json:"country"`
-	Level          string          `json:"level"`
-	StartTimestamp int64           `json:"start_timestamp"`
-	StatusCode     json.RawMessage `json:"status_code"`
+	ID             int64  `json:"id"`
+	TournamentName string `json:"tournament_name"`
+	Slug           string `json:"slug"`
+	Sports         string `json:"sports"`
+	Country        string `json:"country"`
+	StatusCode     string `json:"status_code"`
+	Level          string `json:"level"`
+	StartTimestamp int64  `json:"start_timestamp"`
 }
 
 type TournamentMatch struct {

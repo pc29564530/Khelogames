@@ -129,9 +129,9 @@ CREATE TABLE tournaments (
     slug VARCHAR(255) NOT NULL,
     sports VARCHAR NOT NULL,
     country VARCHAR NOT NULL,
+    status_code VARCHAR NOT NULL,
     level VARCHAR(255) CHECK (level IN ('international', 'country', 'local')) NOT NULL,
-    start_timestamp BIGINT NOT NULL,
-    status_code JSONB NOT NULL
+    start_timestamp BIGINT NOT NULL
 );
 
 -- create a new football matches

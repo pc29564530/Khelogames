@@ -7,11 +7,10 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 )
 
 const getTournament = `-- name: GetTournament :one
-SELECT id, tournament_name, slug, sports, country, level, start_timestamp, status_code FROM tournaments
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp FROM tournaments
 WHERE id=$1
 `
 
@@ -24,15 +23,15 @@ func (q *Queries) GetTournament(ctx context.Context, id int64) (Tournament, erro
 		&i.Slug,
 		&i.Sports,
 		&i.Country,
+		&i.StatusCode,
 		&i.Level,
 		&i.StartTimestamp,
-		&i.StatusCode,
 	)
 	return i, err
 }
 
 const getTournaments = `-- name: GetTournaments :many
-SELECT id, tournament_name, slug, sports, country, level, start_timestamp, status_code FROM tournaments
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp FROM tournaments
 `
 
 func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
@@ -50,9 +49,9 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
 			&i.Slug,
 			&i.Sports,
 			&i.Country,
+			&i.StatusCode,
 			&i.Level,
 			&i.StartTimestamp,
-			&i.StatusCode,
 		); err != nil {
 			return nil, err
 		}
@@ -68,7 +67,7 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
 }
 
 const getTournamentsByLevel = `-- name: GetTournamentsByLevel :many
-SELECT id, tournament_name, slug, sports, country, level, start_timestamp, status_code FROM tournaments
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp FROM tournaments
 WHERE sports=$1 AND level=$2
 `
 
@@ -92,9 +91,9 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsB
 			&i.Slug,
 			&i.Sports,
 			&i.Country,
+			&i.StatusCode,
 			&i.Level,
 			&i.StartTimestamp,
-			&i.StatusCode,
 		); err != nil {
 			return nil, err
 		}
@@ -110,7 +109,7 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsB
 }
 
 const getTournamentsBySport = `-- name: GetTournamentsBySport :many
-SELECT id, tournament_name, slug, sports, country, level, start_timestamp, status_code FROM tournaments
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp FROM tournaments
 WHERE sports=$1
 `
 
@@ -129,9 +128,9 @@ func (q *Queries) GetTournamentsBySport(ctx context.Context, sports string) ([]T
 			&i.Slug,
 			&i.Sports,
 			&i.Country,
+			&i.StatusCode,
 			&i.Level,
 			&i.StartTimestamp,
-			&i.StatusCode,
 		); err != nil {
 			return nil, err
 		}
@@ -152,21 +151,22 @@ INSERT INTO tournaments (
     slug,
     sports,
     country,
+    status_code,
     level,
-    start_timestamp,
-    status_code
+    start_timestamp
+    
 ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, tournament_name, slug, sports, country, level, start_timestamp, status_code
+RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp
 `
 
 type NewTournamentParams struct {
-	TournamentName string          `json:"tournament_name"`
-	Slug           string          `json:"slug"`
-	Sports         string          `json:"sports"`
-	Country        string          `json:"country"`
-	Level          string          `json:"level"`
-	StartTimestamp int64           `json:"start_timestamp"`
-	StatusCode     json.RawMessage `json:"status_code"`
+	TournamentName string `json:"tournament_name"`
+	Slug           string `json:"slug"`
+	Sports         string `json:"sports"`
+	Country        string `json:"country"`
+	StatusCode     string `json:"status_code"`
+	Level          string `json:"level"`
+	StartTimestamp int64  `json:"start_timestamp"`
 }
 
 func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (Tournament, error) {
@@ -175,9 +175,9 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (T
 		arg.Slug,
 		arg.Sports,
 		arg.Country,
+		arg.StatusCode,
 		arg.Level,
 		arg.StartTimestamp,
-		arg.StatusCode,
 	)
 	var i Tournament
 	err := row.Scan(
@@ -186,9 +186,9 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (T
 		&i.Slug,
 		&i.Sports,
 		&i.Country,
+		&i.StatusCode,
 		&i.Level,
 		&i.StartTimestamp,
-		&i.StatusCode,
 	)
 	return i, err
 }
@@ -197,7 +197,7 @@ const updateTournamentDate = `-- name: UpdateTournamentDate :one
 UPDATE tournaments
 SET start_timestamp=$1
 WHERE id=$2
-RETURNING id, tournament_name, slug, sports, country, level, start_timestamp, status_code
+RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp
 `
 
 type UpdateTournamentDateParams struct {
@@ -214,9 +214,9 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		&i.Slug,
 		&i.Sports,
 		&i.Country,
+		&i.StatusCode,
 		&i.Level,
 		&i.StartTimestamp,
-		&i.StatusCode,
 	)
 	return i, err
 }

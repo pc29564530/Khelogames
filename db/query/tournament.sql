@@ -4,9 +4,10 @@ INSERT INTO tournaments (
     slug,
     sports,
     country,
+    status_code,
     level,
-    start_timestamp,
-    status_code
+    start_timestamp
+    
 ) VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
