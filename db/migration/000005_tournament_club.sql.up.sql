@@ -50,7 +50,7 @@ CREATE TABLE tournament_organizer (
 
 CREATE TABLE tournament_team (
     tournament_id bigserial REFERENCES tournaments(id),
-    team_id bigserial REFERENCES club(id),
+    team_id bigserial REFERENCES teams(id),
     PRIMARY KEY (tournament_id, team_id)
 );
 

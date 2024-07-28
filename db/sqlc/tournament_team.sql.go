@@ -22,33 +22,20 @@ func (q *Queries) GetTournamentTeam(ctx context.Context, teamID int64) (Tourname
 }
 
 const getTournamentTeams = `-- name: GetTournamentTeams :many
-SELECT c.id, c.name, c.slug, c.shortname, c.admin, c.media_url, c.gender, c.national, c.country, c.type, c.sports FROM tournament_team tt
-JOIN teams c ON c.id = tt.team_id
+SELECT tournament_id, team_id FROM tournament_team
 WHERE tournament_id=$1
 `
 
-func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([]Team, error) {
+func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([]TournamentTeam, error) {
 	rows, err := q.db.QueryContext(ctx, getTournamentTeams, tournamentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Team
+	var items []TournamentTeam
 	for rows.Next() {
-		var i Team
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Slug,
-			&i.Shortname,
-			&i.Admin,
-			&i.MediaUrl,
-			&i.Gender,
-			&i.National,
-			&i.Country,
-			&i.Type,
-			&i.Sports,
-		); err != nil {
+		var i TournamentTeam
+		if err := rows.Scan(&i.TournamentID, &i.TeamID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

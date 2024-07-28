@@ -53,14 +53,35 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTournamentTeams(ctx, req.TournamentID)
+	teamsID, err := s.store.GetTournamentTeams(ctx, req.TournamentID)
 	if err != nil {
 		s.logger.Error("Failed to get teams: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Not found"})
 		return
 	}
-	s.logger.Info("Successfully retrieved teams: %v", response)
+	var teamsData []map[string]interface{}
+	for _, team := range teamsID {
+		teamResponse, err := s.store.GetTeam(ctx, team.TeamID)
+		if err != nil {
+			s.logger.Error("Failed to get team data: %v", err)
+			return
+		}
+		teamData := map[string]interface{}{
+			"team_id":    teamResponse.ID,
+			"team_name":  teamResponse.Name,
+			"slug":       teamResponse.Slug,
+			"short_name": teamResponse.Shortname,
+			"team_admin": teamResponse.Admin,
+			"media_url":  teamResponse.MediaUrl,
+			"country":    teamResponse.Country,
+			"gender":     teamResponse.Gender,
+			"national":   teamResponse.National,
+		}
+		teamsData = append(teamsData, teamData)
+	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	s.logger.Info("Successfully retrieved teams: %v", teamsData)
+
+	ctx.JSON(http.StatusAccepted, teamsData)
 	return
 }

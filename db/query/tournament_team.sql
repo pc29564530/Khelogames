@@ -10,8 +10,7 @@ SELECT * FROM tournament_team
 WHERE team_id=$1;
 
 -- name: GetTournamentTeams :many
-SELECT c.* FROM tournament_team tt
-JOIN teams c ON c.id = tt.team_id
+SELECT * FROM tournament_team
 WHERE tournament_id=$1;
 
 -- name: GetTournamentTeamsCount :one

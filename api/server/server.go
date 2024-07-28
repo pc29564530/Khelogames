@@ -134,7 +134,7 @@ func NewServer(config util.Config,
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)
 	sportRouter.GET("/getTeamsByGroup", tournamentServer.GetTeamsByGroupFunc)
 	//sportRouter.GET("/getTeams/:tournament_id", tournamentServer.GetTeamsFunc)
-	sportRouter.GET("/getTournamentTeam/:team_id", tournamentServer.GetTournamentTeamsFunc)
+	sportRouter.GET("/getTournamentTeam/:tournament_id", tournamentServer.GetTournamentTeamsFunc)
 	sportRouter.GET("/getTournamentsBySport", tournamentServer.GetTournamentsBySportFunc)
 	sportRouter.GET("/getTournament/:tournament_id", tournamentServer.GetTournamentFunc)
 	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
