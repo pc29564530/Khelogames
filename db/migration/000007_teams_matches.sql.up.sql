@@ -27,7 +27,7 @@ CREATE TABLE matches (
     start_timestamp BIGINT NOT NULL,
     end_timestamp BIGINT NOT NULL,
     type VARCHAR(255) CHECK(type IN ('team', 'individual', 'double')) NOT NULL,
-    status_code JSONB NOT NULL
+    status_code VARCHAR(255) NOT NULL
 );
 	
 CREATE TABLE cricket_score (

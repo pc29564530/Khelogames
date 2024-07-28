@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 )
 
 const getMatch = `-- name: GetMatch :one
@@ -127,13 +126,13 @@ INSERT INTO matches (
 `
 
 type NewMatchParams struct {
-	TournamentID   int64           `json:"tournament_id"`
-	AwayTeamID     int64           `json:"away_team_id"`
-	HomeTeamID     int64           `json:"home_team_id"`
-	StartTimestamp int64           `json:"start_timestamp"`
-	EndTimestamp   int64           `json:"end_timestamp"`
-	Type           string          `json:"type"`
-	StatusCode     json.RawMessage `json:"status_code"`
+	TournamentID   int64  `json:"tournament_id"`
+	AwayTeamID     int64  `json:"away_team_id"`
+	HomeTeamID     int64  `json:"home_team_id"`
+	StartTimestamp int64  `json:"start_timestamp"`
+	EndTimestamp   int64  `json:"end_timestamp"`
+	Type           string `json:"type"`
+	StatusCode     string `json:"status_code"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (Match, error) {

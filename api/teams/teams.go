@@ -2,6 +2,7 @@ package teams
 
 import (
 	"encoding/base64"
+	"fmt"
 	db "khelogames/db/sqlc"
 
 	"khelogames/pkg"
@@ -14,16 +15,13 @@ import (
 )
 
 type addTeamsRequest struct {
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
-	ShortName string `json:"shortName"`
-	Admin     string `json:"admin"`
-	MediaURL  string `json:"media_url"`
-	Gender    string `jsong:"gender"`
-	National  bool   `json:"national"`
-	Country   string `json:"country"`
-	Type      string `json:"type"`
-	Sports    string `json:"sports"`
+	Name     string `json:"name"`
+	MediaURL string `json:"media_url"`
+	Gender   string `jsong:"gender"`
+	National bool   `json:"national"`
+	Country  string `json:"country"`
+	Type     string `json:"type"`
+	Sports   string `json:"sports"`
 }
 
 func (s *TeamsServer) AddTeam(ctx *gin.Context) {
@@ -50,17 +48,19 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 			return
 		}
 	}
-
+	slug := util.GenerateSlug(req.Name)
+	shortName := util.GenerateShortName(req.Name)
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.NewTeamsParams{
 		Name:      req.Name,
-		Slug:      req.Slug,
-		Shortname: req.ShortName,
+		Slug:      slug,
+		Shortname: shortName,
 		Admin:     authPayload.Username,
 		MediaUrl:  path,
 		Gender:    req.Gender,
 		National:  req.National,
 		Country:   req.Country,
+		Type:      req.Type,
 		Sports:    req.Sports,
 	}
 
@@ -113,14 +113,15 @@ func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
 
 func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 
-	sports := ctx.Param("sports")
-
+	sports := ctx.Param("sport")
 	response, err := s.store.GetTeamsBySport(ctx, sports)
 	if err != nil {
 		s.logger.Error("Failed to get club by sport: %v", err)
 		ctx.JSON(http.StatusNoContent, (err))
 		return
 	}
+
+	fmt.Println("Response: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
