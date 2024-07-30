@@ -1,13 +1,19 @@
 -- name: NewPlayer :one
 INSERT INTO players (
-    name,
+    username,
     slug,
     short_name,
     media_url,
     positions,
     sports,
-    country
-) VALUES ($1, $2, $3, $4, $5, $6, $7 ) RETURNING *;
+    country,
+    player_name
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8
+) RETURNING *;
+
+-- name: GetAllPlayer :many
+SELECT * FROM players;
 
 -- name: GetPlayer :one
 SELECT * FROM players
@@ -15,7 +21,7 @@ WHERE id=$1;
 
 -- name: SearchPlayer :many
 SELECT * FROM players
-WHERE name LIKE $1;
+WHERE player_name LIKE $1;
 
 -- name: GetPlayersCountry :many
 SELECT * FROM players

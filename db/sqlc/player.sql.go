@@ -9,8 +9,45 @@ import (
 	"context"
 )
 
+const getAllPlayer = `-- name: GetAllPlayer :many
+SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name FROM players
+`
+
+func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
+	rows, err := q.db.QueryContext(ctx, getAllPlayer)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Player
+	for rows.Next() {
+		var i Player
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Slug,
+			&i.ShortName,
+			&i.MediaUrl,
+			&i.Positions,
+			&i.Sports,
+			&i.Country,
+			&i.PlayerName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPlayer = `-- name: GetPlayer :one
-SELECT id, name, slug, short_name, media_url, positions, sports, country FROM players
+SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name FROM players
 WHERE id=$1
 `
 
@@ -19,19 +56,20 @@ func (q *Queries) GetPlayer(ctx context.Context, id int64) (Player, error) {
 	var i Player
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
+		&i.Username,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
 		&i.Sports,
 		&i.Country,
+		&i.PlayerName,
 	)
 	return i, err
 }
 
 const getPlayersCountry = `-- name: GetPlayersCountry :many
-SELECT id, name, slug, short_name, media_url, positions, sports, country FROM players
+SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name FROM players
 WHERE country=$1
 `
 
@@ -46,13 +84,14 @@ func (q *Queries) GetPlayersCountry(ctx context.Context, country string) ([]Play
 		var i Player
 		if err := rows.Scan(
 			&i.ID,
-			&i.Name,
+			&i.Username,
 			&i.Slug,
 			&i.ShortName,
 			&i.MediaUrl,
 			&i.Positions,
 			&i.Sports,
 			&i.Country,
+			&i.PlayerName,
 		); err != nil {
 			return nil, err
 		}
@@ -69,57 +108,63 @@ func (q *Queries) GetPlayersCountry(ctx context.Context, country string) ([]Play
 
 const newPlayer = `-- name: NewPlayer :one
 INSERT INTO players (
-    name,
+    username,
     slug,
     short_name,
     media_url,
     positions,
     sports,
-    country
-) VALUES ($1, $2, $3, $4, $5, $6, $7 ) RETURNING id, name, slug, short_name, media_url, positions, sports, country
+    country,
+    player_name
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8
+) RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name
 `
 
 type NewPlayerParams struct {
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
-	ShortName string `json:"short_name"`
-	MediaUrl  string `json:"media_url"`
-	Positions string `json:"positions"`
-	Sports    string `json:"sports"`
-	Country   string `json:"country"`
+	Username   string `json:"username"`
+	Slug       string `json:"slug"`
+	ShortName  string `json:"short_name"`
+	MediaUrl   string `json:"media_url"`
+	Positions  string `json:"positions"`
+	Sports     string `json:"sports"`
+	Country    string `json:"country"`
+	PlayerName string `json:"player_name"`
 }
 
 func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (Player, error) {
 	row := q.db.QueryRowContext(ctx, newPlayer,
-		arg.Name,
+		arg.Username,
 		arg.Slug,
 		arg.ShortName,
 		arg.MediaUrl,
 		arg.Positions,
 		arg.Sports,
 		arg.Country,
+		arg.PlayerName,
 	)
 	var i Player
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
+		&i.Username,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
 		&i.Sports,
 		&i.Country,
+		&i.PlayerName,
 	)
 	return i, err
 }
 
 const searchPlayer = `-- name: SearchPlayer :many
-SELECT id, name, slug, short_name, media_url, positions, sports, country FROM players
-WHERE name LIKE $1
+SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name FROM players
+WHERE player_name LIKE $1
 `
 
-func (q *Queries) SearchPlayer(ctx context.Context, name string) ([]Player, error) {
-	rows, err := q.db.QueryContext(ctx, searchPlayer, name)
+func (q *Queries) SearchPlayer(ctx context.Context, playerName string) ([]Player, error) {
+	rows, err := q.db.QueryContext(ctx, searchPlayer, playerName)
 	if err != nil {
 		return nil, err
 	}
@@ -129,13 +174,14 @@ func (q *Queries) SearchPlayer(ctx context.Context, name string) ([]Player, erro
 		var i Player
 		if err := rows.Scan(
 			&i.ID,
-			&i.Name,
+			&i.Username,
 			&i.Slug,
 			&i.ShortName,
 			&i.MediaUrl,
 			&i.Positions,
 			&i.Sports,
 			&i.Country,
+			&i.PlayerName,
 		); err != nil {
 			return nil, err
 		}
@@ -154,7 +200,7 @@ const updatePlayerMedia = `-- name: UpdatePlayerMedia :one
 UPDATE players
 SET media_url=$1
 WHERE id=$2
-RETURNING id, name, slug, short_name, media_url, positions, sports, country
+RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name
 `
 
 type UpdatePlayerMediaParams struct {
@@ -167,13 +213,14 @@ func (q *Queries) UpdatePlayerMedia(ctx context.Context, arg UpdatePlayerMediaPa
 	var i Player
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
+		&i.Username,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
 		&i.Sports,
 		&i.Country,
+		&i.PlayerName,
 	)
 	return i, err
 }
@@ -182,7 +229,7 @@ const updatePlayerPosition = `-- name: UpdatePlayerPosition :one
 UPDATE players
 SET positions=$1
 WHERE id=$2
-RETURNING id, name, slug, short_name, media_url, positions, sports, country
+RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name
 `
 
 type UpdatePlayerPositionParams struct {
@@ -195,13 +242,14 @@ func (q *Queries) UpdatePlayerPosition(ctx context.Context, arg UpdatePlayerPosi
 	var i Player
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
+		&i.Username,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
 		&i.Sports,
 		&i.Country,
+		&i.PlayerName,
 	)
 	return i, err
 }

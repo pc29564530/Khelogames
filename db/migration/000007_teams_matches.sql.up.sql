@@ -106,11 +106,12 @@ CREATE TABLE Balls (
 -- create a table for player
 CREATE TABLE players (
     id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(255) REFERENCES users (username) NOT NULL,
+    username VARCHAR(255) REFERENCES users (username) NOT NULL,
     slug VARCHAR(255) NOT NULL,
     short_name VARCHAR(255) NOT NULL,
     media_url VARCHAR(255) NOT NULL,
     positions VARCHAR(3) NOT NULL,
     sports VARCHAR(255) NOT NULL,
-    country VARCHAR(255) NOT NULL
+    country VARCHAR(255) NOT NULL,
+    player_name VARCHAR(255) NOT NULL
 );

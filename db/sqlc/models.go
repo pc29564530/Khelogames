@@ -257,14 +257,15 @@ type Organizer struct {
 }
 
 type Player struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
-	ShortName string `json:"short_name"`
-	MediaUrl  string `json:"media_url"`
-	Positions string `json:"positions"`
-	Sports    string `json:"sports"`
-	Country   string `json:"country"`
+	ID         int64  `json:"id"`
+	Username   string `json:"username"`
+	Slug       string `json:"slug"`
+	ShortName  string `json:"short_name"`
+	MediaUrl   string `json:"media_url"`
+	Positions  string `json:"positions"`
+	Sports     string `json:"sports"`
+	Country    string `json:"country"`
+	PlayerName string `json:"player_name"`
 }
 
 type PlayerProfile struct {

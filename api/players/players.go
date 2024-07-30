@@ -3,6 +3,8 @@ package players
 import (
 	"fmt"
 	db "khelogames/db/sqlc"
+	"khelogames/pkg"
+	"khelogames/token"
 	"khelogames/util"
 	"net/http"
 	"strconv"
@@ -21,9 +23,9 @@ import (
 // }
 
 type newPlayerRequest struct {
-	Username string `json:"username"`
-	Sports   string `json:"sports"`
-	Country  string `json:"country"`
+	Positions string `json:"positions"`
+	Sports    string `json:"sports"`
+	Country   string `json:"country"`
 }
 
 func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
@@ -31,12 +33,12 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 	var req newPlayerRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		return
 	}
-	s.logger.Debug("Requested data: %v", req)
-
-	userProfile, err := s.store.GetProfile(ctx, req.Username)
+	s.logger.Debug("Requested data: ", req)
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	userProfile, err := s.store.GetProfile(ctx, authPayload.Username)
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("unable to get the profile: %s", err))
 		return
@@ -45,13 +47,14 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 	shortName := util.GenerateShortName(userProfile.FullName)
 
 	arg := db.NewPlayerParams{
-		Name:      userProfile.FullName,
-		Slug:      fullNameSlug,
-		ShortName: shortName,
-		MediaUrl:  userProfile.AvatarUrl,
-		Positions: "",
-		Sports:    req.Sports,
-		Country:   req.Country,
+		Username:   authPayload.Username,
+		Slug:       fullNameSlug,
+		ShortName:  shortName,
+		MediaUrl:   userProfile.AvatarUrl,
+		Positions:  req.Positions,
+		Sports:     req.Sports,
+		Country:    req.Country,
+		PlayerName: userProfile.FullName,
 	}
 
 	response, err := s.store.NewPlayer(ctx, arg)
@@ -60,15 +63,51 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
-	s.logger.Debug("Added player profile: %v", response)
+	s.logger.Debug("Added player profile: ", response)
+	ctx.JSON(http.StatusAccepted, response)
+}
+
+func (s *PlayerServer) GetAllPlayerFunc(ctx *gin.Context) {
+
+	response, err := s.store.GetAllPlayer(ctx)
+	if err != nil {
+		s.logger.Error("Failed to get player profile: ", err)
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+
+	s.logger.Debug("Successfully get the player profile: ", response)
+
 	ctx.JSON(http.StatusAccepted, response)
 	return
+}
+
+func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
+
+	playerIDStr := ctx.Query("id")
+	playerID, err := strconv.ParseInt(playerIDStr, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse player id: ", err)
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+
+	response, err := s.store.GetPlayer(ctx, playerID)
+	if err != nil {
+		s.logger.Error("Failed to get player profile: ", err)
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+
+	s.logger.Debug("Successfully get the player profile: ", response)
+
+	ctx.JSON(http.StatusAccepted, response)
 }
 
 func (s *PlayerServer) GetPlayerSearchFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get player profile")
 	playerName := ctx.Query("name")
-	s.logger.Debug("Parse the player id: %v", playerName)
+	s.logger.Debug("Parse the player id: ", playerName)
 
 	response, err := s.store.SearchPlayer(ctx, playerName)
 	if err != nil {
