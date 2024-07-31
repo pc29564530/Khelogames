@@ -218,7 +218,7 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse tournament ID: %v", err)
+		s.logger.Error("Failed to parse tournament ID: ", err)
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
@@ -237,14 +237,13 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 
 	response, err := s.store.UpdateTournamentDate(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update tournament dates: %v", err)
+		s.logger.Error("Failed to update tournament dates: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully updated tournament dates: %v", response)
+	s.logger.Info("Successfully updated tournament dates: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
-	return
 }
 
 func (s *TournamentServer) GetTournamentByLevelFunc(ctx *gin.Context) {
@@ -259,15 +258,39 @@ func (s *TournamentServer) GetTournamentByLevelFunc(ctx *gin.Context) {
 		Level:  level,
 	}
 
-	s.logger.Debug("GetTournamentByLevelParams: %v", arg)
+	s.logger.Debug("GetTournamentByLevelParams: ", arg)
 
 	response, err := s.store.GetTournamentsByLevel(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to get tournaments by level: %v", err)
+		s.logger.Error("Failed to get tournaments by level: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully retrieved tournaments by level: %v", response)
+	s.logger.Info("Successfully retrieved tournaments by level: ", response)
 	ctx.JSON(http.StatusAccepted, response)
-	return
+}
+
+func (s *TournamentServer) UpdateTournamentStatusFunc(ctx *gin.Context) {
+	tournamentIDStr := ctx.Query("id")
+	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse the match id: ", err)
+		return
+	}
+
+	statusCode := ctx.Query("status_code")
+
+	arg := db.UpdateTournamentStatusParams{
+		ID:         tournamentID,
+		StatusCode: statusCode,
+	}
+
+	updatedMatchData, err := s.store.UpdateTournamentStatus(ctx, arg)
+	if err != nil {
+		s.logger.Error("unable to update the tournament status: ", err)
+		return
+	}
+
+	s.logger.Info("successfully updated the tournament status")
+	ctx.JSON(http.StatusAccepted, updatedMatchData)
 }

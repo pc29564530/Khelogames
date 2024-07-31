@@ -153,3 +153,28 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
+
+func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
+	matchIDStr := ctx.Query("id")
+	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse the match id: ", err)
+		return
+	}
+
+	statusCode := ctx.Query("status_code")
+
+	arg := db.UpdateMatchStatusParams{
+		ID:         matchID,
+		StatusCode: statusCode,
+	}
+
+	updatedMatchData, err := s.store.UpdateMatchStatus(ctx, arg)
+	if err != nil {
+		s.logger.Error("unable to update the match status: ", err)
+		return
+	}
+
+	s.logger.Info("successfully updated the match status")
+	ctx.JSON(http.StatusAccepted, updatedMatchData)
+}

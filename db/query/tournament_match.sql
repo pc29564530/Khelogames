@@ -30,3 +30,9 @@ RETURNING *;
 SELECT * FROM matches
 WHERE tournament_id=$1
 ORDER BY id ASC;
+
+-- name: UpdateMatchStatus :one
+UPDATE matches
+SET status_code=$1
+WHERE id=$2
+RETURNING *;

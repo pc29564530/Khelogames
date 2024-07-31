@@ -69,6 +69,7 @@ func NewServer(config util.Config,
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
 		authRouter.GET("/ws", messageServer.HandleWebSocket)
+		authRouter.POST("/searchProfile", playersServer.SearchProfileFunc)
 		authRouter.POST("/addJoinCommunity", handlersServer.AddJoinCommunityFunc)
 		authRouter.GET("/getUserByCommunity/:community_name", handlersServer.GetUserByCommunityFunc)
 		authRouter.GET("/getCommunityByUser", handlersServer.GetCommunityByUserFunc)
@@ -126,6 +127,8 @@ func NewServer(config util.Config,
 		//player
 		authRouter.POST("/newPlayer", playersServer.NewPlayerFunc)
 		authRouter.GET("/getPlayerByCountry", playersServer.GetPlayerByCountry)
+		authRouter.GET("/getPlayerByID", playersServer.GetPlayerFunc)
+		authRouter.GET("/getAllPlayers", playersServer.GetAllPlayerFunc)
 		authRouter.GET("/getPlayerSearch", playersServer.GetPlayerSearchFunc)
 		authRouter.GET("/updatePlayerMedia", playersServer.UpdatePlayerMediaFunc)
 		authRouter.GET("/updatePlayerPosition", playersServer.UpdatePlayerPositionFunc)
@@ -182,6 +185,9 @@ func NewServer(config util.Config,
 	//sportRouter.GET("/GetMatchByClubFunc", clubServer.GetMatchByClubFunc)
 	//sportRouter.GET("/getCricketTournamentMatches", CricketServer.GetCricketTournamentMatchesFunc)
 	sportRouter.GET("/getTournamentMatches", tournamentServer.GetTournamentMatch)
+	sportRouter.PUT("/updateMatchStatus", tournamentServer.UpdateMatchStatusFunc)
+	sportRouter.PUT("/updateTournamentStatus", tournamentServer.UpdateTournamentStatusFunc)
+
 	//teams
 	sportRouter.POST("/newTeams", teamsServer.AddTeam)
 	sportRouter.GET("/getTeam", teamsServer.GetTeamFunc)

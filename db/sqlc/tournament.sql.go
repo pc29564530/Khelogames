@@ -220,3 +220,31 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 	)
 	return i, err
 }
+
+const updateTournamentStatus = `-- name: UpdateTournamentStatus :one
+UPDATE tournaments
+SET status_code=$1
+WHERE id=$2
+RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp
+`
+
+type UpdateTournamentStatusParams struct {
+	StatusCode string `json:"status_code"`
+	ID         int64  `json:"id"`
+}
+
+func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTournamentStatusParams) (Tournament, error) {
+	row := q.db.QueryRowContext(ctx, updateTournamentStatus, arg.StatusCode, arg.ID)
+	var i Tournament
+	err := row.Scan(
+		&i.ID,
+		&i.TournamentName,
+		&i.Slug,
+		&i.Sports,
+		&i.Country,
+		&i.StatusCode,
+		&i.Level,
+		&i.StartTimestamp,
+	)
+	return i, err
+}

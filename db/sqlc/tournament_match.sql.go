@@ -186,3 +186,31 @@ func (q *Queries) UpdateMatchSchedule(ctx context.Context, arg UpdateMatchSchedu
 	)
 	return i, err
 }
+
+const updateMatchStatus = `-- name: UpdateMatchStatus :one
+UPDATE matches
+SET status_code=$1
+WHERE id=$2
+RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code
+`
+
+type UpdateMatchStatusParams struct {
+	StatusCode string `json:"status_code"`
+	ID         int64  `json:"id"`
+}
+
+func (q *Queries) UpdateMatchStatus(ctx context.Context, arg UpdateMatchStatusParams) (Match, error) {
+	row := q.db.QueryRowContext(ctx, updateMatchStatus, arg.StatusCode, arg.ID)
+	var i Match
+	err := row.Scan(
+		&i.ID,
+		&i.TournamentID,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
+	)
+	return i, err
+}

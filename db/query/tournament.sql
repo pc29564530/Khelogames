@@ -31,3 +31,9 @@ RETURNING *;
 -- name: GetTournamentsByLevel :many
 SELECT * FROM tournaments
 WHERE sports=$1 AND level=$2;
+
+-- name: UpdateTournamentStatus :one
+UPDATE tournaments
+SET status_code=$1
+WHERE id=$2
+RETURNING *;
