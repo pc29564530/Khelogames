@@ -8,11 +8,11 @@ import (
 )
 
 type addFootballMatchScoreRequest struct {
-	MatchID      int64 `json:"match_id"`
-	TournamentID int64 `json:"tournament_id"`
-	TeamID       int64 `json:"team_id"`
-	GoalFor      int64 `json:"goal_for"`
-	GoalAgainst  int64 `json:"goal_against"`
+	MatchID    int64 `json:"match_id"`
+	TeamID     int64 `json:"team_id"`
+	FirstHalf  int32 `json:"first_half"`
+	SecondHalf int32 `json:"second_half"`
+	Goals      int64 `json:"goal_for"`
 }
 
 func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
@@ -24,15 +24,15 @@ func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.AddFootballMatchScoreParams{
-		MatchID:      req.MatchID,
-		TournamentID: req.TournamentID,
-		TeamID:       req.TeamID,
-		GoalFor:      req.GoalFor,
-		GoalAgainst:  req.GoalAgainst,
+	arg := db.NewFootballScoreParams{
+		MatchID:    req.MatchID,
+		TeamID:     req.TeamID,
+		FirstHalf:  req.FirstHalf,
+		SecondHalf: req.SecondHalf,
+		Goals:      req.Goals,
 	}
 
-	response, err := s.store.AddFootballMatchScore(ctx, arg)
+	response, err := s.store.NewFootballScore(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add football match score: %v", err)
 		ctx.JSON(http.StatusNoContent, err)
@@ -44,11 +44,38 @@ func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
 
 }
 
+type getFootballScoreRequest struct {
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (s *FootballServer) GetFootballScore(ctx *gin.Context) {
+	var req getFootballScoreRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind football score: %v", err)
+		return
+	}
+
+	arg := db.GetFootballScoreParams{
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	response, err := s.store.GetFootballScore(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to fetch football match score: %v", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
 type updateFootballMatchScoreRequest struct {
-	GoalFor     int64 `json:"goal_for"`
-	GoalAgainst int64 `json:"goal_against"`
-	MatchID     int64 `json:"match_id"`
-	TeamID      int64 `json:"team_id"`
+	Goals   int64 `json:"goals"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
 }
 
 func (s *FootballServer) UpdateFootballMatchScoreFunc(ctx *gin.Context) {
@@ -60,14 +87,75 @@ func (s *FootballServer) UpdateFootballMatchScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.UpdateFootballMatchScoreParams{
-		GoalFor:     req.GoalFor,
-		GoalAgainst: req.GoalAgainst,
-		MatchID:     req.MatchID,
-		TeamID:      req.TeamID,
+	arg := db.UpdateFootballScoreParams{
+		Goals:   req.Goals,
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
 	}
 
-	response, err := s.store.UpdateFootballMatchScore(ctx, arg)
+	response, err := s.store.UpdateFootballScore(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to update football match score: %v", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+type updateFootballMatchScoreFirstHalfRequest struct {
+	FirstHalf int32 `json:"first_half"`
+	MatchID   int64 `json:"match_id"`
+	TeamID    int64 `json:"team_id"`
+}
+
+func (s *FootballServer) UpdateFootballMatchScoreFirstHalfFunc(ctx *gin.Context) {
+
+	var req updateFootballMatchScoreFirstHalfRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind update football match score: %v", err)
+		return
+	}
+
+	arg := db.UpdateFirstHalfScoreParams{
+		FirstHalf: req.FirstHalf,
+		MatchID:   req.MatchID,
+		TeamID:    req.TeamID,
+	}
+
+	response, err := s.store.UpdateFirstHalfScore(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to update football match score: %v", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
+type updateFootballMatchScoreSecondHalfRequest struct {
+	SecondHalf int32 `json:"second_half"`
+	MatchID    int64 `json:"match_id"`
+	TeamID     int64 `json:"team_id"`
+}
+
+func (s *FootballServer) UpdateFootballMatchScoreSecondHalfFunc(ctx *gin.Context) {
+
+	var req updateFootballMatchScoreSecondHalfRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind update football match score: %v", err)
+		return
+	}
+
+	arg := db.UpdateSecondHalfScoreParams{
+		SecondHalf: req.SecondHalf,
+		MatchID:    req.MatchID,
+		TeamID:     req.TeamID,
+	}
+
+	response, err := s.store.UpdateSecondHalfScore(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to update football match score: %v", err)
 		return

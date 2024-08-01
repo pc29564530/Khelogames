@@ -18,13 +18,13 @@ SET goals=$1
 WHERE match_id=$2 AND team_id=$3
 RETURNING *;
 
--- name: UpdateFirstHalf :one
+-- name: UpdateFirstHalfScore :one
 UPDATE football_score
 SET first_half=$1
 WHERE match_id=$2 AND team_id=$3
 RETURNING *;
 
--- name: UpdateSecondHald :one
+-- name: UpdateSecondHalfScore :one
 UPDATE football_score
 SET second_half=$1
 WHERE match_id=$2 AND team_id=$3

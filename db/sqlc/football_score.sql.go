@@ -72,21 +72,21 @@ func (q *Queries) NewFootballScore(ctx context.Context, arg NewFootballScorePara
 	return i, err
 }
 
-const updateFirstHalf = `-- name: UpdateFirstHalf :one
+const updateFirstHalfScore = `-- name: UpdateFirstHalfScore :one
 UPDATE football_score
 SET first_half=$1
 WHERE match_id=$2 AND team_id=$3
 RETURNING id, match_id, team_id, first_half, second_half, goals
 `
 
-type UpdateFirstHalfParams struct {
+type UpdateFirstHalfScoreParams struct {
 	FirstHalf int32 `json:"first_half"`
 	MatchID   int64 `json:"match_id"`
 	TeamID    int64 `json:"team_id"`
 }
 
-func (q *Queries) UpdateFirstHalf(ctx context.Context, arg UpdateFirstHalfParams) (FootballScore, error) {
-	row := q.db.QueryRowContext(ctx, updateFirstHalf, arg.FirstHalf, arg.MatchID, arg.TeamID)
+func (q *Queries) UpdateFirstHalfScore(ctx context.Context, arg UpdateFirstHalfScoreParams) (FootballScore, error) {
+	row := q.db.QueryRowContext(ctx, updateFirstHalfScore, arg.FirstHalf, arg.MatchID, arg.TeamID)
 	var i FootballScore
 	err := row.Scan(
 		&i.ID,
@@ -126,21 +126,21 @@ func (q *Queries) UpdateFootballScore(ctx context.Context, arg UpdateFootballSco
 	return i, err
 }
 
-const updateSecondHald = `-- name: UpdateSecondHald :one
+const updateSecondHalfScore = `-- name: UpdateSecondHalfScore :one
 UPDATE football_score
 SET second_half=$1
 WHERE match_id=$2 AND team_id=$3
 RETURNING id, match_id, team_id, first_half, second_half, goals
 `
 
-type UpdateSecondHaldParams struct {
+type UpdateSecondHalfScoreParams struct {
 	SecondHalf int32 `json:"second_half"`
 	MatchID    int64 `json:"match_id"`
 	TeamID     int64 `json:"team_id"`
 }
 
-func (q *Queries) UpdateSecondHald(ctx context.Context, arg UpdateSecondHaldParams) (FootballScore, error) {
-	row := q.db.QueryRowContext(ctx, updateSecondHald, arg.SecondHalf, arg.MatchID, arg.TeamID)
+func (q *Queries) UpdateSecondHalfScore(ctx context.Context, arg UpdateSecondHalfScoreParams) (FootballScore, error) {
+	row := q.db.QueryRowContext(ctx, updateSecondHalfScore, arg.SecondHalf, arg.MatchID, arg.TeamID)
 	var i FootballScore
 	err := row.Scan(
 		&i.ID,

@@ -140,9 +140,9 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTournamentTeam/:tournament_id", tournamentServer.GetTournamentTeamsFunc)
 	sportRouter.GET("/getTournamentsBySport", tournamentServer.GetTournamentsBySportFunc)
 	sportRouter.GET("/getTournament/:tournament_id", tournamentServer.GetTournamentFunc)
-	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
+
 	//sportRouter.GET("/getFootballMatchScore", footballServer.GetFootballMatchScore())
-	sportRouter.PUT("/updateFootballMatchScore", footballServer.UpdateFootballMatchScoreFunc)
+
 	sportRouter.POST("/addFootballGoalByPlayer", footballServer.UpdateFootballMatchScoreFunc)
 	//sportRouter.GET("/getClub/:id", teamsServer.GetClubFunc)
 	//sportRouter.GET("/getClubs", clubServer.GetClubsFunc)
@@ -179,12 +179,12 @@ func NewServer(config util.Config,
 	//sportRouter.PUT("/updateTeamJoinedTournament", tournamentServer.UpdateTeamsJoinedFunc)
 	//portRouter.GET("/getTeams", tournamentServer.GetTeamsFunc)
 
-	sportRouter.GET("/getTournamentMatch", tournamentServer.GetTournamentMatch)
+	//sportRouter.GET("/getTournamentMatch", tournamentServer.GetTournamentMatch)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
 	//sportRouter.GET("/getFootballTournamentMatches", football)
 	//sportRouter.GET("/GetMatchByClubFunc", clubServer.GetMatchByClubFunc)
 	//sportRouter.GET("/getCricketTournamentMatches", CricketServer.GetCricketTournamentMatchesFunc)
-	sportRouter.GET("/getTournamentMatches", tournamentServer.GetTournamentMatch)
+	//sportRouter.GET("/getTournamentMatches", tournamentServer.GetTournamentMatch)
 	sportRouter.PUT("/updateMatchStatus", tournamentServer.UpdateMatchStatusFunc)
 	sportRouter.PUT("/updateTournamentStatus", tournamentServer.UpdateTournamentStatusFunc)
 
@@ -198,6 +198,13 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTeamsBySport", teamsServer.GetTeamsBySportFunc)
 	sportRouter.GET("/getMatchByTeamFunc", teamsServer.GetMatchByTeamFunc)
 	sportRouter.GET("/getTournamentByTeamFunc", teamsServer.GetTournamentbyTeamFunc)
+
+	//football
+	sportRouter.GET("/getFootballScore", footballServer.GetFootballScore)
+	sportRouter.PUT("/updateFootballFirstHalfScore", footballServer.UpdateFootballMatchScoreFirstHalfFunc)
+	sportRouter.PUT("/updateFootballSecondHalfScore", footballServer.UpdateFootballMatchScoreSecondHalfFunc)
+	sportRouter.PUT("/updateFootballMatchScore", footballServer.UpdateFootballMatchScoreFunc)
+	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
 
 	//matches
 	server.router = router
