@@ -87,6 +87,36 @@ func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams
 	return i, err
 }
 
+const updateCricketInnings = `-- name: UpdateCricketInnings :one
+UPDATE cricket_score
+SET inning=$1
+WHERE match_id=$2 AND team_id=$3
+RETURNING id, match_id, team_id, inning, score, wickets, overs, run_rate, target_run_rate
+`
+
+type UpdateCricketInningsParams struct {
+	Inning  int32 `json:"inning"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (q *Queries) UpdateCricketInnings(ctx context.Context, arg UpdateCricketInningsParams) (CricketScore, error) {
+	row := q.db.QueryRowContext(ctx, updateCricketInnings, arg.Inning, arg.MatchID, arg.TeamID)
+	var i CricketScore
+	err := row.Scan(
+		&i.ID,
+		&i.MatchID,
+		&i.TeamID,
+		&i.Inning,
+		&i.Score,
+		&i.Wickets,
+		&i.Overs,
+		&i.RunRate,
+		&i.TargetRunRate,
+	)
+	return i, err
+}
+
 const updateCricketOvers = `-- name: UpdateCricketOvers :one
 UPDATE cricket_score
 SET overs=$1

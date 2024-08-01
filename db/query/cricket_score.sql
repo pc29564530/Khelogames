@@ -32,3 +32,9 @@ UPDATE cricket_score
 SET overs=$1
 WHERE match_id=$2 AND team_id=$3
 RETURNING *;
+
+-- name: UpdateCricketInnings :one
+UPDATE cricket_score
+SET inning=$1
+WHERE match_id=$2 AND team_id=$3
+RETURNING *;

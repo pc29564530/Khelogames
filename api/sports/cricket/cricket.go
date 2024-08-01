@@ -87,3 +87,119 @@ func (s *CricketServer) GetCricketScore(matches []db.Match, matchDetails []map[s
 	}
 	return matchDetails
 }
+
+type updateScoreRequest struct {
+	Score   int64 `json:"score"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (s *CricketServer) UpdateCricketScoreFunc(ctx *gin.Context) {
+	var req updateScoreRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("unable to find the json: ", err)
+		return
+	}
+
+	arg := db.UpdateCricketScoreParams{
+		Score:   int32(req.Score),
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	response, err := s.store.UpdateCricketScore(ctx, arg)
+	if err != nil {
+		s.logger.Error("unable to update the score: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+}
+
+type updateWicketsRequest struct {
+	Wickets int32 `json:"wickets"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (s *CricketServer) UpdateCricketWicketsFunc(ctx *gin.Context) {
+	var req updateWicketsRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("unable to find the json: ", err)
+		return
+	}
+
+	arg := db.UpdateCricketWicketsParams{
+		Wickets: req.Wickets,
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	response, err := s.store.UpdateCricketWickets(ctx, arg)
+	if err != nil {
+		s.logger.Error("unable to update the wickets: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+}
+
+type updateOversRequest struct {
+	Overs   string `json:"overs"`
+	MatchID int64  `json:"match_id"`
+	TeamID  int64  `json:"team_id"`
+}
+
+func (s *CricketServer) UpdateCricketOversFunc(ctx *gin.Context) {
+	var req updateOversRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("unable to find the json: ", err)
+		return
+	}
+
+	arg := db.UpdateCricketOversParams{
+		Overs:   req.Overs,
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	response, err := s.store.UpdateCricketOvers(ctx, arg)
+	if err != nil {
+		s.logger.Error("unable to update the overs: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+}
+
+type updateInningRequest struct {
+	Inning  int32 `json:"inning"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
+	var req updateInningRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("unable to find the json: ", err)
+		return
+	}
+
+	arg := db.UpdateCricketInningsParams{
+		Inning:  req.Inning,
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	response, err := s.store.UpdateCricketInnings(ctx, arg)
+	if err != nil {
+		s.logger.Error("unable to update the overs: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+}

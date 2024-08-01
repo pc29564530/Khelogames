@@ -206,6 +206,12 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateFootballMatchScore", footballServer.UpdateFootballMatchScoreFunc)
 	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
 
+	//cricket
+	sportRouter.PUT("/updateCricketScore", cricketServer.UpdateCricketScoreFunc)
+	sportRouter.PUT("/updateCricketWickets", cricketServer.UpdateCricketWicketsFunc)
+	sportRouter.PUT("/updateCricketaOvers", cricketServer.UpdateCricketOversFunc)
+	sportRouter.PUT("/updateCricketInning", cricketServer.UpdateCricketInningsFunc)
+
 	//matches
 	server.router = router
 	return server, nil
