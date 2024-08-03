@@ -7,119 +7,96 @@ package db
 
 import (
 	"context"
-	"time"
 )
 
-const createMatch = `-- name: CreateMatch :one
-INSERT INTO tournament_match (
-    organizer_id,
-    tournament_id,
-    team1_id,
-    team2_id,
-    date_on,
-    start_time,
-    stage,
-    sports,
-    end_time
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7,$8, $9
-) RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time
-`
-
-type CreateMatchParams struct {
-	OrganizerID  int64     `json:"organizer_id"`
-	TournamentID int64     `json:"tournament_id"`
-	Team1ID      int64     `json:"team1_id"`
-	Team2ID      int64     `json:"team2_id"`
-	DateOn       time.Time `json:"date_on"`
-	StartTime    time.Time `json:"start_time"`
-	Stage        string    `json:"stage"`
-	Sports       string    `json:"sports"`
-	EndTime      time.Time `json:"end_time"`
-}
-
-func (q *Queries) CreateMatch(ctx context.Context, arg CreateMatchParams) (TournamentMatch, error) {
-	row := q.db.QueryRowContext(ctx, createMatch,
-		arg.OrganizerID,
-		arg.TournamentID,
-		arg.Team1ID,
-		arg.Team2ID,
-		arg.DateOn,
-		arg.StartTime,
-		arg.Stage,
-		arg.Sports,
-		arg.EndTime,
-	)
-	var i TournamentMatch
-	err := row.Scan(
-		&i.MatchID,
-		&i.OrganizerID,
-		&i.TournamentID,
-		&i.Team1ID,
-		&i.Team2ID,
-		&i.DateOn,
-		&i.StartTime,
-		&i.Stage,
-		&i.Sports,
-		&i.EndTime,
-	)
-	return i, err
-}
-
 const getMatch = `-- name: GetMatch :one
-SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
-WHERE match_id=$1 AND tournament_id=$2
+SELECT id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code FROM matches
+WHERE id=$1 AND tournament_id=$2
 `
 
 type GetMatchParams struct {
-	MatchID      int64 `json:"match_id"`
+	ID           int64 `json:"id"`
 	TournamentID int64 `json:"tournament_id"`
 }
 
-func (q *Queries) GetMatch(ctx context.Context, arg GetMatchParams) (TournamentMatch, error) {
-	row := q.db.QueryRowContext(ctx, getMatch, arg.MatchID, arg.TournamentID)
-	var i TournamentMatch
+func (q *Queries) GetMatch(ctx context.Context, arg GetMatchParams) (Match, error) {
+	row := q.db.QueryRowContext(ctx, getMatch, arg.ID, arg.TournamentID)
+	var i Match
 	err := row.Scan(
-		&i.MatchID,
-		&i.OrganizerID,
+		&i.ID,
 		&i.TournamentID,
-		&i.Team1ID,
-		&i.Team2ID,
-		&i.DateOn,
-		&i.StartTime,
-		&i.Stage,
-		&i.Sports,
-		&i.EndTime,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
 	)
 	return i, err
 }
 
-const getMatchesByTournamentID = `-- name: GetMatchesByTournamentID :many
-SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
+const getMatches = `-- name: GetMatches :many
+SELECT id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code FROM matches
 WHERE tournament_id=$1
-ORDER BY match_id ASC
+ORDER BY id DESC
 `
 
-func (q *Queries) GetMatchesByTournamentID(ctx context.Context, tournamentID int64) ([]TournamentMatch, error) {
+func (q *Queries) GetMatches(ctx context.Context, tournamentID int64) ([]Match, error) {
+	rows, err := q.db.QueryContext(ctx, getMatches, tournamentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Match
+	for rows.Next() {
+		var i Match
+		if err := rows.Scan(
+			&i.ID,
+			&i.TournamentID,
+			&i.AwayTeamID,
+			&i.HomeTeamID,
+			&i.StartTimestamp,
+			&i.EndTimestamp,
+			&i.Type,
+			&i.StatusCode,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMatchesByTournamentID = `-- name: GetMatchesByTournamentID :many
+SELECT id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code FROM matches
+WHERE tournament_id=$1
+ORDER BY id ASC
+`
+
+func (q *Queries) GetMatchesByTournamentID(ctx context.Context, tournamentID int64) ([]Match, error) {
 	rows, err := q.db.QueryContext(ctx, getMatchesByTournamentID, tournamentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []TournamentMatch
+	var items []Match
 	for rows.Next() {
-		var i TournamentMatch
+		var i Match
 		if err := rows.Scan(
-			&i.MatchID,
-			&i.OrganizerID,
+			&i.ID,
 			&i.TournamentID,
-			&i.Team1ID,
-			&i.Team2ID,
-			&i.DateOn,
-			&i.StartTime,
-			&i.Stage,
-			&i.Sports,
-			&i.EndTime,
+			&i.AwayTeamID,
+			&i.HomeTeamID,
+			&i.StartTimestamp,
+			&i.EndTimestamp,
+			&i.Type,
+			&i.StatusCode,
 		); err != nil {
 			return nil, err
 		}
@@ -134,108 +111,106 @@ func (q *Queries) GetMatchesByTournamentID(ctx context.Context, tournamentID int
 	return items, nil
 }
 
-const getTournamentMatch = `-- name: GetTournamentMatch :many
-SELECT match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time FROM tournament_match
-WHERE (tournament_id=$1 AND sports=$2)
-ORDER BY match_id DESC
+const newMatch = `-- name: NewMatch :one
+INSERT INTO matches (
+    tournament_id,
+    away_team_id,
+    home_team_id,
+    start_timestamp,
+    end_timestamp,
+    type,
+    status_code
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code
 `
 
-type GetTournamentMatchParams struct {
-	TournamentID int64  `json:"tournament_id"`
-	Sports       string `json:"sports"`
+type NewMatchParams struct {
+	TournamentID   int64  `json:"tournament_id"`
+	AwayTeamID     int64  `json:"away_team_id"`
+	HomeTeamID     int64  `json:"home_team_id"`
+	StartTimestamp int64  `json:"start_timestamp"`
+	EndTimestamp   int64  `json:"end_timestamp"`
+	Type           string `json:"type"`
+	StatusCode     string `json:"status_code"`
 }
 
-func (q *Queries) GetTournamentMatch(ctx context.Context, arg GetTournamentMatchParams) ([]TournamentMatch, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentMatch, arg.TournamentID, arg.Sports)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []TournamentMatch
-	for rows.Next() {
-		var i TournamentMatch
-		if err := rows.Scan(
-			&i.MatchID,
-			&i.OrganizerID,
-			&i.TournamentID,
-			&i.Team1ID,
-			&i.Team2ID,
-			&i.DateOn,
-			&i.StartTime,
-			&i.Stage,
-			&i.Sports,
-			&i.EndTime,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const updateMatchSchedule = `-- name: UpdateMatchSchedule :one
-UPDATE tournament_match
-SET date_on=$1
-WHERE match_id=$2
-RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time
-`
-
-type UpdateMatchScheduleParams struct {
-	DateOn  time.Time `json:"date_on"`
-	MatchID int64     `json:"match_id"`
-}
-
-func (q *Queries) UpdateMatchSchedule(ctx context.Context, arg UpdateMatchScheduleParams) (TournamentMatch, error) {
-	row := q.db.QueryRowContext(ctx, updateMatchSchedule, arg.DateOn, arg.MatchID)
-	var i TournamentMatch
+func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (Match, error) {
+	row := q.db.QueryRowContext(ctx, newMatch,
+		arg.TournamentID,
+		arg.AwayTeamID,
+		arg.HomeTeamID,
+		arg.StartTimestamp,
+		arg.EndTimestamp,
+		arg.Type,
+		arg.StatusCode,
+	)
+	var i Match
 	err := row.Scan(
-		&i.MatchID,
-		&i.OrganizerID,
+		&i.ID,
 		&i.TournamentID,
-		&i.Team1ID,
-		&i.Team2ID,
-		&i.DateOn,
-		&i.StartTime,
-		&i.Stage,
-		&i.Sports,
-		&i.EndTime,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
 	)
 	return i, err
 }
 
-const updateMatchScheduleTime = `-- name: UpdateMatchScheduleTime :one
-UPDATE tournament_match
-SET start_time=$1 OR end_time=$2
-WHERE match_id=$3
-RETURNING match_id, organizer_id, tournament_id, team1_id, team2_id, date_on, start_time, stage, sports, end_time
+const updateMatchSchedule = `-- name: UpdateMatchSchedule :one
+UPDATE matches
+SET start_timestamp=$1
+WHERE id=$2
+RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code
 `
 
-type UpdateMatchScheduleTimeParams struct {
-	StartTime time.Time `json:"start_time"`
-	EndTime   time.Time `json:"end_time"`
-	MatchID   int64     `json:"match_id"`
+type UpdateMatchScheduleParams struct {
+	StartTimestamp int64 `json:"start_timestamp"`
+	ID             int64 `json:"id"`
 }
 
-func (q *Queries) UpdateMatchScheduleTime(ctx context.Context, arg UpdateMatchScheduleTimeParams) (TournamentMatch, error) {
-	row := q.db.QueryRowContext(ctx, updateMatchScheduleTime, arg.StartTime, arg.EndTime, arg.MatchID)
-	var i TournamentMatch
+func (q *Queries) UpdateMatchSchedule(ctx context.Context, arg UpdateMatchScheduleParams) (Match, error) {
+	row := q.db.QueryRowContext(ctx, updateMatchSchedule, arg.StartTimestamp, arg.ID)
+	var i Match
 	err := row.Scan(
-		&i.MatchID,
-		&i.OrganizerID,
+		&i.ID,
 		&i.TournamentID,
-		&i.Team1ID,
-		&i.Team2ID,
-		&i.DateOn,
-		&i.StartTime,
-		&i.Stage,
-		&i.Sports,
-		&i.EndTime,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
+	)
+	return i, err
+}
+
+const updateMatchStatus = `-- name: UpdateMatchStatus :one
+UPDATE matches
+SET status_code=$1
+WHERE id=$2
+RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code
+`
+
+type UpdateMatchStatusParams struct {
+	StatusCode string `json:"status_code"`
+	ID         int64  `json:"id"`
+}
+
+func (q *Queries) UpdateMatchStatus(ctx context.Context, arg UpdateMatchStatusParams) (Match, error) {
+	row := q.db.QueryRowContext(ctx, updateMatchStatus, arg.StatusCode, arg.ID)
+	var i Match
+	err := row.Scan(
+		&i.ID,
+		&i.TournamentID,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
 	)
 	return i, err
 }

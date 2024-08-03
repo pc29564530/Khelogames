@@ -17,20 +17,20 @@ INSERT INTO tournament_standing (
 SELECT 
     ts.standing_id, ts.tournament_id, ts.group_id, ts.team_id,
     ts.wins, ts.loss, ts.draw, ts.goal_for, ts.goal_against, ts.goal_difference, ts.points,
-    t.tournament_name, t.sport_type,
-    c.club_name, t.format
+    t.tournament_name, t.sports,
+    c.name
 FROM 
     tournament_standing ts
 JOIN 
     group_league tg ON ts.group_id = tg.group_id
 JOIN 
-    tournament t ON ts.tournament_id = t.tournament_id
+    tournaments t ON ts.tournament_id = t.id
 JOIN 
-    club c ON ts.team_id = c.id
+    teams c ON ts.team_id = c.id
 WHERE 
     ts.tournament_id = $1
     AND tg.group_id = $2
-    AND t.sport_type = $3;
+    AND t.sports = $3;
 
 
 
