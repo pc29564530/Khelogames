@@ -21,9 +21,9 @@ func (s *CheckSportServer) CheckSport(sports string, matches []db.Match, matchDe
 	cricketServer := cricket.NewCricketServer(s.store, s.logger)
 	switch sports {
 	case "Cricket":
-		return cricketServer.GetCricketMatchScore(matches, matchDetails)
+		return cricketServer.GetCricketScore(matches, matchDetails)
 	case "Football":
-		return footballServer.GetFootballMatchScore(matches, matchDetails)
+		return footballServer.GetFootballScore(matches, matchDetails)
 	default:
 		s.logger.Error("Unsupported sport type:", sports)
 		return nil
