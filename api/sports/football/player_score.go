@@ -14,7 +14,7 @@ type addFootballPlayerScoreRequest struct {
 	GoalTime int64 `json:"goal_time"`
 }
 
-func (s *FootballServer) addFootballGoalByPlayer(ctx *gin.Context) {
+func (s *FootballServer) AddFootballGoalByPlayerFunc(ctx *gin.Context) {
 
 	var req addFootballPlayerScoreRequest
 	err := ctx.ShouldBindJSON(&req)

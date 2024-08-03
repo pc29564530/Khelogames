@@ -59,26 +59,45 @@ CREATE TABLE football_score (
     second_half INT NOT NULL,
     goals BIGINT NOT NULL
 );
-	
-CREATE TABLE Bats (
+
+CREATE TABLE goals (
     id BIGSERIAL PRIMARY KEY,
-    batsman_id BIGSERIAL REFERENCES Players(id),
-    match_id BIGSERIAL ,
-    runs_scored BIGINT,
-    balls_faced BIGINT,
-    wickets_taken BIGINT
+    match_id BIGSERIAL REFERENCES matches(id) NOT NULL,
+    team_id BIGSERIAL REFERENCES teams(id) NOT NULL,
+    player_id BIGSERIAL REFERENCES players(id) NOT NULL,
+    goal_time BIGINT NOT NULL
 );
 	
-CREATE TABLE Balls (
+CREATE TABLE bats (
     id BIGSERIAL PRIMARY KEY,
-    match_id BIGSERIAL,
-    over_number BIGINT,
-    ball_number BIGINT,
-    runs BIGINT,
-    wickets BIGINT,
-    batsman_id BIGSERIAL REFERENCES Players(id),
-    bowler_id BIGSERIAL REFERENCES Players(id),
-    fielder_id BIGSERIAL REFERENCES Players(id)
+    batsman_id BIGSERIAL REFERENCES players(id) NOT NULL,
+    team_id BIGSERIAL REFERENCES teams(id) NOT NULL,
+    match_id BIGSERIAL NOT NULL REFERENCES matches(id),
+    position INT NOT NULL,
+    runs_scored INT NOT NULL,
+    balls_faced INT NOT NULL,
+    fours INT NOT NULL,
+    sixes INT NOT NULL
+);
+	
+CREATE TABLE balls (
+    id BIGSERIAL PRIMARY KEY,
+    team_id BIGSERIAL REFERENCES teams(id) NOT NULL,
+    match_id BIGSERIAL REFERENCES matches(id) NOT NULL,
+    bowler_id BIGSERIAL REFERENCES players(id) NOT NULL,
+    over_number INT NOT NULL,
+    ball_number INT NOT NULL,
+    runs INT NOT NULL,
+    wickets INT NOT NULL
+);
+
+CREATE TABLE wickets (
+    id BIGSERIAL PRIMARY KEY,
+    match_id BIGSERIAL REFERENCES matches(id) NOT NULL,
+    batsman_id BIGSERIAL REFERENCES players(id) NOT NULL,
+    bowler_id BIGSERIAL REFERENCES players(id) NOT NULL,
+    fielder_id BIGSERIAL REFERENCES players(id) NOT NULL,
+    wicket_type VARCHAR(50) NOT NULL
 );
 
 -- CREATE TABLE Score (
