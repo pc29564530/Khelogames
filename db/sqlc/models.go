@@ -12,24 +12,26 @@ import (
 )
 
 type Ball struct {
-	ID         int64         `json:"id"`
-	MatchID    sql.NullInt64 `json:"match_id"`
-	OverNumber sql.NullInt64 `json:"over_number"`
-	BallNumber sql.NullInt64 `json:"ball_number"`
-	Runs       sql.NullInt64 `json:"runs"`
-	Wickets    sql.NullInt64 `json:"wickets"`
-	BatsmanID  sql.NullInt64 `json:"batsman_id"`
-	BowlerID   sql.NullInt64 `json:"bowler_id"`
-	FielderID  sql.NullInt64 `json:"fielder_id"`
+	ID         int64 `json:"id"`
+	TeamID     int64 `json:"team_id"`
+	MatchID    int64 `json:"match_id"`
+	BowlerID   int64 `json:"bowler_id"`
+	OverNumber int32 `json:"over_number"`
+	BallNumber int32 `json:"ball_number"`
+	Runs       int32 `json:"runs"`
+	Wickets    int32 `json:"wickets"`
 }
 
 type Bat struct {
-	ID           int64         `json:"id"`
-	BatsmanID    sql.NullInt64 `json:"batsman_id"`
-	MatchID      sql.NullInt64 `json:"match_id"`
-	RunsScored   sql.NullInt64 `json:"runs_scored"`
-	BallsFaced   sql.NullInt64 `json:"balls_faced"`
-	WicketsTaken sql.NullInt64 `json:"wickets_taken"`
+	ID         int64 `json:"id"`
+	BatsmanID  int64 `json:"batsman_id"`
+	TeamID     int64 `json:"team_id"`
+	MatchID    int64 `json:"match_id"`
+	Position   int32 `json:"position"`
+	RunsScored int32 `json:"runs_scored"`
+	BallsFaced int32 `json:"balls_faced"`
+	Fours      int32 `json:"fours"`
+	Sixes      int32 `json:"sixes"`
 }
 
 type Club struct {
@@ -190,6 +192,14 @@ type FootballTeamPlayerScore struct {
 	PlayerID      int64     `json:"player_id"`
 	TournamentID  int64     `json:"tournament_id"`
 	GoalScoreTime time.Time `json:"goal_score_time"`
+}
+
+type Goal struct {
+	ID       int64 `json:"id"`
+	MatchID  int64 `json:"match_id"`
+	TeamID   int64 `json:"team_id"`
+	PlayerID int64 `json:"player_id"`
+	GoalTime int64 `json:"goal_time"`
 }
 
 type GroupLeague struct {
@@ -402,4 +412,13 @@ type User struct {
 	MobileNumber   string `json:"mobile_number"`
 	HashedPassword string `json:"hashed_password"`
 	Role           string `json:"role"`
+}
+
+type Wicket struct {
+	ID         int64  `json:"id"`
+	MatchID    int64  `json:"match_id"`
+	BatsmanID  int64  `json:"batsman_id"`
+	BowlerID   int64  `json:"bowler_id"`
+	FielderID  int64  `json:"fielder_id"`
+	WicketType string `json:"wicket_type"`
 }
