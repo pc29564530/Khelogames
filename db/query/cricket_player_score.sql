@@ -17,21 +17,23 @@ INSERT INTO balls (
     match_id,
     team_id,
     bowler_id,
-    over_number,
-    ball_number,
+    ball,
     runs,
-    wickets
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    wickets,
+    wide,
+    no_ball
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: AddCricketWickets :one
 INSERT INTO wickets (
     match_id,
+    team_id,
     batsman_id,
     bowler_id,
-    fielder_id,
+    wickets_number,
     wicket_type
-) VALUES ($1, $2, $3, $4, $5)
+) VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetCricketPlayerScore :one
@@ -57,10 +59,9 @@ WHERE match_id=$1 AND team_id=$2;
 SELECT * FROM wickets
 WHERE match_id=$1 AND batsman_id=$2 LIMIT 1;
 
-
 -- name: GetCricketWickets :many
 SELECT * FROM wickets
-WHERE match_id=$1;
+WHERE match_id=$1 AND team_id=$2;
 
 
 -- name: UpdateCricketRunsScored :one
@@ -69,14 +70,16 @@ SET runs_scored = runs_scored + $1,
     balls_faced = balls_faced + $2,
     fours = fours + $3,
     sixes = sixes + $4
-WHERE match_id = $5 AND batsman_id = $6
+WHERE match_id = $5 AND batsman_id = $6 AND team_id=$7
 RETURNING *;
 
 -- name: UpdateCricketBowler :one
 UPDATE balls
-SET over_number = over_number + $1,
-    ball_number = ball_number + $2,
-    runs = runs + $3,
-    wickets = wickets + $4
-WHERE match_id = $5 AND bowler_id = $6
+SET 
+    ball = $1,
+    runs = runs + $2,
+    wickets = wickets + $3,
+    wide = wide + $4,
+    no_ball = no_ball + $5
+WHERE match_id = $6 AND bowler_id = $7 AND team_id=$8
 RETURNING *;

@@ -212,16 +212,19 @@ func NewServer(config util.Config,
 	sportRouter.POST("/addCricketScore", cricketServer.AddCricketScoreFunc)
 	sportRouter.POST("/addCricketToss", cricketServer.AddCricketToss)
 	sportRouter.POST("/getCricketToss", cricketServer.GetCricketTossFunc)
-	sportRouter.PUT("/updateCricketScore", cricketServer.UpdateCricketScoreFunc)
-	sportRouter.PUT("/updateCricketWickets", cricketServer.UpdateCricketWicketsFunc)
-	sportRouter.PUT("/updateCricketaOvers", cricketServer.UpdateCricketOversFunc)
+	// sportRouter.PUT("/updateCricketScore", cricketServer.UpdateCricketScoreFunc)
+	// sportRouter.PUT("/updateCricketWickets", cricketServer.UpdateCricketWicketsFunc)
+	// sportRouter.PUT("/updateCricketaOvers", cricketServer.UpdateCricketOversFunc)
 	sportRouter.PUT("/updateCricketInning", cricketServer.UpdateCricketInningsFunc)
 	//cricket->player
 	sportRouter.POST("addCricketBatScore", cricketServer.AddCricketBatScoreFunc)
 	sportRouter.POST("/addCricketBall", cricketServer.AddCricketBallFunc)
+	sportRouter.GET("/getPlayerScoreFunc", cricketServer.GetPlayerScoreFunc)
+	sportRouter.GET("/getCricketBowlerFunc", cricketServer.GetCricketBowlerFunc)
 	sportRouter.POST("/addCricketWicket", cricketServer.AddCricketWicketFunc)
 	sportRouter.PUT("/updateCricketBat", cricketServer.UpdateCricketBatScoreFunc)
 	sportRouter.PUT("/updateCricketBall", cricketServer.UpdateCricketBallFunc)
+	sportRouter.GET("/getCricketWickets", cricketServer.GetCricketWicketsFunc)
 
 	//matches
 	server.router = router

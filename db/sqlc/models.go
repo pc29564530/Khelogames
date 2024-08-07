@@ -12,14 +12,15 @@ import (
 )
 
 type Ball struct {
-	ID         int64 `json:"id"`
-	TeamID     int64 `json:"team_id"`
-	MatchID    int64 `json:"match_id"`
-	BowlerID   int64 `json:"bowler_id"`
-	OverNumber int32 `json:"over_number"`
-	BallNumber int32 `json:"ball_number"`
-	Runs       int32 `json:"runs"`
-	Wickets    int32 `json:"wickets"`
+	ID       int64 `json:"id"`
+	TeamID   int64 `json:"team_id"`
+	MatchID  int64 `json:"match_id"`
+	BowlerID int64 `json:"bowler_id"`
+	Ball     int32 `json:"ball"`
+	Runs     int32 `json:"runs"`
+	Wickets  int32 `json:"wickets"`
+	Wide     int32 `json:"wide"`
+	NoBall   int32 `json:"no_ball"`
 }
 
 type Bat struct {
@@ -125,10 +126,10 @@ type CricketScore struct {
 	ID            int64  `json:"id"`
 	MatchID       int64  `json:"match_id"`
 	TeamID        int64  `json:"team_id"`
-	Inning        int32  `json:"inning"`
+	Inning        string `json:"inning"`
 	Score         int32  `json:"score"`
 	Wickets       int32  `json:"wickets"`
-	Overs         string `json:"overs"`
+	Overs         int32  `json:"overs"`
 	RunRate       string `json:"run_rate"`
 	TargetRunRate string `json:"target_run_rate"`
 }
@@ -415,10 +416,11 @@ type User struct {
 }
 
 type Wicket struct {
-	ID         int64  `json:"id"`
-	MatchID    int64  `json:"match_id"`
-	BatsmanID  int64  `json:"batsman_id"`
-	BowlerID   int64  `json:"bowler_id"`
-	FielderID  int64  `json:"fielder_id"`
-	WicketType string `json:"wicket_type"`
+	ID            int64  `json:"id"`
+	MatchID       int64  `json:"match_id"`
+	TeamID        int64  `json:"team_id"`
+	BatsmanID     int64  `json:"batsman_id"`
+	BowlerID      int64  `json:"bowler_id"`
+	WicketsNumber int32  `json:"wickets_number"`
+	WicketType    string `json:"wicket_type"`
 }

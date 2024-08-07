@@ -53,10 +53,10 @@ RETURNING id, match_id, team_id, inning, score, wickets, overs, run_rate, target
 type NewCricketScoreParams struct {
 	MatchID       int64  `json:"match_id"`
 	TeamID        int64  `json:"team_id"`
-	Inning        int32  `json:"inning"`
+	Inning        string `json:"inning"`
 	Score         int32  `json:"score"`
 	Wickets       int32  `json:"wickets"`
-	Overs         string `json:"overs"`
+	Overs         int32  `json:"overs"`
 	RunRate       string `json:"run_rate"`
 	TargetRunRate string `json:"target_run_rate"`
 }
@@ -95,9 +95,9 @@ RETURNING id, match_id, team_id, inning, score, wickets, overs, run_rate, target
 `
 
 type UpdateCricketInningsParams struct {
-	Inning  int32 `json:"inning"`
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
+	Inning  string `json:"inning"`
+	MatchID int64  `json:"match_id"`
+	TeamID  int64  `json:"team_id"`
 }
 
 func (q *Queries) UpdateCricketInnings(ctx context.Context, arg UpdateCricketInningsParams) (CricketScore, error) {
@@ -118,20 +118,23 @@ func (q *Queries) UpdateCricketInnings(ctx context.Context, arg UpdateCricketInn
 }
 
 const updateCricketOvers = `-- name: UpdateCricketOvers :one
-UPDATE cricket_score
-SET overs=$1
-WHERE match_id=$2 AND team_id=$3
+UPDATE cricket_score cs
+SET overs = (
+        SELECT SUM(bl.balls_faced) FROM bats bl
+        WHERE bl.match_id = cs.match_id AND bl.team_id = cs.team_id
+        GROUP BY (bl.match_id, bl.team_id)
+    )
+WHERE cs.match_id=$1 AND cs.team_id=$2
 RETURNING id, match_id, team_id, inning, score, wickets, overs, run_rate, target_run_rate
 `
 
 type UpdateCricketOversParams struct {
-	Overs   string `json:"overs"`
-	MatchID int64  `json:"match_id"`
-	TeamID  int64  `json:"team_id"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
 }
 
 func (q *Queries) UpdateCricketOvers(ctx context.Context, arg UpdateCricketOversParams) (CricketScore, error) {
-	row := q.db.QueryRowContext(ctx, updateCricketOvers, arg.Overs, arg.MatchID, arg.TeamID)
+	row := q.db.QueryRowContext(ctx, updateCricketOvers, arg.MatchID, arg.TeamID)
 	var i CricketScore
 	err := row.Scan(
 		&i.ID,
@@ -148,20 +151,24 @@ func (q *Queries) UpdateCricketOvers(ctx context.Context, arg UpdateCricketOvers
 }
 
 const updateCricketScore = `-- name: UpdateCricketScore :one
-UPDATE cricket_score
-SET score=$1
-WHERE match_id=$2 AND team_id=$3
+UPDATE cricket_score cs
+SET score = (
+        SELECT SUM(bt.runs_scored)
+        FROM bats bt
+        WHERE bt.match_id=cs.match_id AND bt.team_id=cs.team_id
+        GROUP BY (bt.match_id, bt.team_id)
+    )
+WHERE cs.match_id=$1 AND cs.team_id=$2
 RETURNING id, match_id, team_id, inning, score, wickets, overs, run_rate, target_run_rate
 `
 
 type UpdateCricketScoreParams struct {
-	Score   int32 `json:"score"`
 	MatchID int64 `json:"match_id"`
 	TeamID  int64 `json:"team_id"`
 }
 
 func (q *Queries) UpdateCricketScore(ctx context.Context, arg UpdateCricketScoreParams) (CricketScore, error) {
-	row := q.db.QueryRowContext(ctx, updateCricketScore, arg.Score, arg.MatchID, arg.TeamID)
+	row := q.db.QueryRowContext(ctx, updateCricketScore, arg.MatchID, arg.TeamID)
 	var i CricketScore
 	err := row.Scan(
 		&i.ID,
@@ -178,20 +185,23 @@ func (q *Queries) UpdateCricketScore(ctx context.Context, arg UpdateCricketScore
 }
 
 const updateCricketWickets = `-- name: UpdateCricketWickets :one
-UPDATE cricket_score
-SET wickets=$1
-WHERE match_id=$2 AND team_id=$3
+UPDATE cricket_score cs
+SET wickets = (
+        SELECT COUNT(*)
+        FROM wickets w
+        WHERE w.match_id = cs.match_id AND w.team_id = cs.team_id
+    )
+WHERE cs.match_id = $1 AND cs.team_id = $2
 RETURNING id, match_id, team_id, inning, score, wickets, overs, run_rate, target_run_rate
 `
 
 type UpdateCricketWicketsParams struct {
-	Wickets int32 `json:"wickets"`
 	MatchID int64 `json:"match_id"`
 	TeamID  int64 `json:"team_id"`
 }
 
 func (q *Queries) UpdateCricketWickets(ctx context.Context, arg UpdateCricketWicketsParams) (CricketScore, error) {
-	row := q.db.QueryRowContext(ctx, updateCricketWickets, arg.Wickets, arg.MatchID, arg.TeamID)
+	row := q.db.QueryRowContext(ctx, updateCricketWickets, arg.MatchID, arg.TeamID)
 	var i CricketScore
 	err := row.Scan(
 		&i.ID,

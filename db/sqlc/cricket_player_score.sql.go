@@ -14,22 +14,24 @@ INSERT INTO balls (
     match_id,
     team_id,
     bowler_id,
-    over_number,
-    ball_number,
+    ball,
     runs,
-    wickets
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, team_id, match_id, bowler_id, over_number, ball_number, runs, wickets
+    wickets,
+    wide,
+    no_ball
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, team_id, match_id, bowler_id, ball, runs, wickets, wide, no_ball
 `
 
 type AddCricketBallParams struct {
-	MatchID    int64 `json:"match_id"`
-	TeamID     int64 `json:"team_id"`
-	BowlerID   int64 `json:"bowler_id"`
-	OverNumber int32 `json:"over_number"`
-	BallNumber int32 `json:"ball_number"`
-	Runs       int32 `json:"runs"`
-	Wickets    int32 `json:"wickets"`
+	MatchID  int64 `json:"match_id"`
+	TeamID   int64 `json:"team_id"`
+	BowlerID int64 `json:"bowler_id"`
+	Ball     int32 `json:"ball"`
+	Runs     int32 `json:"runs"`
+	Wickets  int32 `json:"wickets"`
+	Wide     int32 `json:"wide"`
+	NoBall   int32 `json:"no_ball"`
 }
 
 func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) (Ball, error) {
@@ -37,10 +39,11 @@ func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) 
 		arg.MatchID,
 		arg.TeamID,
 		arg.BowlerID,
-		arg.OverNumber,
-		arg.BallNumber,
+		arg.Ball,
 		arg.Runs,
 		arg.Wickets,
+		arg.Wide,
+		arg.NoBall,
 	)
 	var i Ball
 	err := row.Scan(
@@ -48,10 +51,11 @@ func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) 
 		&i.TeamID,
 		&i.MatchID,
 		&i.BowlerID,
-		&i.OverNumber,
-		&i.BallNumber,
+		&i.Ball,
 		&i.Runs,
 		&i.Wickets,
+		&i.Wide,
+		&i.NoBall,
 	)
 	return i, err
 }
@@ -110,44 +114,48 @@ func (q *Queries) AddCricketBatsScore(ctx context.Context, arg AddCricketBatsSco
 const addCricketWickets = `-- name: AddCricketWickets :one
 INSERT INTO wickets (
     match_id,
+    team_id,
     batsman_id,
     bowler_id,
-    fielder_id,
+    wickets_number,
     wicket_type
-) VALUES ($1, $2, $3, $4, $5)
-RETURNING id, match_id, batsman_id, bowler_id, fielder_id, wicket_type
+) VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type
 `
 
 type AddCricketWicketsParams struct {
-	MatchID    int64  `json:"match_id"`
-	BatsmanID  int64  `json:"batsman_id"`
-	BowlerID   int64  `json:"bowler_id"`
-	FielderID  int64  `json:"fielder_id"`
-	WicketType string `json:"wicket_type"`
+	MatchID       int64  `json:"match_id"`
+	TeamID        int64  `json:"team_id"`
+	BatsmanID     int64  `json:"batsman_id"`
+	BowlerID      int64  `json:"bowler_id"`
+	WicketsNumber int32  `json:"wickets_number"`
+	WicketType    string `json:"wicket_type"`
 }
 
 func (q *Queries) AddCricketWickets(ctx context.Context, arg AddCricketWicketsParams) (Wicket, error) {
 	row := q.db.QueryRowContext(ctx, addCricketWickets,
 		arg.MatchID,
+		arg.TeamID,
 		arg.BatsmanID,
 		arg.BowlerID,
-		arg.FielderID,
+		arg.WicketsNumber,
 		arg.WicketType,
 	)
 	var i Wicket
 	err := row.Scan(
 		&i.ID,
 		&i.MatchID,
+		&i.TeamID,
 		&i.BatsmanID,
 		&i.BowlerID,
-		&i.FielderID,
+		&i.WicketsNumber,
 		&i.WicketType,
 	)
 	return i, err
 }
 
 const getCricketBall = `-- name: GetCricketBall :one
-SELECT id, team_id, match_id, bowler_id, over_number, ball_number, runs, wickets FROM balls
+SELECT id, team_id, match_id, bowler_id, ball, runs, wickets, wide, no_ball FROM balls
 WHERE match_id=$1 AND bowler_id=$2 LIMIT 1
 `
 
@@ -164,16 +172,17 @@ func (q *Queries) GetCricketBall(ctx context.Context, arg GetCricketBallParams) 
 		&i.TeamID,
 		&i.MatchID,
 		&i.BowlerID,
-		&i.OverNumber,
-		&i.BallNumber,
+		&i.Ball,
 		&i.Runs,
 		&i.Wickets,
+		&i.Wide,
+		&i.NoBall,
 	)
 	return i, err
 }
 
 const getCricketBalls = `-- name: GetCricketBalls :many
-SELECT id, team_id, match_id, bowler_id, over_number, ball_number, runs, wickets FROM balls
+SELECT id, team_id, match_id, bowler_id, ball, runs, wickets, wide, no_ball FROM balls
 WHERE match_id=$1 AND team_id=$2
 `
 
@@ -196,10 +205,11 @@ func (q *Queries) GetCricketBalls(ctx context.Context, arg GetCricketBallsParams
 			&i.TeamID,
 			&i.MatchID,
 			&i.BowlerID,
-			&i.OverNumber,
-			&i.BallNumber,
+			&i.Ball,
 			&i.Runs,
 			&i.Wickets,
+			&i.Wide,
+			&i.NoBall,
 		); err != nil {
 			return nil, err
 		}
@@ -286,7 +296,7 @@ func (q *Queries) GetCricketPlayersScore(ctx context.Context, arg GetCricketPlay
 }
 
 const getCricketWicket = `-- name: GetCricketWicket :one
-SELECT id, match_id, batsman_id, bowler_id, fielder_id, wicket_type FROM wickets
+SELECT id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type FROM wickets
 WHERE match_id=$1 AND batsman_id=$2 LIMIT 1
 `
 
@@ -301,21 +311,27 @@ func (q *Queries) GetCricketWicket(ctx context.Context, arg GetCricketWicketPara
 	err := row.Scan(
 		&i.ID,
 		&i.MatchID,
+		&i.TeamID,
 		&i.BatsmanID,
 		&i.BowlerID,
-		&i.FielderID,
+		&i.WicketsNumber,
 		&i.WicketType,
 	)
 	return i, err
 }
 
 const getCricketWickets = `-- name: GetCricketWickets :many
-SELECT id, match_id, batsman_id, bowler_id, fielder_id, wicket_type FROM wickets
-WHERE match_id=$1
+SELECT id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type FROM wickets
+WHERE match_id=$1 AND team_id=$2
 `
 
-func (q *Queries) GetCricketWickets(ctx context.Context, matchID int64) ([]Wicket, error) {
-	rows, err := q.db.QueryContext(ctx, getCricketWickets, matchID)
+type GetCricketWicketsParams struct {
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (q *Queries) GetCricketWickets(ctx context.Context, arg GetCricketWicketsParams) ([]Wicket, error) {
+	rows, err := q.db.QueryContext(ctx, getCricketWickets, arg.MatchID, arg.TeamID)
 	if err != nil {
 		return nil, err
 	}
@@ -326,9 +342,10 @@ func (q *Queries) GetCricketWickets(ctx context.Context, matchID int64) ([]Wicke
 		if err := rows.Scan(
 			&i.ID,
 			&i.MatchID,
+			&i.TeamID,
 			&i.BatsmanID,
 			&i.BowlerID,
-			&i.FielderID,
+			&i.WicketsNumber,
 			&i.WicketType,
 		); err != nil {
 			return nil, err
@@ -346,31 +363,37 @@ func (q *Queries) GetCricketWickets(ctx context.Context, matchID int64) ([]Wicke
 
 const updateCricketBowler = `-- name: UpdateCricketBowler :one
 UPDATE balls
-SET over_number = over_number + $1,
-    ball_number = ball_number + $2,
-    runs = runs + $3,
-    wickets = wickets + $4
-WHERE match_id = $5 AND bowler_id = $6
-RETURNING id, team_id, match_id, bowler_id, over_number, ball_number, runs, wickets
+SET 
+    ball = $1,
+    runs = runs + $2,
+    wickets = wickets + $3,
+    wide = wide + $4,
+    no_ball = no_ball + $5
+WHERE match_id = $6 AND bowler_id = $7 AND team_id=$8
+RETURNING id, team_id, match_id, bowler_id, ball, runs, wickets, wide, no_ball
 `
 
 type UpdateCricketBowlerParams struct {
-	OverNumber int32 `json:"over_number"`
-	BallNumber int32 `json:"ball_number"`
-	Runs       int32 `json:"runs"`
-	Wickets    int32 `json:"wickets"`
-	MatchID    int64 `json:"match_id"`
-	BowlerID   int64 `json:"bowler_id"`
+	Ball     int32 `json:"ball"`
+	Runs     int32 `json:"runs"`
+	Wickets  int32 `json:"wickets"`
+	Wide     int32 `json:"wide"`
+	NoBall   int32 `json:"no_ball"`
+	MatchID  int64 `json:"match_id"`
+	BowlerID int64 `json:"bowler_id"`
+	TeamID   int64 `json:"team_id"`
 }
 
 func (q *Queries) UpdateCricketBowler(ctx context.Context, arg UpdateCricketBowlerParams) (Ball, error) {
 	row := q.db.QueryRowContext(ctx, updateCricketBowler,
-		arg.OverNumber,
-		arg.BallNumber,
+		arg.Ball,
 		arg.Runs,
 		arg.Wickets,
+		arg.Wide,
+		arg.NoBall,
 		arg.MatchID,
 		arg.BowlerID,
+		arg.TeamID,
 	)
 	var i Ball
 	err := row.Scan(
@@ -378,10 +401,11 @@ func (q *Queries) UpdateCricketBowler(ctx context.Context, arg UpdateCricketBowl
 		&i.TeamID,
 		&i.MatchID,
 		&i.BowlerID,
-		&i.OverNumber,
-		&i.BallNumber,
+		&i.Ball,
 		&i.Runs,
 		&i.Wickets,
+		&i.Wide,
+		&i.NoBall,
 	)
 	return i, err
 }
@@ -392,7 +416,7 @@ SET runs_scored = runs_scored + $1,
     balls_faced = balls_faced + $2,
     fours = fours + $3,
     sixes = sixes + $4
-WHERE match_id = $5 AND batsman_id = $6
+WHERE match_id = $5 AND batsman_id = $6 AND team_id=$7
 RETURNING id, batsman_id, team_id, match_id, position, runs_scored, balls_faced, fours, sixes
 `
 
@@ -403,6 +427,7 @@ type UpdateCricketRunsScoredParams struct {
 	Sixes      int32 `json:"sixes"`
 	MatchID    int64 `json:"match_id"`
 	BatsmanID  int64 `json:"batsman_id"`
+	TeamID     int64 `json:"team_id"`
 }
 
 func (q *Queries) UpdateCricketRunsScored(ctx context.Context, arg UpdateCricketRunsScoredParams) (Bat, error) {
@@ -413,6 +438,7 @@ func (q *Queries) UpdateCricketRunsScored(ctx context.Context, arg UpdateCricket
 		arg.Sixes,
 		arg.MatchID,
 		arg.BatsmanID,
+		arg.TeamID,
 	)
 	var i Bat
 	err := row.Scan(
