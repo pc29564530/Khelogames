@@ -423,4 +423,5 @@ type Wicket struct {
 	BowlerID      int64  `json:"bowler_id"`
 	WicketsNumber int32  `json:"wickets_number"`
 	WicketType    string `json:"wicket_type"`
+	BallNumber    int32  `json:"ball_number"`
 }

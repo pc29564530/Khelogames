@@ -34,10 +34,10 @@ CREATE TABLE cricket_score (
     id BIGSERIAL PRIMARY KEY,
     match_id BIGSERIAL NOT NULL REFERENCES matches(id),
     team_id BIGSERIAL NOT NULL,
-    inning INT CHECK (inning BETWEEN 1 AND 4) NOT NULL,
+    inning VARCHAR CHECK (inning IN ('inning1', 'inning2')) NOT NULL,
     score INT CHECK (score >= 0) NOT NULL,
     wickets INT CHECK (wickets BETWEEN 0 AND 10) NOT NULL,
-    overs DECIMAL(5,1) CHECK (overs >= 0) NOT NULL,
+    overs INT CHECK (overs>=0) NOT NULL,
     run_rate DECIMAL(5,2) CHECK (run_rate >= 0) NOT NULL,
     target_run_rate DECIMAL(5,2) CHECK (target_run_rate >= 0) NOT NULL
 );
@@ -85,19 +85,22 @@ CREATE TABLE balls (
     team_id BIGSERIAL REFERENCES teams(id) NOT NULL,
     match_id BIGSERIAL REFERENCES matches(id) NOT NULL,
     bowler_id BIGSERIAL REFERENCES players(id) NOT NULL,
-    over_number INT NOT NULL,
-    ball_number INT NOT NULL,
+    ball INT NOT NULL,
     runs INT NOT NULL,
-    wickets INT NOT NULL
+    wickets INT NOT NULL,
+    wide INT NOT NULL,
+    no_ball INT NOT NULL
 );
 
 CREATE TABLE wickets (
     id BIGSERIAL PRIMARY KEY,
     match_id BIGSERIAL REFERENCES matches(id) NOT NULL,
+    team_id BIGSERIAL REFERENCES teams(id) NOT NULL,
     batsman_id BIGSERIAL REFERENCES players(id) NOT NULL,
     bowler_id BIGSERIAL REFERENCES players(id) NOT NULL,
-    fielder_id BIGSERIAL REFERENCES players(id) NOT NULL,
-    wicket_type VARCHAR(50) NOT NULL
+    wickets_number INT NOT NULL,
+    wicket_type VARCHAR(50) NOT NULL,
+    ball_number INT NOT NULL
 );
 
 -- CREATE TABLE Score (

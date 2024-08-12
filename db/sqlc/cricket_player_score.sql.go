@@ -118,9 +118,10 @@ INSERT INTO wickets (
     batsman_id,
     bowler_id,
     wickets_number,
-    wicket_type
-) VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type
+    wicket_type,
+    ball_number
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type, ball_number
 `
 
 type AddCricketWicketsParams struct {
@@ -130,6 +131,7 @@ type AddCricketWicketsParams struct {
 	BowlerID      int64  `json:"bowler_id"`
 	WicketsNumber int32  `json:"wickets_number"`
 	WicketType    string `json:"wicket_type"`
+	BallNumber    int32  `json:"ball_number"`
 }
 
 func (q *Queries) AddCricketWickets(ctx context.Context, arg AddCricketWicketsParams) (Wicket, error) {
@@ -140,6 +142,7 @@ func (q *Queries) AddCricketWickets(ctx context.Context, arg AddCricketWicketsPa
 		arg.BowlerID,
 		arg.WicketsNumber,
 		arg.WicketType,
+		arg.BallNumber,
 	)
 	var i Wicket
 	err := row.Scan(
@@ -150,6 +153,7 @@ func (q *Queries) AddCricketWickets(ctx context.Context, arg AddCricketWicketsPa
 		&i.BowlerID,
 		&i.WicketsNumber,
 		&i.WicketType,
+		&i.BallNumber,
 	)
 	return i, err
 }
@@ -296,7 +300,7 @@ func (q *Queries) GetCricketPlayersScore(ctx context.Context, arg GetCricketPlay
 }
 
 const getCricketWicket = `-- name: GetCricketWicket :one
-SELECT id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type FROM wickets
+SELECT id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type, ball_number FROM wickets
 WHERE match_id=$1 AND batsman_id=$2 LIMIT 1
 `
 
@@ -316,12 +320,13 @@ func (q *Queries) GetCricketWicket(ctx context.Context, arg GetCricketWicketPara
 		&i.BowlerID,
 		&i.WicketsNumber,
 		&i.WicketType,
+		&i.BallNumber,
 	)
 	return i, err
 }
 
 const getCricketWickets = `-- name: GetCricketWickets :many
-SELECT id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type FROM wickets
+SELECT id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type, ball_number FROM wickets
 WHERE match_id=$1 AND team_id=$2
 `
 
@@ -347,6 +352,7 @@ func (q *Queries) GetCricketWickets(ctx context.Context, arg GetCricketWicketsPa
 			&i.BowlerID,
 			&i.WicketsNumber,
 			&i.WicketType,
+			&i.BallNumber,
 		); err != nil {
 			return nil, err
 		}
@@ -365,10 +371,10 @@ const updateCricketBowler = `-- name: UpdateCricketBowler :one
 UPDATE balls
 SET 
     ball = $1,
-    runs = runs + $2,
-    wickets = wickets + $3,
-    wide = wide + $4,
-    no_ball = no_ball + $5
+    runs = $2,
+    wickets = $3,
+    wide = $4,
+    no_ball = $5
 WHERE match_id = $6 AND bowler_id = $7 AND team_id=$8
 RETURNING id, team_id, match_id, bowler_id, ball, runs, wickets, wide, no_ball
 `
@@ -412,10 +418,10 @@ func (q *Queries) UpdateCricketBowler(ctx context.Context, arg UpdateCricketBowl
 
 const updateCricketRunsScored = `-- name: UpdateCricketRunsScored :one
 UPDATE bats
-SET runs_scored = runs_scored + $1,
-    balls_faced = balls_faced + $2,
-    fours = fours + $3,
-    sixes = sixes + $4
+SET runs_scored = $1,
+    balls_faced = $2,
+    fours = $3,
+    sixes = $4
 WHERE match_id = $5 AND batsman_id = $6 AND team_id=$7
 RETURNING id, batsman_id, team_id, match_id, position, runs_scored, balls_faced, fours, sixes
 `

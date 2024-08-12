@@ -32,8 +32,9 @@ INSERT INTO wickets (
     batsman_id,
     bowler_id,
     wickets_number,
-    wicket_type
-) VALUES ($1, $2, $3, $4, $5, $6)
+    wicket_type,
+    ball_number
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetCricketPlayerScore :one
@@ -66,10 +67,10 @@ WHERE match_id=$1 AND team_id=$2;
 
 -- name: UpdateCricketRunsScored :one
 UPDATE bats
-SET runs_scored = runs_scored + $1,
-    balls_faced = balls_faced + $2,
-    fours = fours + $3,
-    sixes = sixes + $4
+SET runs_scored = $1,
+    balls_faced = $2,
+    fours = $3,
+    sixes = $4
 WHERE match_id = $5 AND batsman_id = $6 AND team_id=$7
 RETURNING *;
 
@@ -77,9 +78,9 @@ RETURNING *;
 UPDATE balls
 SET 
     ball = $1,
-    runs = runs + $2,
-    wickets = wickets + $3,
-    wide = wide + $4,
-    no_ball = no_ball + $5
+    runs = $2,
+    wickets = $3,
+    wide = $4,
+    no_ball = $5
 WHERE match_id = $6 AND bowler_id = $7 AND team_id=$8
 RETURNING *;
