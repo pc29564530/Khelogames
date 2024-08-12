@@ -2,6 +2,7 @@ package cricket
 
 import (
 	"context"
+	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -54,37 +55,59 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 
 }
 
-func (s *CricketServer) GetCricketScore(matches []db.Match, matchDetails []map[string]interface{}) []map[string]interface{} {
+func (s *CricketServer) GetCricketScore(matches []db.Match, tournament db.Tournament) []map[string]interface{} {
 	ctx := context.Background()
-	for i, match := range matches {
+	var matchDetail []map[string]interface{}
+	for _, match := range matches {
+
+		homeTeam, err1 := s.store.GetTeam(ctx, match.HomeTeamID)
+		if err1 != nil {
+			s.logger.Error("Failed to get club details for team1: %v", err1)
+			continue
+		}
+		awayTeam, err2 := s.store.GetTeam(ctx, match.AwayTeamID)
+		if err2 != nil {
+			s.logger.Error("Failed to get club details for team2: %v", err2)
+			continue
+		}
 
 		homeTeamArg := db.GetCricketScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
 		awayTeamArg := db.GetCricketScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
-		matchScoreData1, err := s.store.GetCricketScore(ctx, homeTeamArg)
+		homeScore, err := s.store.GetCricketScore(ctx, homeTeamArg)
 		if err != nil {
 			s.logger.Error("Failed to get cricket match score for team 1:", err)
-			return nil
 		}
-		matchScoreData2, err := s.store.GetCricketScore(ctx, awayTeamArg)
+		awayScore, err := s.store.GetCricketScore(ctx, awayTeamArg)
 		if err != nil {
 			s.logger.Error("Failed to get cricket match score for team 2:", err)
-			return nil
 		}
 
-		matchDetails[i]["home_team_score"] = matchScoreData1.Score
-		matchDetails[i]["home_team_wickets"] = matchScoreData1.Wickets
-		matchDetails[i]["home_team_overs"] = matchScoreData1.Overs
-		matchDetails[i]["home_team_innings"] = matchScoreData1.Inning
-		matchDetails[i]["home_team_run_rate"] = matchScoreData1.RunRate
-		matchDetails[i]["home_team_target_run_rate"] = matchScoreData1.TargetRunRate
-		matchDetails[i]["away_team_score"] = matchScoreData2.Score
-		matchDetails[i]["away_team_wickets"] = matchScoreData2.Wickets
-		matchDetails[i]["away_team_overs"] = matchScoreData2.Overs
-		matchDetails[i]["away_team_innings"] = matchScoreData2.Inning
-		matchDetails[i]["away_team_run_rate"] = matchScoreData2.RunRate
-		matchDetails[i]["away_team_target_run_rate"] = matchScoreData2.TargetRunRate
+		var awayScoreMap map[string]interface{}
+		var homeScoreMap map[string]interface{}
+		var emptyScore db.CricketScore
+		if awayScore != emptyScore {
+			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Inning, "runRate": awayScore.RunRate, "targetRunRate": awayScore.TargetRunRate}
+		}
+
+		if homeScore != emptyScore {
+			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.Inning, "runRate": homeScore.RunRate, "targetRunRate": homeScore.TargetRunRate}
+		}
+		fmt.Println("Home: ", homeScoreMap)
+		fmt.Println("Away: ", awayScore)
+
+		matchMap := map[string]interface{}{
+			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
+			"homeScore":      homeScoreMap,
+			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
+			"awayScore":      awayScoreMap,
+			"startTimeStamp": match.StartTimestamp,
+			"end_timestamp":  match.EndTimestamp,
+			"status":         match.StatusCode,
+		}
+		matchDetail = append(matchDetail, matchMap)
 	}
-	return matchDetails
+	return matchDetail
 }
 
 type updateInningRequest struct {

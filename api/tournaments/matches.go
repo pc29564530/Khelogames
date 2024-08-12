@@ -37,60 +37,11 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 		return
 	}
 
-	var matchDetails []map[string]interface{}
-	for _, matchData := range matches {
-		// argScore1 := db.GetFootballMatchScoreParams{
-		// 	MatchID:      matchData.MatchID,
-		// 	TeamID:       matchData.Team1ID,
-		// 	TournamentID: matchData.TournamentID,
-		// }
-		// argScore2 := db.GetFootballMatchScoreParams{
-		// 	MatchID:      matchData.MatchID,
-		// 	TeamID:       matchData.Team2ID,
-		// 	TournamentID: matchData.TournamentID,
-		// }
-		// _, err := s.store.GetFootballMatchScore(ctx, argScore1)
-		// if err != nil {
-		// 	s.logger.Error("Failed to get football match score for team1: %v", err)
-		// 	continue
-		// }
-
-		// _, err = s.store.GetFootballMatchScore(ctx, argScore2)
-		// if err != nil {
-		// 	s.logger.Error("Failed to get football match score for team1: %v", err)
-		// 	continue
-		// }
-
-		homeTeamID, err1 := s.store.GetTeam(ctx, matchData.HomeTeamID)
-		if err1 != nil {
-			s.logger.Error("Failed to get club details for team1: %v", err1)
-			continue
-		}
-		awayTeamID, err2 := s.store.GetTeam(ctx, matchData.AwayTeamID)
-		if err2 != nil {
-			s.logger.Error("Failed to get club details for team2: %v", err2)
-			continue
-		}
-
-		matchDetail := map[string]interface{}{
-			"tournament_id":   matchData.TournamentID,
-			"tournament_name": tournament.TournamentName,
-			"match_id":        matchData.ID,
-			"home_team_id":    matchData.HomeTeamID,
-			"away_team_id":    matchData.AwayTeamID,
-			"away_team_name":  awayTeamID.Name,
-			"home_team_name":  homeTeamID.Name,
-			"start_time":      matchData.StartTimestamp,
-			"sports":          matchData.EndTimestamp,
-		}
-		//s.logger.Debug("football match details: %v ", matchDetails)
-		matchDetails = append(matchDetails, matchDetail)
-
-	}
 	checkSportServer := util.NewCheckSport(s.store, s.logger)
-	tournamentMatches := checkSportServer.CheckSport(sports, matches, matchDetails)
-	s.logger.Info("successfully  get the tournament match: %v", tournamentMatches)
-	ctx.JSON(http.StatusAccepted, tournamentMatches)
+	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, tournament)
+
+	s.logger.Info("successfully  get the tournament match: %v", matchDetailsWithScore)
+	ctx.JSON(http.StatusAccepted, matchDetailsWithScore)
 	return
 }
 
@@ -154,19 +105,24 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	return
 }
 
+type updateStatusRequest struct {
+	ID         int64  `json:"id"`
+	StatusCode string `json:"status_code"`
+}
+
 func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
-	matchIDStr := ctx.Query("id")
-	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
+
+	var req updateStatusRequest
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse the match id: ", err)
+		s.logger.Error("Failed to bind: %v", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	statusCode := ctx.Query("status_code")
-
 	arg := db.UpdateMatchStatusParams{
-		ID:         matchID,
-		StatusCode: statusCode,
+		ID:         req.ID,
+		StatusCode: req.StatusCode,
 	}
 
 	updatedMatchData, err := s.store.UpdateMatchStatus(ctx, arg)

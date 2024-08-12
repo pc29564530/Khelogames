@@ -1,6 +1,7 @@
 package football
 
 import (
+	"context"
 	db "khelogames/db/sqlc"
 	"net/http"
 
@@ -49,27 +50,74 @@ type getFootballScoreRequest struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (s *FootballServer) GetFootballScore(ctx *gin.Context) {
-	var req getFootballScoreRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind football score: %v", err)
-		return
+// func (s *FootballServer) GetFootballScore(ctx *gin.Context) {
+// 	var req getFootballScoreRequest
+// 	err := ctx.ShouldBindJSON(&req)
+// 	if err != nil {
+// 		s.logger.Error("Failed to bind football score: %v", err)
+// 		return
+// 	}
+
+// 	arg := db.GetFootballScoreParams{
+// 		MatchID: req.MatchID,
+// 		TeamID:  req.TeamID,
+// 	}
+
+// 	response, err := s.store.GetFootballScore(ctx, arg)
+// 	if err != nil {
+// 		s.logger.Error("Failed to fetch football match score: %v", err)
+// 		return
+// 	}
+
+// 	ctx.JSON(http.StatusAccepted, response)
+// 	return
+// }
+
+func (s *FootballServer) GetFootballScore(matches []db.Match, tournament db.Tournament) []map[string]interface{} {
+	ctx := context.Background()
+	var matchDetail []map[string]interface{}
+	for _, match := range matches {
+
+		homeTeam, err1 := s.store.GetTeam(ctx, match.HomeTeamID)
+		if err1 != nil {
+			s.logger.Error("Failed to get club details for team1: %v", err1)
+			continue
+		}
+		awayTeam, err2 := s.store.GetTeam(ctx, match.AwayTeamID)
+		if err2 != nil {
+			s.logger.Error("Failed to get club details for team2: %v", err2)
+			continue
+		}
+
+		homeTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
+		awayTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
+		homeScore, err := s.store.GetFootballScore(ctx, homeTeamArg)
+		if err != nil {
+			s.logger.Error("Failed to get cricket match score for team 1:", err)
+			return nil
+		}
+		awayScore, err := s.store.GetFootballScore(ctx, awayTeamArg)
+		if err != nil {
+			s.logger.Error("Failed to get cricket match score for team 2:", err)
+			return nil
+		}
+
+		matchMap := map[string]interface{}{
+			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
+			"homeScore":      map[string]interface{}{"id": homeScore.ID, "score": homeScore.Goals, "firstHalf": homeScore.FirstHalf, "secondHalf": homeScore.SecondHalf},
+			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
+			"awayScore":      map[string]interface{}{"id": awayScore.ID, "score": awayScore.Goals, "firstHalf": homeScore.FirstHalf, "secondHalf": homeScore.SecondHalf},
+			"startTimeStamp": match.StartTimestamp,
+			"end_timestamp":  match.EndTimestamp,
+			"status":         match.StatusCode,
+		}
+		matchDetail = append(matchDetail, matchMap)
+
 	}
 
-	arg := db.GetFootballScoreParams{
-		MatchID: req.MatchID,
-		TeamID:  req.TeamID,
-	}
+	return matchDetail
 
-	response, err := s.store.GetFootballScore(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to fetch football match score: %v", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-	return
 }
 
 type updateFootballMatchScoreRequest struct {
