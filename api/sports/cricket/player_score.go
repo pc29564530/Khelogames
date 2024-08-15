@@ -1,6 +1,7 @@
 package cricket
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 
@@ -100,11 +101,12 @@ func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
 	var req addCricketWicketScore
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : %v", err)
+		fmt.Println("Line no 104: ", err)
+		s.logger.Error("Failed to bind add cricket wickets: %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	fmt.Println("Req: ", req)
 	arg := db.AddCricketWicketsParams{
 		MatchID:       req.MatchID,
 		TeamID:        req.TeamID,
@@ -115,26 +117,28 @@ func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
 		BallNumber:    req.BallNumber,
 	}
 
+	fmt.Println("Wickets: ", arg)
+
 	response, err := s.store.AddCricketWickets(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add the cricket wicket: %v", gin.H{"error": err.Error()})
 		return
 	}
 
-	var updageCricketWickets *db.Wicket
+	// var updageCricketWickets *db.Wicket
 
-	if updageCricketWickets != nil {
-		arg := db.UpdateCricketWicketsParams{
-			MatchID: req.MatchID,
-			TeamID:  req.TeamID,
-		}
+	// if updageCricketWickets != nil {
+	// 	arg := db.UpdateCricketWicketsParams{
+	// 		MatchID: req.MatchID,
+	// 		TeamID:  req.TeamID,
+	// 	}
 
-		_, err := s.store.UpdateCricketWickets(ctx, arg)
-		if err != nil {
-			s.logger.Error("Failed to update the cricket wicket: %v", gin.H{"error": err.Error()})
-			return
-		}
-	}
+	// 	_, err := s.store.UpdateCricketWickets(ctx, arg)
+	// 	if err != nil {
+	// 		s.logger.Error("Failed to update the cricket wicket: %v", gin.H{"error": err.Error()})
+	// 		return
+	// 	}
+	// }
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
@@ -314,13 +318,13 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, scoreDetails)
 }
 
-type getCricketBowlerRequest struct {
+type getCricketBowlersRequest struct {
 	MatchID int64 `json:"match_id" form:"match_id"`
 	TeamID  int64 `json:"team_id" form:"team_id"`
 }
 
 func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
-	var req getCricketBowlerRequest
+	var req getCricketBowlersRequest
 	err := ctx.ShouldBindQuery(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind : ", err)
@@ -399,15 +403,15 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 }
 
 type getCricketWicketsRequest struct {
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
+	MatchID int64 `json:"match_id" form:"match_id"`
+	TeamID  int64 `json:"team_id" form:"team_id"`
 }
 
 func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 	var req getCricketWicketsRequest
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindQuery(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : %v", err)
+		s.logger.Error("Failed to bind  get cricket wickets : %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -431,14 +435,51 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 		TeamID:  req.TeamID,
 	}
 
-	updateResponse, err := s.store.UpdateCricketWickets(ctx, argCricketTeamWicket)
+	_, err = s.store.UpdateCricketWickets(ctx, argCricketTeamWicket)
 	if err != nil {
 		s.logger.Error("Failed to upate cricket wicket : %v", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	s.logger.Debug("Successfully update the wickets: ", updateResponse)
+	var wicketsData []map[string]interface{}
 
-	ctx.JSON(http.StatusAccepted, response)
+	// teamData, err := s.store.GetTeam()
+	argMatchScore := db.GetCricketScoreParams{
+		MatchID: req.MatchID,
+		TeamID:  req.TeamID,
+	}
+
+	_, err = s.store.GetCricketScore(ctx, argMatchScore)
+	if err != nil {
+		s.logger.Error("Failed to get current score data : %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	for _, wicket := range response {
+		batsmanData, err := s.store.GetPlayer(ctx, wicket.BatsmanID)
+		if err != nil {
+			s.logger.Error("Failed to get batsman data : %v", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+
+		bowlerData, err := s.store.GetPlayer(ctx, wicket.BowlerID)
+		if err != nil {
+			s.logger.Error("Failed to get bowler data : %v", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+
+		wicketData := map[string]interface{}{
+			"batsman":      map[string]interface{}{"id": batsmanData.ID, "name": batsmanData.PlayerName, "slug": batsmanData.Slug, "shortName": batsmanData.ShortName, "position": batsmanData.Positions, "username": batsmanData.Username},
+			"bowler":       map[string]interface{}{"id": bowlerData.ID, "name": bowlerData.PlayerName, "slug": bowlerData.Slug, "shortName": bowlerData.ShortName, "position": bowlerData.Positions, "username": bowlerData.Username},
+			"wicketNumber": wicket.WicketsNumber,
+			"wicketType":   wicket.WicketType,
+			"Overs":        wicket.BallNumber,
+		}
+		wicketsData = append(wicketsData, wicketData)
+	}
+	fmt.Println("Wicket : ", wicketsData)
+	s.logger.Debug("Successfully update the wickets: ", wicketsData)
+
+	ctx.JSON(http.StatusAccepted, wicketsData)
 }
