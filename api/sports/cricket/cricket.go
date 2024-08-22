@@ -96,6 +96,7 @@ func (s *CricketServer) GetCricketScore(matches []db.Match, tournament db.Tourna
 		fmt.Println("Away: ", awayScore)
 
 		matchMap := map[string]interface{}{
+			"matchId":        match.ID,
 			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
 			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
 			"homeScore":      homeScoreMap,

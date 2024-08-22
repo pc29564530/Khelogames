@@ -3,7 +3,6 @@ package cricket
 import (
 	db "khelogames/db/sqlc"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -39,20 +38,48 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 	return
 }
 
+type getTossRequest struct {
+	MatchID int64 `json:"match_id" form:"match_id"`
+}
+
 func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 
-	matchIDStr := ctx.Query("match_id")
-	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
+	var req getTossRequest
+	err := ctx.ShouldBindQuery(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse match id: %v", err)
+		s.logger.Error("Failed to bind cricket toss : ", err)
+		ctx.JSON(http.StatusBadGateway, err)
 		return
 	}
 
-	response, err := s.store.GetCricketToss(ctx, matchID)
+	response, err := s.store.GetCricketToss(ctx, req.MatchID)
 	if err != nil {
 		s.logger.Error("Failed to get the cricket match toss: %v", err)
 		return
 	}
-	ctx.JSON(http.StatusAccepted, response)
-	return
+
+	tossWonTeam, err := s.store.GetTeam(ctx, response.TossWin)
+	if err != nil {
+		s.logger.Error("Failed to get team: %v", err)
+		return
+	}
+
+	tossDetails := map[string]interface{}{
+
+		"tossWonTeam": map[string]interface{}{
+			"id":        tossWonTeam.ID,
+			"name":      tossWonTeam.Name,
+			"slug":      tossWonTeam.Slug,
+			"shortName": tossWonTeam.Shortname,
+			"gender":    tossWonTeam.Gender,
+			"national":  tossWonTeam.National,
+			"country":   tossWonTeam.Country,
+			"type":      tossWonTeam.Type,
+		},
+		"tossDecision": response.TossDecision,
+	}
+
+	s.logger.Debug("toss won team details: ", tossDetails)
+
+	ctx.JSON(http.StatusAccepted, tossDetails)
 }

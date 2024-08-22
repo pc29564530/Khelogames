@@ -211,7 +211,7 @@ func NewServer(config util.Config,
 	//cricket
 	sportRouter.POST("/addCricketScore", cricketServer.AddCricketScoreFunc)
 	sportRouter.POST("/addCricketToss", cricketServer.AddCricketToss)
-	sportRouter.POST("/getCricketToss", cricketServer.GetCricketTossFunc)
+	sportRouter.GET("/getCricketToss", cricketServer.GetCricketTossFunc)
 	// sportRouter.PUT("/updateCricketScore", cricketServer.UpdateCricketScoreFunc)
 	// sportRouter.PUT("/updateCricketWickets", cricketServer.UpdateCricketWicketsFunc)
 	// sportRouter.PUT("/updateCricketaOvers", cricketServer.UpdateCricketOversFunc)
