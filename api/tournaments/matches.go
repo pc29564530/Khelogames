@@ -15,32 +15,24 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse tournament id: %v", err)
+		s.logger.Error("Failed to parse tournament id: ", err)
 		ctx.JSON(http.StatusNotAcceptable, err)
 		return
 	}
 	sports := ctx.Query("sports")
 	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", tournamentID, sports))
-	s.logger.Debug("Tournament match params: %v", tournamentID)
+	s.logger.Debug("Tournament match params: ", tournamentID)
 
 	matches, err := s.store.GetMatchesByTournamentID(ctx, tournamentID)
 	if err != nil {
-		s.logger.Error("Failed to get tournament match: %v", err)
-		ctx.JSON(http.StatusNotFound, err)
-		return
-	}
-
-	tournament, err := s.store.GetTournament(ctx, tournamentID)
-	if err != nil {
-		s.logger.Error("Failed to get tournament: %v", err)
-		ctx.JSON(http.StatusNotFound, err)
+		s.logger.Error("Failed to get tournament match: ", err)
 		return
 	}
 
 	checkSportServer := util.NewCheckSport(s.store, s.logger)
-	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, tournament)
+	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, tournamentID)
 
-	s.logger.Info("successfully  get the tournament match: %v", matchDetailsWithScore)
+	s.logger.Info("successfully  get the tournament match: ", matchDetailsWithScore)
 	ctx.JSON(http.StatusAccepted, matchDetailsWithScore)
 	return
 }
@@ -60,11 +52,11 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	var req createTournamentMatchRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("bind the request: %v", req)
+	s.logger.Debug("bind the request: ", req)
 
 	startTimeStamp, err := util.ConvertTimeStamp(req.StartTimestamp)
 	if err != nil {
@@ -90,15 +82,15 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		StatusCode:     req.StatusCode,
 	}
 
-	s.logger.Debug("Create match params: %v", arg)
+	s.logger.Debug("Create match params: ", arg)
 
 	response, err := s.store.NewMatch(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to create match: %v", err)
+		s.logger.Error("Failed to create match: ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
-	s.logger.Debug("Successfully create match: %v", response)
+	s.logger.Debug("Successfully create match: ", response)
 	s.logger.Info("Successfully create match")
 
 	ctx.JSON(http.StatusAccepted, response)
@@ -115,7 +107,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 	var req updateStatusRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
