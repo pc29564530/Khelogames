@@ -66,7 +66,7 @@ JOIN teams c ON tt.team_id=c.id
 WHERE c.id=$1;
 
 -- name: GetMatchByTeam :many
-SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports
+SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
 FROM matches tm
 JOIN tournaments t ON tm.tournament_id = t.id
 JOIN teams c1 ON tm.home_team_id = c1.id

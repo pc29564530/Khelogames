@@ -1,6 +1,7 @@
 package teams
 
 import (
+	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -13,7 +14,7 @@ func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	response, err := s.store.GetTournamentsByTeam(ctx, id)
 	if err != nil {
-		s.logger.Error("Failed to get tournament by club: %v", err)
+		s.logger.Error("Failed to get tournament by team id: ", err)
 		ctx.JSON(http.StatusNoContent, (err))
 		return
 	}
@@ -26,99 +27,169 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 	teamIDStr := ctx.Query("id")
 	teamID, err := strconv.ParseInt(teamIDStr, 10, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse club id: %v", err)
+		s.logger.Error("Failed to parse team id: ", err)
 		return
 	}
 
 	matches, err := s.store.GetMatchByTeam(ctx, teamID)
 	if err != nil {
-		s.logger.Error("Failed to get match by clubname: %v", err)
-		ctx.JSON(http.StatusNoContent, (err))
+		s.logger.Error("Failed to get match by team id: ", err)
 		return
 	}
-
-	var matchDetails []map[string]interface{}
-
-	for _, match := range matches {
-		matchScoreData := s.getMatchScore(ctx, match)
-		s.logger.Debug("Match Score Data: ", matchScoreData)
-		s.logger.Debug("matches: ", match)
-		matchDetails = append(matchDetails, matchScoreData)
-
-	}
-	ctx.JSON(http.StatusAccepted, matchDetails)
+	var matchesDetails []map[string]interface{}
+	clubMatchDetails := s.getMatchScore(ctx, matches, matches[0].Sports, matchesDetails)
+	ctx.JSON(http.StatusAccepted, clubMatchDetails)
 	return
 }
 
-func (s *TeamsServer) getMatchScore(ctx *gin.Context, match db.GetMatchByTeamRow) map[string]interface{} {
-	clubMatchDetail := map[string]interface{}{
-		"tournament_id":   match.TournamentID,
-		"tournament_name": match.TournamentName,
-		"match_id":        match.MatchID,
-		"team1_id":        match.HomeTeamID,
-		"team2_id":        match.AwayTeamID,
-		"team1_name":      match.HomeTeamName,
-		"team2_name":      match.AwayTeamName,
-		"start_time":      match.StartTimestamp,
-	}
-
-	switch match.Sports {
+func (s *TeamsServer) getMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, sport string, matchesDetails []map[string]interface{}) []map[string]interface{} {
+	switch sport {
 	case "Cricket":
-		return s.getCricketMatchScore(ctx, match, clubMatchDetail)
+		return s.getCricketMatchScore(ctx, matches, matchesDetails)
 	case "Football":
-		return s.getFootballMatchScore(ctx, match, clubMatchDetail)
+		return s.getFootballMatchScore(ctx, matches, matchesDetails)
 	default:
-		s.logger.Error("Unsupported sport type:", match.Sports)
+		s.logger.Error("Unsupported sport type:", matches)
 		return nil
 	}
 }
 
-func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, match db.GetMatchByTeamRow, clubMatchDetail map[string]interface{}) map[string]interface{} {
-	arg1 := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.HomeTeamID}
-	arg2 := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.AwayTeamID}
+func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, matchesDetails []map[string]interface{}) []map[string]interface{} {
 
-	matchScoreData1, err := s.store.GetCricketMatchScore(ctx, arg1)
-	if err != nil {
-		s.logger.Error("Failed to get cricket match score for team 1:", err)
-		return nil
+	for _, match := range matches {
+		homeArg := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.HomeTeamID}
+		awayArg := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.AwayTeamID}
+
+		homeScore, err := s.store.GetCricketMatchScore(ctx, homeArg)
+		if err != nil {
+			s.logger.Error("Failed to get cricket match score for home team:", err)
+
+		}
+		awayScore, err := s.store.GetCricketMatchScore(ctx, awayArg)
+		if err != nil {
+			s.logger.Error("Failed to get cricket match score for away team:", err)
+		}
+
+		homeTeam, err := s.store.GetTeam(ctx, match.HomeTeamID)
+		if err != nil {
+			s.logger.Error("Failed to get home team:", err)
+			return nil
+		}
+
+		awayTeam, err := s.store.GetTeam(ctx, match.AwayTeamID)
+		if err != nil {
+			s.logger.Error("Failed to get away team:", err)
+			return nil
+		}
+
+		tournament, err := s.store.GetTournament(ctx, match.TournamentID)
+		if err != nil {
+			s.logger.Error("Failed to get tournament: ", err)
+			return nil
+		}
+
+		fmt.Println("Home Score: ", homeScore)
+		fmt.Println("Away Score: ", awayScore)
+
+		var awayScoreMap map[string]interface{}
+		var homeScoreMap map[string]interface{}
+		var emptyScore db.CricketMatchScore
+		if awayScore != emptyScore {
+			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Innings}
+		}
+
+		if homeScore != emptyScore {
+			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.Innings}
+		}
+
+		matchDetail := map[string]interface{}{
+			"matchId":        match.MatchID,
+			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
+			"homeScore":      homeScoreMap,
+			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
+			"awayScore":      awayScoreMap,
+			"startTimeStamp": match.StartTimestamp,
+			"status":         match.StatusCode,
+			"type":           match.Type,
+		}
+
+		matchesDetails = append(matchesDetails, matchDetail)
 	}
-	matchScoreData2, err := s.store.GetCricketMatchScore(ctx, arg2)
-	if err != nil {
-		s.logger.Error("Failed to get cricket match score for team 2:", err)
-		return nil
-	}
 
-	clubMatchDetail["team1_score"] = matchScoreData1.Score
-	clubMatchDetail["team1_wickets"] = matchScoreData1.Wickets
-	clubMatchDetail["team1_extras"] = matchScoreData1.Extras
-	clubMatchDetail["team1_overs"] = matchScoreData1.Overs
-	clubMatchDetail["team1_innings"] = matchScoreData1.Innings
-	clubMatchDetail["team2_score"] = matchScoreData2.Score
-	clubMatchDetail["team2_wickets"] = matchScoreData2.Wickets
-	clubMatchDetail["team2_extras"] = matchScoreData2.Extras
-	clubMatchDetail["team2_overs"] = matchScoreData2.Overs
-	clubMatchDetail["team2_innings"] = matchScoreData2.Innings
-
-	return clubMatchDetail
+	return matchesDetails
 }
 
-func (s *TeamsServer) getFootballMatchScore(ctx *gin.Context, match db.GetMatchByTeamRow, clubMatchDetail map[string]interface{}) map[string]interface{} {
-	arg1 := db.GetFootballMatchScoreParams{MatchID: match.MatchID, TeamID: match.HomeTeamID}
-	arg2 := db.GetFootballMatchScoreParams{MatchID: match.MatchID, TeamID: match.AwayTeamID}
+func (s *TeamsServer) getFootballMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, matchesDetails []map[string]interface{}) []map[string]interface{} {
+	for _, match := range matches {
+		homeTeam, err := s.store.GetTeam(ctx, match.HomeTeamID)
+		if err != nil {
+			s.logger.Error("Failed to get home team:", err)
+			return nil
+		}
 
-	matchScoreData1, err := s.store.GetFootballMatchScore(ctx, arg1)
-	if err != nil {
-		s.logger.Error("Failed to get football match score for team 1:", err)
-		return nil
+		awayTeam, err := s.store.GetTeam(ctx, match.AwayTeamID)
+		if err != nil {
+			s.logger.Error("Failed to get away team:", err)
+			return nil
+		}
+
+		tournament, err := s.store.GetTournament(ctx, match.TournamentID)
+		if err != nil {
+			s.logger.Error("Failed to get tournament: ", err)
+			return nil
+		}
+
+		homeTeamArg := db.GetFootballScoreParams{MatchID: match.MatchID, TeamID: match.HomeTeamID}
+		awayTeamArg := db.GetFootballScoreParams{MatchID: match.MatchID, TeamID: match.AwayTeamID}
+		homeScore, err := s.store.GetFootballScore(ctx, homeTeamArg)
+		if err != nil {
+			s.logger.Error("Failed to get football match score for home team:", err)
+		}
+		awayScore, err := s.store.GetFootballScore(ctx, awayTeamArg)
+		if err != nil {
+			s.logger.Error("Failed to get fooball match score for away team: ", err)
+		}
+
+		var emptyScore db.FootballScore
+		fmt.Println("Home Score: ", homeScore)
+		fmt.Println("Away Score: ", awayScore)
+		var homeScoreMap map[string]interface{}
+		if homeScore != emptyScore {
+			homeScoreMap = map[string]interface{}{
+				"homeScore": map[string]interface{}{
+					"id":         homeScore.ID,
+					"score":      homeScore.Goals,
+					"firstHalf":  homeScore.FirstHalf,
+					"secondHalf": homeScore.SecondHalf},
+			}
+		}
+		var awayScoreMap map[string]interface{}
+		if awayScore != emptyScore {
+			awayScoreMap = map[string]interface{}{
+				"awayScore": map[string]interface{}{
+					"id":         awayScore.ID,
+					"score":      awayScore.Goals,
+					"firstHalf":  awayScore.FirstHalf,
+					"secondHalf": awayScore.SecondHalf,
+				},
+			}
+		}
+
+		matchDetail := map[string]interface{}{
+			"matchId":        match.MatchID,
+			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
+			"homeScore":      homeScoreMap,
+			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
+			"awayScore":      awayScoreMap,
+			"startTimeStamp": match.StartTimestamp,
+			"status":         match.StatusCode,
+			"type":           match.Type,
+		}
+
+		matchesDetails = append(matchesDetails, matchDetail)
+
 	}
-	matchScoreData2, err := s.store.GetFootballMatchScore(ctx, arg2)
-	if err != nil {
-		s.logger.Error("Failed to get football match score for team 2:", err)
-		return nil
-	}
-
-	clubMatchDetail["team1_score"] = matchScoreData1.GoalFor
-	clubMatchDetail["team2_score"] = matchScoreData2.GoalFor
-
-	return clubMatchDetail
+	return matchesDetails
 }

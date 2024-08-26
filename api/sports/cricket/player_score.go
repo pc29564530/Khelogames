@@ -23,9 +23,7 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 	var req addCricketBatScore
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		s.logger.Error("Failed to bind player batting score: ", err)
 	}
 	arg := db.AddCricketBatsScoreParams{
 		BatsmanID:  req.BatsmanID,
@@ -40,7 +38,7 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 
 	response, err := s.store.AddCricketBatsScore(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to add the cricket player score: %v", gin.H{"error": err.Error()})
+		s.logger.Error("Failed to add the cricket player score: ", gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusAccepted, response)
@@ -62,7 +60,7 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 	var req addCricketBallScore
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : %v", err)
+		s.logger.Error("Failed to bind : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -79,12 +77,11 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 
 	response, err := s.store.AddCricketBall(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to add the cricket bowler data: %v", gin.H{"error": err.Error()})
+		s.logger.Error("Failed to add the cricket bowler data: ", gin.H{"error": err.Error()})
 		return
 	}
 
 	ctx.JSON(http.StatusAccepted, response)
-	return
 }
 
 type addCricketWicketScore struct {
@@ -101,12 +98,11 @@ func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
 	var req addCricketWicketScore
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		fmt.Println("Line no 104: ", err)
-		s.logger.Error("Failed to bind add cricket wickets: %v", err)
+		s.logger.Error("Failed to bind add cricket wickets: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	fmt.Println("Req: ", req)
+
 	arg := db.AddCricketWicketsParams{
 		MatchID:       req.MatchID,
 		TeamID:        req.TeamID,
@@ -117,28 +113,26 @@ func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
 		BallNumber:    req.BallNumber,
 	}
 
-	fmt.Println("Wickets: ", arg)
-
 	response, err := s.store.AddCricketWickets(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to add the cricket wicket: %v", gin.H{"error": err.Error()})
+		s.logger.Error("Failed to add the cricket wicket: ", gin.H{"error": err.Error()})
 		return
 	}
 
-	// var updageCricketWickets *db.Wicket
+	var updageCricketWickets *db.Wicket
 
-	// if updageCricketWickets != nil {
-	// 	arg := db.UpdateCricketWicketsParams{
-	// 		MatchID: req.MatchID,
-	// 		TeamID:  req.TeamID,
-	// 	}
+	if updageCricketWickets != nil {
+		arg := db.UpdateCricketWicketsParams{
+			MatchID: req.MatchID,
+			TeamID:  req.TeamID,
+		}
 
-	// 	_, err := s.store.UpdateCricketWickets(ctx, arg)
-	// 	if err != nil {
-	// 		s.logger.Error("Failed to update the cricket wicket: %v", gin.H{"error": err.Error()})
-	// 		return
-	// 	}
-	// }
+		_, err := s.store.UpdateCricketWickets(ctx, arg)
+		if err != nil {
+			s.logger.Error("Failed to update the cricket wicket: ", gin.H{"error": err.Error()})
+			return
+		}
+	}
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
@@ -159,7 +153,7 @@ func (s *CricketServer) UpdateCricketBatScoreFunc(ctx *gin.Context) {
 	var req updateCricketBatRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : %v", err)
+		s.logger.Error("Failed to bind udpate cricket bat score: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -178,7 +172,7 @@ func (s *CricketServer) UpdateCricketBatScoreFunc(ctx *gin.Context) {
 
 	response, err := s.store.UpdateCricketRunsScored(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update the cricket player runs: %v", gin.H{"error": err.Error()})
+		s.logger.Error("Failed to update the cricket player runs: ", gin.H{"error": err.Error()})
 		return
 	}
 
@@ -201,7 +195,7 @@ func (s *CricketServer) UpdateCricketBallFunc(ctx *gin.Context) {
 	var req updateCricketBallRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : %v", err)
+		s.logger.Error("Failed to bind : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -221,7 +215,7 @@ func (s *CricketServer) UpdateCricketBallFunc(ctx *gin.Context) {
 
 	response, err := s.store.UpdateCricketBowler(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update the cricket bowler: %v", gin.H{"error": err.Error()})
+		s.logger.Error("Failed to update the cricket bowler: ", gin.H{"error": err.Error()})
 		return
 	}
 
@@ -238,7 +232,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	var req getPlayerScoreRequest
 	err := ctx.ShouldBindQuery(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind player score: %v", err)
+		s.logger.Error("Failed to bind player score: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -250,7 +244,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 
 	teamPlayerScore, err := s.store.GetCricketPlayersScore(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to get players score : %v", err)
+		s.logger.Error("Failed to get players score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -271,7 +265,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 
 	battingTeam, err := s.store.GetTeam(ctx, battingTeamId)
 	if err != nil {
-		s.logger.Error("Failed to get players score : %v", err)
+		s.logger.Error("Failed to get players score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
@@ -279,7 +273,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	for _, playerScore := range teamPlayerScore {
 		playerData, err := s.store.GetPlayer(ctx, playerScore.BatsmanID)
 		if err != nil {
-			s.logger.Error("Failed to get players data : %v", err)
+			s.logger.Error("Failed to get players data : ", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		battingDetails = append(battingDetails, map[string]interface{}{
@@ -311,7 +305,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 
 	_, err = s.store.UpdateCricketScore(ctx, argCricketScore)
 	if err != nil {
-		s.logger.Error("Failed to update the cricket score: %v", gin.H{"error": err.Error()})
+		s.logger.Error("Failed to update the cricket score: ", gin.H{"error": err.Error()})
 		return
 	}
 
@@ -338,7 +332,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 	}
 	playerScore, err := s.store.GetCricketBalls(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to get cricket bowler data : %v", err)
+		s.logger.Error("Failed to get cricket bowler data : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -361,7 +355,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 
 	bowlingTeam, err := s.store.GetTeam(ctx, bowlingTeamId)
 	if err != nil {
-		s.logger.Error("Failed to get players score : %v", err)
+		s.logger.Error("Failed to get players score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -370,7 +364,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 	for i, playerScore := range playerScore {
 		playerData, err := s.store.GetPlayer(ctx, playerScore.BowlerID)
 		if err != nil {
-			s.logger.Error("Failed to get players data : %v", err)
+			s.logger.Error("Failed to get players data : ", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -385,8 +379,17 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 	}
 
 	scoreDetails := map[string]interface{}{
-		"bowlingTeam": map[string]interface{}{"id": bowlingTeam.ID, "name": bowlingTeam.Name, "slug": bowlingTeam.Slug, "shortName": bowlingTeam.Shortname, "gender": bowlingTeam.Gender, "national": bowlingTeam.National, "country": bowlingTeam.Country, "type": bowlingTeam.Type},
-		"innings":     bowlingDetails,
+		"bowlingTeam": map[string]interface{}{
+			"id":        bowlingTeam.ID,
+			"name":      bowlingTeam.Name,
+			"slug":      bowlingTeam.Slug,
+			"shortName": bowlingTeam.Shortname,
+			"gender":    bowlingTeam.Gender,
+			"national":  bowlingTeam.National,
+			"country":   bowlingTeam.Country,
+			"type":      bowlingTeam.Type,
+		},
+		"innings": bowlingDetails,
 	}
 	arg1 := db.UpdateCricketOversParams{
 		MatchID: req.MatchID,
@@ -395,7 +398,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 
 	_, err = s.store.UpdateCricketOvers(ctx, arg1)
 	if err != nil {
-		s.logger.Error("Failed to add the cricket overs: %v", gin.H{"error": err.Error()})
+		s.logger.Error("Failed to add the cricket overs: ", gin.H{"error": err.Error()})
 		return
 	}
 
@@ -411,7 +414,7 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 	var req getCricketWicketsRequest
 	err := ctx.ShouldBindQuery(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind  get cricket wickets : %v", err)
+		s.logger.Error("Failed to bind  get cricket wickets : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -423,7 +426,7 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 	s.logger.Debug("cricket wicket arg: ", arg)
 	response, err := s.store.GetCricketWickets(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to get cricket bowler score : %v", err)
+		s.logger.Error("Failed to get cricket bowler score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -437,7 +440,7 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 
 	_, err = s.store.UpdateCricketWickets(ctx, argCricketTeamWicket)
 	if err != nil {
-		s.logger.Error("Failed to upate cricket wicket : %v", err)
+		s.logger.Error("Failed to upate cricket wicket : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -452,20 +455,20 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 
 	_, err = s.store.GetCricketScore(ctx, argMatchScore)
 	if err != nil {
-		s.logger.Error("Failed to get current score data : %v", err)
+		s.logger.Error("Failed to get current score data : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
 	for _, wicket := range response {
 		batsmanData, err := s.store.GetPlayer(ctx, wicket.BatsmanID)
 		if err != nil {
-			s.logger.Error("Failed to get batsman data : %v", err)
+			s.logger.Error("Failed to get batsman data : ", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
 		bowlerData, err := s.store.GetPlayer(ctx, wicket.BowlerID)
 		if err != nil {
-			s.logger.Error("Failed to get bowler data : %v", err)
+			s.logger.Error("Failed to get bowler data : ", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 

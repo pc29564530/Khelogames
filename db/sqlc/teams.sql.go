@@ -30,7 +30,7 @@ func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) 
 }
 
 const getMatchByTeam = `-- name: GetMatchByTeam :many
-SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports
+SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
 FROM matches tm
 JOIN tournaments t ON tm.tournament_id = t.id
 JOIN teams c1 ON tm.home_team_id = c1.id
@@ -49,6 +49,8 @@ type GetMatchByTeamRow struct {
 	AwayTeamName   string `json:"away_team_name"`
 	StartTimestamp int64  `json:"start_timestamp"`
 	Sports         string `json:"sports"`
+	StatusCode     string `json:"status_code"`
+	Type           string `json:"type"`
 }
 
 func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTeamRow, error) {
@@ -70,6 +72,8 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 			&i.AwayTeamName,
 			&i.StartTimestamp,
 			&i.Sports,
+			&i.StatusCode,
+			&i.Type,
 		); err != nil {
 			return nil, err
 		}
