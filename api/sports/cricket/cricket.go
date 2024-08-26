@@ -55,19 +55,25 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 
 }
 
-func (s *CricketServer) GetCricketScore(matches []db.Match, tournament db.Tournament) []map[string]interface{} {
+func (s *CricketServer) GetCricketScore(matches []db.Match, tournamentID int64) []map[string]interface{} {
 	ctx := context.Background()
+
+	tournament, err := s.store.GetTournament(ctx, tournamentID)
+	if err != nil {
+		s.logger.Error("Failed to get tournament: ", err)
+	}
+
 	var matchDetail []map[string]interface{}
 	for _, match := range matches {
 
 		homeTeam, err1 := s.store.GetTeam(ctx, match.HomeTeamID)
 		if err1 != nil {
-			s.logger.Error("Failed to get club details for team1: %v", err1)
+			s.logger.Error("Failed to get club details for home team: ", err1)
 			continue
 		}
 		awayTeam, err2 := s.store.GetTeam(ctx, match.AwayTeamID)
 		if err2 != nil {
-			s.logger.Error("Failed to get club details for team2: %v", err2)
+			s.logger.Error("Failed to get team details for away team: ", err2)
 			continue
 		}
 
@@ -75,11 +81,11 @@ func (s *CricketServer) GetCricketScore(matches []db.Match, tournament db.Tourna
 		awayTeamArg := db.GetCricketScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
 		homeScore, err := s.store.GetCricketScore(ctx, homeTeamArg)
 		if err != nil {
-			s.logger.Error("Failed to get cricket match score for team 1:", err)
+			s.logger.Error("Failed to get cricket match score for home team:", err)
 		}
 		awayScore, err := s.store.GetCricketScore(ctx, awayTeamArg)
 		if err != nil {
-			s.logger.Error("Failed to get cricket match score for team 2:", err)
+			s.logger.Error("Failed to get cricket match score for away team:", err)
 		}
 
 		var awayScoreMap map[string]interface{}
