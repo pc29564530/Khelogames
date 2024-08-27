@@ -1,7 +1,8 @@
-package clubs
+package teams
 
 import (
 	"encoding/base64"
+	"fmt"
 	db "khelogames/db/sqlc"
 
 	"khelogames/pkg"
@@ -13,14 +14,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type createClubRequest struct {
-	ClubName  string `json:"club_name"`
-	AvatarURL string `json:"avatar_url"`
-	Sport     string `json:"sport"`
+type addTeamsRequest struct {
+	Name     string `json:"name"`
+	MediaURL string `json:"media_url"`
+	Gender   string `jsong:"gender"`
+	National bool   `json:"national"`
+	Country  string `json:"country"`
+	Type     string `json:"type"`
+	Sports   string `json:"sports"`
 }
 
-func (s *ClubServer) CreateClubFunc(ctx *gin.Context) {
-	var req createClubRequest
+func (s *TeamsServer) AddTeam(ctx *gin.Context) {
+	var req addTeamsRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind create club request: %v", err)
@@ -28,8 +33,8 @@ func (s *ClubServer) CreateClubFunc(ctx *gin.Context) {
 	}
 	saveImageStruct := util.NewSaveImageStruct(s.logger)
 	var path string
-	if req.AvatarURL != "" {
-		b64Data := req.AvatarURL[strings.IndexByte(req.AvatarURL, ',')+1:]
+	if req.MediaURL != "" {
+		b64Data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
 
 		data, err := base64.StdEncoding.DecodeString(b64Data)
 		if err != nil {
@@ -43,16 +48,23 @@ func (s *ClubServer) CreateClubFunc(ctx *gin.Context) {
 			return
 		}
 	}
-
+	slug := util.GenerateSlug(req.Name)
+	shortName := util.GenerateShortName(req.Name)
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	arg := db.CreateClubParams{
-		ClubName:  req.ClubName,
-		AvatarUrl: path,
-		Sport:     req.Sport,
-		Owner:     authPayload.Username,
+	arg := db.NewTeamsParams{
+		Name:      req.Name,
+		Slug:      slug,
+		Shortname: shortName,
+		Admin:     authPayload.Username,
+		MediaUrl:  path,
+		Gender:    req.Gender,
+		National:  req.National,
+		Country:   req.Country,
+		Type:      req.Type,
+		Sports:    req.Sports,
 	}
 
-	response, err := s.store.CreateClub(ctx, arg)
+	response, err := s.store.NewTeams(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to create club: %v", err)
 		ctx.JSON(http.StatusNoContent, (err))
@@ -63,9 +75,9 @@ func (s *ClubServer) CreateClubFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *ClubServer) GetClubsFunc(ctx *gin.Context) {
+func (s *TeamsServer) GetTeamsFunc(ctx *gin.Context) {
 
-	response, err := s.store.GetClubs(ctx)
+	response, err := s.store.GetTeams(ctx)
 	if err != nil {
 		s.logger.Error("Failed to get club: %v", err)
 		ctx.JSON(http.StatusNoContent, (err))
@@ -80,7 +92,7 @@ type getClubRequest struct {
 	ID int64 `uri:"id"`
 }
 
-func (s *ClubServer) GetClubFunc(ctx *gin.Context) {
+func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
 	var req getClubRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -88,7 +100,7 @@ func (s *ClubServer) GetClubFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	response, err := s.store.GetClub(ctx, req.ID)
+	response, err := s.store.GetTeam(ctx, req.ID)
 	if err != nil {
 		s.logger.Error("Failed to get club: %v", err)
 		ctx.JSON(http.StatusNoContent, (err))
@@ -99,16 +111,17 @@ func (s *ClubServer) GetClubFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *ClubServer) GetClubsBySportFunc(ctx *gin.Context) {
+func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 
 	sports := ctx.Param("sport")
-
-	response, err := s.store.GetClubsBySport(ctx, sports)
+	response, err := s.store.GetTeamsBySport(ctx, sports)
 	if err != nil {
 		s.logger.Error("Failed to get club by sport: %v", err)
 		ctx.JSON(http.StatusNoContent, (err))
 		return
 	}
+
+	fmt.Println("Response: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return

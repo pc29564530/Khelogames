@@ -1,39 +1,39 @@
--- name: CreateTournament :one
-INSERT INTO "tournament" (
+-- name: NewTournament :one
+INSERT INTO tournaments (
     tournament_name,
-    sport_type,
-    format,
-    teams_joined,
-    start_on,
-    end_on,
-    category
+    slug,
+    sports,
+    country,
+    status_code,
+    level,
+    start_timestamp
+    
 ) VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetTournaments :many
-SELECT * FROM tournament;
+SELECT * FROM tournaments;
 
 -- name: GetTournament :one
-SELECT * FROM tournament
-WHERE tournament_id=$1;
-
--- name: UpdateTeamsJoined :one
-UPDATE tournament
-SET teams_joined=$1
-WHERE tournament_id=$2
-RETURNING *;
+SELECT * FROM tournaments
+WHERE id=$1;
 
 -- name: GetTournamentsBySport :many
-SELECT * FROM tournament
-WHERE sport_type=$1;
+SELECT * FROM tournaments
+WHERE sports=$1;
 
 -- name: UpdateTournamentDate :one
-UPDATE tournament
-SET start_on=$1 OR end_on=$2
-WHERE tournament_id=$3
+UPDATE tournaments
+SET start_timestamp=$1
+WHERE id=$2
 RETURNING *;
 
+-- name: GetTournamentsByLevel :many
+SELECT * FROM tournaments
+WHERE sports=$1 AND level=$2;
 
--- name: GetTournamentByLevel :many
-SELECT * FROM tournament
-WHERE sport_type=$1 AND category=$2;
+-- name: UpdateTournamentStatus :one
+UPDATE tournaments
+SET status_code=$1
+WHERE id=$2
+RETURNING *;

@@ -16,14 +16,14 @@ func NewCheckSport(store *db.Store, logger *logger.Logger) *CheckSportServer {
 	return &CheckSportServer{store: store, logger: logger}
 }
 
-func (s *CheckSportServer) CheckSport(sports string, matches []db.TournamentMatch, matchDetails []map[string]interface{}) []map[string]interface{} {
+func (s *CheckSportServer) CheckSport(sports string, matches []db.Match, tournamentID int64) []map[string]interface{} {
 	footballServer := football.NewFootballServer(s.store, s.logger)
 	cricketServer := cricket.NewCricketServer(s.store, s.logger)
 	switch sports {
 	case "Cricket":
-		return cricketServer.GetCricketMatchScore(matches, matchDetails)
+		return cricketServer.GetCricketScore(matches, tournamentID)
 	case "Football":
-		return footballServer.GetFootballMatchScore(matches, matchDetails)
+		return footballServer.GetFootballScore(matches, tournamentID)
 	default:
 		s.logger.Error("Unsupported sport type:", sports)
 		return nil

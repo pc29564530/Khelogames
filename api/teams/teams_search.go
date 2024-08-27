@@ -1,4 +1,4 @@
-package clubs
+package teams
 
 import (
 	"net/http"
@@ -7,10 +7,10 @@ import (
 )
 
 type searchTeamRequest struct {
-	ClubName string `json:"club_name"`
+	Name string `json:"name"`
 }
 
-func (s *ClubServer) SearchTeamFunc(ctx *gin.Context) {
+func (s *TeamsServer) SearchTeamFunc(ctx *gin.Context) {
 	var req searchTeamRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -18,7 +18,7 @@ func (s *ClubServer) SearchTeamFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	searchQuery := "%" + req.ClubName + "%"
+	searchQuery := "%" + req.Name + "%"
 
 	// authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 

@@ -71,26 +71,26 @@ const getTournamentStanding = `-- name: GetTournamentStanding :many
 SELECT 
     ts.standing_id, ts.tournament_id, ts.group_id, ts.team_id,
     ts.wins, ts.loss, ts.draw, ts.goal_for, ts.goal_against, ts.goal_difference, ts.points,
-    t.tournament_name, t.sport_type,
-    c.club_name, t.format
+    t.tournament_name, t.sports,
+    c.name
 FROM 
     tournament_standing ts
 JOIN 
     group_league tg ON ts.group_id = tg.group_id
 JOIN 
-    tournament t ON ts.tournament_id = t.tournament_id
+    tournaments t ON ts.tournament_id = t.id
 JOIN 
-    club c ON ts.team_id = c.id
+    teams c ON ts.team_id = c.id
 WHERE 
     ts.tournament_id = $1
     AND tg.group_id = $2
-    AND t.sport_type = $3
+    AND t.sports = $3
 `
 
 type GetTournamentStandingParams struct {
 	TournamentID int64  `json:"tournament_id"`
 	GroupID      int64  `json:"group_id"`
-	SportType    string `json:"sport_type"`
+	Sports       string `json:"sports"`
 }
 
 type GetTournamentStandingRow struct {
@@ -106,13 +106,12 @@ type GetTournamentStandingRow struct {
 	GoalDifference int64  `json:"goal_difference"`
 	Points         int64  `json:"points"`
 	TournamentName string `json:"tournament_name"`
-	SportType      string `json:"sport_type"`
-	ClubName       string `json:"club_name"`
-	Format         string `json:"format"`
+	Sports         string `json:"sports"`
+	Name           string `json:"name"`
 }
 
 func (q *Queries) GetTournamentStanding(ctx context.Context, arg GetTournamentStandingParams) ([]GetTournamentStandingRow, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentStanding, arg.TournamentID, arg.GroupID, arg.SportType)
+	rows, err := q.db.QueryContext(ctx, getTournamentStanding, arg.TournamentID, arg.GroupID, arg.Sports)
 	if err != nil {
 		return nil, err
 	}
@@ -133,9 +132,8 @@ func (q *Queries) GetTournamentStanding(ctx context.Context, arg GetTournamentSt
 			&i.GoalDifference,
 			&i.Points,
 			&i.TournamentName,
-			&i.SportType,
-			&i.ClubName,
-			&i.Format,
+			&i.Sports,
+			&i.Name,
 		); err != nil {
 			return nil, err
 		}

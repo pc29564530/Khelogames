@@ -7,89 +7,35 @@ package db
 
 import (
 	"context"
-	"time"
 )
 
-const createTournament = `-- name: CreateTournament :one
-INSERT INTO "tournament" (
-    tournament_name,
-    sport_type,
-    format,
-    teams_joined,
-    start_on,
-    end_on,
-    category
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category
-`
-
-type CreateTournamentParams struct {
-	TournamentName string    `json:"tournament_name"`
-	SportType      string    `json:"sport_type"`
-	Format         string    `json:"format"`
-	TeamsJoined    int64     `json:"teams_joined"`
-	StartOn        time.Time `json:"start_on"`
-	EndOn          time.Time `json:"end_on"`
-	Category       string    `json:"category"`
-}
-
-func (q *Queries) CreateTournament(ctx context.Context, arg CreateTournamentParams) (Tournament, error) {
-	row := q.db.QueryRowContext(ctx, createTournament,
-		arg.TournamentName,
-		arg.SportType,
-		arg.Format,
-		arg.TeamsJoined,
-		arg.StartOn,
-		arg.EndOn,
-		arg.Category,
-	)
-	var i Tournament
-	err := row.Scan(
-		&i.TournamentID,
-		&i.TournamentName,
-		&i.SportType,
-		&i.Format,
-		&i.TeamsJoined,
-		&i.StartOn,
-		&i.EndOn,
-		&i.Category,
-	)
-	return i, err
-}
-
 const getTournament = `-- name: GetTournament :one
-SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category FROM tournament
-WHERE tournament_id=$1
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp FROM tournaments
+WHERE id=$1
 `
 
-func (q *Queries) GetTournament(ctx context.Context, tournamentID int64) (Tournament, error) {
-	row := q.db.QueryRowContext(ctx, getTournament, tournamentID)
+func (q *Queries) GetTournament(ctx context.Context, id int64) (Tournament, error) {
+	row := q.db.QueryRowContext(ctx, getTournament, id)
 	var i Tournament
 	err := row.Scan(
-		&i.TournamentID,
+		&i.ID,
 		&i.TournamentName,
-		&i.SportType,
-		&i.Format,
-		&i.TeamsJoined,
-		&i.StartOn,
-		&i.EndOn,
-		&i.Category,
+		&i.Slug,
+		&i.Sports,
+		&i.Country,
+		&i.StatusCode,
+		&i.Level,
+		&i.StartTimestamp,
 	)
 	return i, err
 }
 
-const getTournamentByLevel = `-- name: GetTournamentByLevel :many
-SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category FROM tournament
-WHERE sport_type=$1 AND category=$2
+const getTournaments = `-- name: GetTournaments :many
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp FROM tournaments
 `
 
-type GetTournamentByLevelParams struct {
-	SportType string `json:"sport_type"`
-	Category  string `json:"category"`
-}
-
-func (q *Queries) GetTournamentByLevel(ctx context.Context, arg GetTournamentByLevelParams) ([]Tournament, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentByLevel, arg.SportType, arg.Category)
+func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
+	rows, err := q.db.QueryContext(ctx, getTournaments)
 	if err != nil {
 		return nil, err
 	}
@@ -98,14 +44,14 @@ func (q *Queries) GetTournamentByLevel(ctx context.Context, arg GetTournamentByL
 	for rows.Next() {
 		var i Tournament
 		if err := rows.Scan(
-			&i.TournamentID,
+			&i.ID,
 			&i.TournamentName,
-			&i.SportType,
-			&i.Format,
-			&i.TeamsJoined,
-			&i.StartOn,
-			&i.EndOn,
-			&i.Category,
+			&i.Slug,
+			&i.Sports,
+			&i.Country,
+			&i.StatusCode,
+			&i.Level,
+			&i.StartTimestamp,
 		); err != nil {
 			return nil, err
 		}
@@ -120,12 +66,18 @@ func (q *Queries) GetTournamentByLevel(ctx context.Context, arg GetTournamentByL
 	return items, nil
 }
 
-const getTournaments = `-- name: GetTournaments :many
-SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category FROM tournament
+const getTournamentsByLevel = `-- name: GetTournamentsByLevel :many
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp FROM tournaments
+WHERE sports=$1 AND level=$2
 `
 
-func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
-	rows, err := q.db.QueryContext(ctx, getTournaments)
+type GetTournamentsByLevelParams struct {
+	Sports string `json:"sports"`
+	Level  string `json:"level"`
+}
+
+func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsByLevelParams) ([]Tournament, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentsByLevel, arg.Sports, arg.Level)
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +86,14 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
 	for rows.Next() {
 		var i Tournament
 		if err := rows.Scan(
-			&i.TournamentID,
+			&i.ID,
 			&i.TournamentName,
-			&i.SportType,
-			&i.Format,
-			&i.TeamsJoined,
-			&i.StartOn,
-			&i.EndOn,
-			&i.Category,
+			&i.Slug,
+			&i.Sports,
+			&i.Country,
+			&i.StatusCode,
+			&i.Level,
+			&i.StartTimestamp,
 		); err != nil {
 			return nil, err
 		}
@@ -157,12 +109,12 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]Tournament, error) {
 }
 
 const getTournamentsBySport = `-- name: GetTournamentsBySport :many
-SELECT tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category FROM tournament
-WHERE sport_type=$1
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp FROM tournaments
+WHERE sports=$1
 `
 
-func (q *Queries) GetTournamentsBySport(ctx context.Context, sportType string) ([]Tournament, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentsBySport, sportType)
+func (q *Queries) GetTournamentsBySport(ctx context.Context, sports string) ([]Tournament, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentsBySport, sports)
 	if err != nil {
 		return nil, err
 	}
@@ -171,14 +123,14 @@ func (q *Queries) GetTournamentsBySport(ctx context.Context, sportType string) (
 	for rows.Next() {
 		var i Tournament
 		if err := rows.Scan(
-			&i.TournamentID,
+			&i.ID,
 			&i.TournamentName,
-			&i.SportType,
-			&i.Format,
-			&i.TeamsJoined,
-			&i.StartOn,
-			&i.EndOn,
-			&i.Category,
+			&i.Slug,
+			&i.Sports,
+			&i.Country,
+			&i.StatusCode,
+			&i.Level,
+			&i.StartTimestamp,
 		); err != nil {
 			return nil, err
 		}
@@ -193,59 +145,106 @@ func (q *Queries) GetTournamentsBySport(ctx context.Context, sportType string) (
 	return items, nil
 }
 
-const updateTeamsJoined = `-- name: UpdateTeamsJoined :one
-UPDATE tournament
-SET teams_joined=$1
-WHERE tournament_id=$2
-RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category
+const newTournament = `-- name: NewTournament :one
+INSERT INTO tournaments (
+    tournament_name,
+    slug,
+    sports,
+    country,
+    status_code,
+    level,
+    start_timestamp
+    
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp
 `
 
-type UpdateTeamsJoinedParams struct {
-	TeamsJoined  int64 `json:"teams_joined"`
-	TournamentID int64 `json:"tournament_id"`
+type NewTournamentParams struct {
+	TournamentName string `json:"tournament_name"`
+	Slug           string `json:"slug"`
+	Sports         string `json:"sports"`
+	Country        string `json:"country"`
+	StatusCode     string `json:"status_code"`
+	Level          string `json:"level"`
+	StartTimestamp int64  `json:"start_timestamp"`
 }
 
-func (q *Queries) UpdateTeamsJoined(ctx context.Context, arg UpdateTeamsJoinedParams) (Tournament, error) {
-	row := q.db.QueryRowContext(ctx, updateTeamsJoined, arg.TeamsJoined, arg.TournamentID)
+func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (Tournament, error) {
+	row := q.db.QueryRowContext(ctx, newTournament,
+		arg.TournamentName,
+		arg.Slug,
+		arg.Sports,
+		arg.Country,
+		arg.StatusCode,
+		arg.Level,
+		arg.StartTimestamp,
+	)
 	var i Tournament
 	err := row.Scan(
-		&i.TournamentID,
+		&i.ID,
 		&i.TournamentName,
-		&i.SportType,
-		&i.Format,
-		&i.TeamsJoined,
-		&i.StartOn,
-		&i.EndOn,
-		&i.Category,
+		&i.Slug,
+		&i.Sports,
+		&i.Country,
+		&i.StatusCode,
+		&i.Level,
+		&i.StartTimestamp,
 	)
 	return i, err
 }
 
 const updateTournamentDate = `-- name: UpdateTournamentDate :one
-UPDATE tournament
-SET start_on=$1 OR end_on=$2
-WHERE tournament_id=$3
-RETURNING tournament_id, tournament_name, sport_type, format, teams_joined, start_on, end_on, category
+UPDATE tournaments
+SET start_timestamp=$1
+WHERE id=$2
+RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp
 `
 
 type UpdateTournamentDateParams struct {
-	StartOn      time.Time `json:"start_on"`
-	EndOn        time.Time `json:"end_on"`
-	TournamentID int64     `json:"tournament_id"`
+	StartTimestamp int64 `json:"start_timestamp"`
+	ID             int64 `json:"id"`
 }
 
 func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournamentDateParams) (Tournament, error) {
-	row := q.db.QueryRowContext(ctx, updateTournamentDate, arg.StartOn, arg.EndOn, arg.TournamentID)
+	row := q.db.QueryRowContext(ctx, updateTournamentDate, arg.StartTimestamp, arg.ID)
 	var i Tournament
 	err := row.Scan(
-		&i.TournamentID,
+		&i.ID,
 		&i.TournamentName,
-		&i.SportType,
-		&i.Format,
-		&i.TeamsJoined,
-		&i.StartOn,
-		&i.EndOn,
-		&i.Category,
+		&i.Slug,
+		&i.Sports,
+		&i.Country,
+		&i.StatusCode,
+		&i.Level,
+		&i.StartTimestamp,
+	)
+	return i, err
+}
+
+const updateTournamentStatus = `-- name: UpdateTournamentStatus :one
+UPDATE tournaments
+SET status_code=$1
+WHERE id=$2
+RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp
+`
+
+type UpdateTournamentStatusParams struct {
+	StatusCode string `json:"status_code"`
+	ID         int64  `json:"id"`
+}
+
+func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTournamentStatusParams) (Tournament, error) {
+	row := q.db.QueryRowContext(ctx, updateTournamentStatus, arg.StatusCode, arg.ID)
+	var i Tournament
+	err := row.Scan(
+		&i.ID,
+		&i.TournamentName,
+		&i.Slug,
+		&i.Sports,
+		&i.Country,
+		&i.StatusCode,
+		&i.Level,
+		&i.StartTimestamp,
 	)
 	return i, err
 }
