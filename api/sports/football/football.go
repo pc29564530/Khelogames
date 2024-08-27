@@ -2,7 +2,6 @@ package football
 
 import (
 	"context"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 
@@ -51,29 +50,6 @@ type getFootballScoreRequest struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-// func (s *FootballServer) GetFootballScore(ctx *gin.Context) {
-// 	var req getFootballScoreRequest
-// 	err := ctx.ShouldBindJSON(&req)
-// 	if err != nil {
-// 		s.logger.Error("Failed to bind football score: ", err)
-// 		return
-// 	}
-
-// 	arg := db.GetFootballScoreParams{
-// 		MatchID: req.MatchID,
-// 		TeamID:  req.TeamID,
-// 	}
-
-// 	response, err := s.store.GetFootballScore(ctx, arg)
-// 	if err != nil {
-// 		s.logger.Error("Failed to fetch football match score: ", err)
-// 		return
-// 	}
-
-// 	ctx.JSON(http.StatusAccepted, response)
-// 	return
-// }
-
 func (s *FootballServer) GetFootballScore(matches []db.Match, tournamentID int64) []map[string]interface{} {
 	ctx := context.Background()
 
@@ -108,8 +84,6 @@ func (s *FootballServer) GetFootballScore(matches []db.Match, tournamentID int64
 		}
 
 		var emptyScore db.FootballScore
-		fmt.Println("Home Score: ", homeScore)
-		fmt.Println("Away Score: ", awayScore)
 		var hScore map[string]interface{}
 		if homeScore != emptyScore {
 			hScore = map[string]interface{}{
