@@ -103,7 +103,7 @@ CREATE TABLE wickets (
     ball_number INT NOT NULL
 );
 
--- CREATE TABLE Score (
+-- CREATE TABLE Score ( 
 -- 	id BIGSERIAL PRIMARY KEY,
 -- 	team_id BIGSERIAL,
 -- 	match_id BIGSERIAL,
@@ -136,4 +136,31 @@ CREATE TABLE players (
     sports VARCHAR(255) NOT NULL,
     country VARCHAR(255) NOT NULL,
     player_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE football_statistics (
+    id BIGSERIAL PRIMARY KEY,
+    match_id BIGSERIAL REFERENCES matches (id) NOT NULL,
+    team_id BIGSERIAL REFERENCES teams (id) NOT NULL,
+    ball_possession INT NOT NULL,
+    shots_on_target INT NOT NULL,
+    total_shots INT NOT NULL,
+    corner_kicks INT NOT NULL,
+    fouls INT NOT NULL,
+    goalkeeper_saves INT NOT NULL,
+    passess INT NOT NULL,
+    free_kicks INT NOT NULL,
+    yellow_cards INT NOT NULL,
+    red_cards INT NOT NULL
+);
+
+CREATE TABLE football_incidents (
+    id BIGSERIAL PRIMARY KEY,
+    match_id BIGSERIAL REFERENCES matches (id) NOT NULL,
+    team_id BIGSERIAL REFERENCES teams (id) NOT NULL,
+    incident_type VARCHAR(50) NOT NULL,
+    incident_time BIGINT NOT NULL,
+    player_id BIGSERIAL REFERENCES players (id) NOT NULL,
+    description VARCHAR NOT NULL,
+    created_at BIGINT DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) NOT NULL
 );
