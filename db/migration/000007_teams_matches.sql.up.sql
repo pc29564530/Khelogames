@@ -160,7 +160,19 @@ CREATE TABLE football_incidents (
     team_id BIGSERIAL REFERENCES teams (id) NOT NULL,
     incident_type VARCHAR(50) NOT NULL,
     incident_time BIGINT NOT NULL,
-    player_id BIGSERIAL REFERENCES players (id) NOT NULL,
     description VARCHAR NOT NULL,
     created_at BIGINT DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) NOT NULL
+);
+
+CREATE TABLE football_substitutions_player (
+    id BIGSERIAL PRIMARY KEY,
+    incident_id BIGSERIAL REFERENCES football_incidents (id) NOT NULL,
+    player_in_id BIGSERIAL REFERENCES players (id) NOT NULL,
+    player_out_id BIGSERIAL REFERENCES players (id) NOT NULL
+);
+
+CREATE TABLE football_incident_player (
+    id BIGSERIAL PRIMARY KEY,
+    incident_id BIGSERIAL REFERENCES football_incidents (id) NOT NULL,
+    player_id BIGSERIAL REFERENCES players (id) NOT NULL
 );

@@ -9,17 +9,62 @@ import (
 	"context"
 )
 
+const aDDFootballSubsPlayer = `-- name: ADDFootballSubsPlayer :one
+INSERT INTO football_substitutions_player (
+    incident_id,
+    player_in_id,
+    player_out_id
+) VALUES ($1, $2, $3)
+RETURNING id, incident_id, player_in_id, player_out_id
+`
+
+type ADDFootballSubsPlayerParams struct {
+	IncidentID  int64 `json:"incident_id"`
+	PlayerInID  int64 `json:"player_in_id"`
+	PlayerOutID int64 `json:"player_out_id"`
+}
+
+func (q *Queries) ADDFootballSubsPlayer(ctx context.Context, arg ADDFootballSubsPlayerParams) (FootballSubstitutionsPlayer, error) {
+	row := q.db.QueryRowContext(ctx, aDDFootballSubsPlayer, arg.IncidentID, arg.PlayerInID, arg.PlayerOutID)
+	var i FootballSubstitutionsPlayer
+	err := row.Scan(
+		&i.ID,
+		&i.IncidentID,
+		&i.PlayerInID,
+		&i.PlayerOutID,
+	)
+	return i, err
+}
+
+const addFootballIncidentPlayer = `-- name: AddFootballIncidentPlayer :one
+INSERT INTO football_incident_player (
+    incident_id,
+    player_id
+) VALUES ($1, $2)
+RETURNING id, incident_id, player_id
+`
+
+type AddFootballIncidentPlayerParams struct {
+	IncidentID int64 `json:"incident_id"`
+	PlayerID   int64 `json:"player_id"`
+}
+
+func (q *Queries) AddFootballIncidentPlayer(ctx context.Context, arg AddFootballIncidentPlayerParams) (FootballIncidentPlayer, error) {
+	row := q.db.QueryRowContext(ctx, addFootballIncidentPlayer, arg.IncidentID, arg.PlayerID)
+	var i FootballIncidentPlayer
+	err := row.Scan(&i.ID, &i.IncidentID, &i.PlayerID)
+	return i, err
+}
+
 const createFootballIncidents = `-- name: CreateFootballIncidents :one
 INSERT INTO football_incidents (
     match_id,
     team_id,
     incident_type,
     incident_time,
-    player_id,
     description
-) VALUES ($1, $2, $3, $4, $5, $6
-)
-RETURNING id, match_id, team_id, incident_type, incident_time, player_id, description, created_at
+) VALUES ($1, $2, $3, $4, $5
+) RETURNING id, match_id, team_id, incident_type, incident_time, description, created_at
 `
 
 type CreateFootballIncidentsParams struct {
@@ -27,7 +72,6 @@ type CreateFootballIncidentsParams struct {
 	TeamID       int64  `json:"team_id"`
 	IncidentType string `json:"incident_type"`
 	IncidentTime int64  `json:"incident_time"`
-	PlayerID     int64  `json:"player_id"`
 	Description  string `json:"description"`
 }
 
@@ -37,7 +81,6 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		arg.TeamID,
 		arg.IncidentType,
 		arg.IncidentTime,
-		arg.PlayerID,
 		arg.Description,
 	)
 	var i FootballIncident
@@ -47,15 +90,101 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		&i.TeamID,
 		&i.IncidentType,
 		&i.IncidentTime,
-		&i.PlayerID,
 		&i.Description,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
+const getFootballIncidentByGoal = `-- name: GetFootballIncidentByGoal :many
+SELECT (fi.id, fi.match_id, fi.team_id, fi.incident_type, fi.incident_time, fi.player_id, fi.assist_player_id, fi.description, fi.created_at) FROM football_incidents AS fi
+WHERE match_id=$1 AND incident_type="goal"
+ORDER BY incident_time DESC
+`
+
+func (q *Queries) GetFootballIncidentByGoal(ctx context.Context, matchID int64) ([]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballIncidentByGoal, matchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []interface{}
+	for rows.Next() {
+		var column_1 interface{}
+		if err := rows.Scan(&column_1); err != nil {
+			return nil, err
+		}
+		items = append(items, column_1)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFootballIncidentBySubstitution = `-- name: GetFootballIncidentBySubstitution :many
+SELECT (fi.id, fi.match_id, fi.team_id, fi.incident_type, fi.incident_time, fi.substitution_in_player_id, fi.substitution_out_player_id, fi.description, fi.created_at) FROM football_incidents AS fi
+WHERE match_id=$1 AND incident_type="substitutions"
+ORDER BY incident_time DESC
+`
+
+func (q *Queries) GetFootballIncidentBySubstitution(ctx context.Context, matchID int64) ([]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballIncidentBySubstitution, matchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []interface{}
+	for rows.Next() {
+		var column_1 interface{}
+		if err := rows.Scan(&column_1); err != nil {
+			return nil, err
+		}
+		items = append(items, column_1)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFootballIncidentPlayer = `-- name: GetFootballIncidentPlayer :one
+SELECT id, incident_id, player_id FROM football_incident_player
+WHERE incident_id=$1
+`
+
+func (q *Queries) GetFootballIncidentPlayer(ctx context.Context, incidentID int64) (FootballIncidentPlayer, error) {
+	row := q.db.QueryRowContext(ctx, getFootballIncidentPlayer, incidentID)
+	var i FootballIncidentPlayer
+	err := row.Scan(&i.ID, &i.IncidentID, &i.PlayerID)
+	return i, err
+}
+
+const getFootballIncidentSubsPlayer = `-- name: GetFootballIncidentSubsPlayer :one
+SELECT id, incident_id, player_in_id, player_out_id FROM football_substitutions_player
+WHERE incident_id=$1
+`
+
+func (q *Queries) GetFootballIncidentSubsPlayer(ctx context.Context, incidentID int64) (FootballSubstitutionsPlayer, error) {
+	row := q.db.QueryRowContext(ctx, getFootballIncidentSubsPlayer, incidentID)
+	var i FootballSubstitutionsPlayer
+	err := row.Scan(
+		&i.ID,
+		&i.IncidentID,
+		&i.PlayerInID,
+		&i.PlayerOutID,
+	)
+	return i, err
+}
+
 const getFootballIncidents = `-- name: GetFootballIncidents :many
-SELECT id, match_id, team_id, incident_type, incident_time, player_id, description, created_at FROM football_incidents
+SELECT id, match_id, team_id, incident_type, incident_time, description, created_at FROM football_incidents
 WHERE match_id=$1
 ORDER BY created_at DESC
 `
@@ -75,7 +204,6 @@ func (q *Queries) GetFootballIncidents(ctx context.Context, matchID int64) ([]Fo
 			&i.TeamID,
 			&i.IncidentType,
 			&i.IncidentTime,
-			&i.PlayerID,
 			&i.Description,
 			&i.CreatedAt,
 		); err != nil {
