@@ -17,8 +17,9 @@ INSERT INTO teams (
 -- name: AddTeamPlayers :one
 INSERT INTO team_players (
     team_id,
-    player_id
-) VALUES ($1, $2)
+    player_id,
+    current_team
+) VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: GetTeamPlayers :many
@@ -73,3 +74,19 @@ JOIN teams c1 ON tm.home_team_id = c1.id
 JOIN teams c2 ON tm.away_team_id = c2.id
 WHERE c1.id=$1 OR c2.id=$1
 ORDER BY tm.id DESC, tm.start_timestamp DESC;
+
+-- name: GetPlayerByTeam :many
+SELECT * FROM team_players
+JOIN players ON team_players.player_id=players.id
+WHERE team_id=$1;
+
+-- name: GetTeamByPlayer :many
+SELECT * FROM team_players
+JOIN teams ON team_players.team_id=teams.id
+WHERE player_id=$1 AND current_team='t';
+
+-- name: UpdateCurrentTeam :one
+UPDATE team_players
+SET current_team=$1
+WHERE team_id=$2 AND player_id=$3
+RETURNING *;

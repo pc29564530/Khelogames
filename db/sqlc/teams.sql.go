@@ -12,20 +12,22 @@ import (
 const addTeamPlayers = `-- name: AddTeamPlayers :one
 INSERT INTO team_players (
     team_id,
-    player_id
-) VALUES ($1, $2)
-RETURNING team_id, player_id
+    player_id,
+    current_team
+) VALUES ($1, $2, $3)
+RETURNING team_id, player_id, current_team
 `
 
 type AddTeamPlayersParams struct {
-	TeamID   int64 `json:"team_id"`
-	PlayerID int64 `json:"player_id"`
+	TeamID      int64  `json:"team_id"`
+	PlayerID    int64  `json:"player_id"`
+	CurrentTeam string `json:"current_team"`
 }
 
 func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) (TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID)
+	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID, arg.CurrentTeam)
 	var i TeamPlayer
-	err := row.Scan(&i.TeamID, &i.PlayerID)
+	err := row.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam)
 	return i, err
 }
 
@@ -88,6 +90,63 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 	return items, nil
 }
 
+const getPlayerByTeam = `-- name: GetPlayerByTeam :many
+SELECT team_id, player_id, current_team, id, username, slug, short_name, media_url, positions, sports, country, player_name FROM team_players
+JOIN players ON team_players.player_id=players.id
+WHERE team_id=$1
+`
+
+type GetPlayerByTeamRow struct {
+	TeamID      int64  `json:"team_id"`
+	PlayerID    int64  `json:"player_id"`
+	CurrentTeam string `json:"current_team"`
+	ID          int64  `json:"id"`
+	Username    string `json:"username"`
+	Slug        string `json:"slug"`
+	ShortName   string `json:"short_name"`
+	MediaUrl    string `json:"media_url"`
+	Positions   string `json:"positions"`
+	Sports      string `json:"sports"`
+	Country     string `json:"country"`
+	PlayerName  string `json:"player_name"`
+}
+
+func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]GetPlayerByTeamRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPlayerByTeam, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPlayerByTeamRow
+	for rows.Next() {
+		var i GetPlayerByTeamRow
+		if err := rows.Scan(
+			&i.TeamID,
+			&i.PlayerID,
+			&i.CurrentTeam,
+			&i.ID,
+			&i.Username,
+			&i.Slug,
+			&i.ShortName,
+			&i.MediaUrl,
+			&i.Positions,
+			&i.Sports,
+			&i.Country,
+			&i.PlayerName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTeam = `-- name: GetTeam :one
 SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, sports FROM teams
 WHERE id=$1
@@ -112,8 +171,69 @@ func (q *Queries) GetTeam(ctx context.Context, id int64) (Team, error) {
 	return i, err
 }
 
+const getTeamByPlayer = `-- name: GetTeamByPlayer :many
+SELECT team_id, player_id, current_team, id, name, slug, shortname, admin, media_url, gender, national, country, type, sports FROM team_players
+JOIN teams ON team_players.team_id=teams.id
+WHERE player_id=$1 AND current_team='t'
+`
+
+type GetTeamByPlayerRow struct {
+	TeamID      int64  `json:"team_id"`
+	PlayerID    int64  `json:"player_id"`
+	CurrentTeam string `json:"current_team"`
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	Shortname   string `json:"shortname"`
+	Admin       string `json:"admin"`
+	MediaUrl    string `json:"media_url"`
+	Gender      string `json:"gender"`
+	National    bool   `json:"national"`
+	Country     string `json:"country"`
+	Type        string `json:"type"`
+	Sports      string `json:"sports"`
+}
+
+func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]GetTeamByPlayerRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTeamByPlayer, playerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeamByPlayerRow
+	for rows.Next() {
+		var i GetTeamByPlayerRow
+		if err := rows.Scan(
+			&i.TeamID,
+			&i.PlayerID,
+			&i.CurrentTeam,
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Shortname,
+			&i.Admin,
+			&i.MediaUrl,
+			&i.Gender,
+			&i.National,
+			&i.Country,
+			&i.Type,
+			&i.Sports,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTeamPlayers = `-- name: GetTeamPlayers :many
-SELECT team_id, player_id FROM team_players
+SELECT team_id, player_id, current_team FROM team_players
 WHERE team_id=$1
 `
 
@@ -126,7 +246,7 @@ func (q *Queries) GetTeamPlayers(ctx context.Context, teamID int64) ([]TeamPlaye
 	var items []TeamPlayer
 	for rows.Next() {
 		var i TeamPlayer
-		if err := rows.Scan(&i.TeamID, &i.PlayerID); err != nil {
+		if err := rows.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -346,6 +466,26 @@ func (q *Queries) SearchTeam(ctx context.Context, name string) ([]SearchTeamRow,
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateCurrentTeam = `-- name: UpdateCurrentTeam :one
+UPDATE team_players
+SET current_team=$1
+WHERE team_id=$2 AND player_id=$3
+RETURNING team_id, player_id, current_team
+`
+
+type UpdateCurrentTeamParams struct {
+	CurrentTeam string `json:"current_team"`
+	TeamID      int64  `json:"team_id"`
+	PlayerID    int64  `json:"player_id"`
+}
+
+func (q *Queries) UpdateCurrentTeam(ctx context.Context, arg UpdateCurrentTeamParams) (TeamPlayer, error) {
+	row := q.db.QueryRowContext(ctx, updateCurrentTeam, arg.CurrentTeam, arg.TeamID, arg.PlayerID)
+	var i TeamPlayer
+	err := row.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam)
+	return i, err
 }
 
 const updateMediaUrl = `-- name: UpdateMediaUrl :one

@@ -46,20 +46,15 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("get club id from reqeust:", teamID)
 
-	membersID, err := s.store.GetTeamPlayers(ctx, teamID)
+	players, err := s.store.GetPlayerByTeam(ctx, teamID)
 	if err != nil {
-		s.logger.Error("Failed to get club member: ", err)
+		s.logger.Error("Failed to get team member: ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
 
 	var playerList []map[string]interface{}
-	for _, memberID := range membersID {
-		player, err := s.store.GetPlayer(ctx, memberID.PlayerID)
-		if err != nil {
-			s.logger.Error("failed to get player data: ", err)
-			return
-		}
+	for _, player := range players {
 		playerData := map[string]interface{}{
 			"id":          player.ID,
 			"player_name": player.PlayerName,
@@ -68,7 +63,7 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 			"position":    player.Positions,
 			"country":     player.Country,
 			"sports":      player.Sports,
-			"player_logo": player.MediaUrl,
+			"media_url":   player.MediaUrl,
 		}
 		playerList = append(playerList, playerData)
 	}
