@@ -50,7 +50,7 @@ type getFootballScoreRequest struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (s *FootballServer) GetFootballScore(matches []db.Match, tournamentID int64) []map[string]interface{} {
+func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tournamentID int64) []map[string]interface{} {
 	ctx := context.Background()
 
 	tournament, err := s.store.GetTournament(ctx, tournamentID)
@@ -61,16 +61,16 @@ func (s *FootballServer) GetFootballScore(matches []db.Match, tournamentID int64
 	var matchDetail []map[string]interface{}
 	for _, match := range matches {
 
-		homeTeam, err1 := s.store.GetTeam(ctx, match.HomeTeamID)
-		if err1 != nil {
-			s.logger.Error("Failed to get homeTeam: ", err1)
-			continue
-		}
-		awayTeam, err2 := s.store.GetTeam(ctx, match.AwayTeamID)
-		if err2 != nil {
-			s.logger.Error("Failed to get awayTeam: ", err2)
-			continue
-		}
+		// homeTeam, err1 := s.store.GetTeam(ctx, match.HomeTeamID)
+		// if err1 != nil {
+		// 	s.logger.Error("Failed to get homeTeam: ", err1)
+		// 	continue
+		// }
+		// awayTeam, err2 := s.store.GetTeam(ctx, match.AwayTeamID)
+		// if err2 != nil {
+		// 	s.logger.Error("Failed to get awayTeam: ", err2)
+		// 	continue
+		// }
 
 		homeTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
 		awayTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
@@ -106,10 +106,17 @@ func (s *FootballServer) GetFootballScore(matches []db.Match, tournamentID int64
 			}
 		}
 		matchMap := map[string]interface{}{
-			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
-			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
+			"tournament": map[string]interface{}{
+				"id":      tournament.ID,
+				"name":    tournament.TournamentName,
+				"slug":    tournament.Slug,
+				"country": tournament.Country,
+				"sports":  tournament.Sports,
+			},
+			"id":             match.ID,
+			"homeTeam":       map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType},
 			"homeScore":      hScore,
-			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
+			"awayTeam":       map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType},
 			"awayScore":      aScore,
 			"startTimeStamp": match.StartTimestamp,
 			"end_timestamp":  match.EndTimestamp,

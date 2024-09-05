@@ -10,7 +10,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type GetTournamentMatchRequest struct {
+	TournamentID int64  `json:"tournament_id"`
+	Sports       string `json:"sports"`
+}
+
 func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
+
+	// var req GetTournamentMatchRequest
+	// err := ctx.ShouldBindJSON(&req)
+	// if err != nil {
+	// 	s.logger.Error("Failed to bind: ", err)
+	// 	ctx.JSON(http.StatusInternalServerError, (err))
+	// 	return
+	// }
 
 	tournamentIDStr := ctx.Query("tournament_id")
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
@@ -23,11 +36,13 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", tournamentID, sports))
 	s.logger.Debug("Tournament match params: ", tournamentID)
 
-	matches, err := s.store.GetMatchesByTournamentID(ctx, tournamentID)
+	matches, err := s.store.GetMatchByID(ctx, tournamentID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament match: ", err)
 		return
 	}
+
+	fmt.Println("matches Data : ", matches)
 
 	checkSportServer := util.NewCheckSport(s.store, s.logger)
 	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, tournamentID)

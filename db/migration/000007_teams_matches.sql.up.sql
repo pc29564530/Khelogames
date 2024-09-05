@@ -16,7 +16,9 @@ CREATE TABLE teams (
 CREATE TABLE team_players (
     team_id BIGSERIAL REFERENCES teams(id),
     player_id BIGSERIAL REFERENCES players(id),
+    current_team VARCHAR(2) NOT NULL CHECK(current_team IN ('t', 'f')),
     PRIMARY KEY (team_id, player_id)
+
 );
 
 CREATE TABLE matches (
@@ -142,13 +144,11 @@ CREATE TABLE football_statistics (
     id BIGSERIAL PRIMARY KEY,
     match_id BIGSERIAL REFERENCES matches (id) NOT NULL,
     team_id BIGSERIAL REFERENCES teams (id) NOT NULL,
-    ball_possession INT NOT NULL,
     shots_on_target INT NOT NULL,
     total_shots INT NOT NULL,
     corner_kicks INT NOT NULL,
     fouls INT NOT NULL,
     goalkeeper_saves INT NOT NULL,
-    passess INT NOT NULL,
     free_kicks INT NOT NULL,
     yellow_cards INT NOT NULL,
     red_cards INT NOT NULL
@@ -158,11 +158,13 @@ CREATE TABLE football_incidents (
     id BIGSERIAL PRIMARY KEY,
     match_id BIGSERIAL REFERENCES matches (id) NOT NULL,
     team_id BIGSERIAL REFERENCES teams (id) NOT NULL,
+    periods VARCHAR(50) CHECK (periods IN ('first_half', 'second_half', 'extra_first_half', 'extra_second_half')) NOT NULL,
     incident_type VARCHAR(50) NOT NULL,
     incident_time BIGINT NOT NULL,
     description VARCHAR NOT NULL,
     created_at BIGINT DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) NOT NULL
 );
+
 
 CREATE TABLE football_substitutions_player (
     id BIGSERIAL PRIMARY KEY,
