@@ -11,6 +11,7 @@ import (
 type addFootballIncidentsRequest struct {
 	MatchID      int64  `json:"match_id"`
 	TeamID       int64  `json:"team_id"`
+	Periods      string `json:"periods"`
 	IncidentType string `json:"incident_type"`
 	IncidentTime int64  `json:"incident_time"`
 	PlayerID     int64  `json:"player_id"`
@@ -28,6 +29,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 	arg := db.CreateFootballIncidentsParams{
 		MatchID:      req.MatchID,
 		TeamID:       req.TeamID,
+		Periods:      req.Periods,
 		IncidentType: req.IncidentType,
 		IncidentTime: req.IncidentTime,
 		Description:  req.Description,
@@ -56,6 +58,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 type addFootballIncidentsSubsRequest struct {
 	MatchID      int64  `json:"match_id"`
 	TeamID       int64  `json:"team_id"`
+	Periods      string `json:"periods"`
 	IncidentType string `json:"incident_type"`
 	IncidentTime int64  `json:"incident_time"`
 	Description  string `json:"description"`
@@ -74,6 +77,7 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 	arg := db.CreateFootballIncidentsParams{
 		MatchID:      req.MatchID,
 		TeamID:       req.TeamID,
+		Periods:      req.Periods,
 		IncidentType: req.IncidentType,
 		IncidentTime: req.IncidentTime,
 		Description:  req.Description,
@@ -140,11 +144,15 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 	matchIncidents = append(matchIncidents, map[string]interface{}{
 		"match": matchDetail,
 	})
-
+	var allIncident []map[string]interface{}
 	for _, incident := range incidents {
 		incidentData := getSwitchFunc(incident, s)
-		matchIncidents = append(matchIncidents, incidentData)
+		allIncident = append(allIncident, incidentData)
 	}
+
+	matchIncidents = append(matchIncidents, map[string]interface{}{
+		"incidents": allIncident,
+	})
 
 	s.logger.Info("Successfully get match incidents")
 	ctx.JSON(http.StatusAccepted, matchIncidents)

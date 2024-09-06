@@ -171,6 +171,7 @@ type FootballIncident struct {
 	ID           int64  `json:"id"`
 	MatchID      int64  `json:"match_id"`
 	TeamID       int64  `json:"team_id"`
+	Periods      string `json:"periods"`
 	IncidentType string `json:"incident_type"`
 	IncidentTime int64  `json:"incident_time"`
 	Description  string `json:"description"`
@@ -206,13 +207,11 @@ type FootballStatistic struct {
 	ID              int64 `json:"id"`
 	MatchID         int64 `json:"match_id"`
 	TeamID          int64 `json:"team_id"`
-	BallPossession  int32 `json:"ball_possession"`
 	ShotsOnTarget   int32 `json:"shots_on_target"`
 	TotalShots      int32 `json:"total_shots"`
 	CornerKicks     int32 `json:"corner_kicks"`
 	Fouls           int32 `json:"fouls"`
 	GoalkeeperSaves int32 `json:"goalkeeper_saves"`
-	Passess         int32 `json:"passess"`
 	FreeKicks       int32 `json:"free_kicks"`
 	YellowCards     int32 `json:"yellow_cards"`
 	RedCards        int32 `json:"red_cards"`
@@ -368,8 +367,9 @@ type Team struct {
 }
 
 type TeamPlayer struct {
-	TeamID   int64 `json:"team_id"`
-	PlayerID int64 `json:"player_id"`
+	TeamID      int64  `json:"team_id"`
+	PlayerID    int64  `json:"player_id"`
+	CurrentTeam string `json:"current_team"`
 }
 
 type Thread struct {

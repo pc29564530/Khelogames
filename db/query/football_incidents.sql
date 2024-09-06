@@ -2,10 +2,11 @@
 INSERT INTO football_incidents (
     match_id,
     team_id,
+    periods,
     incident_type,
     incident_time,
     description
-) VALUES ($1, $2, $3, $4, $5
+) VALUES ($1, $2, $3, $4, $5, $6
 ) RETURNING *;
 
 -- name: AddFootballIncidentPlayer :one

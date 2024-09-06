@@ -60,16 +60,18 @@ const createFootballIncidents = `-- name: CreateFootballIncidents :one
 INSERT INTO football_incidents (
     match_id,
     team_id,
+    periods,
     incident_type,
     incident_time,
     description
-) VALUES ($1, $2, $3, $4, $5
-) RETURNING id, match_id, team_id, incident_type, incident_time, description, created_at
+) VALUES ($1, $2, $3, $4, $5, $6
+) RETURNING id, match_id, team_id, periods, incident_type, incident_time, description, created_at
 `
 
 type CreateFootballIncidentsParams struct {
 	MatchID      int64  `json:"match_id"`
 	TeamID       int64  `json:"team_id"`
+	Periods      string `json:"periods"`
 	IncidentType string `json:"incident_type"`
 	IncidentTime int64  `json:"incident_time"`
 	Description  string `json:"description"`
@@ -79,6 +81,7 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 	row := q.db.QueryRowContext(ctx, createFootballIncidents,
 		arg.MatchID,
 		arg.TeamID,
+		arg.Periods,
 		arg.IncidentType,
 		arg.IncidentTime,
 		arg.Description,
@@ -88,6 +91,7 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		&i.ID,
 		&i.MatchID,
 		&i.TeamID,
+		&i.Periods,
 		&i.IncidentType,
 		&i.IncidentTime,
 		&i.Description,
@@ -184,7 +188,7 @@ func (q *Queries) GetFootballIncidentSubsPlayer(ctx context.Context, incidentID 
 }
 
 const getFootballIncidents = `-- name: GetFootballIncidents :many
-SELECT id, match_id, team_id, incident_type, incident_time, description, created_at FROM football_incidents
+SELECT id, match_id, team_id, periods, incident_type, incident_time, description, created_at FROM football_incidents
 WHERE match_id=$1
 ORDER BY created_at DESC
 `
@@ -202,6 +206,7 @@ func (q *Queries) GetFootballIncidents(ctx context.Context, matchID int64) ([]Fo
 			&i.ID,
 			&i.MatchID,
 			&i.TeamID,
+			&i.Periods,
 			&i.IncidentType,
 			&i.IncidentTime,
 			&i.Description,
