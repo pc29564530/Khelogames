@@ -187,6 +187,73 @@ func (q *Queries) GetFootballIncidentSubsPlayer(ctx context.Context, incidentID 
 	return i, err
 }
 
+const getFootballIncidentWithPlayer = `-- name: GetFootballIncidentWithPlayer :many
+SELECT
+    fi.id, fi.match_id, fi.team_id, fi.periods, fi.incident_type, fi.incident_time, fi.description,
+    CASE
+        WHEN fi.incident_type='substitutions' THEN
+            JSON_BUILD_OBJECT(
+                'player_in', JSON_BUILD_OBJECT('id',player_in.id,'username',player_in.username, 'name', player_in.player_name, 'slug', player_in.slug, 'short_name',player_in.short_name, 'country', player_in.country, 'positions', player_in.positions, 'media_url', player_in.media_url ),
+                'player_out', JSON_BUILD_OBJECT('id',player_out.id,'username',player_out.username, 'name', player_out.player_name, 'slug', player_out.slug, 'short_name',player_out.short_name, 'country', player_out.country, 'positions', player_out.positions, 'media_url', player_out.media_url)
+            )
+        ELSE
+            JSON_BUILD_OBJECT(
+                'player', JSON_BUILD_OBJECT('id',player_incident.id,'username',player_incident.username, 'name', player_incident.player_name, 'slug', player_incident.slug, 'short_name',player_incident.short_name, 'country', player_incident.country, 'positions', player_incident.positions, 'media_url', player_incident.media_url)
+            )
+    END AS players
+FROM football_incidents fi
+JOIN football_incident_player AS fip ON fip.incident_id=fi.id
+JOIN players AS player_incident ON player_incident.id = fip.player_id
+LEFT JOIN football_substitutions_player AS fis ON fis.incident_id=fi.id
+LEFT JOIN players AS player_in ON player_in.id = fis.player_in_id
+LEFT JOIN players AS player_out ON player_out.id = fis.player_out_id
+WHERE fi.match_id =  $1
+ORDER BY incident_time DESC
+`
+
+type GetFootballIncidentWithPlayerRow struct {
+	ID           int64       `json:"id"`
+	MatchID      int64       `json:"match_id"`
+	TeamID       int64       `json:"team_id"`
+	Periods      string      `json:"periods"`
+	IncidentType string      `json:"incident_type"`
+	IncidentTime int64       `json:"incident_time"`
+	Description  string      `json:"description"`
+	Players      interface{} `json:"players"`
+}
+
+func (q *Queries) GetFootballIncidentWithPlayer(ctx context.Context, matchID int64) ([]GetFootballIncidentWithPlayerRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballIncidentWithPlayer, matchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFootballIncidentWithPlayerRow
+	for rows.Next() {
+		var i GetFootballIncidentWithPlayerRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.MatchID,
+			&i.TeamID,
+			&i.Periods,
+			&i.IncidentType,
+			&i.IncidentTime,
+			&i.Description,
+			&i.Players,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFootballIncidents = `-- name: GetFootballIncidents :many
 SELECT id, match_id, team_id, periods, incident_type, incident_time, description, created_at FROM football_incidents
 WHERE match_id=$1
