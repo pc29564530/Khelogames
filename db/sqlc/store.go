@@ -1,6 +1,10 @@
 package db
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/gin-gonic/gin"
+)
 
 // Store provides all functions to execute db
 type Store struct {
@@ -14,4 +18,8 @@ func NewStore(db *sql.DB) *Store {
 		db:      db,
 		Queries: New(db),
 	}
+}
+
+func (s *Store) BeginTx(ctx *gin.Context) (*sql.Tx, error) {
+	return s.db.Begin()
 }

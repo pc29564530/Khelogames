@@ -140,7 +140,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	s.logger.Info("successfully updated the match status")
 
-	if updatedMatchData.StatusCode == "started" {
+	if updatedMatchData.StatusCode == "in_progress" {
 		argAway := db.NewFootballScoreParams{
 			MatchID:    updatedMatchData.ID,
 			TeamID:     updatedMatchData.AwayTeamID,
@@ -156,7 +156,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 		argHome := db.NewFootballScoreParams{
 			MatchID:    updatedMatchData.ID,
-			TeamID:     updatedMatchData.AwayTeamID,
+			TeamID:     updatedMatchData.HomeTeamID,
 			FirstHalf:  0,
 			SecondHalf: 0,
 			Goals:      0,

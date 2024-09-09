@@ -35,8 +35,15 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		Description:  req.Description,
 	}
 
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("failed to start transcation: ", err)
+		return
+	}
+
 	incidents, err := s.store.CreateFootballIncidents(ctx, arg)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Failed to create football incidents: ", err)
 		return
 	}
@@ -48,9 +55,50 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 
 	_, err = s.store.AddFootballIncidentPlayer(ctx, incidentPlayerArg)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Failed to create football incidents: ", err)
 		return
 	}
+
+	if incidents.IncidentType == "goal" {
+		if incidents.Periods == "first_half" {
+			argGoalScore := db.UpdateFirstHalfScoreParams{
+				FirstHalf: 1,
+				MatchID:   incidents.MatchID,
+				TeamID:    incidents.TeamID,
+			}
+
+			_, err := s.store.UpdateFirstHalfScore(ctx, argGoalScore)
+			if err != nil {
+				tx.Rollback()
+				s.logger.Error("Failed to update football score: ", err)
+				return
+			}
+		} else {
+			argGoalScore := db.UpdateSecondHalfScoreParams{
+				SecondHalf: 1,
+				MatchID:    incidents.MatchID,
+				TeamID:     incidents.TeamID,
+			}
+
+			_, err := s.store.UpdateSecondHalfScore(ctx, argGoalScore)
+			if err != nil {
+				tx.Rollback()
+				s.logger.Error("Failed to update football score: ", err)
+				return
+			}
+		}
+	}
+
+	//commit the transcation if all operation are successfull
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		s.logger.Error("unable to commit the transcation: ", err)
+		return
+	}
+
+	s.logger.Info("successfully update the add football incident ")
 
 	ctx.JSON(http.StatusAccepted, incidents)
 }
