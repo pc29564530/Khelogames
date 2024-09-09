@@ -16,7 +16,9 @@ CREATE TABLE teams (
 CREATE TABLE team_players (
     team_id BIGSERIAL REFERENCES teams(id),
     player_id BIGSERIAL REFERENCES players(id),
+    current_team VARCHAR(2) NOT NULL CHECK(current_team IN ('t', 'f')),
     PRIMARY KEY (team_id, player_id)
+
 );
 
 CREATE TABLE matches (
@@ -103,29 +105,6 @@ CREATE TABLE wickets (
     ball_number INT NOT NULL
 );
 
--- CREATE TABLE Score (
--- 	id BIGSERIAL PRIMARY KEY,
--- 	team_id BIGSERIAL,
--- 	match_id BIGSERIAL,
--- 	score BIGINT,
--- 	period1 BIGINT,
--- 	period2 BIGINT
--- );
-
--- CREATE A INCIDENT TABLE
--- CREATE A STATUS TABLE AND STATUS TIME TABLE
--- this for football and other sport that played on the timer
--- CREATE TABLE Status_Time (
--- 	sport varchar(255), -- [football, hockey]
--- 	current_time bigint,
--- 	initial bigint,
--- 	max bigint,
--- 	extra bigint
--- );
-
--- create a table of the time
-
--- create a table for player
 CREATE TABLE players (
     id BIGSERIAL PRIMARY KEY,
     username VARCHAR(255) REFERENCES users (username) NOT NULL,
@@ -136,4 +115,43 @@ CREATE TABLE players (
     sports VARCHAR(255) NOT NULL,
     country VARCHAR(255) NOT NULL,
     player_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE football_statistics (
+    id BIGSERIAL PRIMARY KEY,
+    match_id BIGSERIAL REFERENCES matches (id) NOT NULL,
+    team_id BIGSERIAL REFERENCES teams (id) NOT NULL,
+    shots_on_target INT NOT NULL,
+    total_shots INT NOT NULL,
+    corner_kicks INT NOT NULL,
+    fouls INT NOT NULL,
+    goalkeeper_saves INT NOT NULL,
+    free_kicks INT NOT NULL,
+    yellow_cards INT NOT NULL,
+    red_cards INT NOT NULL
+);
+
+CREATE TABLE football_incidents (
+    id BIGSERIAL PRIMARY KEY,
+    match_id BIGSERIAL REFERENCES matches (id) NOT NULL,
+    team_id BIGSERIAL REFERENCES teams (id) NOT NULL,
+    periods VARCHAR(50) CHECK (periods IN ('first_half', 'second_half', 'extra_first_half', 'extra_second_half')) NOT NULL,
+    incident_type VARCHAR(50) NOT NULL,
+    incident_time BIGINT NOT NULL,
+    description VARCHAR NOT NULL,
+    created_at BIGINT DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) NOT NULL
+);
+
+
+CREATE TABLE football_substitutions_player (
+    id BIGSERIAL PRIMARY KEY,
+    incident_id BIGSERIAL REFERENCES football_incidents (id) NOT NULL,
+    player_in_id BIGSERIAL REFERENCES players (id) NOT NULL,
+    player_out_id BIGSERIAL REFERENCES players (id) NOT NULL
+);
+
+CREATE TABLE football_incident_player (
+    id BIGSERIAL PRIMARY KEY,
+    incident_id BIGSERIAL REFERENCES football_incidents (id) NOT NULL,
+    player_id BIGSERIAL REFERENCES players (id) NOT NULL
 );

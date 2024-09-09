@@ -167,6 +167,23 @@ type Follow struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+type FootballIncident struct {
+	ID           int64  `json:"id"`
+	MatchID      int64  `json:"match_id"`
+	TeamID       int64  `json:"team_id"`
+	Periods      string `json:"periods"`
+	IncidentType string `json:"incident_type"`
+	IncidentTime int64  `json:"incident_time"`
+	Description  string `json:"description"`
+	CreatedAt    int64  `json:"created_at"`
+}
+
+type FootballIncidentPlayer struct {
+	ID         int64 `json:"id"`
+	IncidentID int64 `json:"incident_id"`
+	PlayerID   int64 `json:"player_id"`
+}
+
 type FootballMatchesScore struct {
 	ID            int64     `json:"id"`
 	MatchID       int64     `json:"match_id"`
@@ -184,6 +201,27 @@ type FootballScore struct {
 	FirstHalf  int32 `json:"first_half"`
 	SecondHalf int32 `json:"second_half"`
 	Goals      int64 `json:"goals"`
+}
+
+type FootballStatistic struct {
+	ID              int64 `json:"id"`
+	MatchID         int64 `json:"match_id"`
+	TeamID          int64 `json:"team_id"`
+	ShotsOnTarget   int32 `json:"shots_on_target"`
+	TotalShots      int32 `json:"total_shots"`
+	CornerKicks     int32 `json:"corner_kicks"`
+	Fouls           int32 `json:"fouls"`
+	GoalkeeperSaves int32 `json:"goalkeeper_saves"`
+	FreeKicks       int32 `json:"free_kicks"`
+	YellowCards     int32 `json:"yellow_cards"`
+	RedCards        int32 `json:"red_cards"`
+}
+
+type FootballSubstitutionsPlayer struct {
+	ID          int64 `json:"id"`
+	IncidentID  int64 `json:"incident_id"`
+	PlayerInID  int64 `json:"player_in_id"`
+	PlayerOutID int64 `json:"player_out_id"`
 }
 
 type FootballTeamPlayerScore struct {
@@ -329,8 +367,9 @@ type Team struct {
 }
 
 type TeamPlayer struct {
-	TeamID   int64 `json:"team_id"`
-	PlayerID int64 `json:"player_id"`
+	TeamID      int64  `json:"team_id"`
+	PlayerID    int64  `json:"player_id"`
+	CurrentTeam string `json:"current_team"`
 }
 
 type Thread struct {

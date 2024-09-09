@@ -74,8 +74,11 @@ func (q *Queries) NewFootballScore(ctx context.Context, arg NewFootballScorePara
 
 const updateFirstHalfScore = `-- name: UpdateFirstHalfScore :one
 UPDATE football_score
-SET first_half=$1
-WHERE match_id=$2 AND team_id=$3
+SET 
+    first_half = COALESCE(first_half, 0) + $1,
+    goals = COALESCE(goals, 0) + $1
+WHERE 
+    match_id = $2 AND team_id = $3
 RETURNING id, match_id, team_id, first_half, second_half, goals
 `
 
@@ -128,8 +131,11 @@ func (q *Queries) UpdateFootballScore(ctx context.Context, arg UpdateFootballSco
 
 const updateSecondHalfScore = `-- name: UpdateSecondHalfScore :one
 UPDATE football_score
-SET second_half=$1
-WHERE match_id=$2 AND team_id=$3
+SET 
+    second_half = COALESCE(second_half, 0) + $1,
+    goals = COALESCE(goals, 0) + $1
+WHERE 
+    match_id = $2 AND team_id = $3
 RETURNING id, match_id, team_id, first_half, second_half, goals
 `
 

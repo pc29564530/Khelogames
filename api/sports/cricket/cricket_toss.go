@@ -17,7 +17,7 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 	var req addCricketTossRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : %v", err)
+		s.logger.Error("Failed to bind : ", err)
 		ctx.JSON(http.StatusBadGateway, err)
 		return
 	}
@@ -30,7 +30,7 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 
 	response, err := s.store.AddCricketToss(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to add cricket match toss : %v", err)
+		s.logger.Error("Failed to add cricket match toss : ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -54,13 +54,13 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 
 	response, err := s.store.GetCricketToss(ctx, req.MatchID)
 	if err != nil {
-		s.logger.Error("Failed to get the cricket match toss: %v", err)
+		s.logger.Error("Failed to get the cricket match toss: ", err)
 		return
 	}
 
 	tossWonTeam, err := s.store.GetTeam(ctx, response.TossWin)
 	if err != nil {
-		s.logger.Error("Failed to get team: %v", err)
+		s.logger.Error("Failed to get team: ", err)
 		return
 	}
 

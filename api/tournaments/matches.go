@@ -23,7 +23,7 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", tournamentID, sports))
 	s.logger.Debug("Tournament match params: ", tournamentID)
 
-	matches, err := s.store.GetMatchesByTournamentID(ctx, tournamentID)
+	matches, err := s.store.GetMatchByID(ctx, tournamentID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament match: ", err)
 		return
@@ -94,7 +94,6 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	s.logger.Info("Successfully create match")
 
 	ctx.JSON(http.StatusAccepted, response)
-	return
 }
 
 type updateStatusRequest struct {
@@ -124,5 +123,34 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 	}
 
 	s.logger.Info("successfully updated the match status")
+
+	if updatedMatchData.StatusCode == "in_progress" {
+		argAway := db.NewFootballScoreParams{
+			MatchID:    updatedMatchData.ID,
+			TeamID:     updatedMatchData.AwayTeamID,
+			FirstHalf:  0,
+			SecondHalf: 0,
+			Goals:      0,
+		}
+
+		_, err := s.store.NewFootballScore(ctx, argAway)
+		if err != nil {
+			s.logger.Error("unable to add the football match score: ", err)
+		}
+
+		argHome := db.NewFootballScoreParams{
+			MatchID:    updatedMatchData.ID,
+			TeamID:     updatedMatchData.HomeTeamID,
+			FirstHalf:  0,
+			SecondHalf: 0,
+			Goals:      0,
+		}
+
+		_, err = s.store.NewFootballScore(ctx, argHome)
+		if err != nil {
+			s.logger.Error("unable to add the football match score: ", err)
+		}
+	}
+
 	ctx.JSON(http.StatusAccepted, updatedMatchData)
 }

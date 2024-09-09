@@ -16,7 +16,7 @@ func NewCheckSport(store *db.Store, logger *logger.Logger) *CheckSportServer {
 	return &CheckSportServer{store: store, logger: logger}
 }
 
-func (s *CheckSportServer) CheckSport(sports string, matches []db.Match, tournamentID int64) []map[string]interface{} {
+func (s *CheckSportServer) CheckSport(sports string, matches []db.GetMatchByIDRow, tournamentID int64) []map[string]interface{} {
 	footballServer := football.NewFootballServer(s.store, s.logger)
 	cricketServer := cricket.NewCricketServer(s.store, s.logger)
 	switch sports {

@@ -102,7 +102,6 @@ func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	arg := db.AddCricketWicketsParams{
 		MatchID:       req.MatchID,
 		TeamID:        req.TeamID,

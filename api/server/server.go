@@ -111,7 +111,6 @@ func NewServer(config util.Config,
 		authRouter.GET("/getAllPlayerProfile", handlersServer.GetAllPlayerProfileFunc)
 		authRouter.POST("/addPlayerProfile", handlersServer.AddPlayerProfileFunc)
 		authRouter.PUT("/updatePlayerProfileAvatarUrl", handlersServer.UpdatePlayerProfileAvatarFunc)
-		authRouter.POST("/addGroupTeam", tournamentServer.AddGroupTeamFunc)
 		//authRouter.POST("/createTournamentOrganization", tournamentOrganizerServer.CreateTournamentOrganizationFunc)
 		authRouter.GET("/getMessagedUser", messageServer.GetUserByMessageSendFunc)
 		authRouter.POST("/createUploadMedia", messageServer.CreateUploadMediaFunc)
@@ -185,6 +184,7 @@ func NewServer(config util.Config,
 	//sportRouter.GET("/getTournamentMatches", tournamentServer.GetTournamentMatch)
 	sportRouter.PUT("/updateMatchStatus", tournamentServer.UpdateMatchStatusFunc)
 	sportRouter.PUT("/updateTournamentStatus", tournamentServer.UpdateTournamentStatusFunc)
+	sportRouter.POST("/addGroupTeam", tournamentServer.AddGroupTeamFunc)
 
 	//teams
 	sportRouter.POST("/newTeams", teamsServer.AddTeam)
@@ -199,6 +199,10 @@ func NewServer(config util.Config,
 
 	//football
 	// sportRouter.GET("/getFootballScore", footballServer.GetFootballScore)
+	sportRouter.POST("/addFootballIncidents", footballServer.AddFootballIncidents)
+	sportRouter.GET("/getFootballIncidents", footballServer.GetFootballIncidents)
+	// sportRouter.POST("/addFootballIncidentsGoal", footballServer.)
+	sportRouter.POST("/addFootballIncidentsSubs", footballServer.AddFootballIncidentsSubs)
 	sportRouter.PUT("/updateFootballFirstHalfScore", footballServer.UpdateFootballMatchScoreFirstHalfFunc)
 	sportRouter.PUT("/updateFootballSecondHalfScore", footballServer.UpdateFootballMatchScoreSecondHalfFunc)
 	sportRouter.PUT("/updateFootballMatchScore", footballServer.UpdateFootballMatchScoreFunc)
