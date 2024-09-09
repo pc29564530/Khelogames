@@ -2,6 +2,7 @@ package football
 
 import (
 	"encoding/json"
+	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 
@@ -68,6 +69,8 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 				TeamID:    incidents.TeamID,
 			}
 
+			fmt.Println("First Half: ", argGoalScore)
+
 			_, err := s.store.UpdateFirstHalfScore(ctx, argGoalScore)
 			if err != nil {
 				tx.Rollback()
@@ -80,6 +83,8 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 				MatchID:    incidents.MatchID,
 				TeamID:     incidents.TeamID,
 			}
+
+			fmt.Println("Second Half: ", argGoalScore)
 
 			_, err := s.store.UpdateSecondHalfScore(ctx, argGoalScore)
 			if err != nil {
