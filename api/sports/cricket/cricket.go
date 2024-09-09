@@ -2,7 +2,6 @@ package cricket
 
 import (
 	"context"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -66,17 +65,6 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 	var matchDetail []map[string]interface{}
 	for _, match := range matches {
 
-		// homeTeam, err1 := s.store.GetTeam(ctx, match.HomeTeamID)
-		// if err1 != nil {
-		// 	s.logger.Error("Failed to get club details for home team: ", err1)
-		// 	continue
-		// }
-		// awayTeam, err2 := s.store.GetTeam(ctx, match.AwayTeamID)
-		// if err2 != nil {
-		// 	s.logger.Error("Failed to get team details for away team: ", err2)
-		// 	continue
-		// }
-
 		homeTeamArg := db.GetCricketScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
 		awayTeamArg := db.GetCricketScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
 		homeScore, err := s.store.GetCricketScore(ctx, homeTeamArg)
@@ -98,8 +86,6 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		if homeScore != emptyScore {
 			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.Inning, "runRate": homeScore.RunRate, "targetRunRate": homeScore.TargetRunRate}
 		}
-		fmt.Println("Home: ", homeScoreMap)
-		fmt.Println("Away: ", awayScore)
 
 		matchMap := map[string]interface{}{
 			"matchId":        match.ID,

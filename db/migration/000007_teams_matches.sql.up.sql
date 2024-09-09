@@ -105,29 +105,6 @@ CREATE TABLE wickets (
     ball_number INT NOT NULL
 );
 
--- CREATE TABLE Score ( 
--- 	id BIGSERIAL PRIMARY KEY,
--- 	team_id BIGSERIAL,
--- 	match_id BIGSERIAL,
--- 	score BIGINT,
--- 	period1 BIGINT,
--- 	period2 BIGINT
--- );
-
--- CREATE A INCIDENT TABLE
--- CREATE A STATUS TABLE AND STATUS TIME TABLE
--- this for football and other sport that played on the timer
--- CREATE TABLE Status_Time (
--- 	sport varchar(255), -- [football, hockey]
--- 	current_time bigint,
--- 	initial bigint,
--- 	max bigint,
--- 	extra bigint
--- );
-
--- create a table of the time
-
--- create a table for player
 CREATE TABLE players (
     id BIGSERIAL PRIMARY KEY,
     username VARCHAR(255) REFERENCES users (username) NOT NULL,

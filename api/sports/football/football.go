@@ -60,18 +60,6 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 
 	var matchDetail []map[string]interface{}
 	for _, match := range matches {
-
-		// homeTeam, err1 := s.store.GetTeam(ctx, match.HomeTeamID)
-		// if err1 != nil {
-		// 	s.logger.Error("Failed to get homeTeam: ", err1)
-		// 	continue
-		// }
-		// awayTeam, err2 := s.store.GetTeam(ctx, match.AwayTeamID)
-		// if err2 != nil {
-		// 	s.logger.Error("Failed to get awayTeam: ", err2)
-		// 	continue
-		// }
-
 		homeTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
 		awayTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
 		homeScore, err := s.store.GetFootballScore(ctx, homeTeamArg)
