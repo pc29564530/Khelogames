@@ -69,3 +69,8 @@ LEFT JOIN players AS player_in ON player_in.id = fis.player_in_id
 LEFT JOIN players AS player_out ON player_out.id = fis.player_out_id
 WHERE fi.match_id =  $1
 ORDER BY incident_time DESC;
+
+-- name: GetFootballScoreByIncidentTime :many
+SELECT SUM ( CASE WHEN team_id=$1 AND incident_type='goal' THEN 1 ELSE 0 END )
+FROM football_incidents
+WHERE match_id = $2 AND id <= $3;

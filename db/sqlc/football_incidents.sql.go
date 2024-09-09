@@ -291,3 +291,38 @@ func (q *Queries) GetFootballIncidents(ctx context.Context, matchID int64) ([]Fo
 	}
 	return items, nil
 }
+
+const getFootballScoreByIncidentTime = `-- name: GetFootballScoreByIncidentTime :many
+SELECT SUM ( CASE WHEN team_id=$1 AND incident_type='goal' THEN 1 ELSE 0 END )
+FROM football_incidents
+WHERE match_id = $2 AND id <= $3
+`
+
+type GetFootballScoreByIncidentTimeParams struct {
+	TeamID  int64 `json:"team_id"`
+	MatchID int64 `json:"match_id"`
+	ID      int64 `json:"id"`
+}
+
+func (q *Queries) GetFootballScoreByIncidentTime(ctx context.Context, arg GetFootballScoreByIncidentTimeParams) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballScoreByIncidentTime, arg.TeamID, arg.MatchID, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var sum int64
+		if err := rows.Scan(&sum); err != nil {
+			return nil, err
+		}
+		items = append(items, sum)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -176,9 +176,18 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 		return
 	}
 
+	match, err := s.store.GetMatchByMatchID(ctx, req.MatchID)
+	if err != nil {
+		s.logger.Error("Failed to get match data: ", err)
+		return
+	}
+
 	var incidents []map[string]interface{}
 
 	for _, incident := range response {
+
+		var awayScore map[string]interface{}
+		var homeScore map[string]interface{}
 
 		if incident.IncidentType == "substitutions" {
 
@@ -247,14 +256,38 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 					"media_url":  playerData["media_url"],
 				},
 			}
+			if incident.IncidentType == "goal" {
+				argHome := db.GetFootballScoreByIncidentTimeParams{
+					TeamID:  match.HomeTeamID,
+					MatchID: match.ID,
+					ID:      incident.ID,
+				}
+				homefootballScore, err := s.store.GetFootballScoreByIncidentTime(ctx, argHome)
+				if err != nil {
+					s.logger.Error("unable to fetch the home score: ", err)
+				}
+				homeScore = map[string]interface{}{
+					"goals": homefootballScore[0],
+				}
+
+				argAway := db.GetFootballScoreByIncidentTimeParams{
+					TeamID:  match.AwayTeamID,
+					MatchID: match.ID,
+					ID:      incident.ID,
+				}
+				awayfootballScore, err := s.store.GetFootballScoreByIncidentTime(ctx, argAway)
+				if err != nil {
+					s.logger.Error("unable to fetch the home score: ", err)
+				}
+				awayScore = map[string]interface{}{
+					"goals": awayfootballScore[0],
+				}
+				incidentDataMap["home_score"] = homeScore
+				incidentDataMap["away_score"] = awayScore
+
+			}
 			incidents = append(incidents, incidentDataMap)
 		}
-	}
-
-	match, err := s.store.GetMatchByMatchID(ctx, req.MatchID)
-	if err != nil {
-		s.logger.Error("Failed to get match data: ", err)
-		return
 	}
 
 	var matchIncidents []map[string]interface{}
