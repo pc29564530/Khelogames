@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const getTournamentTeam = `-- name: GetTournamentTeam :one
@@ -22,20 +23,59 @@ func (q *Queries) GetTournamentTeam(ctx context.Context, teamID int64) (Tourname
 }
 
 const getTournamentTeams = `-- name: GetTournamentTeams :many
-SELECT tournament_id, team_id FROM tournament_team
+SELECT 
+    tm.id,
+    tm.name,
+    tm.admin,
+    tm.slug,
+    tm.shortname,
+    tm.country,
+    tm.media_url,
+    tm.type,
+    tm.gender,
+    tm.national,
+    tm.sports 
+FROM tournament_team tt
+LEFT JOIN teams AS tm ON tm.id == tt.team_id
 WHERE tournament_id=$1
 `
 
-func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([]TournamentTeam, error) {
+type GetTournamentTeamsRow struct {
+	ID        sql.NullInt64  `json:"id"`
+	Name      sql.NullString `json:"name"`
+	Admin     sql.NullString `json:"admin"`
+	Slug      sql.NullString `json:"slug"`
+	Shortname sql.NullString `json:"shortname"`
+	Country   sql.NullString `json:"country"`
+	MediaUrl  sql.NullString `json:"media_url"`
+	Type      sql.NullString `json:"type"`
+	Gender    sql.NullString `json:"gender"`
+	National  sql.NullBool   `json:"national"`
+	Sports    sql.NullString `json:"sports"`
+}
+
+func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([]GetTournamentTeamsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getTournamentTeams, tournamentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []TournamentTeam
+	var items []GetTournamentTeamsRow
 	for rows.Next() {
-		var i TournamentTeam
-		if err := rows.Scan(&i.TournamentID, &i.TeamID); err != nil {
+		var i GetTournamentTeamsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Admin,
+			&i.Slug,
+			&i.Shortname,
+			&i.Country,
+			&i.MediaUrl,
+			&i.Type,
+			&i.Gender,
+			&i.National,
+			&i.Sports,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -50,10 +90,14 @@ func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([
 }
 
 const getTournamentTeamsCount = `-- name: GetTournamentTeamsCount :one
+
 SELECT COUNT(*) FROM tournament_team
 WHERE tournament_id=$1
 `
 
+// -- name: GetTournamentTeams :many
+// SELECT * FROM tournament_team
+// WHERE tournament_id=$1;
 func (q *Queries) GetTournamentTeamsCount(ctx context.Context, tournamentID int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getTournamentTeamsCount, tournamentID)
 	var count int64
