@@ -1,7 +1,6 @@
 package teams
 
 import (
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 	"strconv"
@@ -88,12 +87,9 @@ func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMat
 			return nil
 		}
 
-		fmt.Println("Home Score: ", homeScore)
-		fmt.Println("Away Score: ", awayScore)
-
 		var awayScoreMap map[string]interface{}
 		var homeScoreMap map[string]interface{}
-		var emptyScore db.CricketMatchScore
+		var emptyScore db.CricketScore
 		if awayScore != emptyScore {
 			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Innings}
 		}
@@ -152,8 +148,6 @@ func (s *TeamsServer) getFootballMatchScore(ctx *gin.Context, matches []db.GetMa
 		}
 
 		var emptyScore db.FootballScore
-		fmt.Println("Home Score: ", homeScore)
-		fmt.Println("Away Score: ", awayScore)
 		var homeScoreMap map[string]interface{}
 		if homeScore != emptyScore {
 			homeScoreMap = map[string]interface{}{

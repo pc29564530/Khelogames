@@ -10,14 +10,4 @@ CREATE TABLE "profile" (
                    "created_at" timestamp NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE player_profile (
-    id bigserial PRIMARY KEY,
-    player_name varchar NOT NULL,
-    player_avatar_url varchar NOT NULL,
-    player_bio varchar NOT NULL,
-    player_sport varchar NOT NULL,
-    player_playing_category varchar NOT NULL,
-    nation varchar NOT NULL
-);
-
 ALTER TABLE "profile" ADD FOREIGN KEY ("owner") REFERENCES "users" ("username");
