@@ -16,7 +16,6 @@ type createProfileRequest struct {
 	FullName  string `json:"full_name,omitempty"`
 	Bio       string `json:"bio,omitempty"`
 	AvatarUrl string `json:"avatar_url,omitempty"`
-	CoverUrl  string `json:"cover_url,omitempty"`
 }
 
 func (s *HandlersServer) CreateProfileFunc(ctx *gin.Context) {
@@ -37,7 +36,6 @@ func (s *HandlersServer) CreateProfileFunc(ctx *gin.Context) {
 		FullName:  req.FullName,
 		Bio:       req.Bio,
 		AvatarUrl: req.AvatarUrl,
-		CoverUrl:  req.CoverUrl,
 	}
 
 	profile, err := s.store.CreateProfile(ctx, arg)
@@ -307,55 +305,5 @@ func (s *HandlersServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 
 	s.logger.Info("Successfully updated avatar URL: ", profileAvatarUrl)
 	ctx.JSON(http.StatusAccepted, profileAvatarUrl)
-	return
-}
-
-type editCoverUrlRequest struct {
-	CoverUrl string `json:"cover_url,omitempty"`
-}
-
-func (s *HandlersServer) UpdateCoverUrlFunc(ctx *gin.Context) {
-	s.logger.Info("Received request to update cover URL")
-	var req editCoverUrlRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind JSON: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-	s.logger.Debug("Request JSON bind successful: ", req)
-
-	b64data := req.CoverUrl[strings.IndexByte(req.CoverUrl, ',')+1:]
-
-	coverData, err := base64.StdEncoding.DecodeString(b64data)
-	if err != nil {
-		s.logger.Error("Failed to decode cover string: ", err)
-		return
-	}
-	s.logger.Debug("Cover string decoded successfully")
-	saveImageStruct := util.NewSaveImageStruct(s.logger)
-	mediaType := "image"
-	path, err := saveImageStruct.SaveImageToFile(coverData, mediaType)
-	if err != nil {
-		s.logger.Error("Failed to save cover image: ", err)
-		return
-	}
-	s.logger.Debug("Cover saved successfully at %s", path)
-
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
-	arg := db.UpdateCoverParams{
-		Owner:    authPayload.Username,
-		CoverUrl: path,
-	}
-
-	profileCoverUrl, err := s.store.UpdateCover(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to update cover URL: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-	s.logger.Info("Successfully updated cover URL: ", profileCoverUrl)
-	ctx.JSON(http.StatusAccepted, profileCoverUrl)
 	return
 }

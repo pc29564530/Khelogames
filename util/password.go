@@ -11,7 +11,7 @@ func HashPassword(password string) (string, error) {
 	logger := logger.NewLogger()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Errorf("failed to generate hashed password: %v", err)
+		logger.Errorf("failed to generate hashed password: ", err)
 		return "", err
 	}
 	return string(hashedPassword), nil

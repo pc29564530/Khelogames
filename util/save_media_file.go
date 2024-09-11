@@ -20,11 +20,10 @@ func NewSaveImageStruct(logger *logger.Logger) *SaveImageStruct {
 }
 
 func (s *SaveImageStruct) SaveImageToFile(data []byte, mediaType string) (string, error) {
-	s.logger.Info("Starting SaveImageToFile function")
 
 	randomString, err := s.generateRandomString(12)
 	if err != nil {
-		s.logger.Error("Error generating random string: %v", err)
+		s.logger.Error("Error generating random string: ", err)
 		return "", err
 	}
 	s.logger.Debug("Generated random string: %s", randomString)
@@ -37,21 +36,21 @@ func (s *SaveImageStruct) SaveImageToFile(data []byte, mediaType string) (string
 		mediaFolder = "videos"
 	default:
 		err := fmt.Errorf("unsupported media type: %s", mediaType)
-		s.logger.Error("Unsupported media type: %v", err)
+		s.logger.Error("Unsupported media type: ", err)
 		return "", err
 	}
 
 	filePath := fmt.Sprintf("/Users/pawan/database/Khelogames/%s/%s", mediaFolder, randomString)
 	file, err := os.Create(filePath)
 	if err != nil {
-		s.logger.Error("Failed to create file: %v", err)
+		s.logger.Error("Failed to create file: ", err)
 		return "", err
 	}
 	defer file.Close()
 
 	_, err = io.Copy(file, bytes.NewReader(data))
 	if err != nil {
-		s.logger.Error("Failed to copy data to file: %v", err)
+		s.logger.Error("Failed to copy data to file: ", err)
 		return "", err
 	}
 
@@ -68,14 +67,14 @@ func (s *SaveImageStruct) generateRandomString(length int) (string, error) {
 
 	if length%2 != 0 {
 		err := fmt.Errorf("length must be even for generating hex string")
-		s.logger.Error("Invalid length for random string generation: %v", err)
+		s.logger.Error("Invalid length for random string generation: ", err)
 		return "", err
 	}
 
 	randomBytes := make([]byte, length/2)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
-		s.logger.Error("Failed to read random bytes: %v", err)
+		s.logger.Error("Failed to read random bytes: ", err)
 		return "", err
 	}
 

@@ -37,12 +37,6 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		s.logger.Error("unable to convert time to second: ", err)
 		return
 	}
-	// fmt.Println("req.StatusCode", req.StatusCode)
-
-	// statusCodeJSON, err := json.Marshal(req.StatusCode)
-	// if err != nil {
-	// 	s.logger.Error("failed to marshal status code: %v", err)
-	// }
 
 	arg := db.NewTournamentParams{
 		TournamentName: req.TournamentName,

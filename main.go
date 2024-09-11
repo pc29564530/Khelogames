@@ -40,7 +40,7 @@ func main() {
 
 	tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
-		log.Errorf("cannot create token maker: %v", err)
+		log.Errorf("cannot create token maker: ", err)
 		os.Exit(1)
 	}
 

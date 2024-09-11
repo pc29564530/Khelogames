@@ -222,7 +222,6 @@ type Profile struct {
 	FullName  string    `json:"full_name"`
 	Bio       string    `json:"bio"`
 	AvatarUrl string    `json:"avatar_url"`
-	CoverUrl  string    `json:"cover_url"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
