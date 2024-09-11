@@ -40,33 +40,41 @@ func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			s.logger.Error("No row found: %v", err)
+			s.logger.Error("No row found: ", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	s.logger.Debug(fmt.Sprintf("successfully get the login request: %v", req))
+	s.logger.Debug(fmt.Sprintf("successfully get the login request: ", req))
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation: ", err)
+		return
+	}
+
+	defer tx.Rollback()
 
 	user, err := s.store.GetUser(ctx, req.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			s.logger.Error("No row found: %v", err)
+			s.logger.Error("No row found: ", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		s.logger.Error("Failed to get the user: %v", err)
+		s.logger.Error("Failed to get the user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug(fmt.Sprintf("successfully get the user: %v", user))
+	s.logger.Debug(fmt.Sprintf("successfully get the user: ", user))
 
 	err = util.CheckPassword(req.Password, user.HashedPassword)
 	if err != nil {
-		s.logger.Error("Failed to match password: %v", err)
+		s.logger.Error("Failed to match password: ", err)
 		ctx.JSON(http.StatusUnauthorized, (err))
 		return
 	}
@@ -78,7 +86,7 @@ func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 		s.config.AccessTokenDuration,
 	)
 	if err != nil {
-		s.logger.Error("Failed to create access token: %v", err)
+		s.logger.Error("Failed to create access token: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -89,7 +97,7 @@ func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 	)
 
 	if err != nil {
-		s.logger.Error("Failed to create refresh token: %v", err)
+		s.logger.Error("Failed to create refresh token: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -104,7 +112,7 @@ func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		s.logger.Error("Failed to create session: %v", err)
+		s.logger.Error("Failed to create session: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -129,21 +137,21 @@ func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 func (s *AuthServer) VerifyMobileAndPasswordFunc(ctx *gin.Context, username string, password string, userData db.User) error {
 	var err error
 	if userData.Username != username {
-		s.logger.Error("Failed to verify mobile and password: %v", err)
+		s.logger.Error("Failed to verify mobile and password: ", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return err
 	}
-	s.logger.Debug(fmt.Sprintf("successfully matches the username: %v", username))
+	s.logger.Debug(fmt.Sprintf("successfully matches the username: ", username))
 	pass, err := util.HashPassword(password)
 	if err != nil {
-		s.logger.Debug("Failed to convert password: %v", err)
+		s.logger.Debug("Failed to convert password: ", err)
 		return err
 	}
-	s.logger.Debug(fmt.Sprintf("input password of user: %v", pass))
-	s.logger.Debug(fmt.Sprintf("store password of the user: %v", userData.HashedPassword))
+	s.logger.Debug(fmt.Sprintf("input password of user: ", pass))
+	s.logger.Debug(fmt.Sprintf("store password of the user: ", userData.HashedPassword))
 	err = util.CheckPassword(pass, userData.HashedPassword)
 	if err != nil {
-		s.logger.Error("Failed to verify mobile and password: %v", err)
+		s.logger.Error("Failed to verify mobile and password: ", err)
 		return err
 	}
 	s.logger.Info("successfully verify the password")
@@ -154,7 +162,7 @@ func (s *AuthServer) GenerateSessionTokenFunc() (string, error) {
 	token := make([]byte, 32)
 	_, err := rand.Read(token)
 	if err != nil {
-		s.logger.Error("Failed to generate session token: %v", err)
+		s.logger.Error("Failed to generate session token: ", err)
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(token), nil

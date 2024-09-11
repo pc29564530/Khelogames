@@ -21,21 +21,21 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+	s.logger.Debug("bind the request: ", req)
 
-	s.logger.Debug("bind the request: %v", req)
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.AddJoinCommunityParams{
 		CommunityName: req.CommunityName,
 		Username:      authPayload.Username,
 	}
-	s.logger.Debug("params arg: %v", arg)
+	s.logger.Debug("params arg: ", arg)
 
 	communityUser, err := s.store.AddJoinCommunity(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("successfully join community: %v", communityUser)
+	s.logger.Debug("successfully join community: ", communityUser)
 
 	ctx.JSON(http.StatusOK, communityUser)
 	return
@@ -49,19 +49,19 @@ func (s *HandlersServer) GetUserByCommunityFunc(ctx *gin.Context) {
 	var req getUserByCommunityRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : %v", err)
+		s.logger.Error("Failed to bind : ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("bind the request: %v", req)
+	s.logger.Debug("bind the request: ", req)
 
 	communityUserList, err := s.store.GetUserByCommunity(ctx, req.CommunityName)
 	if err != nil {
-		s.logger.Error("Failed to get user by community: %v", err)
+		s.logger.Error("Failed to get user by community: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("user by community: %v", communityUserList)
+	s.logger.Debug("user by community: ", communityUserList)
 
 	ctx.JSON(http.StatusOK, communityUserList)
 	return
@@ -72,11 +72,11 @@ func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	communityList, err := s.store.GetCommunityByUser(ctx, authPayload.Username)
 	if err != nil {
-		s.logger.Error("Failed to get community by user: %v", err)
+		s.logger.Error("Failed to get community by user: ", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
-	s.logger.Debug("community by user: %v", communityList)
+	s.logger.Debug("community by user: ", communityList)
 
 	ctx.JSON(http.StatusOK, communityList)
 }

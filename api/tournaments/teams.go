@@ -17,7 +17,7 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	var req addTournamentTeamRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind request: %v", err)
+		s.logger.Error("Failed to bind request: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -29,11 +29,11 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 
 	response, err := s.store.NewTournamentTeam(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to add team: %v", err)
+		s.logger.Error("Failed to add team: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully added team: %v", response)
+	s.logger.Info("Successfully added team: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
@@ -48,40 +48,34 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 	var req getTournamentTeamsRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind request: %v", err)
+		s.logger.Error("Failed to bind request: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
-	teamsID, err := s.store.GetTournamentTeams(ctx, req.TournamentID)
+	tournamentTeamsData, err := s.store.GetTournamentTeams(ctx, req.TournamentID)
 	if err != nil {
-		s.logger.Error("Failed to get teams: %v", err)
+		s.logger.Error("Failed to get teams: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Not found"})
 		return
 	}
 	var teamsData []map[string]interface{}
-	for _, team := range teamsID {
-		teamResponse, err := s.store.GetTeam(ctx, team.TeamID)
-		if err != nil {
-			s.logger.Error("Failed to get team data: %v", err)
-			return
-		}
+	for _, team := range tournamentTeamsData {
 		teamData := map[string]interface{}{
-			"team_id":    teamResponse.ID,
-			"team_name":  teamResponse.Name,
-			"slug":       teamResponse.Slug,
-			"short_name": teamResponse.Shortname,
-			"team_admin": teamResponse.Admin,
-			"media_url":  teamResponse.MediaUrl,
-			"country":    teamResponse.Country,
-			"gender":     teamResponse.Gender,
-			"national":   teamResponse.National,
+			"team_id":    team.ID,
+			"team_name":  team.Name,
+			"slug":       team.Slug,
+			"short_name": team.Shortname,
+			"team_admin": team.Admin,
+			"media_url":  team.MediaUrl,
+			"country":    team.Country,
+			"gender":     team.Gender,
+			"national":   team.National,
 		}
 		teamsData = append(teamsData, teamData)
 	}
 
-	s.logger.Info("Successfully retrieved teams: %v", teamsData)
+	s.logger.Info("Successfully retrieved teams: ", teamsData)
 
 	ctx.JSON(http.StatusAccepted, teamsData)
-	return
 }

@@ -19,15 +19,14 @@ type createCommunityMessageRequest struct {
 }
 
 func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
-	s.logger.Info("Received request to create community message")
 
 	var req createCommunityMessageRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		s.logger.Error("Failed to bind JSON: %v", err)
+		s.logger.Error("Failed to bind JSON: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request JSON bind successful: %v", req)
+	s.logger.Debug("Successfully bind: ", req)
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
@@ -37,11 +36,11 @@ func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
 		Content:        req.Content,
 	}
 
-	s.logger.Debug("Create community message params: %v", arg)
+	s.logger.Debug("Create community message params: ", arg)
 
 	response, err := s.store.CreateCommunityMessage(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to create community message: %v", err)
+		s.logger.Error("Failed to create community message: ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
@@ -54,10 +53,17 @@ func (s *MessageServer) CreateUploadMediaFunc(ctx *gin.Context) {
 
 	r := ctx.Request
 	if err := r.ParseMultipartForm(40 << 20); err != nil {
-		s.logger.Error("Failed to parse multipart form: %v", err)
+		s.logger.Error("Failed to parse multipart form: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin the transcation")
+	}
+
+	defer tx.Rollback()
 
 	mediaUrl := ctx.Request.FormValue("media_url")
 	mediaType := ctx.Request.FormValue("media_type")
@@ -71,13 +77,13 @@ func (s *MessageServer) CreateUploadMediaFunc(ctx *gin.Context) {
 
 		data, err := base64.StdEncoding.DecodeString(b64data)
 		if err != nil {
-			s.logger.Error("Failed to decode base64 string: %v", err)
+			s.logger.Error("Failed to decode base64 string: ", err)
 			return
 		}
 
 		path, err = saveImageStruct.SaveImageToFile(data, mediaType)
 		if err != nil {
-			s.logger.Error("Failed to save image to file: %v", err)
+			s.logger.Error("Failed to save image to file: ", err)
 			return
 		}
 		s.logger.Debug("Image saved successfully at %s", path)
@@ -88,14 +94,21 @@ func (s *MessageServer) CreateUploadMediaFunc(ctx *gin.Context) {
 		MediaType: mediaType,
 	}
 
-	s.logger.Debug("Create upload media params: %v", arg)
+	s.logger.Debug("Create upload media params: ", arg)
 
 	response, err := s.store.CreateUploadMedia(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to create upload media: %v", err)
+		s.logger.Error("Failed to create upload media: ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+		return
+	}
+
 	s.logger.Info("Successfully created upload media")
 	ctx.JSON(http.StatusAccepted, response)
 }
@@ -110,25 +123,40 @@ func (s *MessageServer) CreateMessageMediaFunc(ctx *gin.Context) {
 
 	var req createMessageMediaRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		s.logger.Error("Failed to bind JSON: %v", err)
+		s.logger.Error("Failed to bind JSON: ", err)
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
-	s.logger.Debug("Request JSON bind successful: %v", req)
+	s.logger.Debug("Request JSON bind successful: ", req)
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation: ", err)
+		return
+	}
+
+	defer tx.Rollback()
 
 	arg := db.CreateMessageMediaParams{
 		MessageID: req.MessageID,
 		MediaID:   req.MediaID,
 	}
 
-	s.logger.Debug("Create message media params: %v", arg)
+	s.logger.Debug("Create message media params: ", arg)
 
 	response, err := s.store.CreateMessageMedia(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to create message media: %v", err)
+		s.logger.Error("Failed to create message media: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+		return
+	}
+
 	s.logger.Info("Successfully created message media")
 	ctx.JSON(http.StatusAccepted, response)
 }
@@ -138,7 +166,7 @@ func (s *MessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
 
 	response, err := s.store.GetCommuntiyMessage(ctx) //spelling mistake
 	if err != nil {
-		s.logger.Error("Failed to get community message: %v", err)
+		s.logger.Error("Failed to get community message: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -151,7 +179,7 @@ func (s *MessageServer) GetCommunityByMessageFunc(ctx *gin.Context) {
 
 	response, err := s.store.GetCommunityByMessage(ctx)
 	if err != nil {
-		s.logger.Error("Failed to get community by message: %v", err)
+		s.logger.Error("Failed to get community by message: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}

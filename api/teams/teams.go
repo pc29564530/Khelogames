@@ -2,7 +2,6 @@ package teams
 
 import (
 	"encoding/base64"
-	"fmt"
 	db "khelogames/db/sqlc"
 
 	"khelogames/pkg"
@@ -31,6 +30,15 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 		s.logger.Error("Failed to bind create club request: ", err)
 		return
 	}
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation: ", err)
+		return
+	}
+
+	tx.Rollback()
+
 	saveImageStruct := util.NewSaveImageStruct(s.logger)
 	var path string
 	if req.MediaURL != "" {
@@ -44,6 +52,7 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 
 		path, err = saveImageStruct.SaveImageToFile(data, "image")
 		if err != nil {
+			tx.Rollback()
 			s.logger.Error("Failed to create file: ", err)
 			return
 		}
@@ -66,8 +75,14 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 
 	response, err := s.store.NewTeams(ctx, arg)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Failed to create club: ", err)
-		ctx.JSON(http.StatusNoContent, (err))
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
 		return
 	}
 
@@ -120,8 +135,6 @@ func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusNoContent, (err))
 		return
 	}
-
-	fmt.Println("Response: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return

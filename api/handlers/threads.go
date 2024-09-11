@@ -26,8 +26,14 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 	var req createThreadRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation")
 		return
 	}
 
@@ -45,6 +51,7 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 
 		path, err = saveImageStruct.SaveImageToFile(data, req.MediaType)
 		if err != nil {
+			tx.Rollback()
 			s.logger.Error("Failed to save image to file ", err)
 			return
 		}
@@ -66,10 +73,18 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 
 	thread, err := s.store.CreateThread(ctx, arg)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Failed to create new thread ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit the transcation")
+		return
+	}
+
 	s.logger.Info("Thread successfully created ")
 	ctx.JSON(http.StatusOK, thread)
 	return
@@ -90,7 +105,7 @@ func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
 
 	thread, err := s.store.GetThread(ctx, req.ID)
 	if err != nil {
-		s.logger.Error("Failed to get thread: %v", err)
+		s.logger.Error("Failed to get thread: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -108,14 +123,14 @@ func (s *HandlersServer) GetThreadByUserFunc(ctx *gin.Context) {
 	var req getThreadUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
 	thread, err := s.store.GetThreadUser(ctx, req.Username)
 	if err != nil {
-		s.logger.Error("Failed to get thread by user: %v", err)
+		s.logger.Error("Failed to get thread by user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -193,7 +208,7 @@ func (s *HandlersServer) GetAllThreadsByCommunityDetailsFunc(ctx *gin.Context) {
 
 	threads, err := s.store.GetAllThreadsByCommunities(ctx, req.CommunitiesName)
 	if err != nil {
-		s.logger.Error("Failed to get thread by communities: %v", err)
+		s.logger.Error("Failed to get thread by communities: ", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
@@ -244,7 +259,7 @@ func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 
 	threads, err := s.store.GetAllThreadsByCommunities(ctx, req.CommunitiesName)
 	if err != nil {
-		s.logger.Error("Failed to get thread by communities: %v", err)
+		s.logger.Error("Failed to get thread by communities: ", err)
 		ctx.JSON(http.StatusNotFound, (err))
 		return
 	}
@@ -274,7 +289,7 @@ func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 
 	thread, err := s.store.UpdateThreadLike(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update like: %v", err)
+		s.logger.Error("Failed to update like: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}

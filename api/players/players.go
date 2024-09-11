@@ -12,16 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// type newPlayerRequest struct {
-// 	Name      string `json:"name"`
-// 	Slug      string `json:"slug"`
-// 	ShortName string `json:"short_name"`
-// 	MediaUrl  string `json:"media_url"`
-// 	Positions string `json:"positions"`
-// 	Sports    string `json:"sports"`
-// 	Country   string `json:"country"`
-// }
-
 type newPlayerRequest struct {
 	Positions string `json:"positions"`
 	Sports    string `json:"sports"`
@@ -59,7 +49,7 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 
 	response, err := s.store.NewPlayer(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to add player profile: %v", err)
+		s.logger.Error("Failed to add player profile: ", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
@@ -111,12 +101,12 @@ func (s *PlayerServer) GetPlayerSearchFunc(ctx *gin.Context) {
 
 	response, err := s.store.SearchPlayer(ctx, playerName)
 	if err != nil {
-		s.logger.Error("Failed to get player profile: %v", err)
+		s.logger.Error("Failed to get player profile: ", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
 
-	s.logger.Debug("Successfully get the player profile: %v", response)
+	s.logger.Debug("Successfully get the player profile: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
@@ -126,11 +116,11 @@ func (s *PlayerServer) GetPlayerByCountry(ctx *gin.Context) {
 	country := ctx.Query("country")
 	response, err := s.store.GetPlayersCountry(ctx, country)
 	if err != nil {
-		s.logger.Error("Failed to get player profile: %v", err)
+		s.logger.Error("Failed to get player profile: ", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
-	s.logger.Debug("Successfully get all player profile: %v", response)
+	s.logger.Debug("Successfully get all player profile: ", response)
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
@@ -139,14 +129,14 @@ func (s *PlayerServer) UpdatePlayerMediaFunc(ctx *gin.Context) {
 	playerIdStr := ctx.Query("id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse player id: %v", err)
+		s.logger.Error("Failed to parse player id: ", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
-	s.logger.Debug("Parse the player id: %v", playerID)
+	s.logger.Debug("Parse the player id: ", playerID)
 
 	playerMediaURL := ctx.Query("media_url")
-	s.logger.Debug("Parse the player avatar ur: %v", playerMediaURL)
+	s.logger.Debug("Parse the player avatar ur: ", playerMediaURL)
 	arg := db.UpdatePlayerMediaParams{
 		MediaUrl: playerMediaURL,
 		ID:       playerID,
@@ -154,11 +144,11 @@ func (s *PlayerServer) UpdatePlayerMediaFunc(ctx *gin.Context) {
 
 	response, err := s.store.UpdatePlayerMedia(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update player profile avatar: %v", err)
+		s.logger.Error("Failed to update player profile avatar: ", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
-	s.logger.Debug("Update the player profile Avatar: %v", response)
+	s.logger.Debug("Update the player profile Avatar: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
@@ -168,14 +158,14 @@ func (s *PlayerServer) UpdatePlayerPositionFunc(ctx *gin.Context) {
 	playerIdStr := ctx.Query("id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse player id: %v", err)
+		s.logger.Error("Failed to parse player id: ", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
-	s.logger.Debug("Parse the player id: %v", playerID)
+	s.logger.Debug("Parse the player id: ", playerID)
 
 	playerPosition := ctx.Query("position")
-	s.logger.Debug("Parse the player avatar ur: %v", playerPosition)
+	s.logger.Debug("Parse the player avatar ur: ", playerPosition)
 	arg := db.UpdatePlayerPositionParams{
 		Positions: playerPosition,
 		ID:        playerID,
@@ -183,12 +173,11 @@ func (s *PlayerServer) UpdatePlayerPositionFunc(ctx *gin.Context) {
 
 	response, err := s.store.UpdatePlayerPosition(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update player profile avatar: %v", err)
+		s.logger.Error("Failed to update player profile avatar: ", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
-	s.logger.Debug("Update the player profile Avatar: %v", response)
+	s.logger.Debug("Update the player profile Avatar: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
-	return
 }

@@ -99,6 +99,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 type updateStatusRequest struct {
 	ID         int64  `json:"id"`
 	StatusCode string `json:"status_code"`
+	Sports     string `json:"sports"`
 }
 
 func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
@@ -111,6 +112,12 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		return
 	}
 
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("unable to begin tx: ", err)
+		return
+	}
+
 	arg := db.UpdateMatchStatusParams{
 		ID:         req.ID,
 		StatusCode: req.StatusCode,
@@ -118,13 +125,14 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	updatedMatchData, err := s.store.UpdateMatchStatus(ctx, arg)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("unable to update the match status: ", err)
 		return
 	}
 
 	s.logger.Info("successfully updated the match status")
 
-	if updatedMatchData.StatusCode == "in_progress" {
+	if updatedMatchData.StatusCode == "in_progress" && req.Sports == "Football" {
 		argAway := db.NewFootballScoreParams{
 			MatchID:    updatedMatchData.ID,
 			TeamID:     updatedMatchData.AwayTeamID,
@@ -135,7 +143,9 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 		_, err := s.store.NewFootballScore(ctx, argAway)
 		if err != nil {
+			tx.Rollback()
 			s.logger.Error("unable to add the football match score: ", err)
+			return
 		}
 
 		argHome := db.NewFootballScoreParams{
@@ -148,8 +158,16 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 		_, err = s.store.NewFootballScore(ctx, argHome)
 		if err != nil {
+			tx.Rollback()
 			s.logger.Error("unable to add the football match score: ", err)
+			return
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+		return
 	}
 
 	ctx.JSON(http.StatusAccepted, updatedMatchData)

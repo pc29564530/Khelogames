@@ -23,7 +23,7 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 		return
 	}
 
-	s.logger.Debug("message receiver username: %v", err)
+	s.logger.Debug("message receiver username: ", err)
 
 	authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.GetMessageByReceiverParams{
@@ -31,7 +31,7 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 		ReceiverUsername: req.ReceiverUsername,
 	}
 
-	s.logger.Debug("message by receiver arg: %v", arg)
+	s.logger.Debug("message by receiver arg: ", arg)
 
 	messageContent, err := s.store.GetMessageByReceiver(ctx, arg)
 	if err != nil {
@@ -40,7 +40,7 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 		return
 	}
 
-	s.logger.Debug("get message by receiver: %v", messageContent)
+	s.logger.Debug("get message by receiver: ", messageContent)
 
 	broadcastMessage := fmt.Sprintf("User: %s retrieved messages from %s", authToken.Username, req.ReceiverUsername)
 	s.broadcast <- []byte(broadcastMessage)
@@ -53,12 +53,12 @@ func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	messageUserName, err := s.store.GetUserByMessageSend(ctx, authPayload.Username)
 	if err != nil {
-		s.logger.Error("Failed to get user by message send: %v", err)
+		s.logger.Error("Failed to get user by message send: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	s.logger.Debug("get username by message sent: %v", messageUserName)
+	s.logger.Debug("get username by message sent: ", messageUserName)
 
 	ctx.JSON(http.StatusAccepted, messageUserName)
 	return

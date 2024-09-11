@@ -56,15 +56,15 @@ func (s *TeamsServer) getMatchScore(ctx *gin.Context, matches []db.GetMatchByTea
 func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, matchesDetails []map[string]interface{}) []map[string]interface{} {
 
 	for _, match := range matches {
-		homeArg := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.HomeTeamID}
-		awayArg := db.GetCricketMatchScoreParams{MatchID: match.MatchID, TeamID: match.AwayTeamID}
+		homeArg := db.GetCricketScoreParams{MatchID: match.MatchID, TeamID: match.HomeTeamID}
+		awayArg := db.GetCricketScoreParams{MatchID: match.MatchID, TeamID: match.AwayTeamID}
 
-		homeScore, err := s.store.GetCricketMatchScore(ctx, homeArg)
+		homeScore, err := s.store.GetCricketScore(ctx, homeArg)
 		if err != nil {
 			s.logger.Error("Failed to get cricket match score for home team:", err)
 
 		}
-		awayScore, err := s.store.GetCricketMatchScore(ctx, awayArg)
+		awayScore, err := s.store.GetCricketScore(ctx, awayArg)
 		if err != nil {
 			s.logger.Error("Failed to get cricket match score for away team:", err)
 		}
@@ -91,11 +91,11 @@ func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMat
 		var homeScoreMap map[string]interface{}
 		var emptyScore db.CricketScore
 		if awayScore != emptyScore {
-			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Innings}
+			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Inning}
 		}
 
 		if homeScore != emptyScore {
-			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.Innings}
+			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.Inning}
 		}
 
 		matchDetail := map[string]interface{}{
