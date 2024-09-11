@@ -58,21 +58,21 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 
 	payload, err := h.tokenMaker.VerifyToken(auth[1])
 	if err != nil {
-		h.logger.Debug("unable to get valid token: %v", err)
+		h.logger.Debug("unable to get valid token: ", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 		return
 	}
 
-	h.logger.Debug("payload of verify token: %v", payload)
+	h.logger.Debug("payload of verify token: ", payload)
 
 	conn, err := h.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
-		h.logger.Errorf("Failed to upgrade to WebSocket: %v", err)
+		h.logger.Error("Failed to upgrade to WebSocket: ", err)
 		return
 	}
 	defer conn.Close()
 
-	h.logger.Debug("upgrade the websocket: %v", conn)
+	h.logger.Debug("upgrade the websocket: ", conn)
 
 	h.mutex.Lock()
 	h.clients[conn] = true
@@ -87,15 +87,14 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 	h.logger.Infof("WebSocket connection established for user %s", payload.Username)
 
 	for {
-		fmt.Println("Line no 196")
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
-			h.logger.Error("unable to read message: %v", err)
+			h.logger.Error("unable to read message: ", err)
 			delete(h.clients, conn)
 			break
 		}
 
-		h.logger.Debug("successfully read message: %v", msg)
+		h.logger.Debug("successfully read message: ", msg)
 
 		var message map[string]string
 		err = json.Unmarshal(msg, &message)
@@ -117,15 +116,23 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 		)
 
 		if err != nil {
-			h.logger.Error("unable to publish message to rabbitchannel: %v", err)
+			h.logger.Error("unable to publish message to rabbitchannel: ", err)
 			return
 		}
+
+		tx, err := h.store.BeginTx(ctx)
+		if err != nil {
+			h.logger.Error("Failed to begin transcation: ", err)
+			return
+		}
+
+		defer tx.Rollback()
 
 		authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 		b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
 		data, err := base64.StdEncoding.DecodeString(b64data)
 		if err != nil {
-			h.logger.Error("unable to decode string: %v", err)
+			h.logger.Error("unable to decode string: ", err)
 			return
 		}
 		saveImageStruct := util.NewSaveImageStruct(h.logger)
@@ -136,7 +143,7 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 			return
 		}
 
-		h.logger.Debug("image path successfully created: %v", path)
+		h.logger.Debug("image path successfully created: ", path)
 		h.logger.Info("successfully created image path")
 
 		arg := db.CreateNewMessageParams{
@@ -148,7 +155,7 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 			MediaType:        message["media_type"],
 		}
 
-		h.logger.Debug("create new message params: %v", arg)
+		h.logger.Debug("create new message params: ", arg)
 
 		_, err = h.store.CreateNewMessage(ctx, arg)
 		if err != nil {
@@ -161,5 +168,11 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 		h.broadcast <- msg
 
 		h.logger.Debug("Successfully broad cast message")
+
+		err = tx.Commit()
+		if err != nil {
+			h.logger.Error("Failed to commit the transcation: ", err)
+			return
+		}
 	}
 }

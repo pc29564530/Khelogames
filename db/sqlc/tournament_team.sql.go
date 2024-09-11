@@ -90,14 +90,10 @@ func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([
 }
 
 const getTournamentTeamsCount = `-- name: GetTournamentTeamsCount :one
-
 SELECT COUNT(*) FROM tournament_team
 WHERE tournament_id=$1
 `
 
-// -- name: GetTournamentTeams :many
-// SELECT * FROM tournament_team
-// WHERE tournament_id=$1;
 func (q *Queries) GetTournamentTeamsCount(ctx context.Context, tournamentID int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getTournamentTeamsCount, tournamentID)
 	var count int64
