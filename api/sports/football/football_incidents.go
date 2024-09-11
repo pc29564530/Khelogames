@@ -2,7 +2,6 @@ package football
 
 import (
 	"encoding/json"
-	"fmt"
 	db "khelogames/db/sqlc"
 	"net/http"
 
@@ -69,8 +68,6 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 				TeamID:    incidents.TeamID,
 			}
 
-			fmt.Println("First Half: ", argGoalScore)
-
 			_, err := s.store.UpdateFirstHalfScore(ctx, argGoalScore)
 			if err != nil {
 				tx.Rollback()
@@ -83,8 +80,6 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 				MatchID:    incidents.MatchID,
 				TeamID:     incidents.TeamID,
 			}
-
-			fmt.Println("Second Half: ", argGoalScore)
 
 			_, err := s.store.UpdateSecondHalfScore(ctx, argGoalScore)
 			if err != nil {
@@ -127,6 +122,14 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		return
 	}
 
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation: ", err)
+		return
+	}
+
+	defer tx.Rollback()
+
 	arg := db.CreateFootballIncidentsParams{
 		MatchID:      req.MatchID,
 		TeamID:       req.TeamID,
@@ -151,6 +154,12 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 	_, err = s.store.ADDFootballSubsPlayer(ctx, incidentPlayerArg)
 	if err != nil {
 		s.logger.Error("Failed to create football incidents: ", err)
+		return
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
 		return
 	}
 

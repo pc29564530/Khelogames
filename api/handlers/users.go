@@ -41,29 +41,32 @@ type createUserResponse struct {
 	Role         string    `json:"role"`
 }
 
-func authorizationCode(ctx *gin.Context, username string, mobileNumber string, role string, s *HandlersServer) {
+func authorizationCode(ctx *gin.Context, username string, mobileNumber string, role string, s *HandlersServer, tx *sql.Tx) {
+
 	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
 		username,
 		s.config.AccessTokenDuration,
 	)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Failed to create access token", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("created a accesstoken: %v", accessToken)
+	s.logger.Debug("created a accesstoken: ", accessToken)
 
 	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
 		username,
 		s.config.RefreshTokenDuration,
 	)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Failed to create refresh token", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	s.logger.Debug("created a refresh token: %v", refreshToken)
+	s.logger.Debug("created a refresh token: ", refreshToken)
 
 	session, err := s.store.CreateSessions(ctx, db.CreateSessionsParams{
 		ID:           refreshPayload.ID,
@@ -75,6 +78,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 	})
 
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Failed to create session", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
@@ -99,9 +103,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 
 	var req createUserRequest
-
 	err := ctx.ShouldBindJSON(&req)
-
 	if err != nil {
 		errCode := db.ErrorCode(err)
 		if errCode == db.UniqueViolation {
@@ -119,7 +121,15 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 		return
 	}
 
-	s.logger.Debug("bind the request: %v", req)
+	s.logger.Debug("bind the request: ", req)
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin the transcation: ", err)
+		return
+	}
+
+	defer tx.Rollback()
 
 	hashedPassword, err := util.HashPassword(req.HashedPassword)
 	if err != nil {
@@ -138,6 +148,7 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 	user, err := s.store.CreateUser(ctx, arg)
 
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Unable to create user")
 		ctx.JSON(http.StatusUnauthorized, (err))
 		return
@@ -149,12 +160,13 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 		Role:         user.Role,
 	}
 
-	s.logger.Debug("successfully created user: %v", resp)
+	s.logger.Debug("successfully created user: ", resp)
 
-	authorizationCode(ctx, resp.Username, resp.MobileNumber, resp.Role, s)
+	authorizationCode(ctx, resp.Username, resp.MobileNumber, resp.Role, s, tx)
 
 	_, err = s.store.DeleteSignup(ctx, req.MobileNumber)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Unable to delete signup details: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
@@ -173,9 +185,17 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 
 	_, err = s.store.CreateProfile(ctx, argProfile)
 	if err != nil {
+		tx.Rollback()
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+		return
+	}
+
 	s.logger.Info("Profile created successfully")
 	s.logger.Info("Successfully created the user")
 	return
@@ -189,19 +209,19 @@ func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	var req getUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("bind the reqeust: %v", req)
+	s.logger.Debug("bind the reqeust: ", req)
 
 	users, err := s.store.GetUser(ctx, req.Username)
 	if err != nil {
-		s.logger.Error("Failed to get user: %v", err)
+		s.logger.Error("Failed to get user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("get the user data: %v", users)
+	s.logger.Debug("get the user data: ", users)
 	ctx.JSON(http.StatusOK, users)
 	return
 }
@@ -215,11 +235,11 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 	var req getListUsersRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("bind the request: %v", req)
+	s.logger.Debug("bind the request: ", req)
 	arg := db.ListUserParams{
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
@@ -227,10 +247,10 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 
 	userList, err := s.store.ListUser(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to get list: %v", err)
+		s.logger.Error("Failed to get list: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("get the users list: %v", userList)
+	s.logger.Debug("get the users list: ", userList)
 	ctx.JSON(http.StatusOK, userList)
 }

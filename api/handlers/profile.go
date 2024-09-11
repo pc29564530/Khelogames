@@ -24,11 +24,11 @@ func (s *HandlersServer) CreateProfileFunc(ctx *gin.Context) {
 	var req createProfileRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind JSON: %v", err)
+		s.logger.Error("Failed to bind JSON: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request JSON bind successful: %v", req)
+	s.logger.Debug("Request JSON bind successful: ", req)
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
@@ -42,11 +42,11 @@ func (s *HandlersServer) CreateProfileFunc(ctx *gin.Context) {
 
 	profile, err := s.store.CreateProfile(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to create profile: %v", err)
+		s.logger.Error("Failed to create profile: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully created profile: %v", profile)
+	s.logger.Info("Successfully created profile: ", profile)
 	ctx.JSON(http.StatusOK, profile)
 	return
 }
@@ -60,19 +60,19 @@ func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	var req getProfileRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind URI: %v", err)
+		s.logger.Error("Failed to bind URI: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request URI bind successful: %v", req)
+	s.logger.Debug("Request URI bind successful: ", req)
 
 	profile, err := s.store.GetProfile(ctx, req.Owner)
 	if err != nil {
-		s.logger.Error("Failed to get profile: %v", err)
+		s.logger.Error("Failed to get profile: ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
-	s.logger.Info("Successfully retrieved profile: %v", profile)
+	s.logger.Info("Successfully retrieved profile: ", profile)
 	ctx.JSON(http.StatusOK, profile)
 	return
 }
@@ -89,17 +89,26 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 	var req editProfileRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind JSON: %v", err)
+		s.logger.Error("Failed to bind JSON: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request JSON bind successful: %v", req)
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation: ", err)
+		return
+	}
+
+	defer tx.Rollback()
+
+	s.logger.Debug("Request JSON bind successful: ", req)
 
 	b64data := req.AvatarUrl[strings.IndexByte(req.AvatarUrl, ',')+1:]
 
 	avatarData, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		s.logger.Error("Failed to decode avatar string: %v", err)
+		s.logger.Error("Failed to decode avatar string: ", err)
 		return
 	}
 	s.logger.Debug("Avatar string decoded successfully")
@@ -108,7 +117,7 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 
 	coverData, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		s.logger.Error("Failed to decode cover string: %v", err)
+		s.logger.Error("Failed to decode cover string: ", err)
 		return
 	}
 	s.logger.Debug("Cover string decoded successfully")
@@ -118,7 +127,7 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 	if req.AvatarUrl != "" {
 		avatarPath, err = saveImageStruct.SaveImageToFile(avatarData, mediaType)
 		if err != nil {
-			s.logger.Error("Failed to save avatar image: %v", err)
+			s.logger.Error("Failed to save avatar image: ", err)
 			return
 		}
 		s.logger.Debug("Avatar saved successfully at %s", avatarPath)
@@ -128,7 +137,7 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 	if req.CoverUrl != "" {
 		coverPath, err = saveImageStruct.SaveImageToFile(coverData, mediaType)
 		if err != nil {
-			s.logger.Error("Failed to save cover image: %v", err)
+			s.logger.Error("Failed to save cover image: ", err)
 			return
 		}
 		s.logger.Debug("Cover saved successfully at %s", coverPath)
@@ -138,7 +147,7 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 
 	profile, err := s.store.GetProfile(ctx, authPayload.Username)
 	if err != nil {
-		s.logger.Error("Failed to get profile: %v", err)
+		s.logger.Error("Failed to get profile: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -153,11 +162,18 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 
 	updatedProfile, err := s.store.EditProfile(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update profile: %v", err)
+		s.logger.Error("Failed to update profile: ", err)
 		ctx.JSON(http.StatusNotAcceptable, err)
 		return
 	}
-	s.logger.Info("Successfully updated profile: %v", updatedProfile)
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+		return
+	}
+
+	s.logger.Info("Successfully updated profile: ", updatedProfile)
 	ctx.JSON(http.StatusAccepted, updatedProfile)
 	return
 }
@@ -171,11 +187,11 @@ func (s *HandlersServer) UpdateFullNameFunc(ctx *gin.Context) {
 	var req editFullNameRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind JSON: %v", err)
+		s.logger.Error("Failed to bind JSON: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request JSON bind successful: %v", req)
+	s.logger.Debug("Request JSON bind successful: ", req)
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
@@ -186,11 +202,11 @@ func (s *HandlersServer) UpdateFullNameFunc(ctx *gin.Context) {
 
 	profileFullName, err := s.store.UpdateFullName(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update full name: %v", err)
+		s.logger.Error("Failed to update full name: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully updated full name: %v", profileFullName)
+	s.logger.Info("Successfully updated full name: ", profileFullName)
 	ctx.JSON(http.StatusAccepted, profileFullName)
 	return
 }
@@ -204,11 +220,11 @@ func (s *HandlersServer) UpdateBioFunc(ctx *gin.Context) {
 	var req editBioRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind JSON: %v", err)
+		s.logger.Error("Failed to bind JSON: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request JSON bind successful: %v", req)
+	s.logger.Debug("Request JSON bind successful: ", req)
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
@@ -219,11 +235,11 @@ func (s *HandlersServer) UpdateBioFunc(ctx *gin.Context) {
 
 	profileBio, err := s.store.UpdateBio(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update bio: %v", err)
+		s.logger.Error("Failed to update bio: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully updated bio: %v", profileBio)
+	s.logger.Info("Successfully updated bio: ", profileBio)
 	ctx.JSON(http.StatusAccepted, profileBio)
 	return
 }
@@ -237,17 +253,26 @@ func (s *HandlersServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 	var req editAvatarUrlRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind JSON: %v", err)
+		s.logger.Error("Failed to bind JSON: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request JSON bind successful: %v", req)
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation: ", err)
+		return
+	}
+
+	defer tx.Rollback()
+
+	s.logger.Debug("Request JSON bind successful: ", req)
 
 	b64data := req.AvatarUrl[strings.IndexByte(req.AvatarUrl, ',')+1:]
 
 	avatarData, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		s.logger.Error("Failed to decode avatar string: %v", err)
+		s.logger.Error("Failed to decode avatar string: ", err)
 		return
 	}
 	s.logger.Debug("Avatar string decoded successfully")
@@ -255,7 +280,7 @@ func (s *HandlersServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 	mediaType := "image"
 	path, err := saveImageStruct.SaveImageToFile(avatarData, mediaType)
 	if err != nil {
-		s.logger.Error("Failed to save avatar image: %v", err)
+		s.logger.Error("Failed to save avatar image: ", err)
 		return
 	}
 	s.logger.Debug("Avatar saved successfully at %s", path)
@@ -269,11 +294,18 @@ func (s *HandlersServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 
 	profileAvatarUrl, err := s.store.UpdateAvatar(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update avatar URL: %v", err)
+		s.logger.Error("Failed to update avatar URL: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully updated avatar URL: %v", profileAvatarUrl)
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+		return
+	}
+
+	s.logger.Info("Successfully updated avatar URL: ", profileAvatarUrl)
 	ctx.JSON(http.StatusAccepted, profileAvatarUrl)
 	return
 }
@@ -287,17 +319,17 @@ func (s *HandlersServer) UpdateCoverUrlFunc(ctx *gin.Context) {
 	var req editCoverUrlRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind JSON: %v", err)
+		s.logger.Error("Failed to bind JSON: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request JSON bind successful: %v", req)
+	s.logger.Debug("Request JSON bind successful: ", req)
 
 	b64data := req.CoverUrl[strings.IndexByte(req.CoverUrl, ',')+1:]
 
 	coverData, err := base64.StdEncoding.DecodeString(b64data)
 	if err != nil {
-		s.logger.Error("Failed to decode cover string: %v", err)
+		s.logger.Error("Failed to decode cover string: ", err)
 		return
 	}
 	s.logger.Debug("Cover string decoded successfully")
@@ -305,7 +337,7 @@ func (s *HandlersServer) UpdateCoverUrlFunc(ctx *gin.Context) {
 	mediaType := "image"
 	path, err := saveImageStruct.SaveImageToFile(coverData, mediaType)
 	if err != nil {
-		s.logger.Error("Failed to save cover image: %v", err)
+		s.logger.Error("Failed to save cover image: ", err)
 		return
 	}
 	s.logger.Debug("Cover saved successfully at %s", path)
@@ -319,11 +351,11 @@ func (s *HandlersServer) UpdateCoverUrlFunc(ctx *gin.Context) {
 
 	profileCoverUrl, err := s.store.UpdateCover(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to update cover URL: %v", err)
+		s.logger.Error("Failed to update cover URL: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully updated cover URL: %v", profileCoverUrl)
+	s.logger.Info("Successfully updated cover URL: ", profileCoverUrl)
 	ctx.JSON(http.StatusAccepted, profileCoverUrl)
 	return
 }
