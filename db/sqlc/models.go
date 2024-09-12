@@ -140,6 +140,13 @@ type Goal struct {
 	GoalTime int64 `json:"goal_time"`
 }
 
+type Group struct {
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	TournamentID int64  `json:"tournament_id"`
+	Strength     int32  `json:"strength"`
+}
+
 type GroupLeague struct {
 	GroupID       int64  `json:"group_id"`
 	GroupName     string `json:"group_name"`
@@ -258,6 +265,13 @@ type TeamPlayer struct {
 	TeamID      int64  `json:"team_id"`
 	PlayerID    int64  `json:"player_id"`
 	CurrentTeam string `json:"current_team"`
+}
+
+type TeamsGroup struct {
+	ID           int64 `json:"id"`
+	GroupID      int64 `json:"group_id"`
+	TeamID       int64 `json:"team_id"`
+	TournamentID int64 `json:"tournament_id"`
 }
 
 type Thread struct {

@@ -154,7 +154,6 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 		FullName:  req.FullName,
 		Bio:       req.Bio,
 		AvatarUrl: avatarPath,
-		CoverUrl:  coverPath,
 		ID:        profile.ID,
 	}
 
