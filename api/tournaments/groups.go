@@ -10,9 +10,9 @@ import (
 )
 
 type createTournamentGroupRequest struct {
-	GroupName     string `json:"group_name"`
-	TournamentID  int64  `json:"tournament_id"`
-	GroupStrength int64  `json:"group_strength"`
+	Name         string `json:"name"`
+	TournamentID int64  `json:"tournament_id"`
+	Strength     int32  `json:"strength"`
 }
 
 func (s *TournamentServer) CreateTournamentGroupFunc(ctx *gin.Context) {
@@ -25,9 +25,9 @@ func (s *TournamentServer) CreateTournamentGroupFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind request: ", req)
 	arg := db.CreateTournamentGroupParams{
-		GroupName:     req.GroupName,
-		TournamentID:  req.TournamentID,
-		GroupStrength: req.GroupStrength,
+		Name:         req.Name,
+		TournamentID: req.TournamentID,
+		Strength:     req.Strength,
 	}
 	s.logger.Debug("params arg: ", arg)
 
@@ -44,7 +44,7 @@ func (s *TournamentServer) CreateTournamentGroupFunc(ctx *gin.Context) {
 
 func (s *TournamentServer) GetTournamentGroupFunc(ctx *gin.Context) {
 	tournamentIDStr := ctx.Query("tournament_id")
-	groupIDStr := ctx.Query("group_id")
+	groupIDStr := ctx.Query("id")
 
 	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
 	if err != nil {
@@ -60,7 +60,7 @@ func (s *TournamentServer) GetTournamentGroupFunc(ctx *gin.Context) {
 	}
 
 	arg := db.GetTournamentGroupParams{
-		GroupID:      groupID,
+		ID:           groupID,
 		TournamentID: tournamentID,
 	}
 

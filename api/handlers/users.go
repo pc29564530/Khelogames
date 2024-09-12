@@ -180,7 +180,6 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 		FullName:  "",
 		Bio:       "",
 		AvatarUrl: "",
-		CoverUrl:  "",
 	}
 
 	_, err = s.store.CreateProfile(ctx, argProfile)

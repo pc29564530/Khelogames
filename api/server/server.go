@@ -131,6 +131,7 @@ func NewServer(config util.Config,
 		authRouter.GET("/getPlayerSearch", playersServer.GetPlayerSearchFunc)
 		authRouter.GET("/updatePlayerMedia", playersServer.UpdatePlayerMediaFunc)
 		authRouter.GET("/updatePlayerPosition", playersServer.UpdatePlayerPositionFunc)
+
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)
@@ -164,6 +165,8 @@ func NewServer(config util.Config,
 	//sportRouter.GET("/getClubPlayedTournament", clubServer.GetClubPlayedTournamentFunc)
 	//sportRouter.GET("/getTournamentsByClub", clubServer.GetTournamentsByClubFunc)
 	//sportRouter.GET("/getMatchByClubName", clubServer.GetMatchByClubNameFunc)
+
+	sportRouter.PUT("/updateTournamentStanding", tournamentServer.UpdateTournamentStandingFunc)
 	sportRouter.PUT("/updateTournamentDate", tournamentServer.UpdateTournamentDateFunc)
 
 	sportRouter.POST("/createTournamentStanding", tournamentServer.CreateTournamentStandingFunc)

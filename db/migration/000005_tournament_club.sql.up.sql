@@ -31,8 +31,8 @@ CREATE TABLE tournament_organization (
 CREATE TABLE tournament_standing (
     standing_id bigserial PRIMARY KEY,
     tournament_id bigserial NOT NULL REFERENCES tournaments (id),
-    group_id bigserial NOT NULL REFERENCES tournament_group (group_id),
-    team_id bigint NOT NULL REFERENCES club (id),
+    group_id bigserial NOT NULL REFERENCES groups (id),
+    team_id bigint NOT NULL REFERENCES teams (id),
     wins bigint NOT NULL,
     loss bigint NOT NULL,
     draw bigint NOT NULL,
@@ -54,6 +54,20 @@ CREATE TABLE group_league (
   group_name varchar NOT NULL,
   tournament_id bigserial NOT NULL,
   group_strength bigserial NOT NULL
+);
+
+CREATE TABLE groups (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    tournament_id BIGSERIAL NOT NULL REFERENCES tournaments (id),
+    strength INT NOT NULL
+);
+
+CREATE TABLE teams_group (
+    id BIGSERIAL PRIMARY KEY,
+    group_id BIGSERIAL NOT NULL REFERENCES groups (id),
+    team_id BIGSERIAL NOT NULL REFERENCES teams (id),
+    tournament_id BIGSERIAL NOT NULL REFERENCES tournaments (id)
 );
 
 CREATE TABLE tournaments (

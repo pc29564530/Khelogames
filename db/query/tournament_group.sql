@@ -1,14 +1,25 @@
 -- name: CreateTournamentGroup :one
-INSERT INTO group_league (
-    group_name,
+INSERT INTO groups (
+    name,
     tournament_id,
-    group_strength
+    strength
 ) VALUES ( $1, $2, $3) RETURNING *;
 
 -- name: GetTournamentGroups :many
-SELECT * FROM group_league
+SELECT * FROM groups
 WHERE tournament_id=$1;
 
 -- name: GetTournamentGroup :one
-SELECT * FROM group_league
-WHERE (tournament_id=$1 AND group_id=$2);
+SELECT * FROM groups
+WHERE tournament_id=$1 AND id=$2;
+
+-- name: CreateGroupTeams :one
+INSERT INTO teams_group (
+    group_id,
+    team_id,
+    tournament_id
+) VALUES ( $1, $2, $3) RETURNING *;
+
+-- name: GetGroupTeams :many
+SELECT * FROM group_team
+WHERE tournament_id=$1 AND group_id=$2;

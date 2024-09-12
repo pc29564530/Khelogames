@@ -9,73 +9,137 @@ import (
 	"context"
 )
 
-const createTournamentGroup = `-- name: CreateTournamentGroup :one
-INSERT INTO group_league (
-    group_name,
-    tournament_id,
-    group_strength
-) VALUES ( $1, $2, $3) RETURNING group_id, group_name, tournament_id, group_strength
+const createGroupTeams = `-- name: CreateGroupTeams :one
+INSERT INTO teams_group (
+    group_id,
+    team_id,
+    tournament_id
+) VALUES ( $1, $2, $3) RETURNING id, group_id, team_id, tournament_id
 `
 
-type CreateTournamentGroupParams struct {
-	GroupName     string `json:"group_name"`
-	TournamentID  int64  `json:"tournament_id"`
-	GroupStrength int64  `json:"group_strength"`
+type CreateGroupTeamsParams struct {
+	GroupID      int64 `json:"group_id"`
+	TeamID       int64 `json:"team_id"`
+	TournamentID int64 `json:"tournament_id"`
 }
 
-func (q *Queries) CreateTournamentGroup(ctx context.Context, arg CreateTournamentGroupParams) (GroupLeague, error) {
-	row := q.db.QueryRowContext(ctx, createTournamentGroup, arg.GroupName, arg.TournamentID, arg.GroupStrength)
-	var i GroupLeague
+func (q *Queries) CreateGroupTeams(ctx context.Context, arg CreateGroupTeamsParams) (TeamsGroup, error) {
+	row := q.db.QueryRowContext(ctx, createGroupTeams, arg.GroupID, arg.TeamID, arg.TournamentID)
+	var i TeamsGroup
 	err := row.Scan(
+		&i.ID,
 		&i.GroupID,
-		&i.GroupName,
+		&i.TeamID,
 		&i.TournamentID,
-		&i.GroupStrength,
 	)
 	return i, err
 }
 
-const getTournamentGroup = `-- name: GetTournamentGroup :one
-SELECT group_id, group_name, tournament_id, group_strength FROM group_league
-WHERE (tournament_id=$1 AND group_id=$2)
+const createTournamentGroup = `-- name: CreateTournamentGroup :one
+INSERT INTO groups (
+    name,
+    tournament_id,
+    strength
+) VALUES ( $1, $2, $3) RETURNING id, name, tournament_id, strength
 `
 
-type GetTournamentGroupParams struct {
+type CreateTournamentGroupParams struct {
+	Name         string `json:"name"`
+	TournamentID int64  `json:"tournament_id"`
+	Strength     int32  `json:"strength"`
+}
+
+func (q *Queries) CreateTournamentGroup(ctx context.Context, arg CreateTournamentGroupParams) (Group, error) {
+	row := q.db.QueryRowContext(ctx, createTournamentGroup, arg.Name, arg.TournamentID, arg.Strength)
+	var i Group
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.TournamentID,
+		&i.Strength,
+	)
+	return i, err
+}
+
+const getGroupTeams = `-- name: GetGroupTeams :many
+SELECT group_team_id, group_id, team_id, tournament_id FROM group_team
+WHERE tournament_id=$1 AND group_id=$2
+`
+
+type GetGroupTeamsParams struct {
 	TournamentID int64 `json:"tournament_id"`
 	GroupID      int64 `json:"group_id"`
 }
 
-func (q *Queries) GetTournamentGroup(ctx context.Context, arg GetTournamentGroupParams) (GroupLeague, error) {
-	row := q.db.QueryRowContext(ctx, getTournamentGroup, arg.TournamentID, arg.GroupID)
-	var i GroupLeague
+func (q *Queries) GetGroupTeams(ctx context.Context, arg GetGroupTeamsParams) ([]GroupTeam, error) {
+	rows, err := q.db.QueryContext(ctx, getGroupTeams, arg.TournamentID, arg.GroupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GroupTeam
+	for rows.Next() {
+		var i GroupTeam
+		if err := rows.Scan(
+			&i.GroupTeamID,
+			&i.GroupID,
+			&i.TeamID,
+			&i.TournamentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTournamentGroup = `-- name: GetTournamentGroup :one
+SELECT id, name, tournament_id, strength FROM groups
+WHERE tournament_id=$1 AND id=$2
+`
+
+type GetTournamentGroupParams struct {
+	TournamentID int64 `json:"tournament_id"`
+	ID           int64 `json:"id"`
+}
+
+func (q *Queries) GetTournamentGroup(ctx context.Context, arg GetTournamentGroupParams) (Group, error) {
+	row := q.db.QueryRowContext(ctx, getTournamentGroup, arg.TournamentID, arg.ID)
+	var i Group
 	err := row.Scan(
-		&i.GroupID,
-		&i.GroupName,
+		&i.ID,
+		&i.Name,
 		&i.TournamentID,
-		&i.GroupStrength,
+		&i.Strength,
 	)
 	return i, err
 }
 
 const getTournamentGroups = `-- name: GetTournamentGroups :many
-SELECT group_id, group_name, tournament_id, group_strength FROM group_league
+SELECT id, name, tournament_id, strength FROM groups
 WHERE tournament_id=$1
 `
 
-func (q *Queries) GetTournamentGroups(ctx context.Context, tournamentID int64) ([]GroupLeague, error) {
+func (q *Queries) GetTournamentGroups(ctx context.Context, tournamentID int64) ([]Group, error) {
 	rows, err := q.db.QueryContext(ctx, getTournamentGroups, tournamentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GroupLeague
+	var items []Group
 	for rows.Next() {
-		var i GroupLeague
+		var i Group
 		if err := rows.Scan(
-			&i.GroupID,
-			&i.GroupName,
+			&i.ID,
+			&i.Name,
 			&i.TournamentID,
-			&i.GroupStrength,
+			&i.Strength,
 		); err != nil {
 			return nil, err
 		}
