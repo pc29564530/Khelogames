@@ -152,38 +152,58 @@ const updateTournamentStanding = `-- name: UpdateTournamentStanding :one
 UPDATE tournament_standing AS ts
 SET 
     goal_for = COALESCE((
-        SELECT SUM(CASE WHEN fs.goal_for IS NOT NULL THEN fs.goal_for ELSE 0 END)
-        FROM football_matches_score AS fs
+        SELECT SUM(CASE 
+            WHEN ms.home_team_id = ts.team_id THEN fs.goals
+            WHEN ms.away_team_id = ts.team_id THEN fs.goals
+            ELSE 0
+        END)
+        FROM football_score AS fs
+        JOIN matches AS ms ON fs.match_id = ms.id
         WHERE fs.team_id = ts.team_id
     ), 0),
     goal_against = COALESCE((
-        SELECT SUM(CASE WHEN fs.goal_against IS NOT NULL THEN fs.goal_against ELSE 0 END)
-        FROM football_matches_score AS fs
-        WHERE fs.team_id = ts.team_id
+        SELECT SUM(CASE 
+            WHEN ms.home_team_id = ts.team_id THEN (
+                SELECT SUM(fs.goals) 
+                FROM football_score AS fs 
+                WHERE fs.match_id = ms.id AND fs.team_id = ms.away_team_id
+            )
+            WHEN ms.away_team_id = ts.team_id THEN (
+                SELECT SUM(fs2.goals) 
+                FROM football_score AS fs2
+                WHERE fs2.match_id = ms.id AND fs2.team_id = ms.home_team_id
+            )
+        END)
+        FROM matches AS ms
+        WHERE ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id
     ), 0),
-    goal_difference = COALESCE((
-        SELECT SUM(CASE WHEN fs.goal_for IS NOT NULL THEN fs.goal_for ELSE 0 END) -
-               SUM(CASE WHEN fs.goal_against IS NOT NULL THEN fs.goal_against ELSE 0 END)
-        FROM football_matches_score AS fs
-        WHERE fs.team_id = ts.team_id
-    ), 0),
+    goal_difference = COALESCE(goal_for, 0) - COALESCE(goal_against, 0),
     wins = COALESCE((
         SELECT COUNT(*)
-        FROM football_matches_score AS fs
-        WHERE fs.team_id = ts.team_id AND fs.goal_for > fs.goal_against
+        FROM matches AS ms
+        LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = ts.team_id
+        LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
+        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals > fs_away.goals)
+        OR (ms.away_team_id = ts.team_id AND fs_away.goals > fs_home.goals)
     ), 0),
     loss = COALESCE((
         SELECT COUNT(*)
-        FROM football_matches_score AS fs
-        WHERE fs.team_id = ts.team_id AND fs.goal_for < fs.goal_against
+        FROM matches AS ms
+        LEFT JOIN football_score fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = fs_home.team_id
+        LEFT JOIN football_score fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
+        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals < fs_away.goals)
+        OR (ms.away_team_id = ts.team_id AND fs_away.goals < fs_home.goals)
     ), 0),
     draw = COALESCE((
         SELECT COUNT(*)
-        FROM football_matches_score AS fs
-        WHERE fs.team_id = ts.team_id AND fs.goal_for = fs.goal_against
+        FROM matches AS ms
+        LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = ts.team_id
+        LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
+        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals = fs_away.goals)
+        OR (ms.away_team_id = ts.team_id AND fs_away.goals = fs_home.goals)
     ), 0),
-    points = ((wins*3)+draw)
-WHERE ts.tournament_id = $1 AND ts.team_id=$2
+    points = ((wins * 3) + draw)
+WHERE ts.tournament_id = $1 AND ts.team_id = $2
 RETURNING standing_id, tournament_id, group_id, team_id, wins, loss, draw, goal_for, goal_against, goal_difference, points
 `
 
