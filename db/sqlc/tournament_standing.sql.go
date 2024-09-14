@@ -76,14 +76,14 @@ SELECT
 FROM 
     tournament_standing ts
 JOIN 
-    group_league tg ON ts.group_id = tg.group_id
+    groups tg ON ts.group_id = tg.id
 JOIN 
     tournaments t ON ts.tournament_id = t.id
 JOIN 
     teams c ON ts.team_id = c.id
 WHERE 
     ts.tournament_id = $1
-    AND tg.group_id = $2
+    AND ts.group_id = $2
     AND t.sports = $3
 `
 

@@ -21,5 +21,5 @@ INSERT INTO teams_group (
 ) VALUES ( $1, $2, $3) RETURNING *;
 
 -- name: GetGroupTeams :many
-SELECT * FROM group_team
+SELECT * FROM teams_group
 WHERE tournament_id=$1 AND group_id=$2;

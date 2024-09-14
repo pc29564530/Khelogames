@@ -111,14 +111,14 @@ func (s *TournamentServer) AddGroupTeamFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
-	arg := db.AddGroupTeamParams{
+	arg := db.CreateGroupTeamsParams{
 		GroupID:      req.GroupID,
 		TournamentID: req.TournamentID,
 		TeamID:       req.TeamID,
 	}
 	s.logger.Debug("params arg: ", arg)
 
-	response, err := s.store.AddGroupTeam(ctx, arg)
+	response, err := s.store.CreateGroupTeams(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add group team: ", err)
 		ctx.JSON(http.StatusNotFound, err)
@@ -147,12 +147,12 @@ func (s *TournamentServer) GetTeamsByGroupFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("group id parse: ", groupID)
 
-	arg := db.GetTeamByGroupParams{
+	arg := db.GetGroupTeamsParams{
 		TournamentID: tournamentID,
 		GroupID:      groupID,
 	}
 	s.logger.Debug("params arg: ", arg)
-	response, err := s.store.GetTeamByGroup(ctx, arg)
+	response, err := s.store.GetGroupTeams(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to get team by group: ", err)
 		ctx.JSON(http.StatusNotFound, err)
