@@ -62,7 +62,7 @@ func (q *Queries) CreateTournamentGroup(ctx context.Context, arg CreateTournamen
 }
 
 const getGroupTeams = `-- name: GetGroupTeams :many
-SELECT group_team_id, group_id, team_id, tournament_id FROM group_team
+SELECT id, group_id, team_id, tournament_id FROM teams_group
 WHERE tournament_id=$1 AND group_id=$2
 `
 
@@ -71,17 +71,17 @@ type GetGroupTeamsParams struct {
 	GroupID      int64 `json:"group_id"`
 }
 
-func (q *Queries) GetGroupTeams(ctx context.Context, arg GetGroupTeamsParams) ([]GroupTeam, error) {
+func (q *Queries) GetGroupTeams(ctx context.Context, arg GetGroupTeamsParams) ([]TeamsGroup, error) {
 	rows, err := q.db.QueryContext(ctx, getGroupTeams, arg.TournamentID, arg.GroupID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GroupTeam
+	var items []TeamsGroup
 	for rows.Next() {
-		var i GroupTeam
+		var i TeamsGroup
 		if err := rows.Scan(
-			&i.GroupTeamID,
+			&i.ID,
 			&i.GroupID,
 			&i.TeamID,
 			&i.TournamentID,

@@ -59,6 +59,12 @@ type Communitymessage struct {
 	SentAt         time.Time `json:"sent_at"`
 }
 
+type ContentAdmin struct {
+	ID        int64  `json:"id"`
+	ContentID int64  `json:"content_id"`
+	Admin     string `json:"admin"`
+}
+
 type CricketScore struct {
 	ID            int64  `json:"id"`
 	MatchID       int64  `json:"match_id"`
@@ -147,20 +153,6 @@ type Group struct {
 	Strength     int32  `json:"strength"`
 }
 
-type GroupLeague struct {
-	GroupID       int64  `json:"group_id"`
-	GroupName     string `json:"group_name"`
-	TournamentID  int64  `json:"tournament_id"`
-	GroupStrength int64  `json:"group_strength"`
-}
-
-type GroupTeam struct {
-	GroupTeamID  int64 `json:"group_team_id"`
-	GroupID      int64 `json:"group_id"`
-	TeamID       int64 `json:"team_id"`
-	TournamentID int64 `json:"tournament_id"`
-}
-
 type JoinCommunity struct {
 	ID            int64  `json:"id"`
 	CommunityName string `json:"community_name"`
@@ -203,12 +195,6 @@ type Message struct {
 type Messagemedium struct {
 	MessageID int64 `json:"message_id"`
 	MediaID   int64 `json:"media_id"`
-}
-
-type Organizer struct {
-	OrganizerID   int64  `json:"organizer_id"`
-	OrganizerName string `json:"organizer_name"`
-	TournamentID  int64  `json:"tournament_id"`
 }
 
 type Player struct {
@@ -295,21 +281,6 @@ type Tournament struct {
 	StatusCode     string `json:"status_code"`
 	Level          string `json:"level"`
 	StartTimestamp int64  `json:"start_timestamp"`
-}
-
-type TournamentOrganization struct {
-	ID              int64     `json:"id"`
-	TournamentID    int64     `json:"tournament_id"`
-	TournamentStart time.Time `json:"tournament_start"`
-	PlayerCount     int64     `json:"player_count"`
-	TeamCount       int64     `json:"team_count"`
-	GroupCount      int64     `json:"group_count"`
-	AdvancedTeam    int64     `json:"advanced_team"`
-}
-
-type TournamentOrganizer struct {
-	OrganizerID  int64 `json:"organizer_id"`
-	TournamentID int64 `json:"tournament_id"`
 }
 
 type TournamentStanding struct {
