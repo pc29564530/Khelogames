@@ -138,6 +138,12 @@ type FootballSubstitutionsPlayer struct {
 	PlayerOutID int64 `json:"player_out_id"`
 }
 
+type Game struct {
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	MinPlayers int32  `json:"min_players"`
+}
+
 type Goal struct {
 	ID       int64 `json:"id"`
 	MatchID  int64 `json:"match_id"`

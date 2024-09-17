@@ -155,3 +155,10 @@ CREATE TABLE football_incident_player (
     incident_id BIGSERIAL REFERENCES football_incidents (id) NOT NULL,
     player_id BIGSERIAL REFERENCES players (id) NOT NULL
 );
+
+-- this will we run by normal query 
+CREATE TABLE games (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    min_players INT NOT NULL
+);

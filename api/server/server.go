@@ -5,6 +5,7 @@ import (
 	"khelogames/api/handlers"
 	"khelogames/api/messenger"
 	"khelogames/api/players"
+	"khelogames/api/sports"
 	"khelogames/api/sports/cricket"
 	"khelogames/api/sports/football"
 	"khelogames/api/teams"
@@ -40,6 +41,7 @@ func NewServer(config util.Config,
 	teamsServer *teams.TeamsServer,
 	messageServer *messenger.MessageServer,
 	playersServer *players.PlayerServer,
+	sportsServer *sports.SportsServer,
 	router *gin.Engine,
 ) (*Server, error) {
 
@@ -69,6 +71,8 @@ func NewServer(config util.Config,
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
 		authRouter.GET("/ws", messageServer.HandleWebSocket)
+		authRouter.GET("/getAllGames", sportsServer.GetGamesFunc)
+		authRouter.GET("/getGame/:id", sportsServer.GetGameFunc)
 		authRouter.POST("/searchProfile", playersServer.SearchProfileFunc)
 		authRouter.POST("/addJoinCommunity", handlersServer.AddJoinCommunityFunc)
 		authRouter.GET("/getUserByCommunity/:community_name", handlersServer.GetUserByCommunityFunc)
@@ -233,7 +237,6 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateCricketBall", cricketServer.UpdateCricketBallFunc)
 	sportRouter.GET("/getCricketWickets", cricketServer.GetCricketWicketsFunc)
 
-	//matches
 	server.router = router
 	return server, nil
 }
