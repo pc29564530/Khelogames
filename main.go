@@ -9,6 +9,7 @@ import (
 	"khelogames/api/auth"
 	"khelogames/api/handlers"
 	"khelogames/api/players"
+	"khelogames/api/sports"
 	"khelogames/api/teams"
 
 	"khelogames/api/messenger"
@@ -73,6 +74,7 @@ func main() {
 	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config)
 	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
 	playerServer := players.NewPlayerServer(store, log, tokenMaker, config)
+	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config)
 	// Initialize Gin router
 	router := gin.Default()
 	server, err := server.NewServer(config,
@@ -87,6 +89,7 @@ func main() {
 		teamsServer,
 		messengerServer,
 		playerServer,
+		sportsServer,
 		router,
 	)
 	if err != nil {
