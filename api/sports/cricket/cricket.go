@@ -87,16 +87,22 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.Inning, "runRate": homeScore.RunRate, "targetRunRate": homeScore.TargetRunRate}
 		}
 
+		game, err := s.store.GetGame(ctx, match.HomeGameID)
+		if err != nil {
+			s.logger.Error("Failed to get the game: ", err)
+		}
+
 		matchMap := map[string]interface{}{
 			"matchId":        match.ID,
 			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
-			"homeTeam":       map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType},
+			"homeTeam":       map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount},
 			"homeScore":      homeScoreMap,
-			"awayTeam":       map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType},
+			"awayTeam":       map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount},
 			"awayScore":      awayScoreMap,
 			"startTimeStamp": match.StartTimestamp,
 			"end_timestamp":  match.EndTimestamp,
 			"status":         match.StatusCode,
+			"game":           game,
 		}
 		matchDetail = append(matchDetail, matchMap)
 	}

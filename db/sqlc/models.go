@@ -240,17 +240,19 @@ type Signup struct {
 }
 
 type Team struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
-	Shortname string `json:"shortname"`
-	Admin     string `json:"admin"`
-	MediaUrl  string `json:"media_url"`
-	Gender    string `json:"gender"`
-	National  bool   `json:"national"`
-	Country   string `json:"country"`
-	Type      string `json:"type"`
-	Sports    string `json:"sports"`
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	Shortname   string `json:"shortname"`
+	Admin       string `json:"admin"`
+	MediaUrl    string `json:"media_url"`
+	Gender      string `json:"gender"`
+	National    bool   `json:"national"`
+	Country     string `json:"country"`
+	Type        string `json:"type"`
+	Sports      string `json:"sports"`
+	GamesID     int64  `json:"games_id"`
+	PlayerCount int32  `json:"player_count"`
 }
 
 type TeamPlayer struct {

@@ -148,7 +148,7 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]GetPlaye
 }
 
 const getTeam = `-- name: GetTeam :one
-SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, sports FROM teams
+SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, games_id, player_count FROM teams
 WHERE id=$1
 `
 
@@ -167,12 +167,14 @@ func (q *Queries) GetTeam(ctx context.Context, id int64) (Team, error) {
 		&i.Country,
 		&i.Type,
 		&i.Sports,
+		&i.GamesID,
+		&i.PlayerCount,
 	)
 	return i, err
 }
 
 const getTeamByPlayer = `-- name: GetTeamByPlayer :many
-SELECT team_id, player_id, current_team, id, name, slug, shortname, admin, media_url, gender, national, country, type, sports FROM team_players
+SELECT team_id, player_id, current_team, id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, games_id, player_count FROM team_players
 JOIN teams ON team_players.team_id=teams.id
 WHERE player_id=$1 AND current_team='t'
 `
@@ -192,6 +194,8 @@ type GetTeamByPlayerRow struct {
 	Country     string `json:"country"`
 	Type        string `json:"type"`
 	Sports      string `json:"sports"`
+	GamesID     int64  `json:"games_id"`
+	PlayerCount int32  `json:"player_count"`
 }
 
 func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]GetTeamByPlayerRow, error) {
@@ -218,6 +222,8 @@ func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]GetTea
 			&i.Country,
 			&i.Type,
 			&i.Sports,
+			&i.GamesID,
+			&i.PlayerCount,
 		); err != nil {
 			return nil, err
 		}
@@ -261,7 +267,7 @@ func (q *Queries) GetTeamPlayers(ctx context.Context, teamID int64) ([]TeamPlaye
 }
 
 const getTeams = `-- name: GetTeams :many
-SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, sports FROM teams
+SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, games_id, player_count FROM teams
 `
 
 func (q *Queries) GetTeams(ctx context.Context) ([]Team, error) {
@@ -285,6 +291,8 @@ func (q *Queries) GetTeams(ctx context.Context) ([]Team, error) {
 			&i.Country,
 			&i.Type,
 			&i.Sports,
+			&i.GamesID,
+			&i.PlayerCount,
 		); err != nil {
 			return nil, err
 		}
@@ -300,7 +308,7 @@ func (q *Queries) GetTeams(ctx context.Context) ([]Team, error) {
 }
 
 const getTeamsBySport = `-- name: GetTeamsBySport :many
-SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, sports FROM teams
+SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, games_id, player_count FROM teams
 WHERE sports=$1
 `
 
@@ -325,6 +333,8 @@ func (q *Queries) GetTeamsBySport(ctx context.Context, sports string) ([]Team, e
 			&i.Country,
 			&i.Type,
 			&i.Sports,
+			&i.GamesID,
+			&i.PlayerCount,
 		); err != nil {
 			return nil, err
 		}
@@ -386,23 +396,27 @@ INSERT INTO teams (
     national,
     country,
     type,
-    sports
+    sports,
+    games_id,
+    player_count
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, sports
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+) RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, games_id, player_count
 `
 
 type NewTeamsParams struct {
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
-	Shortname string `json:"shortname"`
-	Admin     string `json:"admin"`
-	MediaUrl  string `json:"media_url"`
-	Gender    string `json:"gender"`
-	National  bool   `json:"national"`
-	Country   string `json:"country"`
-	Type      string `json:"type"`
-	Sports    string `json:"sports"`
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	Shortname   string `json:"shortname"`
+	Admin       string `json:"admin"`
+	MediaUrl    string `json:"media_url"`
+	Gender      string `json:"gender"`
+	National    bool   `json:"national"`
+	Country     string `json:"country"`
+	Type        string `json:"type"`
+	Sports      string `json:"sports"`
+	GamesID     int64  `json:"games_id"`
+	PlayerCount int32  `json:"player_count"`
 }
 
 func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (Team, error) {
@@ -417,6 +431,8 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (Team, error
 		arg.Country,
 		arg.Type,
 		arg.Sports,
+		arg.GamesID,
+		arg.PlayerCount,
 	)
 	var i Team
 	err := row.Scan(
@@ -431,6 +447,8 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (Team, error
 		&i.Country,
 		&i.Type,
 		&i.Sports,
+		&i.GamesID,
+		&i.PlayerCount,
 	)
 	return i, err
 }
@@ -492,7 +510,7 @@ const updateMediaUrl = `-- name: UpdateMediaUrl :one
 UPDATE teams
 SET media_url=$1
 WHERE id=$2
-RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, sports
+RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, games_id, player_count
 `
 
 type UpdateMediaUrlParams struct {
@@ -515,6 +533,8 @@ func (q *Queries) UpdateMediaUrl(ctx context.Context, arg UpdateMediaUrlParams) 
 		&i.Country,
 		&i.Type,
 		&i.Sports,
+		&i.GamesID,
+		&i.PlayerCount,
 	)
 	return i, err
 }
@@ -524,7 +544,7 @@ const updateTeamName = `-- name: UpdateTeamName :one
 UPDATE teams
 SET name=$1
 WHERE id=$2
-RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, sports
+RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, games_id, player_count
 `
 
 type UpdateTeamNameParams struct {
@@ -552,6 +572,8 @@ func (q *Queries) UpdateTeamName(ctx context.Context, arg UpdateTeamNameParams) 
 		&i.Country,
 		&i.Type,
 		&i.Sports,
+		&i.GamesID,
+		&i.PlayerCount,
 	)
 	return i, err
 }

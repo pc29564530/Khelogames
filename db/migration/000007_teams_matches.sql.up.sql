@@ -10,7 +10,9 @@ CREATE TABLE teams (
     national BOOLEAN NOT NULL,
     country VARCHAR(255) NOT NULL,
     type VARCHAR(255) CHECK (type IN ('team', 'individual', 'double')) NOT NULL,
-    sports VARCHAR(255) NOT NULL
+    sports VARCHAR(255) NOT NULL,
+    games_id BIGINT REFERENCES games (id) NOT NULL,
+    player_count INT NOT NULL
 );
 
 CREATE TABLE team_players (
