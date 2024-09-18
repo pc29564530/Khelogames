@@ -14,13 +14,14 @@ import (
 )
 
 type addTeamsRequest struct {
-	Name     string `json:"name"`
-	MediaURL string `json:"media_url"`
-	Gender   string `jsong:"gender"`
-	National bool   `json:"national"`
-	Country  string `json:"country"`
-	Type     string `json:"type"`
-	Sports   string `json:"sports"`
+	Name        string `json:"name"`
+	MediaURL    string `json:"media_url"`
+	Gender      string `jsong:"gender"`
+	National    bool   `json:"national"`
+	Country     string `json:"country"`
+	Type        string `json:"type"`
+	Sports      string `json:"sports"`
+	PlayerCount int    `json:"player_count"`
 }
 
 func (s *TeamsServer) AddTeam(ctx *gin.Context) {
