@@ -6,9 +6,11 @@ INSERT INTO message (
     receiver_username,
     media_url,
     media_type,
-    sent_at
+    sent_at,
+    is_deleted,
+    deleted_at
 ) VALUES (
-    $1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP
+    $1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP, $7, $8
 ) RETURNING *;
 
 -- name: GetMessageByReceiver :many
@@ -21,4 +23,28 @@ ORDER BY id ASC;
 SELECT DISTINCT receiver_username
 FROM message
 WHERE sender_username = $1;
+
+-- name: UpdateSoftDeleteMessage :one
+UPDATE message
+SET is_deleted = TRUE, deleted_at = NOW()
+WHERE id = $1 AND sender_username = $2
+RETURNING *;
+
+-- name: ScheduledDeleteMessage :many
+DELETE FROM message
+WHERE is_deleted = TRUE AND deleted_at < NOW() - INTERVAL '30 days'
+RETURNING *;
+
+
+-- name: DeleteMessage :one
+DELETE FROM message
+WHERE sender_username=$1 and id=$2
+RETURNING *;
+
+
+-- name: UpdateDeletedMessage :one
+UPDATE message
+SET is_deleted=true AND deleted_at=NOW()
+WHERE sender_username=$1 and id=$2
+RETURNING *;
 

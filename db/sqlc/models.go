@@ -196,6 +196,8 @@ type Message struct {
 	SentAt           time.Time `json:"sent_at"`
 	MediaUrl         string    `json:"media_url"`
 	MediaType        string    `json:"media_type"`
+	IsDeleted        bool      `json:"is_deleted"`
+	DeletedAt        time.Time `json:"deleted_at"`
 }
 
 type Messagemedium struct {

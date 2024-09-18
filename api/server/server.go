@@ -136,6 +136,14 @@ func NewServer(config util.Config,
 		authRouter.GET("/updatePlayerMedia", playersServer.UpdatePlayerMediaFunc)
 		authRouter.GET("/updatePlayerPosition", playersServer.UpdatePlayerPositionFunc)
 
+		authRouter.PUT("/inActiveUserFromCommunity", handlersServer.InActiveUserFromCommunityFunc)
+		authRouter.PUT("/updateDeleteMessage", messageServer.UpdateDeleteMessageFunc)
+		authRouter.DELETE("/deleteScheduleMessage", messageServer.DeleteScheduleMessageFunc)
+		authRouter.DELETE("/deleteCommentByUser", handlersServer.DeleteCommentByUserFunc)
+		authRouter.DELETE("/deleteAdmin", handlersServer.DeleteAdminFunc)
+		authRouter.PUT("/updateCommunityByDescription", handlersServer.UpdateCommunityByDescriptionFunc)
+		authRouter.PUT("/updateCommunityByCommunityName", handlersServer.UpdateCommunityByCommunityNameFunc)
+
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)

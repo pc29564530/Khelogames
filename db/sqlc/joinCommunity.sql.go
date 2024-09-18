@@ -86,3 +86,40 @@ func (q *Queries) GetUserByCommunity(ctx context.Context, communityName string) 
 	}
 	return items, nil
 }
+
+const inActiveUserFromCommunity = `-- name: InActiveUserFromCommunity :one
+UPDATE join_community
+SET is_active = FALSE
+WHERE username = $1 AND id = $2
+RETURNING id, community_name, username
+`
+
+type InActiveUserFromCommunityParams struct {
+	Username string `json:"username"`
+	ID       int64  `json:"id"`
+}
+
+func (q *Queries) InActiveUserFromCommunity(ctx context.Context, arg InActiveUserFromCommunityParams) (JoinCommunity, error) {
+	row := q.db.QueryRowContext(ctx, inActiveUserFromCommunity, arg.Username, arg.ID)
+	var i JoinCommunity
+	err := row.Scan(&i.ID, &i.CommunityName, &i.Username)
+	return i, err
+}
+
+const removeUserFromCommunity = `-- name: RemoveUserFromCommunity :one
+DELETE FROM join_community
+WHERE id=$1 AND username=$2
+RETURNING id, community_name, username
+`
+
+type RemoveUserFromCommunityParams struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+}
+
+func (q *Queries) RemoveUserFromCommunity(ctx context.Context, arg RemoveUserFromCommunityParams) (JoinCommunity, error) {
+	row := q.db.QueryRowContext(ctx, removeUserFromCommunity, arg.ID, arg.Username)
+	var i JoinCommunity
+	err := row.Scan(&i.ID, &i.CommunityName, &i.Username)
+	return i, err
+}

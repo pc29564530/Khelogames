@@ -147,3 +147,55 @@ func (q *Queries) GetCommunityByCommunityName(ctx context.Context, communitiesNa
 	)
 	return i, err
 }
+
+const updateCommunityDescription = `-- name: UpdateCommunityDescription :one
+UPDATE communities
+SET description=$1
+WHERE id=$2
+RETURNING id, owner, communities_name, description, community_type, created_at
+`
+
+type UpdateCommunityDescriptionParams struct {
+	Description string `json:"description"`
+	ID          int64  `json:"id"`
+}
+
+func (q *Queries) UpdateCommunityDescription(ctx context.Context, arg UpdateCommunityDescriptionParams) (Community, error) {
+	row := q.db.QueryRowContext(ctx, updateCommunityDescription, arg.Description, arg.ID)
+	var i Community
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.CommunitiesName,
+		&i.Description,
+		&i.CommunityType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateCommunityName = `-- name: UpdateCommunityName :one
+UPDATE communities
+SET communities_name=$1
+WHERE id=$2
+RETURNING id, owner, communities_name, description, community_type, created_at
+`
+
+type UpdateCommunityNameParams struct {
+	CommunitiesName string `json:"communities_name"`
+	ID              int64  `json:"id"`
+}
+
+func (q *Queries) UpdateCommunityName(ctx context.Context, arg UpdateCommunityNameParams) (Community, error) {
+	row := q.db.QueryRowContext(ctx, updateCommunityName, arg.CommunitiesName, arg.ID)
+	var i Community
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.CommunitiesName,
+		&i.Description,
+		&i.CommunityType,
+		&i.CreatedAt,
+	)
+	return i, err
+}

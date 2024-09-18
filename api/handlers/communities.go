@@ -171,3 +171,72 @@ func (s *HandlersServer) GetCommunityByCommunityNameFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, usersList)
 }
+
+type updateCommunityByCommunityNameRequest struct {
+	CommunityName string `json:"community_name"`
+	ID            int64  `json:"id"`
+}
+
+func (s *HandlersServer) UpdateCommunityByCommunityNameFunc(ctx *gin.Context) {
+	var req updateCommunityByCommunityNameRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.logger.Error("No row error ", err)
+			ctx.JSON(http.StatusNotFound, (err))
+			return
+		}
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+	s.logger.Debug("bind the request: ", req)
+
+	arg := db.UpdateCommunityNameParams{
+		CommunitiesName: req.CommunityName,
+		ID:              req.ID,
+	}
+
+	response, err := s.store.UpdateCommunityName(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to update the community name: ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, response)
+}
+
+type updateCommunityByDescriptionRequest struct {
+	Description string `json:"description"`
+	ID          int64  `json:"id"`
+}
+
+func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
+	var req updateCommunityByDescriptionRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.logger.Error("No row error ", err)
+			ctx.JSON(http.StatusNotFound, (err))
+			return
+		}
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+	s.logger.Debug("bind the request: ", req)
+
+	arg := db.UpdateCommunityDescriptionParams{
+		Description: req.Description,
+		ID:          req.ID,
+	}
+
+	response, err := s.store.UpdateCommunityDescription(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to update the  description: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, response)
+}
