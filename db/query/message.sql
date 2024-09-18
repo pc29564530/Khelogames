@@ -47,3 +47,4 @@ UPDATE message
 SET is_deleted=true AND deleted_at=NOW()
 WHERE sender_username=$1 and id=$2
 RETURNING *;
+
