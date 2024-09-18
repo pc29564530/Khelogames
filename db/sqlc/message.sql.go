@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createNewMessage = `-- name: CreateNewMessage :one
@@ -17,19 +18,23 @@ INSERT INTO message (
     receiver_username,
     media_url,
     media_type,
-    sent_at
+    sent_at,
+    is_deleted,
+    deleted_at
 ) VALUES (
-    $1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP
-) RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type
+    $1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP, $7, $8
+) RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
 `
 
 type CreateNewMessageParams struct {
-	Content          string `json:"content"`
-	IsSeen           bool   `json:"is_seen"`
-	SenderUsername   string `json:"sender_username"`
-	ReceiverUsername string `json:"receiver_username"`
-	MediaUrl         string `json:"media_url"`
-	MediaType        string `json:"media_type"`
+	Content          string    `json:"content"`
+	IsSeen           bool      `json:"is_seen"`
+	SenderUsername   string    `json:"sender_username"`
+	ReceiverUsername string    `json:"receiver_username"`
+	MediaUrl         string    `json:"media_url"`
+	MediaType        string    `json:"media_type"`
+	IsDeleted        bool      `json:"is_deleted"`
+	DeletedAt        time.Time `json:"deleted_at"`
 }
 
 func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessageParams) (Message, error) {
@@ -40,6 +45,8 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 		arg.ReceiverUsername,
 		arg.MediaUrl,
 		arg.MediaType,
+		arg.IsDeleted,
+		arg.DeletedAt,
 	)
 	var i Message
 	err := row.Scan(
@@ -51,12 +58,43 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 		&i.SentAt,
 		&i.MediaUrl,
 		&i.MediaType,
+		&i.IsDeleted,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const deleteMessage = `-- name: DeleteMessage :one
+DELETE FROM message
+WHERE sender_username=$1 and id=$2
+RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
+`
+
+type DeleteMessageParams struct {
+	SenderUsername string `json:"sender_username"`
+	ID             int64  `json:"id"`
+}
+
+func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (Message, error) {
+	row := q.db.QueryRowContext(ctx, deleteMessage, arg.SenderUsername, arg.ID)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.Content,
+		&i.IsSeen,
+		&i.SenderUsername,
+		&i.ReceiverUsername,
+		&i.SentAt,
+		&i.MediaUrl,
+		&i.MediaType,
+		&i.IsDeleted,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getMessageByReceiver = `-- name: GetMessageByReceiver :many
-SELECT id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type FROM message
+SELECT id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at FROM message
 WHERE (sender_username=$1 AND receiver_username=$2) OR (receiver_username=$1 AND sender_username=$2)
 ORDER BY id ASC
 `
@@ -84,6 +122,8 @@ func (q *Queries) GetMessageByReceiver(ctx context.Context, arg GetMessageByRece
 			&i.SentAt,
 			&i.MediaUrl,
 			&i.MediaType,
+			&i.IsDeleted,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -125,4 +165,104 @@ func (q *Queries) GetUserByMessageSend(ctx context.Context, senderUsername strin
 		return nil, err
 	}
 	return items, nil
+}
+
+const scheduledDeleteMessage = `-- name: ScheduledDeleteMessage :many
+DELETE FROM message
+WHERE is_deleted = TRUE AND deleted_at < NOW() - INTERVAL '30 days'
+RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
+`
+
+func (q *Queries) ScheduledDeleteMessage(ctx context.Context) ([]Message, error) {
+	rows, err := q.db.QueryContext(ctx, scheduledDeleteMessage)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Message
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.ID,
+			&i.Content,
+			&i.IsSeen,
+			&i.SenderUsername,
+			&i.ReceiverUsername,
+			&i.SentAt,
+			&i.MediaUrl,
+			&i.MediaType,
+			&i.IsDeleted,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateDeletedMessage = `-- name: UpdateDeletedMessage :one
+UPDATE message
+SET is_deleted=true AND deleted_at=NOW()
+WHERE sender_username=$1 and id=$2
+RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
+`
+
+type UpdateDeletedMessageParams struct {
+	SenderUsername string `json:"sender_username"`
+	ID             int64  `json:"id"`
+}
+
+func (q *Queries) UpdateDeletedMessage(ctx context.Context, arg UpdateDeletedMessageParams) (Message, error) {
+	row := q.db.QueryRowContext(ctx, updateDeletedMessage, arg.SenderUsername, arg.ID)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.Content,
+		&i.IsSeen,
+		&i.SenderUsername,
+		&i.ReceiverUsername,
+		&i.SentAt,
+		&i.MediaUrl,
+		&i.MediaType,
+		&i.IsDeleted,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const updateSoftDeleteMessage = `-- name: UpdateSoftDeleteMessage :one
+UPDATE message
+SET is_deleted = TRUE, deleted_at = NOW()
+WHERE id = $1 AND sender_username = $2
+RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
+`
+
+type UpdateSoftDeleteMessageParams struct {
+	ID             int64  `json:"id"`
+	SenderUsername string `json:"sender_username"`
+}
+
+func (q *Queries) UpdateSoftDeleteMessage(ctx context.Context, arg UpdateSoftDeleteMessageParams) (Message, error) {
+	row := q.db.QueryRowContext(ctx, updateSoftDeleteMessage, arg.ID, arg.SenderUsername)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.Content,
+		&i.IsSeen,
+		&i.SenderUsername,
+		&i.ReceiverUsername,
+		&i.SentAt,
+		&i.MediaUrl,
+		&i.MediaType,
+		&i.IsDeleted,
+		&i.DeletedAt,
+	)
+	return i, err
 }

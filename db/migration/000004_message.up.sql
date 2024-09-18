@@ -6,12 +6,11 @@ CREATE TABLE "message" (
   "receiver_username" varchar NOT NULL,
   "sent_at" timestamp NOT NULL DEFAULT NOW(),
   "media_url" varchar NOT NULL,
-  "media_type" varchar NOT NULL
+  "media_type" varchar NOT NULL,
+  "is_deleted" boolean NOT NULL,
+  "deleted_at" timestamp NOT NULL
 );
 
 ALTER TABLE "message" ADD FOREIGN KEY ("sender_username") REFERENCES "users" ("username");
 
 ALTER TABLE "message" ADD FOREIGN KEY ("receiver_username") REFERENCES "users" ("username");
-
-
-
