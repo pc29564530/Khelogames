@@ -80,3 +80,19 @@ func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, communityList)
 }
+
+type inActiveUserRequest struct {
+	Username string `json:"username"`
+	ID       int64  `json:"id"`
+}
+
+// soft delete of user of community
+func (s *HandlersServer) InActiveUserFromCommunityFunc(ctx *gin.Context) {
+	var req inActiveUserRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+}
