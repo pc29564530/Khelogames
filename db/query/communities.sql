@@ -29,10 +29,12 @@ WHERE communities_name=$1;
 -- name: UpdateCommunityName :one
 UPDATE communities
 SET communities_name=$1
+WHERE id=$2
 RETURNING *;
 
 
 -- name: UpdateCommunityDescription :one
 UPDATE communities
 SET description=$1
+WHERE id=$2
 RETURNING *;
