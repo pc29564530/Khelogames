@@ -16,6 +16,7 @@ type newPlayerRequest struct {
 	Positions string `json:"positions"`
 	Sports    string `json:"sports"`
 	Country   string `json:"country"`
+	GameID    int64  `json:"game_id"`
 }
 
 func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
@@ -45,6 +46,7 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 		Sports:     req.Sports,
 		Country:    req.Country,
 		PlayerName: userProfile.FullName,
+		GameID:     req.GameID,
 	}
 
 	response, err := s.store.NewPlayer(ctx, arg)

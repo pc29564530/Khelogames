@@ -116,7 +116,8 @@ CREATE TABLE players (
     positions VARCHAR(3) NOT NULL,
     sports VARCHAR(255) NOT NULL,
     country VARCHAR(255) NOT NULL,
-    player_name VARCHAR(255) NOT NULL
+    player_name VARCHAR(255) NOT NULL,
+    game_id BIGINT REFERENCES games (id) NOT NULL
 );
 
 CREATE TABLE football_statistics (
