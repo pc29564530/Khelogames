@@ -40,7 +40,8 @@ CREATE TABLE tournaments (
     country VARCHAR NOT NULL,
     status_code VARCHAR NOT NULL,
     level VARCHAR(255) CHECK (level IN ('international', 'country', 'local')) NOT NULL,
-    start_timestamp BIGINT NOT NULL
+    start_timestamp BIGINT NOT NULL,
+    game_id BIGINT NOT NULL REFERENCES games (id)
 );
 
 CREATE TABLE content_admin (

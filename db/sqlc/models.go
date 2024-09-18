@@ -291,6 +291,7 @@ type Tournament struct {
 	StatusCode     string `json:"status_code"`
 	Level          string `json:"level"`
 	StartTimestamp int64  `json:"start_timestamp"`
+	GameID         int64  `json:"game_id"`
 }
 
 type TournamentStanding struct {
