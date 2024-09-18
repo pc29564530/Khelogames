@@ -147,3 +147,43 @@ func (q *Queries) GetCommunityByCommunityName(ctx context.Context, communitiesNa
 	)
 	return i, err
 }
+
+const updateCommunityDescription = `-- name: UpdateCommunityDescription :one
+UPDATE communities
+SET description=$1
+RETURNING id, owner, communities_name, description, community_type, created_at
+`
+
+func (q *Queries) UpdateCommunityDescription(ctx context.Context, description string) (Community, error) {
+	row := q.db.QueryRowContext(ctx, updateCommunityDescription, description)
+	var i Community
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.CommunitiesName,
+		&i.Description,
+		&i.CommunityType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateCommunityName = `-- name: UpdateCommunityName :one
+UPDATE communities
+SET communities_name=$1
+RETURNING id, owner, communities_name, description, community_type, created_at
+`
+
+func (q *Queries) UpdateCommunityName(ctx context.Context, communitiesName string) (Community, error) {
+	row := q.db.QueryRowContext(ctx, updateCommunityName, communitiesName)
+	var i Community
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.CommunitiesName,
+		&i.Description,
+		&i.CommunityType,
+		&i.CreatedAt,
+	)
+	return i, err
+}
