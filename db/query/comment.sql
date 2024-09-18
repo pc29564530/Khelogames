@@ -19,5 +19,5 @@ WHERE owner=$1;
 
 -- name: DeleteComment :one
 DELETE FROM comment
-WHERE id=$1
+WHERE id=$1 AND owner=$2
 RETURNING *;

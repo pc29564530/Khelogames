@@ -26,26 +26,26 @@ func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			s.logger.Error("No row error: %v", err)
+			s.logger.Error("No row error: ", err)
 			return
 		}
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("successfully bind: %v", req)
+	s.logger.Debug("successfully bind: ", req)
 	err = ctx.ShouldBindUri(&reqThreadId)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			s.logger.Error("No row error: %v", err)
+			s.logger.Error("No row error: ", err)
 			ctx.JSON(http.StatusNotFound, (err))
 			return
 		}
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("successfully bind: %v", reqThreadId)
+	s.logger.Debug("successfully bind: ", reqThreadId)
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.CreateCommentParams{
@@ -53,11 +53,11 @@ func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 		Owner:       authPayload.Username,
 		CommentText: req.CommentText,
 	}
-	s.logger.Debug("params arg: %v", arg)
+	s.logger.Debug("params arg: ", arg)
 
 	comment, err := s.store.CreateComment(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to create comment: %v", err)
+		s.logger.Error("Failed to create comment: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -65,7 +65,6 @@ func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 	s.logger.Info("successfully create the comment")
 
 	ctx.JSON(http.StatusOK, comment)
-	return
 }
 
 type getAllCommentRequest struct {
@@ -76,20 +75,20 @@ func (s *HandlersServer) GetAllCommentFunc(ctx *gin.Context) {
 	var req getAllCommentRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	s.logger.Debug("bind the request: %v", req)
+	s.logger.Debug("bind the request: ", req)
 
 	comments, err := s.store.GetAllComment(ctx, req.ThreadID)
 	if err != nil {
-		s.logger.Error("Failed to get comment: %v", err)
+		s.logger.Error("Failed to get comment: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("get all the comments :%v ", comments)
+	s.logger.Debug("get all the comments : ", comments)
 	s.logger.Debug("Received threads from database")
 	var commentsDetails []map[string]interface{}
 
@@ -117,7 +116,6 @@ func (s *HandlersServer) GetAllCommentFunc(ctx *gin.Context) {
 	}
 	s.logger.Info("successfully get all comment details")
 	ctx.JSON(http.StatusOK, commentsDetails)
-	return
 }
 
 type getCommentByUserRequest struct {
@@ -128,24 +126,57 @@ func (s *HandlersServer) GetCommentByUserFunc(ctx *gin.Context) {
 	var req getCommentByUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
+		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("bind the request: %v", req)
+	s.logger.Debug("bind the request: ", req)
 	if req.Owner == "undefined" {
-		s.logger.Error("Failed to get defined owner: %v", err)
+		s.logger.Error("Failed to get defined owner: ", err)
 		ctx.JSON(http.StatusBadRequest, (err))
 		return
 	}
 
 	comments, err := s.store.GetCommentByUser(ctx, req.Owner)
 	if err != nil {
-		s.logger.Error("Failed to get comment by user: %v", err)
+		s.logger.Error("Failed to get comment by user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 	s.logger.Info("successfully get comment by user")
 	ctx.JSON(http.StatusOK, comments)
-	return
+}
+
+type deleteCommentByUserRequest struct {
+	ID    int64  `json:"id"`
+	Owner string `uri:"owner"`
+}
+
+func (s *HandlersServer) DeleteCommentByUserFunc(ctx *gin.Context) {
+	var req deleteCommentByUserRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+	s.logger.Debug("bind the request: ", req)
+	if req.Owner == "undefined" {
+		s.logger.Error("Failed to get defined owner: ", err)
+		ctx.JSON(http.StatusBadRequest, (err))
+		return
+	}
+
+	arg := db.DeleteCommentParams{
+		ID:    req.ID,
+		Owner: req.Owner,
+	}
+
+	comments, err := s.store.DeleteComment(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to get comment by user: ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+	s.logger.Info("successfully get comment by user")
+	ctx.JSON(http.StatusOK, comments)
 }

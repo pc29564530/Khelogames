@@ -42,12 +42,17 @@ func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (C
 
 const deleteComment = `-- name: DeleteComment :one
 DELETE FROM comment
-WHERE id=$1
+WHERE id=$1 AND owner=$2
 RETURNING id, thread_id, owner, comment_text, created_at
 `
 
-func (q *Queries) DeleteComment(ctx context.Context, id int64) (Comment, error) {
-	row := q.db.QueryRowContext(ctx, deleteComment, id)
+type DeleteCommentParams struct {
+	ID    int64  `json:"id"`
+	Owner string `json:"owner"`
+}
+
+func (q *Queries) DeleteComment(ctx context.Context, arg DeleteCommentParams) (Comment, error) {
+	row := q.db.QueryRowContext(ctx, deleteComment, arg.ID, arg.Owner)
 	var i Comment
 	err := row.Scan(
 		&i.ID,
