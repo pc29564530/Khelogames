@@ -137,6 +137,7 @@ func NewServer(config util.Config,
 		authRouter.GET("/updatePlayerPosition", playersServer.UpdatePlayerPositionFunc)
 
 		authRouter.PUT("/inActiveUserFromCommunity", handlersServer.InActiveUserFromCommunityFunc)
+		authRouter.PUT("/updateDeleteMessage", messageServer.UpdateDeleteMessageFunc)
 
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))

@@ -95,4 +95,16 @@ func (s *HandlersServer) InActiveUserFromCommunityFunc(ctx *gin.Context) {
 		return
 	}
 
+	arg := db.InActiveUserFromCommunityParams{
+		Username: req.Username,
+		ID:       req.ID,
+	}
+
+	response, err := s.store.InActiveUserFromCommunity(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to unfollow the user from the community: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
 }

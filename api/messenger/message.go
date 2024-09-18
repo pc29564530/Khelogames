@@ -63,3 +63,30 @@ func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, messageUserName)
 	return
 }
+
+type updateDeleteMessageRequest struct {
+	SenderUsername string `json:"sender_username"`
+	ID             int64  `json:"id"`
+}
+
+func (s *MessageServer) UpdateDeleteMessageFunc(ctx *gin.Context) {
+	var req updateDeleteMessageRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	arg := db.UpdateDeletedMessageParams{
+		SenderUsername: req.SenderUsername,
+		ID:             req.ID,
+	}
+
+	response, err := s.store.UpdateDeletedMessage(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to delete message", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+}
