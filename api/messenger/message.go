@@ -90,3 +90,14 @@ func (s *MessageServer) UpdateDeleteMessageFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, response)
 }
+
+func (s *MessageServer) DeleteScheduleMessageFunc(ctx *gin.Context) {
+
+	response, err := s.store.ScheduledDeleteMessage(ctx)
+	if err != nil {
+		s.logger.Error("Failed to delete message: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+}
