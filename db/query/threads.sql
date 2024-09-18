@@ -36,3 +36,8 @@ RETURNING *;
 -- name: GetThreadByThreadID :one
 SELECT * FROM threads
 WHERE id = $1;
+
+-- name: DeleteThread :one
+DELETE FROM threads
+WHERE id = $1
+RETURNING *;
