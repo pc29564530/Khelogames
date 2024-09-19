@@ -215,6 +215,7 @@ type Player struct {
 	Sports     string `json:"sports"`
 	Country    string `json:"country"`
 	PlayerName string `json:"player_name"`
+	GameID     int64  `json:"game_id"`
 }
 
 type Profile struct {
@@ -253,8 +254,8 @@ type Team struct {
 	Country     string `json:"country"`
 	Type        string `json:"type"`
 	Sports      string `json:"sports"`
-	GamesID     int64  `json:"games_id"`
 	PlayerCount int32  `json:"player_count"`
+	GameID      int64  `json:"game_id"`
 }
 
 type TeamPlayer struct {
