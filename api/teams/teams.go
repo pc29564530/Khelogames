@@ -2,6 +2,7 @@ package teams
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	db "khelogames/db/sqlc"
 
 	"khelogames/pkg"
@@ -127,18 +128,53 @@ func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
 	return
 }
 
+type getTeamsBySportRequest struct {
+	GameID int64 `uri:"game_id"`
+}
+
 func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 
-	sports := ctx.Param("sport")
-	response, err := s.store.GetTeamsBySport(ctx, sports)
+	var req getTeamsBySportRequest
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to get club by sport: ", err)
-		ctx.JSON(http.StatusNoContent, (err))
+		s.logger.Error("Failed to bind: ", err)
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
-	return
+	rows, err := s.store.GetTeamsBySport(ctx, req.GameID)
+	if err != nil {
+		s.logger.Error("Failed to get club by sport: ", err)
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+
+	var result map[string]interface{}
+	var teamData []map[string]interface{}
+	var gameDetail map[string]interface{}
+
+	for _, row := range rows {
+		var teamDetails map[string]interface{}
+		err := json.Unmarshal(row.TeamData, &teamDetails)
+		if err != nil {
+			s.logger.Error("Failed to unmarshal team data: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process team data"})
+			return
+		}
+
+		teamData = append(teamData, teamDetails)
+		gameDetail = map[string]interface{}{
+			"id":          row.ID,
+			"name":        row.Name,
+			"min_players": row.MinPlayers,
+		}
+	}
+
+	result = map[string]interface{}{
+		"game":  gameDetail,
+		"teams": teamData,
+	}
+
+	ctx.JSON(http.StatusAccepted, result)
 }
 
 type getTeamByPlayerRequest struct {

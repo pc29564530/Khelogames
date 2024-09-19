@@ -10,7 +10,7 @@ import (
 )
 
 const getAllPlayer = `-- name: GetAllPlayer :many
-SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name FROM players
+SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM players
 `
 
 func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
@@ -32,6 +32,7 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
 			&i.Sports,
 			&i.Country,
 			&i.PlayerName,
+			&i.GameID,
 		); err != nil {
 			return nil, err
 		}
@@ -47,7 +48,7 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]Player, error) {
 }
 
 const getPlayer = `-- name: GetPlayer :one
-SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name FROM players
+SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM players
 WHERE id=$1
 `
 
@@ -64,12 +65,13 @@ func (q *Queries) GetPlayer(ctx context.Context, id int64) (Player, error) {
 		&i.Sports,
 		&i.Country,
 		&i.PlayerName,
+		&i.GameID,
 	)
 	return i, err
 }
 
 const getPlayersCountry = `-- name: GetPlayersCountry :many
-SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name FROM players
+SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM players
 WHERE country=$1
 `
 
@@ -92,6 +94,7 @@ func (q *Queries) GetPlayersCountry(ctx context.Context, country string) ([]Play
 			&i.Sports,
 			&i.Country,
 			&i.PlayerName,
+			&i.GameID,
 		); err != nil {
 			return nil, err
 		}
@@ -115,10 +118,11 @@ INSERT INTO players (
     positions,
     sports,
     country,
-    player_name
+    player_name,
+    game_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+) RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id
 `
 
 type NewPlayerParams struct {
@@ -130,6 +134,7 @@ type NewPlayerParams struct {
 	Sports     string `json:"sports"`
 	Country    string `json:"country"`
 	PlayerName string `json:"player_name"`
+	GameID     int64  `json:"game_id"`
 }
 
 func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (Player, error) {
@@ -142,6 +147,7 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (Player, e
 		arg.Sports,
 		arg.Country,
 		arg.PlayerName,
+		arg.GameID,
 	)
 	var i Player
 	err := row.Scan(
@@ -154,12 +160,13 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (Player, e
 		&i.Sports,
 		&i.Country,
 		&i.PlayerName,
+		&i.GameID,
 	)
 	return i, err
 }
 
 const searchPlayer = `-- name: SearchPlayer :many
-SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name FROM players
+SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM players
 WHERE player_name LIKE $1
 `
 
@@ -182,6 +189,7 @@ func (q *Queries) SearchPlayer(ctx context.Context, playerName string) ([]Player
 			&i.Sports,
 			&i.Country,
 			&i.PlayerName,
+			&i.GameID,
 		); err != nil {
 			return nil, err
 		}
@@ -200,7 +208,7 @@ const updatePlayerMedia = `-- name: UpdatePlayerMedia :one
 UPDATE players
 SET media_url=$1
 WHERE id=$2
-RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name
+RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id
 `
 
 type UpdatePlayerMediaParams struct {
@@ -221,6 +229,7 @@ func (q *Queries) UpdatePlayerMedia(ctx context.Context, arg UpdatePlayerMediaPa
 		&i.Sports,
 		&i.Country,
 		&i.PlayerName,
+		&i.GameID,
 	)
 	return i, err
 }
@@ -229,7 +238,7 @@ const updatePlayerPosition = `-- name: UpdatePlayerPosition :one
 UPDATE players
 SET positions=$1
 WHERE id=$2
-RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name
+RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id
 `
 
 type UpdatePlayerPositionParams struct {
@@ -250,6 +259,7 @@ func (q *Queries) UpdatePlayerPosition(ctx context.Context, arg UpdatePlayerPosi
 		&i.Sports,
 		&i.Country,
 		&i.PlayerName,
+		&i.GameID,
 	)
 	return i, err
 }

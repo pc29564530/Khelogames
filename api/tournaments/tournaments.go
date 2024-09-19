@@ -1,6 +1,7 @@
 package tournaments
 
 import (
+	"encoding/json"
 	db "khelogames/db/sqlc"
 	"khelogames/pkg"
 	"khelogames/token"
@@ -19,6 +20,7 @@ type addTournamentRequest struct {
 	StatusCode     string `json:"status_code"`
 	Level          string `json:"level"`
 	StartTimestamp string `json:"start_timestamp"`
+	GameID         int32  `json:"game_id"`
 }
 
 func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
@@ -131,23 +133,6 @@ func (s *TournamentServer) GetTournamentsFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
-	s.logger.Info("Received request to get tournaments by sport")
-
-	sport := ctx.Param("sport")
-
-	response, err := s.store.GetTournamentsBySport(ctx, sport)
-	if err != nil {
-		s.logger.Error("Failed to get tournaments by sport: %v", err)
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-	s.logger.Info("Successfully retrieved tournaments by sport: %v", response)
-
-	ctx.JSON(http.StatusAccepted, response)
-	return
-}
-
 type getTournamentRequest struct {
 	TournamentID int64 `uri:"tournament_id"`
 }
@@ -253,4 +238,52 @@ func (s *TournamentServer) UpdateTournamentStatusFunc(ctx *gin.Context) {
 
 	s.logger.Info("successfully updated the tournament status")
 	ctx.JSON(http.StatusAccepted, updatedMatchData)
+}
+
+type getTournamentByGameIdRequest struct {
+	GameID int64 `uri:"game_id"`
+}
+
+func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
+	var req getTournamentByGameIdRequest
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request parameters"})
+		return
+	}
+
+	rows, err := s.store.GetTournamentsBySport(ctx, req.GameID)
+	if err != nil {
+		s.logger.Error("Failed to get the tournaments: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tournaments"})
+		return
+	}
+
+	var results map[string]interface{}
+	var tournamentData []map[string]interface{}
+	var gameDetail map[string]interface{}
+	for _, row := range rows {
+		var tournamentDetails map[string]interface{}
+		err := json.Unmarshal((row.TournamentData), &tournamentDetails)
+		if err != nil {
+			s.logger.Error("Failed to unmarshal tournament data: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process tournament data"})
+			return
+		}
+
+		tournamentData = append(tournamentData, tournamentDetails)
+		gameDetail = map[string]interface{}{
+			"id":          row.ID,
+			"name":        row.Name,
+			"min_players": row.MinPlayers,
+		}
+	}
+
+	results = map[string]interface{}{
+		"game":       gameDetail,
+		"tournament": tournamentData,
+	}
+
+	ctx.JSON(http.StatusOK, results)
 }

@@ -150,7 +150,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTeamsByGroup", tournamentServer.GetTeamsByGroupFunc)
 	//sportRouter.GET("/getTeams/:tournament_id", tournamentServer.GetTeamsFunc)
 	sportRouter.GET("/getTournamentTeam/:tournament_id", tournamentServer.GetTournamentTeamsFunc)
-	sportRouter.GET("/getTournamentsBySport", tournamentServer.GetTournamentsBySportFunc)
+	sportRouter.GET("/getTournamentsBySport/:game_id", tournamentServer.GetTournamentsBySportFunc)
 	sportRouter.GET("/getTournament/:tournament_id", tournamentServer.GetTournamentFunc)
 
 	//sportRouter.GET("/getFootballMatchScore", footballServer.GetFootballMatchScore())
@@ -208,7 +208,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/searchTeams", teamsServer.SearchTeamFunc)
 	sportRouter.POST("/addTeamsMemberFunc", teamsServer.AddTeamsMemberFunc)
 	sportRouter.GET("/getTeamsMemberFunc", teamsServer.GetTeamsMemberFunc)
-	sportRouter.GET("/getTeamsBySport", teamsServer.GetTeamsBySportFunc)
+	sportRouter.GET("/getTeamsBySport/:game_id", teamsServer.GetTeamsBySportFunc)
 	sportRouter.GET("/getMatchByTeamFunc", teamsServer.GetMatchByTeamFunc)
 	sportRouter.GET("/getTournamentByTeamFunc", teamsServer.GetTournamentbyTeamFunc)
 
