@@ -36,10 +36,7 @@ RETURNING *;
 
 -- name: GetTournamentsBySport :many
 SELECT 
-    g.id, g.name, g.min_players,
-    JSON_BUILD_OBJECT(
-        'tournament', JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id)
-    ) AS tournament_data
+    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id) AS tournament_data
 FROM tournaments t
 JOIN games AS g ON g.id = t.game_id
 WHERE t.game_id=$1;

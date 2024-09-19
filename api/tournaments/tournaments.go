@@ -260,8 +260,9 @@ func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
 		return
 	}
 
-	var results []map[string]interface{}
-
+	var results map[string]interface{}
+	var tournamentData []map[string]interface{}
+	var gameDetail map[string]interface{}
 	for _, row := range rows {
 		var tournamentDetails map[string]interface{}
 		err := json.Unmarshal((row.TournamentData), &tournamentDetails)
@@ -271,16 +272,17 @@ func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
 			return
 		}
 
-		result := map[string]interface{}{
-			"game": map[string]interface{}{
-				"id":          row.ID,
-				"name":        row.Name,
-				"min_players": row.MinPlayers,
-			},
-			"tournament": tournamentDetails,
+		tournamentData = append(tournamentData, tournamentDetails)
+		gameDetail = map[string]interface{}{
+			"id":          row.ID,
+			"name":        row.Name,
+			"min_players": row.MinPlayers,
 		}
+	}
 
-		results = append(results, result)
+	results = map[string]interface{}{
+		"game":       gameDetail,
+		"tournament": tournamentData,
 	}
 
 	ctx.JSON(http.StatusOK, results)
