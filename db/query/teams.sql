@@ -10,8 +10,8 @@ INSERT INTO teams (
     country,
     type,
     sports,
-    games_id,
-    player_count
+    player_count,
+    game_id 
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 ) RETURNING *;
@@ -30,8 +30,11 @@ WHERE team_id=$1;
 
 
 -- name: GetTeamsBySport :many
-SELECT * FROM teams
-WHERE sports=$1;
+SELECT 
+    g.id, g.name, g.min_players,JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'admin', t.admin, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id) AS team_data
+FROM teams t
+JOIN games AS g ON g.id = t.game_id
+WHERE t.game_id=$1;
 
 -- name: GetTeams :many
 SELECT * FROM teams;
