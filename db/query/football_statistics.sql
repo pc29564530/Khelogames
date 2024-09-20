@@ -19,14 +19,14 @@ WHERE match_id=$1 AND team_id=$2;
 
 -- name: UpdateFootballStatistics :one
 UPDATE football_statistics
-SET
-    shots_on_target = shots_on_target + $1,
-    total_shots = total_shots + $2,
-    corner_kicks = corner_kicks + $3,
-    fouls = fouls + $4,
-    goalkeeper_saves = goalkeeper_saves + $5,
-    free_kicks = free_kicks + $6,
-    yellow_cards = yellow_cards + $7,
-    red_cards = red_cards + $8
+SET 
+    shots_on_target = CASE WHEN $1 IS NOT NULL THEN shots_on_target + $1 ELSE 0 END,
+    total_shots = CASE WHEN $2 IS NOT NULL THEN total_shots + $2 ELSE 0 END,
+    corner_kicks = CASE WHEN $3 IS NOT NULL THEN corner_kicks + $3 ELSE 0 END,
+    fouls = CASE WHEN $4 IS NOT NULL THEN fouls + $4 ELSE fouls END,
+    goalkeeper_saves = CASE WHEN $5 IS NOT NULL THEN goalkeeper_saves + $5 ELSE 0 END,
+    free_kicks = CASE WHEN $6 IS NOT NULL THEN free_kicks + $6 ELSE 0 END,
+    yellow_cards = CASE WHEN $7 IS NOT NULL THEN yellow_cards + $7 ELSE 0 END,
+    red_cards = CASE WHEN $8 IS NOT NULL THEN red_cards + $8 ELSE 0 END
 WHERE match_id = $9 AND team_id = $10
 RETURNING *;

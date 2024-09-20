@@ -41,6 +41,8 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		return
 	}
 
+	defer tx.Rollback()
+
 	incidents, err := s.store.CreateFootballIncidents(ctx, arg)
 	if err != nil {
 		tx.Rollback()
@@ -58,6 +60,29 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		tx.Rollback()
 		s.logger.Error("Failed to create football incidents: ", err)
 		return
+	}
+
+	statsUpdate := GetStatisticsUpdateFromIncident(incidents.IncidentType)
+
+	if statsUpdate != (StatisticsUpdate{}) {
+		statsArg := db.UpdateFootballStatisticsParams{
+			ShotsOnTarget:   *statsUpdate.ShotsOnTarget,
+			TotalShots:      *statsUpdate.TotalShots,
+			CornerKicks:     *statsUpdate.CornerKicks,
+			Fouls:           *statsUpdate.Fouls,
+			GoalkeeperSaves: *statsUpdate.GoalkeeperSaves,
+			FreeKicks:       *statsUpdate.FreeKicks,
+			YellowCards:     *statsUpdate.YellowCards,
+			RedCards:        *statsUpdate.RedCards,
+			MatchID:         req.MatchID,
+			TeamID:          req.TeamID,
+		}
+
+		_, err := s.store.UpdateFootballStatistics(ctx, statsArg)
+		if err != nil {
+			s.logger.Error("Failed to update statistics: ", err)
+			return
+		}
 	}
 
 	if incidents.IncidentType == "goal" {
@@ -88,6 +113,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 				return
 			}
 		}
+
 	}
 
 	//commit the transcation if all operation are successfull
