@@ -231,6 +231,11 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getFootballLineUp", footballServer.GetFootballLineUpFunc)
 	sportRouter.GET("/getFootballSubstitution", footballServer.GetFootballSubstitutionFunc)
 	sportRouter.PUT("/updateFootballSubsAndLineUp", footballServer.UpdateFootballSubsAndLineUpFunc)
+
+	sportRouter.POST("/addFootballStatistics", footballServer.AddFootballStatisticsFunc)
+	sportRouter.GET("/getFootballStatistics", footballServer.GetFootballStatisticsFunc)
+	sportRouter.PUT("/updateFootballStatistics", footballServer.UpdateFootballStatisticsFunc)
+
 	//cricket
 	sportRouter.POST("/addCricketScore", cricketServer.AddCricketScoreFunc)
 	sportRouter.POST("/addCricketToss", cricketServer.AddCricketToss)
