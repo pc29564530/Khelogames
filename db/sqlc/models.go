@@ -108,6 +108,14 @@ type FootballIncidentPlayer struct {
 	PlayerID   int64 `json:"player_id"`
 }
 
+type FootballLineup struct {
+	ID       int64  `json:"id"`
+	TeamID   int64  `json:"team_id"`
+	PlayerID int64  `json:"player_id"`
+	MatchID  int64  `json:"match_id"`
+	Position string `json:"position"`
+}
+
 type FootballScore struct {
 	ID         int64 `json:"id"`
 	MatchID    int64 `json:"match_id"`
@@ -129,6 +137,14 @@ type FootballStatistic struct {
 	FreeKicks       int32 `json:"free_kicks"`
 	YellowCards     int32 `json:"yellow_cards"`
 	RedCards        int32 `json:"red_cards"`
+}
+
+type FootballSubstitution struct {
+	ID       int64  `json:"id"`
+	TeamID   int64  `json:"team_id"`
+	PlayerID int64  `json:"player_id"`
+	MatchID  int64  `json:"match_id"`
+	Position string `json:"position"`
 }
 
 type FootballSubstitutionsPlayer struct {

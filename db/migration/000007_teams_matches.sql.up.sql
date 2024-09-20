@@ -165,3 +165,20 @@ CREATE TABLE games (
     name VARCHAR NOT NULL,
     min_players INT NOT NULL
 );
+
+-- create a line up and substitution table
+CREATE TABLE football_substitution (
+    id BIGSERIAL PRIMARY KEY,
+    team_id BIGINT REFERENCES teams (id) NOT NULL,
+    player_id BIGINT REFERENCES players (id) NOT NULL,
+    match_id BIGINT REFERENCES matches (id) NOT NULL,
+    position VARCHAR NOT NULL
+);
+
+CREATE TABLE football_lineup (
+    id BIGSERIAL PRIMARY KEY,
+    team_id BIGINT REFERENCES teams (id) NOT NULL,
+    player_id BIGINT REFERENCES players (id) NOT NULL,
+    match_id BIGINT REFERENCES matches (id) NOT NULL,
+    position VARCHAR NOT NULL
+);
