@@ -132,7 +132,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	s.logger.Info("successfully updated the match status")
 
-	if updatedMatchData.StatusCode == "in_progress" && req.Sports == "Football" {
+	if updatedMatchData.StatusCode == "started" && req.Sports == "Football" {
 		argAway := db.NewFootballScoreParams{
 			MatchID:    updatedMatchData.ID,
 			TeamID:     updatedMatchData.AwayTeamID,
@@ -161,6 +161,42 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 			tx.Rollback()
 			s.logger.Error("unable to add the football match score: ", err)
 			return
+		}
+
+		argStatisticsHome := db.CreateFootballStatisticsParams{
+			MatchID:         updatedMatchData.ID,
+			TeamID:          updatedMatchData.HomeTeamID,
+			ShotsOnTarget:   0,
+			TotalShots:      0,
+			CornerKicks:     0,
+			Fouls:           0,
+			GoalkeeperSaves: 0,
+			FreeKicks:       0,
+			YellowCards:     0,
+			RedCards:        0,
+		}
+
+		argStatisticsAway := db.CreateFootballStatisticsParams{
+			MatchID:         updatedMatchData.ID,
+			TeamID:          updatedMatchData.AwayTeamID,
+			ShotsOnTarget:   0,
+			TotalShots:      0,
+			CornerKicks:     0,
+			Fouls:           0,
+			GoalkeeperSaves: 0,
+			FreeKicks:       0,
+			YellowCards:     0,
+			RedCards:        0,
+		}
+
+		_, err = s.store.CreateFootballStatistics(ctx, argStatisticsHome)
+		if err != nil {
+			s.logger.Error("Failed to add the football statistics: ", err)
+		}
+
+		_, err = s.store.CreateFootballStatistics(ctx, argStatisticsAway)
+		if err != nil {
+			s.logger.Error("Failed to add the football statistics: ", err)
 		}
 	}
 
