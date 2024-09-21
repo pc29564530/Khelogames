@@ -77,55 +77,55 @@ func (s *FootballServer) GetFootballStatisticsFunc(ctx *gin.Context) {
 }
 
 type StatisticsUpdate struct {
-	ShotsOnTarget   *int32
-	TotalShots      *int32
-	CornerKicks     *int32
-	Fouls           *int32
-	GoalkeeperSaves *int32
-	FreeKicks       *int32
-	YellowCards     *int32
-	RedCards        *int32
+	ShotsOnTarget   int32
+	TotalShots      int32
+	CornerKicks     int32
+	Fouls           int32
+	GoalkeeperSaves int32
+	FreeKicks       int32
+	YellowCards     int32
+	RedCards        int32
 }
 
 func GetStatisticsUpdateFromIncident(incidentType string) StatisticsUpdate {
 	switch incidentType {
 	case "goal":
 		return StatisticsUpdate{
-			ShotsOnTarget: ptrInt32(1),
-			TotalShots:    ptrInt32(1),
+			ShotsOnTarget: 1,
+			TotalShots:    1,
 		}
 	case "fouls":
 		return StatisticsUpdate{
-			Fouls:     ptrInt32(1),
-			FreeKicks: ptrInt32(1),
+			Fouls:     1,
+			FreeKicks: 1,
 		}
 	case "yellow_cards":
 		return StatisticsUpdate{
-			YellowCards: ptrInt32(1),
+			YellowCards: 1,
 		}
 	case "red_cards":
 		return StatisticsUpdate{
-			RedCards: ptrInt32(1),
+			RedCards: 1,
 		}
 	case "goalkeeper_saves":
 		return StatisticsUpdate{
-			GoalkeeperSaves: ptrInt32(1),
-			ShotsOnTarget:   ptrInt32(1),
-			TotalShots:      ptrInt32(1),
+			GoalkeeperSaves: 1,
+			ShotsOnTarget:   1,
+			TotalShots:      1,
 		}
-	case "corner_kick":
+	case "corner_kicks":
 		return StatisticsUpdate{
-			CornerKicks: ptrInt32(1),
+			CornerKicks: 1,
 		}
 	case "total_shots":
 		return StatisticsUpdate{
-			TotalShots: ptrInt32(1),
+			TotalShots: 1,
+		}
+	case "shots_on_target":
+		return StatisticsUpdate{
+			ShotsOnTarget: 1,
 		}
 	default:
 		return StatisticsUpdate{}
 	}
-}
-
-func ptrInt32(i int32) *int32 {
-	return &i
 }
