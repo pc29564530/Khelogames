@@ -342,6 +342,7 @@ type User struct {
 	MobileNumber   string `json:"mobile_number"`
 	HashedPassword string `json:"hashed_password"`
 	Role           string `json:"role"`
+	ID             int64  `json:"id"`
 }
 
 type Wicket struct {

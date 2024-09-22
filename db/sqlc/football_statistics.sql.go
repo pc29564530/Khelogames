@@ -98,7 +98,6 @@ func (q *Queries) GetFootballStatistics(ctx context.Context, arg GetFootballStat
 }
 
 const updateFootballStatistics = `-- name: UpdateFootballStatistics :one
-
 UPDATE football_statistics
 SET 
     shots_on_target = shots_on_target + $1,
@@ -126,21 +125,6 @@ type UpdateFootballStatisticsParams struct {
 	TeamID          int64 `json:"team_id"`
 }
 
-// -- name: UpdateFootballStatistics :one
-// UPDATE football_statistics
-// SET
-//
-//	shots_on_target = CASE WHEN $1 IS NOT NULL THEN shots_on_target + $1 ELSE shots_on_target END,
-//	total_shots = CASE WHEN $2 IS NOT NULL THEN total_shots + $2 ELSE total_shots END,
-//	corner_kicks = CASE WHEN $3 IS NOT NULL THEN corner_kicks + $3 ELSE corner_kicks END,
-//	fouls = CASE WHEN $4 IS NOT NULL THEN fouls + $4 ELSE fouls END,
-//	goalkeeper_saves = CASE WHEN $5 IS NOT NULL THEN goalkeeper_saves + $5 ELSE goalkeeper_saves END,
-//	free_kicks = CASE WHEN $6 IS NOT NULL THEN free_kicks + $6 ELSE free_kicks END,
-//	yellow_cards = CASE WHEN $7 IS NOT NULL THEN yellow_cards + $7 ELSE yellow_cards END,
-//	red_cards = CASE WHEN $8 IS NOT NULL THEN red_cards + $8 ELSE red_cards END
-//
-// WHERE match_id = $9 AND team_id = $10
-// RETURNING *;
 func (q *Queries) UpdateFootballStatistics(ctx context.Context, arg UpdateFootballStatisticsParams) (FootballStatistic, error) {
 	row := q.db.QueryRowContext(ctx, updateFootballStatistics,
 		arg.ShotsOnTarget,

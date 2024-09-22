@@ -17,7 +17,7 @@ INSERT INTO users (
   role
 ) VALUES (
   $1, $2, $3, $4
-) RETURNING username, mobile_number, hashed_password, role
+) RETURNING username, mobile_number, hashed_password, role, id
 `
 
 type CreateUserParams struct {
@@ -40,12 +40,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.MobileNumber,
 		&i.HashedPassword,
 		&i.Role,
+		&i.ID,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT username, mobile_number, hashed_password, role FROM users
+SELECT username, mobile_number, hashed_password, role, id FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -57,12 +58,13 @@ func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
 		&i.MobileNumber,
 		&i.HashedPassword,
 		&i.Role,
+		&i.ID,
 	)
 	return i, err
 }
 
 const listUser = `-- name: ListUser :many
-SELECT DISTINCT username, mobile_number, hashed_password, role FROM users
+SELECT DISTINCT username, mobile_number, hashed_password, role, id FROM users
 WHERE username = $1
 ORDER BY username
 LIMIT $2
@@ -89,6 +91,7 @@ func (q *Queries) ListUser(ctx context.Context, arg ListUserParams) ([]User, err
 			&i.MobileNumber,
 			&i.HashedPassword,
 			&i.Role,
+			&i.ID,
 		); err != nil {
 			return nil, err
 		}
