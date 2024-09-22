@@ -20,7 +20,8 @@ CREATE TABLE "users" (
         "username" varchar UNIQUE NOT NULL,
         "mobile_number" string UNIQUE NOT NULL,
         "hashed_password" varchar UNIQUE NOT NULL,
-        "role" varchar NOT NULL DEFAULT 'user'
+        "role" varchar NOT NULL DEFAULT 'user',
+        "id" bigserial PRIMARY KEY
 );
 
 CREATE TABLE "sessions" (
