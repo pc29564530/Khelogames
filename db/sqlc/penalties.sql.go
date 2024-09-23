@@ -87,12 +87,17 @@ func (q *Queries) GetThePenalty(ctx context.Context, arg GetThePenaltyParams) ([
 const updatePenaltyScore = `-- name: UpdatePenaltyScore :one
 UPDATE penalties
 SET scored = scored + $1
-WHERE id=$1
+WHERE id=$2
 RETURNING id, match_id, team_id, player_id, scored
 `
 
-func (q *Queries) UpdatePenaltyScore(ctx context.Context, scored bool) (Penalty, error) {
-	row := q.db.QueryRowContext(ctx, updatePenaltyScore, scored)
+type UpdatePenaltyScoreParams struct {
+	Scored bool  `json:"scored"`
+	ID     int64 `json:"id"`
+}
+
+func (q *Queries) UpdatePenaltyScore(ctx context.Context, arg UpdatePenaltyScoreParams) (Penalty, error) {
+	row := q.db.QueryRowContext(ctx, updatePenaltyScore, arg.Scored, arg.ID)
 	var i Penalty
 	err := row.Scan(
 		&i.ID,

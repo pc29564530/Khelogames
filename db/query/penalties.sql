@@ -15,5 +15,5 @@ ORDER BY id DESC;
 -- name: UpdatePenaltyScore :one
 UPDATE penalties
 SET scored = scored + $1
-WHERE id=$1
+WHERE id=$2
 RETURNING *;
