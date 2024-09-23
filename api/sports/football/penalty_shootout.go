@@ -22,14 +22,14 @@ func (s *FootballServer) AddFootballPenaltyFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.AddThePenaltyParams{
+	arg := db.AddFootballPenaltyShootoutParams{
 		MatchID:  req.MatchID,
 		TeamID:   req.TeamID,
 		PlayerID: req.PlayerID,
 		Scored:   req.Scored,
 	}
 
-	response, err := s.store.AddThePenalty(ctx, arg)
+	response, err := s.store.AddFootballPenaltyShootout(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add the penalty: ", err)
 		return
@@ -52,12 +52,12 @@ func (s *FootballServer) GetFootballPenaltyFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.GetThePenaltyParams{
+	arg := db.GetFootballPenaltyShootoutParams{
 		MatchID: req.MatchID,
 		TeamID:  req.TeamID,
 	}
 
-	response, err := s.store.GetThePenalty(ctx, arg)
+	response, err := s.store.GetFootballPenaltyShootout(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add the penalty: ", err)
 		return
@@ -78,12 +78,12 @@ func (s *FootballServer) UpdateFootballPenaltyFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.UpdatePenaltyScoreParams{
+	arg := db.UpdateFootballPenaltyShootoutParams{
 		ID:     req.ID,
 		Scored: req.Scored,
 	}
 
-	response, err := s.store.UpdatePenaltyScore(ctx, arg)
+	response, err := s.store.UpdateFootballPenaltyShootout(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add the penalty: ", err)
 		return
