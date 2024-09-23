@@ -182,3 +182,11 @@ CREATE TABLE football_lineup (
     match_id BIGINT REFERENCES matches (id) NOT NULL,
     position VARCHAR NOT NULL
 );
+
+CREATE TABLE penalties (
+    id BIGSERIAL PRIMARY KEY,
+    match_id BIGINT REFERENCES matches (id) NOT NULL,
+    team_id BIGINT REFERENCES teams (id) NOT NULL,
+    player_id BIGINT REFERENCES players (id) NOT NULL,
+    scored BOOLEAN NOT NULL DEFAULT FALSE
+);
