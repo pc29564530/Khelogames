@@ -77,6 +77,7 @@ func (s *FootballServer) GetFootballStatisticsFunc(ctx *gin.Context) {
 }
 
 type StatisticsUpdate struct {
+	Penalty         int32
 	ShotsOnTarget   int32
 	TotalShots      int32
 	CornerKicks     int32
@@ -124,6 +125,17 @@ func GetStatisticsUpdateFromIncident(incidentType string) StatisticsUpdate {
 	case "shots_on_target":
 		return StatisticsUpdate{
 			ShotsOnTarget: 1,
+		}
+	case "penalty":
+		return StatisticsUpdate{
+			ShotsOnTarget: 1,
+			TotalShots:    1,
+		}
+	case "missed_penalty":
+		return StatisticsUpdate{
+			ShotsOnTarget:   1,
+			TotalShots:      1,
+			GoalkeeperSaves: 1,
 		}
 	default:
 		return StatisticsUpdate{}
