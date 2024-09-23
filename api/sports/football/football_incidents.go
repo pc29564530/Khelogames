@@ -84,7 +84,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		return
 	}
 
-	if incidents.IncidentType == "goal" {
+	if incidents.IncidentType == "goal" || incidents.IncidentType == "penalty" {
 		if incidents.Periods == "first_half" {
 			argGoalScore := db.UpdateFirstHalfScoreParams{
 				FirstHalf: 1,

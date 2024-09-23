@@ -183,7 +183,7 @@ CREATE TABLE football_lineup (
     position VARCHAR NOT NULL
 );
 
-CREATE TABLE penalties (
+CREATE TABLE penalty_shootout (
     id BIGSERIAL PRIMARY KEY,
     match_id BIGINT REFERENCES matches (id) NOT NULL,
     team_id BIGINT REFERENCES teams (id) NOT NULL,
