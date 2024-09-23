@@ -179,6 +179,11 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateFootballSecondHalfScore", footballServer.UpdateFootballMatchScoreSecondHalfFunc)
 	sportRouter.PUT("/updateFootballMatchScore", footballServer.UpdateFootballMatchScoreFunc)
 	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
+
+	sportRouter.POST("/addFootballPenalty", footballServer.AddFootballPenaltyFunc)
+	sportRouter.POST("/getFootballPenalty", footballServer.GetFootballPenaltyFunc)
+	sportRouter.POST("/updateFootballPenaltyScore", footballServer.UpdateFootballPenaltyFunc)
+
 	//football->player
 	sportRouter.PUT("/updateCurrentTeamByPlayer", teamsServer.UpdateCurrentTeamByPlayerFunc)
 	sportRouter.POST("/addFootballLineUp", footballServer.AddFootballLineUpFunc)

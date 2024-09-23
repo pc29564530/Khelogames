@@ -221,6 +221,14 @@ type Messagemedium struct {
 	MediaID   int64 `json:"media_id"`
 }
 
+type Penalty struct {
+	ID       int64 `json:"id"`
+	MatchID  int64 `json:"match_id"`
+	TeamID   int64 `json:"team_id"`
+	PlayerID int64 `json:"player_id"`
+	Scored   bool  `json:"scored"`
+}
+
 type Player struct {
 	ID         int64  `json:"id"`
 	Username   string `json:"username"`
