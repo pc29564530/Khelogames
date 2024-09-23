@@ -10,7 +10,7 @@ import (
 )
 
 const addFootballPenaltyShootout = `-- name: AddFootballPenaltyShootout :one
-INSERT INTO penalties (
+INSERT INTO penalty_shootout (
     match_id,
     team_id,
     player_id,
@@ -26,14 +26,14 @@ type AddFootballPenaltyShootoutParams struct {
 	Scored   bool  `json:"scored"`
 }
 
-func (q *Queries) AddFootballPenaltyShootout(ctx context.Context, arg AddFootballPenaltyShootoutParams) (Penalty, error) {
+func (q *Queries) AddFootballPenaltyShootout(ctx context.Context, arg AddFootballPenaltyShootoutParams) (PenaltyShootout, error) {
 	row := q.db.QueryRowContext(ctx, addFootballPenaltyShootout,
 		arg.MatchID,
 		arg.TeamID,
 		arg.PlayerID,
 		arg.Scored,
 	)
-	var i Penalty
+	var i PenaltyShootout
 	err := row.Scan(
 		&i.ID,
 		&i.MatchID,
@@ -45,7 +45,7 @@ func (q *Queries) AddFootballPenaltyShootout(ctx context.Context, arg AddFootbal
 }
 
 const getFootballPenaltyShootout = `-- name: GetFootballPenaltyShootout :many
-SELECT id, match_id, team_id, player_id, scored FROM penalties
+SELECT id, match_id, team_id, player_id, scored FROM penalty_shootout
 WHERE match_id=$1 AND team_id=$2
 ORDER BY id DESC
 `
@@ -55,15 +55,15 @@ type GetFootballPenaltyShootoutParams struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (q *Queries) GetFootballPenaltyShootout(ctx context.Context, arg GetFootballPenaltyShootoutParams) ([]Penalty, error) {
+func (q *Queries) GetFootballPenaltyShootout(ctx context.Context, arg GetFootballPenaltyShootoutParams) ([]PenaltyShootout, error) {
 	rows, err := q.db.QueryContext(ctx, getFootballPenaltyShootout, arg.MatchID, arg.TeamID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Penalty
+	var items []PenaltyShootout
 	for rows.Next() {
-		var i Penalty
+		var i PenaltyShootout
 		if err := rows.Scan(
 			&i.ID,
 			&i.MatchID,
@@ -85,7 +85,7 @@ func (q *Queries) GetFootballPenaltyShootout(ctx context.Context, arg GetFootbal
 }
 
 const updateFootballPenaltyShootout = `-- name: UpdateFootballPenaltyShootout :one
-UPDATE penalties
+UPDATE penalty_shootout
 SET scored = scored + $1
 WHERE id=$2
 RETURNING id, match_id, team_id, player_id, scored
@@ -96,9 +96,9 @@ type UpdateFootballPenaltyShootoutParams struct {
 	ID     int64 `json:"id"`
 }
 
-func (q *Queries) UpdateFootballPenaltyShootout(ctx context.Context, arg UpdateFootballPenaltyShootoutParams) (Penalty, error) {
+func (q *Queries) UpdateFootballPenaltyShootout(ctx context.Context, arg UpdateFootballPenaltyShootoutParams) (PenaltyShootout, error) {
 	row := q.db.QueryRowContext(ctx, updateFootballPenaltyShootout, arg.Scored, arg.ID)
-	var i Penalty
+	var i PenaltyShootout
 	err := row.Scan(
 		&i.ID,
 		&i.MatchID,
