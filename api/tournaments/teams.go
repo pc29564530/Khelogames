@@ -1,6 +1,7 @@
 package tournaments
 
 import (
+	"encoding/json"
 	db "khelogames/db/sqlc"
 	"net/http"
 
@@ -59,20 +60,16 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Not found"})
 		return
 	}
+
 	var teamsData []map[string]interface{}
 	for _, team := range tournamentTeamsData {
-		teamData := map[string]interface{}{
-			"team_id":    team.ID,
-			"team_name":  team.Name,
-			"slug":       team.Slug,
-			"short_name": team.Shortname,
-			"team_admin": team.Admin,
-			"media_url":  team.MediaUrl,
-			"country":    team.Country,
-			"gender":     team.Gender,
-			"national":   team.National,
+		var data map[string]interface{}
+		err = json.Unmarshal(team.TeamData, &data)
+		if err != nil {
+			s.logger.Error("Failed to unmarshal: ", err)
+			return
 		}
-		teamsData = append(teamsData, teamData)
+		teamsData = append(teamsData, data)
 	}
 
 	s.logger.Info("Successfully retrieved teams: ", teamsData)

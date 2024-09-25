@@ -14,19 +14,9 @@ SELECT COUNT(*) FROM tournament_team
 WHERE tournament_id=$1;
 
 -- name: GetTournamentTeams :many
-SELECT 
-    tm.id,
-    tm.name,
-    tm.admin,
-    tm.slug,
-    tm.shortname,
-    tm.country,
-    tm.media_url,
-    tm.type,
-    tm.gender,
-    tm.national,
-    tm.sports 
+SELECT
+    tt.tournament_id, JSON_BUILD_OBJECT('id', tm.id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id) AS team_data
 FROM tournament_team tt
-LEFT JOIN teams AS tm ON tm.id == tt.team_id
-WHERE tournament_id=$1;
+JOIN teams AS tm ON tm.id = tt.team_id
+WHERE tt.tournament_id=$1;
 
