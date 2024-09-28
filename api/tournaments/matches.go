@@ -6,6 +6,7 @@ import (
 	"khelogames/util"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +20,7 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotAcceptable, err)
 		return
 	}
-	sports := ctx.Query("sports")
+	sports := strings.TrimSpace(ctx.Param("sport"))
 	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", tournamentID, sports))
 	s.logger.Debug("Tournament match params: ", tournamentID)
 
@@ -34,7 +35,6 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 
 	s.logger.Info("successfully  get the tournament match: ", matchDetailsWithScore)
 	ctx.JSON(http.StatusAccepted, matchDetailsWithScore)
-	return
 }
 
 type createTournamentMatchRequest struct {

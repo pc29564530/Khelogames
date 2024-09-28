@@ -9,13 +9,14 @@ import (
 )
 
 type addFootballIncidentsRequest struct {
-	MatchID      int64  `json:"match_id"`
-	TeamID       int64  `json:"team_id"`
-	Periods      string `json:"periods"`
-	IncidentType string `json:"incident_type"`
-	IncidentTime int64  `json:"incident_time"`
-	PlayerID     int64  `json:"player_id"`
-	Description  string `json:"description"`
+	MatchID              int64  `json:"match_id"`
+	TeamID               int64  `json:"team_id"`
+	Periods              string `json:"periods"`
+	IncidentType         string `json:"incident_type"`
+	IncidentTime         int64  `json:"incident_time"`
+	PlayerID             int64  `json:"player_id"`
+	Description          string `json:"description"`
+	PenaltShootoutScored bool   `json:"penalty_shootout_scored"`
 }
 
 func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
@@ -27,12 +28,13 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 	}
 
 	arg := db.CreateFootballIncidentsParams{
-		MatchID:      req.MatchID,
-		TeamID:       req.TeamID,
-		Periods:      req.Periods,
-		IncidentType: req.IncidentType,
-		IncidentTime: req.IncidentTime,
-		Description:  req.Description,
+		MatchID:               req.MatchID,
+		TeamID:                req.TeamID,
+		Periods:               req.Periods,
+		IncidentType:          req.IncidentType,
+		IncidentTime:          req.IncidentTime,
+		Description:           req.Description,
+		PenaltyShootoutScored: req.PenaltShootoutScored,
 	}
 
 	tx, err := s.store.BeginTx(ctx)
@@ -261,6 +263,65 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 				},
 			}
 
+			incidents = append(incidents, incidentDataMap)
+
+		} else if incident.IncidentType == "penalty_shootout" {
+			var data map[string]interface{}
+			tt := (incident.Players).([]byte)
+			err := json.Unmarshal(tt, &data)
+			if err != nil {
+				s.logger.Error("unable to unmarshal incident player: ", err)
+			}
+
+			playerData := data["player"].(map[string]interface{})
+			incidentDataMap := map[string]interface{}{
+				"id":                      incident.ID,
+				"match_id":                incident.MatchID,
+				"team_id":                 incident.TeamID,
+				"incident_type":           incident.IncidentType,
+				"description":             incident.Description,
+				"penalty_shootout_scored": incident.PenaltyShootoutScored,
+				"player": map[string]interface{}{
+					"id":         playerData["id"],
+					"name":       playerData["name"],
+					"slug":       playerData["slug"],
+					"short_name": playerData["short_name"],
+					"positions":  playerData["positions"],
+					"country":    playerData["country"],
+					"media_url":  playerData["media_url"],
+				},
+			}
+			if incident.IncidentType == "penalty_shootout" {
+				argHome := db.GetFootballShootoutScoreByTeamParams{
+					TeamID:  match.HomeTeamID,
+					MatchID: match.ID,
+					ID:      incident.ID,
+				}
+				homefootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, argHome)
+				if err != nil {
+					s.logger.Error("unable to fetch the home score: ", err)
+				}
+				homeScore = map[string]interface{}{
+					"goals": homefootballScore[0],
+				}
+
+				argAway := db.GetFootballShootoutScoreByTeamParams{
+					TeamID:  match.AwayTeamID,
+					MatchID: match.ID,
+					ID:      incident.ID,
+				}
+				awayfootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, argAway)
+				if err != nil {
+					s.logger.Error("unable to fetch the home score: ", err)
+				}
+				awayScore = map[string]interface{}{
+					"goals": awayfootballScore[0],
+				}
+
+				incidentDataMap["home_score"] = homeScore
+				incidentDataMap["away_score"] = awayScore
+
+			}
 			incidents = append(incidents, incidentDataMap)
 
 		} else {

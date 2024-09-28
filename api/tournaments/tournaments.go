@@ -20,7 +20,7 @@ type addTournamentRequest struct {
 	StatusCode     string `json:"status_code"`
 	Level          string `json:"level"`
 	StartTimestamp string `json:"start_timestamp"`
-	GameID         int32  `json:"game_id"`
+	GameID         int64  `json:"game_id"`
 }
 
 func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
@@ -59,6 +59,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		StatusCode:     req.StatusCode,
 		Level:          req.Level,
 		StartTimestamp: startTimeStamp,
+		GameID:         req.GameID,
 	}
 
 	newTournament, err := s.store.NewTournament(ctx, arg)

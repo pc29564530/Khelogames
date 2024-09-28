@@ -63,18 +63,20 @@ INSERT INTO football_incidents (
     periods,
     incident_type,
     incident_time,
-    description
-) VALUES ($1, $2, $3, $4, $5, $6
-) RETURNING id, match_id, team_id, periods, incident_type, incident_time, description, created_at
+    description,
+    penalty_shootout_scored
+) VALUES ($1, $2, $3, $4, $5, $6, $7
+) RETURNING id, match_id, team_id, periods, incident_type, incident_time, description, created_at, penalty_shootout_scored
 `
 
 type CreateFootballIncidentsParams struct {
-	MatchID      int64  `json:"match_id"`
-	TeamID       int64  `json:"team_id"`
-	Periods      string `json:"periods"`
-	IncidentType string `json:"incident_type"`
-	IncidentTime int64  `json:"incident_time"`
-	Description  string `json:"description"`
+	MatchID               int64  `json:"match_id"`
+	TeamID                int64  `json:"team_id"`
+	Periods               string `json:"periods"`
+	IncidentType          string `json:"incident_type"`
+	IncidentTime          int64  `json:"incident_time"`
+	Description           string `json:"description"`
+	PenaltyShootoutScored bool   `json:"penalty_shootout_scored"`
 }
 
 func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootballIncidentsParams) (FootballIncident, error) {
@@ -85,6 +87,7 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		arg.IncidentType,
 		arg.IncidentTime,
 		arg.Description,
+		arg.PenaltyShootoutScored,
 	)
 	var i FootballIncident
 	err := row.Scan(
@@ -96,6 +99,7 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		&i.IncidentTime,
 		&i.Description,
 		&i.CreatedAt,
+		&i.PenaltyShootoutScored,
 	)
 	return i, err
 }
@@ -189,7 +193,7 @@ func (q *Queries) GetFootballIncidentSubsPlayer(ctx context.Context, incidentID 
 
 const getFootballIncidentWithPlayer = `-- name: GetFootballIncidentWithPlayer :many
 SELECT
-    fi.id, fi.match_id, fi.team_id, fi.periods, fi.incident_type, fi.incident_time, fi.description,
+    fi.id, fi.match_id, fi.team_id, fi.periods, fi.incident_type, fi.incident_time, fi.description, fi.penalty_shootout_scored,
     CASE
         WHEN fi.incident_type='substitutions' THEN
             JSON_BUILD_OBJECT(
@@ -212,14 +216,15 @@ ORDER BY incident_time DESC
 `
 
 type GetFootballIncidentWithPlayerRow struct {
-	ID           int64       `json:"id"`
-	MatchID      int64       `json:"match_id"`
-	TeamID       int64       `json:"team_id"`
-	Periods      string      `json:"periods"`
-	IncidentType string      `json:"incident_type"`
-	IncidentTime int64       `json:"incident_time"`
-	Description  string      `json:"description"`
-	Players      interface{} `json:"players"`
+	ID                    int64       `json:"id"`
+	MatchID               int64       `json:"match_id"`
+	TeamID                int64       `json:"team_id"`
+	Periods               string      `json:"periods"`
+	IncidentType          string      `json:"incident_type"`
+	IncidentTime          int64       `json:"incident_time"`
+	Description           string      `json:"description"`
+	PenaltyShootoutScored bool        `json:"penalty_shootout_scored"`
+	Players               interface{} `json:"players"`
 }
 
 func (q *Queries) GetFootballIncidentWithPlayer(ctx context.Context, matchID int64) ([]GetFootballIncidentWithPlayerRow, error) {
@@ -239,6 +244,7 @@ func (q *Queries) GetFootballIncidentWithPlayer(ctx context.Context, matchID int
 			&i.IncidentType,
 			&i.IncidentTime,
 			&i.Description,
+			&i.PenaltyShootoutScored,
 			&i.Players,
 		); err != nil {
 			return nil, err
@@ -255,7 +261,7 @@ func (q *Queries) GetFootballIncidentWithPlayer(ctx context.Context, matchID int
 }
 
 const getFootballIncidents = `-- name: GetFootballIncidents :many
-SELECT id, match_id, team_id, periods, incident_type, incident_time, description, created_at FROM football_incidents
+SELECT id, match_id, team_id, periods, incident_type, incident_time, description, created_at, penalty_shootout_scored FROM football_incidents
 WHERE match_id=$1
 ORDER BY created_at DESC
 `
@@ -278,6 +284,7 @@ func (q *Queries) GetFootballIncidents(ctx context.Context, matchID int64) ([]Fo
 			&i.IncidentTime,
 			&i.Description,
 			&i.CreatedAt,
+			&i.PenaltyShootoutScored,
 		); err != nil {
 			return nil, err
 		}
@@ -306,6 +313,41 @@ type GetFootballScoreByIncidentTimeParams struct {
 
 func (q *Queries) GetFootballScoreByIncidentTime(ctx context.Context, arg GetFootballScoreByIncidentTimeParams) ([]int64, error) {
 	rows, err := q.db.QueryContext(ctx, getFootballScoreByIncidentTime, arg.TeamID, arg.MatchID, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var sum int64
+		if err := rows.Scan(&sum); err != nil {
+			return nil, err
+		}
+		items = append(items, sum)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFootballShootoutScoreByTeam = `-- name: GetFootballShootoutScoreByTeam :many
+SELECT SUM ( CASE WHEN team_id=$1 AND incident_type='penalty_shootout' AND penalty_shootout_scored='t' THEN 1 ELSE 0 END )
+FROM football_incidents
+WHERE match_id=$2 AND id <= $3
+`
+
+type GetFootballShootoutScoreByTeamParams struct {
+	TeamID  int64 `json:"team_id"`
+	MatchID int64 `json:"match_id"`
+	ID      int64 `json:"id"`
+}
+
+func (q *Queries) GetFootballShootoutScoreByTeam(ctx context.Context, arg GetFootballShootoutScoreByTeamParams) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballShootoutScoreByTeam, arg.TeamID, arg.MatchID, arg.ID)
 	if err != nil {
 		return nil, err
 	}
