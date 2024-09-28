@@ -138,11 +138,12 @@ CREATE TABLE football_incidents (
     id BIGSERIAL PRIMARY KEY,
     match_id BIGSERIAL REFERENCES matches (id) NOT NULL,
     team_id BIGSERIAL REFERENCES teams (id) NOT NULL,
-    periods VARCHAR(50) CHECK (periods IN ('first_half', 'second_half', 'extra_first_half', 'extra_second_half')) NOT NULL,
+    periods VARCHAR(50) NOT NULL,
     incident_type VARCHAR(50) NOT NULL,
     incident_time BIGINT NOT NULL,
     description VARCHAR NOT NULL,
-    created_at BIGINT DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) NOT NULL
+    created_at BIGINT DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) NOT NULL,
+    penalty_shootout_scored BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 
@@ -181,12 +182,4 @@ CREATE TABLE football_lineup (
     player_id BIGINT REFERENCES players (id) NOT NULL,
     match_id BIGINT REFERENCES matches (id) NOT NULL,
     position VARCHAR NOT NULL
-);
-
-CREATE TABLE penalty_shootout (
-    id BIGSERIAL PRIMARY KEY,
-    match_id BIGINT REFERENCES matches (id) NOT NULL,
-    team_id BIGINT REFERENCES teams (id) NOT NULL,
-    player_id BIGINT REFERENCES players (id) NOT NULL,
-    scored BOOLEAN NOT NULL DEFAULT FALSE
 );

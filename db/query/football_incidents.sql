@@ -5,8 +5,9 @@ INSERT INTO football_incidents (
     periods,
     incident_type,
     incident_time,
-    description
-) VALUES ($1, $2, $3, $4, $5, $6
+    description,
+    penalty_shootout_scored
+) VALUES ($1, $2, $3, $4, $5, $6, $7
 ) RETURNING *;
 
 -- name: AddFootballIncidentPlayer :one
@@ -49,7 +50,7 @@ ORDER BY incident_time DESC;
 
 -- name: GetFootballIncidentWithPlayer :many
 SELECT
-    fi.id, fi.match_id, fi.team_id, fi.periods, fi.incident_type, fi.incident_time, fi.description,
+    fi.id, fi.match_id, fi.team_id, fi.periods, fi.incident_type, fi.incident_time, fi.description, fi.penalty_shootout_scored,
     CASE
         WHEN fi.incident_type='substitutions' THEN
             JSON_BUILD_OBJECT(
@@ -74,3 +75,8 @@ ORDER BY incident_time DESC;
 SELECT SUM ( CASE WHEN team_id=$1 AND incident_type='goal' THEN 1 ELSE 0 END )
 FROM football_incidents
 WHERE match_id = $2 AND id <= $3;
+
+-- name: GetFootballShootoutScoreByTeam :many
+SELECT SUM ( CASE WHEN team_id=$1 AND incident_type='penalty_shootout' AND penalty_shootout_scored='t' THEN 1 ELSE 0 END )
+FROM football_incidents
+WHERE match_id=$2 AND id <= $3;

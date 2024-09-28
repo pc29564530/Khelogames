@@ -92,14 +92,15 @@ type Follow struct {
 }
 
 type FootballIncident struct {
-	ID           int64  `json:"id"`
-	MatchID      int64  `json:"match_id"`
-	TeamID       int64  `json:"team_id"`
-	Periods      string `json:"periods"`
-	IncidentType string `json:"incident_type"`
-	IncidentTime int64  `json:"incident_time"`
-	Description  string `json:"description"`
-	CreatedAt    int64  `json:"created_at"`
+	ID                    int64  `json:"id"`
+	MatchID               int64  `json:"match_id"`
+	TeamID                int64  `json:"team_id"`
+	Periods               string `json:"periods"`
+	IncidentType          string `json:"incident_type"`
+	IncidentTime          int64  `json:"incident_time"`
+	Description           string `json:"description"`
+	CreatedAt             int64  `json:"created_at"`
+	PenaltyShootoutScored bool   `json:"penalty_shootout_scored"`
 }
 
 type FootballIncidentPlayer struct {
@@ -219,14 +220,6 @@ type Message struct {
 type Messagemedium struct {
 	MessageID int64 `json:"message_id"`
 	MediaID   int64 `json:"media_id"`
-}
-
-type PenaltyShootout struct {
-	ID       int64 `json:"id"`
-	MatchID  int64 `json:"match_id"`
-	TeamID   int64 `json:"team_id"`
-	PlayerID int64 `json:"player_id"`
-	Scored   bool  `json:"scored"`
 }
 
 type Player struct {
