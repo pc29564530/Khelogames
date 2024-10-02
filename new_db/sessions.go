@@ -19,7 +19,7 @@ INSERT INTO sessions (
     created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP
-) RETURNING id, username, refresh_token, user_agent, client_ip, expires_at, created_at
+) RETURNING *;
 `
 
 type CreateSessionsParams struct {
@@ -33,6 +33,7 @@ type CreateSessionsParams struct {
 
 func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) (models.Session, error) {
 	row := q.db.QueryRowContext(ctx, createSessions,
+		arg.ID,
 		arg.Username,
 		arg.RefreshToken,
 		arg.UserAgent,

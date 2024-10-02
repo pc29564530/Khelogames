@@ -352,20 +352,6 @@ type Wicket struct {
 	BallNumber    int32  `json:"ball_number"`
 }
 
-type GetMatchByTeam struct {
-	TournamentID   int64  `json:"tournament_id"`
-	TournamentName string `json:"tournament_name"`
-	MatchID        int64  `json:"match_id"`
-	HomeTeamID     int64  `json:"home_team_id"`
-	AwayTeamID     int64  `json:"away_team_id"`
-	HomeTeamName   string `json:"home_team_name"`
-	AwayTeamName   string `json:"away_team_name"`
-	StartTimestamp int64  `json:"start_timestamp"`
-	Sports         string `json:"sports"`
-	StatusCode     string `json:"status_code"`
-	Type           string `json:"type"`
-}
-
 type GetPlayerByTeam struct {
 	TeamID      int64  `json:"team_id"`
 	PlayerID    int64  `json:"player_id"`

@@ -28,6 +28,20 @@ func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) 
 	return i, err
 }
 
+type GetMatchByTeamRow struct {
+	TournamentID   int64  `json:"tournament_id"`
+	TournamentName string `json:"tournament_name"`
+	MatchID        int64  `json:"match_id"`
+	HomeTeamID     int64  `json:"home_team_id"`
+	AwayTeamID     int64  `json:"away_team_id"`
+	HomeTeamName   string `json:"home_team_name"`
+	AwayTeamName   string `json:"away_team_name"`
+	StartTimestamp int64  `json:"start_timestamp"`
+	Sports         string `json:"sports"`
+	StatusCode     string `json:"status_code"`
+	Type           string `json:"type"`
+}
+
 const getMatchByTeam = `
 SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
 FROM matches tm
@@ -38,15 +52,15 @@ WHERE c1.id=$1 OR c2.id=$1
 ORDER BY tm.id DESC, tm.start_timestamp DESC
 `
 
-func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]models.GetMatchByTeam, error) {
+func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTeamRow, error) {
 	rows, err := q.db.QueryContext(ctx, getMatchByTeam, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.GetMatchByTeam
+	var items []GetMatchByTeamRow
 	for rows.Next() {
-		var i models.GetMatchByTeam
+		var i GetMatchByTeamRow
 		if err := rows.Scan(
 			&i.TournamentID,
 			&i.TournamentName,

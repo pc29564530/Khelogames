@@ -1,4 +1,4 @@
-package database
+package new_db
 
 import (
 	"database/sql"
