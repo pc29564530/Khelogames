@@ -67,7 +67,7 @@ INSERT INTO football_incidents (
 
 type CreateFootballIncidentsParams struct {
 	MatchID               int64  `json:"match_id"`
-	TeamID                int64  `json:"team_id"`
+	TeamID                *int64 `json:"team_id"`
 	Periods               string `json:"periods"`
 	IncidentType          string `json:"incident_type"`
 	IncidentTime          int64  `json:"incident_time"`

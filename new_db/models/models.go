@@ -90,7 +90,7 @@ type Follow struct {
 type FootballIncident struct {
 	ID                    int64  `json:"id"`
 	MatchID               int64  `json:"match_id"`
-	TeamID                int64  `json:"team_id"`
+	TeamID                *int64 `json:"team_id"`
 	Periods               string `json:"periods"`
 	IncidentType          string `json:"incident_type"`
 	IncidentTime          int64  `json:"incident_time"`
