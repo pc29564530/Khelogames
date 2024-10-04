@@ -2,7 +2,7 @@ package football
 
 import (
 	"encoding/json"
-	db "khelogames/db/sqlc"
+	db "khelogames/new_db"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +10,7 @@ import (
 
 type addFootballIncidentsRequest struct {
 	MatchID              int64  `json:"match_id"`
-	TeamID               int64  `json:"team_id"`
+	TeamID               *int64 `json:"team_id"`
 	Periods              string `json:"periods"`
 	IncidentType         string `json:"incident_type"`
 	IncidentTime         int64  `json:"incident_time"`
@@ -36,6 +36,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		Description:           req.Description,
 		PenaltyShootoutScored: req.PenaltShootoutScored,
 	}
+	s.logger.Debugf("Creating incident with params: %+v", arg)
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
@@ -52,38 +53,42 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		return
 	}
 
-	incidentPlayerArg := db.AddFootballIncidentPlayerParams{
-		IncidentID: incidents.ID,
-		PlayerID:   req.PlayerID,
-	}
+	s.logger.Info("successfully created the incident: ", incidents)
 
-	_, err = s.store.AddFootballIncidentPlayer(ctx, incidentPlayerArg)
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create football incidents: ", err)
-		return
-	}
+	if incidents.IncidentType != "period" {
+		incidentPlayerArg := db.AddFootballIncidentPlayerParams{
+			IncidentID: incidents.ID,
+			PlayerID:   req.PlayerID,
+		}
 
-	statsUpdate := GetStatisticsUpdateFromIncident(incidents.IncidentType)
+		_, err = s.store.AddFootballIncidentPlayer(ctx, incidentPlayerArg)
+		if err != nil {
+			tx.Rollback()
+			s.logger.Error("Failed to create football incidents: ", err)
+			return
+		}
 
-	statsArg := db.UpdateFootballStatisticsParams{
-		ShotsOnTarget:   statsUpdate.ShotsOnTarget,
-		TotalShots:      statsUpdate.TotalShots,
-		CornerKicks:     statsUpdate.CornerKicks,
-		Fouls:           statsUpdate.Fouls,
-		GoalkeeperSaves: statsUpdate.GoalkeeperSaves,
-		FreeKicks:       statsUpdate.FreeKicks,
-		YellowCards:     statsUpdate.YellowCards,
-		RedCards:        statsUpdate.RedCards,
-		MatchID:         req.MatchID,
-		TeamID:          req.TeamID,
-	}
+		statsUpdate := GetStatisticsUpdateFromIncident(incidents.IncidentType)
 
-	_, err = s.store.UpdateFootballStatistics(ctx, statsArg)
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to update statistics: ", err)
-		return
+		statsArg := db.UpdateFootballStatisticsParams{
+			ShotsOnTarget:   statsUpdate.ShotsOnTarget,
+			TotalShots:      statsUpdate.TotalShots,
+			CornerKicks:     statsUpdate.CornerKicks,
+			Fouls:           statsUpdate.Fouls,
+			GoalkeeperSaves: statsUpdate.GoalkeeperSaves,
+			FreeKicks:       statsUpdate.FreeKicks,
+			YellowCards:     statsUpdate.YellowCards,
+			RedCards:        statsUpdate.RedCards,
+			MatchID:         req.MatchID,
+			TeamID:          *req.TeamID,
+		}
+
+		_, err = s.store.UpdateFootballStatistics(ctx, statsArg)
+		if err != nil {
+			tx.Rollback()
+			s.logger.Error("Failed to update statistics: ", err)
+			return
+		}
 	}
 
 	if incidents.IncidentType == "goal" || incidents.IncidentType == "penalty" {
@@ -91,7 +96,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 			argGoalScore := db.UpdateFirstHalfScoreParams{
 				FirstHalf: 1,
 				MatchID:   incidents.MatchID,
-				TeamID:    incidents.TeamID,
+				TeamID:    *incidents.TeamID,
 			}
 
 			_, err := s.store.UpdateFirstHalfScore(ctx, argGoalScore)
@@ -104,7 +109,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 			argGoalScore := db.UpdateSecondHalfScoreParams{
 				SecondHalf: 1,
 				MatchID:    incidents.MatchID,
-				TeamID:     incidents.TeamID,
+				TeamID:     *incidents.TeamID,
 			}
 
 			_, err := s.store.UpdateSecondHalfScore(ctx, argGoalScore)
@@ -159,7 +164,7 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 
 	arg := db.CreateFootballIncidentsParams{
 		MatchID:      req.MatchID,
-		TeamID:       req.TeamID,
+		TeamID:       &req.TeamID,
 		Periods:      req.Periods,
 		IncidentType: req.IncidentType,
 		IncidentTime: req.IncidentTime,
@@ -240,6 +245,7 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 				"id":            incident.ID,
 				"match_id":      incident.MatchID,
 				"team_id":       incident.TeamID,
+				"periods":       incident.Periods,
 				"incident_type": incident.IncidentType,
 				"incident_time": incident.IncidentTime,
 				"description":   incident.Description,
@@ -278,6 +284,7 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 				"id":                      incident.ID,
 				"match_id":                incident.MatchID,
 				"team_id":                 incident.TeamID,
+				"periods":                 incident.Periods,
 				"incident_type":           incident.IncidentType,
 				"description":             incident.Description,
 				"penalty_shootout_scored": incident.PenaltyShootoutScored,
@@ -324,6 +331,16 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 			}
 			incidents = append(incidents, incidentDataMap)
 
+		} else if incident.IncidentType == "period" {
+			incidentDataMap := map[string]interface{}{
+				"id":            incident.ID,
+				"match_id":      incident.MatchID,
+				"periods":       incident.Periods,
+				"incident_type": incident.IncidentType,
+				"incident_time": incident.IncidentTime,
+				"description":   incident.Description,
+			}
+			incidents = append(incidents, incidentDataMap)
 		} else {
 
 			var data map[string]interface{}
@@ -338,6 +355,7 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 				"id":            incident.ID,
 				"match_id":      incident.MatchID,
 				"team_id":       incident.TeamID,
+				"periods":       incident.Periods,
 				"incident_type": incident.IncidentType,
 				"incident_time": incident.IncidentTime,
 				"description":   incident.Description,

@@ -188,10 +188,33 @@ func (q *Queries) GetFootballIncidentSubsPlayer(ctx context.Context, incidentID 
 }
 
 const getFootballIncidentWithPlayer = `
-SELECT
-    fi.id, fi.match_id, fi.team_id, fi.periods, fi.incident_type, fi.incident_time, fi.description, fi.penalty_shootout_scored,
+SELECT 
+    fi.id, 
+    fi.match_id, 
+    NULL AS team_id, 
+    fi.periods, 
+    fi.incident_type, 
+    fi.incident_time, 
+    fi.description, 
+    fi.penalty_shootout_scored,
+    NULL AS players
+FROM 
+    football_incidents fi
+WHERE 
+    fi.match_id = $1 AND 
+    (fi.periods = 'half_time' OR fi.periods = 'full_time' OR fi.periods = 'extra_time')
+UNION ALL
+SELECT 
+    fi.id, 
+    fi.match_id, 
+    fi.team_id, 
+    fi.periods, 
+    fi.incident_type, 
+    fi.incident_time, 
+    fi.description, 
+    fi.penalty_shootout_scored,
     CASE
-        WHEN fi.incident_type='substitutions' THEN
+        WHEN fi.incident_type = 'substitutions' THEN 
             JSON_BUILD_OBJECT(
                 'player_in', JSON_BUILD_OBJECT('id',player_in.id,'username',player_in.username, 'name', player_in.player_name, 'slug', player_in.slug, 'short_name',player_in.short_name, 'country', player_in.country, 'positions', player_in.positions, 'media_url', player_in.media_url ),
                 'player_out', JSON_BUILD_OBJECT('id',player_out.id,'username',player_out.username, 'name', player_out.player_name, 'slug', player_out.slug, 'short_name',player_out.short_name, 'country', player_out.country, 'positions', player_out.positions, 'media_url', player_out.media_url)
@@ -201,20 +224,29 @@ SELECT
                 'player', JSON_BUILD_OBJECT('id',player_incident.id,'username',player_incident.username, 'name', player_incident.player_name, 'slug', player_incident.slug, 'short_name',player_incident.short_name, 'country', player_incident.country, 'positions', player_incident.positions, 'media_url', player_incident.media_url)
             )
     END AS players
-FROM football_incidents fi
-JOIN football_incident_player AS fip ON fip.incident_id=fi.id
-JOIN players AS player_incident ON player_incident.id = fip.player_id
-LEFT JOIN football_substitutions_player AS fis ON fis.incident_id=fi.id
-LEFT JOIN players AS player_in ON player_in.id = fis.player_in_id
-LEFT JOIN players AS player_out ON player_out.id = fis.player_out_id
-WHERE fi.match_id =  $1
-ORDER BY incident_time DESC
+FROM 
+    football_incidents fi
+LEFT JOIN 
+    football_incident_player AS fip ON fip.incident_id=fi.id
+LEFT JOIN 
+    players AS player_incident ON player_incident.id = fip.player_id
+LEFT JOIN 
+    football_substitutions_player AS fis ON fis.incident_id=fi.id
+LEFT JOIN 
+    players AS player_in ON player_in.id = fis.player_in_id
+LEFT JOIN 
+    players AS player_out ON player_out.id = fis.player_out_id
+WHERE 
+    fi.match_id = $1 AND 
+    (fi.periods IS NULL OR fi.periods NOT IN ('half_time', 'full_time', 'extra_time'))
+ORDER BY 
+    incident_time DESC;
 `
 
 type GetFootballIncidentWithPlayerRow struct {
 	ID                    int64       `json:"id"`
 	MatchID               int64       `json:"match_id"`
-	TeamID                int64       `json:"team_id"`
+	TeamID                *int64      `json:"team_id"`
 	Periods               string      `json:"periods"`
 	IncidentType          string      `json:"incident_type"`
 	IncidentTime          int64       `json:"incident_time"`
