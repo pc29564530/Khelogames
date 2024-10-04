@@ -3,8 +3,8 @@ package util
 import (
 	"khelogames/api/sports/cricket"
 	"khelogames/api/sports/football"
+	db "khelogames/database"
 	"khelogames/logger"
-	db "khelogames/new_db"
 )
 
 type CheckSportServer struct {
