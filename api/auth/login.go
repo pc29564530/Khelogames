@@ -2,11 +2,9 @@ package auth
 
 import (
 	"database/sql"
-	"encoding/base64"
 	"fmt"
 	db "khelogames/database"
 	"khelogames/util"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -134,36 +132,36 @@ func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 	return
 }
 
-func (s *AuthServer) VerifyMobileAndPasswordFunc(ctx *gin.Context, username string, password string, userData db.User) error {
-	var err error
-	if userData.Username != username {
-		s.logger.Error("Failed to verify mobile and password: ", err)
-		ctx.JSON(http.StatusNotFound, (err))
-		return err
-	}
-	s.logger.Debug(fmt.Sprintf("successfully matches the username: ", username))
-	pass, err := util.HashPassword(password)
-	if err != nil {
-		s.logger.Debug("Failed to convert password: ", err)
-		return err
-	}
-	s.logger.Debug(fmt.Sprintf("input password of user: ", pass))
-	s.logger.Debug(fmt.Sprintf("store password of the user: ", userData.HashedPassword))
-	err = util.CheckPassword(pass, userData.HashedPassword)
-	if err != nil {
-		s.logger.Error("Failed to verify mobile and password: ", err)
-		return err
-	}
-	s.logger.Info("successfully verify the password")
-	return nil
-}
+// func (s *AuthServer) VerifyMobileAndPasswordFunc(ctx *gin.Context, username string, password string, userData db.User) error {
+// 	var err error
+// 	if userData.Username != username {
+// 		s.logger.Error("Failed to verify mobile and password: ", err)
+// 		ctx.JSON(http.StatusNotFound, (err))
+// 		return err
+// 	}
+// 	s.logger.Debug(fmt.Sprintf("successfully matches the username: ", username))
+// 	pass, err := util.HashPassword(password)
+// 	if err != nil {
+// 		s.logger.Debug("Failed to convert password: ", err)
+// 		return err
+// 	}
+// 	s.logger.Debug(fmt.Sprintf("input password of user: ", pass))
+// 	s.logger.Debug(fmt.Sprintf("store password of the user: ", userData.HashedPassword))
+// 	err = util.CheckPassword(pass, userData.HashedPassword)
+// 	if err != nil {
+// 		s.logger.Error("Failed to verify mobile and password: ", err)
+// 		return err
+// 	}
+// 	s.logger.Info("successfully verify the password")
+// 	return nil
+// }
 
-func (s *AuthServer) GenerateSessionTokenFunc() (string, error) {
-	token := make([]byte, 32)
-	_, err := rand.Read(token)
-	if err != nil {
-		s.logger.Error("Failed to generate session token: ", err)
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(token), nil
-}
+// func (s *AuthServer) GenerateSessionTokenFunc() (string, error) {
+// 	token := make([]byte, 32)
+// 	_, err := rand.Read(token)
+// 	if err != nil {
+// 		s.logger.Error("Failed to generate session token: ", err)
+// 		return "", err
+// 	}
+// 	return base64.StdEncoding.EncodeToString(token), nil
+// }
