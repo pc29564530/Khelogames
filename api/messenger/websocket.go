@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 
 	"khelogames/pkg"
 	"khelogames/token"

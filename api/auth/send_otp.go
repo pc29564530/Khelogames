@@ -2,7 +2,6 @@ package auth
 
 import (
 	"database/sql"
-	db "khelogames/db/sqlc"
 	"math/rand"
 	"net/http"
 	"os"
@@ -48,14 +47,9 @@ func (s *AuthServer) Otp(ctx *gin.Context) {
 	}
 	s.logger.Info("Otp has been send successfully")
 
-	arg := db.CreateSignupParams{
-		MobileNumber: reqSendOTP.MobileNumber,
-		Otp:          otp,
-	}
-
 	s.logger.Debug("signup arg: %v", err)
 
-	signup, err := s.store.CreateSignup(ctx, arg)
+	signup, err := s.store.CreateSignup(ctx, reqSendOTP.MobileNumber, otp)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.logger.Error("no row in signup: %v", err)

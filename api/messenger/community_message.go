@@ -2,7 +2,7 @@ package messenger
 
 import (
 	"encoding/base64"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/pkg"
 	"khelogames/token"
 	"khelogames/util"

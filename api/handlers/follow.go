@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"database/sql"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 
 	"khelogames/pkg"
 	"khelogames/token"

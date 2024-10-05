@@ -2,7 +2,7 @@ package tournaments
 
 import (
 	"encoding/json"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/pkg"
 	"khelogames/token"
 	"khelogames/util"

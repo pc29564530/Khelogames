@@ -3,7 +3,7 @@ package util
 import (
 	"khelogames/api/sports/cricket"
 	"khelogames/api/sports/football"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/logger"
 )
 

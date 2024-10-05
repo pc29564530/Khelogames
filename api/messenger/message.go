@@ -2,7 +2,7 @@ package messenger
 
 import (
 	"fmt"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"

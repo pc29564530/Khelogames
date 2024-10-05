@@ -3,7 +3,7 @@ package teams
 import (
 	"encoding/base64"
 	"encoding/json"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 
 	"khelogames/pkg"
 	"khelogames/token"

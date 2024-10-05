@@ -2,7 +2,8 @@ package cricket
 
 import (
 	"fmt"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
+	"khelogames/database/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -118,7 +119,7 @@ func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
 		return
 	}
 
-	var updageCricketWickets *db.Wicket
+	var updageCricketWickets *models.Wicket
 
 	if updageCricketWickets != nil {
 		arg := db.UpdateCricketWicketsParams{

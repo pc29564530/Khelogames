@@ -1,7 +1,8 @@
 package teams
 
 import (
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
+	"khelogames/database/models"
 	"net/http"
 	"strconv"
 
@@ -89,7 +90,7 @@ func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMat
 
 		var awayScoreMap map[string]interface{}
 		var homeScoreMap map[string]interface{}
-		var emptyScore db.CricketScore
+		var emptyScore models.CricketScore
 		if awayScore != emptyScore {
 			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Inning}
 		}
@@ -147,7 +148,7 @@ func (s *TeamsServer) getFootballMatchScore(ctx *gin.Context, matches []db.GetMa
 			s.logger.Error("Failed to get fooball match score for away team: ", err)
 		}
 
-		var emptyScore db.FootballScore
+		var emptyScore models.FootballScore
 		var homeScoreMap map[string]interface{}
 		if homeScore != emptyScore {
 			homeScoreMap = map[string]interface{}{
