@@ -203,7 +203,7 @@ func (q *Queries) ScheduledDeleteMessage(ctx context.Context) ([]models.Message,
 	return items, nil
 }
 
-const updateDeletedMessage = `-- name: UpdateDeletedMessage :one
+const updateDeletedMessage = `
 UPDATE message
 SET is_deleted=true AND deleted_at=NOW()
 WHERE sender_username=$1 and id=$2

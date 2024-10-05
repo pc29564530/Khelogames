@@ -2,7 +2,7 @@ package tournaments
 
 import (
 	"fmt"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/util"
 	"net/http"
 	"strconv"

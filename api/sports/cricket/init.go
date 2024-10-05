@@ -1,7 +1,7 @@
 package cricket
 
 import (
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/logger"
 )
 

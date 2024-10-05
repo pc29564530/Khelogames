@@ -170,7 +170,7 @@ func (q *Queries) GetFootballIncidentPlayer(ctx context.Context, incidentID int6
 	return i, err
 }
 
-const getFootballIncidentSubsPlayer = `-- name: GetFootballIncidentSubsPlayer :one
+const getFootballIncidentSubsPlayer = `
 SELECT id, incident_id, player_in_id, player_out_id FROM football_substitutions_player
 WHERE incident_id=$1
 `

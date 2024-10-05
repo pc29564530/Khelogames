@@ -58,7 +58,7 @@ func (q *Queries) CreateLike(ctx context.Context, arg CreateLikeParams) (models.
 	return i, err
 }
 
-const getLike = `-- name: GetLike :one
+const getLike = `
 SELECT id, thread_id, username FROM like_thread
 WHERE username = $1 LIMIT $1
 `
@@ -70,7 +70,7 @@ func (q *Queries) GetLike(ctx context.Context, limit int32) (models.LikeThread, 
 	return i, err
 }
 
-const userListLike = `-- name: UserListLike :many
+const userListLike = `
 SELECT id, thread_id, username FROM like_thread
 ORDER BY username
 `

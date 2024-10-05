@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/base64"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/pkg"
 	"khelogames/token"
 	"khelogames/util"
@@ -192,12 +192,7 @@ func (s *HandlersServer) UpdateFullNameFunc(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	arg := db.UpdateFullNameParams{
-		Owner:    authPayload.Username,
-		FullName: req.FullName,
-	}
-
-	profileFullName, err := s.store.UpdateFullName(ctx, arg)
+	profileFullName, err := s.store.UpdateFullName(ctx, authPayload.Username, req.FullName)
 	if err != nil {
 		s.logger.Error("Failed to update full name: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)

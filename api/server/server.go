@@ -10,7 +10,7 @@ import (
 	"khelogames/api/sports/football"
 	"khelogames/api/teams"
 	"khelogames/api/tournaments"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/logger"
 	"khelogames/token"
 	util "khelogames/util"

@@ -321,7 +321,7 @@ func (q *Queries) GetCricketWicket(ctx context.Context, arg GetCricketWicketPara
 	return i, err
 }
 
-const getCricketWickets = `-- name: GetCricketWickets :many
+const getCricketWickets = `
 SELECT id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type, ball_number FROM wickets
 WHERE match_id=$1 AND team_id=$2
 `

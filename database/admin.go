@@ -43,7 +43,7 @@ func (q *Queries) DeleteAdmin(ctx context.Context, arg DeleteAdminParams) (model
 	return i, err
 }
 
-const getAdmin = `-- name: GetAdmin :many
+const getAdmin = `
 SELECT id, content_id, admin FROM content_admin
 WHERE content_id=$1
 `

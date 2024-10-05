@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"database/sql"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 
 	"khelogames/util"
 	"net/http"
@@ -105,12 +105,12 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 	var req createUserRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		errCode := db.ErrorCode(err)
-		if errCode == db.UniqueViolation {
-			s.logger.Error("Unique violation error ", err)
-			ctx.JSON(http.StatusForbidden, (err))
-			return
-		}
+		// errCode := db.ErrorCode(err)
+		// if errCode == db.UniqueViolation {
+		// 	s.logger.Error("Unique violation error ", err)
+		// 	ctx.JSON(http.StatusForbidden, (err))
+		// 	return
+		// }
 		if err == sql.ErrNoRows {
 			s.logger.Error("No row data", err)
 			ctx.JSON(http.StatusNotFound, (err))
@@ -138,14 +138,14 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.CreateUserParams{
-		Username:       req.Username,
-		MobileNumber:   req.MobileNumber,
-		HashedPassword: hashedPassword,
-		Role:           req.Role,
-	}
+	// arg := db.CreateUserParams{
+	// 	Username:       req.Username,
+	// 	MobileNumber:   req.MobileNumber,
+	// 	HashedPassword: hashedPassword,
+	// 	Role:           req.Role,
+	// }
 
-	user, err := s.store.CreateUser(ctx, arg)
+	user, err := s.store.CreateUser(ctx, req.Username, req.MobileNumber, hashedPassword, req.Role)
 
 	if err != nil {
 		tx.Rollback()
@@ -239,17 +239,17 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
-	arg := db.ListUserParams{
-		Limit:  req.PageSize,
-		Offset: (req.PageID - 1) * req.PageSize,
-	}
+	// arg := db.ListUserParams{
+	// 	Limit:  req.PageSize,
+	// 	Offset: (req.PageID - 1) * req.PageSize,
+	// }
 
-	userList, err := s.store.ListUser(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to get list: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return
-	}
-	s.logger.Debug("get the users list: ", userList)
-	ctx.JSON(http.StatusOK, userList)
+	// userList, err := s.store.ListUser(ctx, username)
+	// if err != nil {
+	// 	s.logger.Error("Failed to get list: ", err)
+	// 	ctx.JSON(http.StatusInternalServerError, (err))
+	// 	return
+	// }
+	// s.logger.Debug("get the users list: ", userList)
+	// ctx.JSON(http.StatusOK, userList)
 }

@@ -2,7 +2,7 @@ package football
 
 import (
 	"encoding/json"
-	db "khelogames/new_db"
+	db "khelogames/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

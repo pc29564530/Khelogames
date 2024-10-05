@@ -2,7 +2,7 @@ package tournaments
 
 import (
 	"encoding/json"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

@@ -2,7 +2,8 @@ package football
 
 import (
 	"context"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
+	"khelogames/database/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -71,7 +72,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			s.logger.Error("Failed to get fooball match score for away team: ", err)
 		}
 
-		var emptyScore db.FootballScore
+		var emptyScore models.FootballScore
 		var hScore map[string]interface{}
 		if homeScore != emptyScore {
 			hScore = map[string]interface{}{

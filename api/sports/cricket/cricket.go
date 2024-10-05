@@ -2,7 +2,8 @@ package cricket
 
 import (
 	"context"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
+	"khelogames/database/models"
 	"net/http"
 	"strconv"
 
@@ -78,7 +79,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 
 		var awayScoreMap map[string]interface{}
 		var homeScoreMap map[string]interface{}
-		var emptyScore db.CricketScore
+		var emptyScore models.CricketScore
 		if awayScore != emptyScore {
 			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Inning, "runRate": awayScore.RunRate, "targetRunRate": awayScore.TargetRunRate}
 		}

@@ -170,7 +170,7 @@ func (q *Queries) UpdateCommunityDescription(ctx context.Context, arg UpdateComm
 	return i, err
 }
 
-const updateCommunityName = `-- name: UpdateCommunityName :one
+const updateCommunityName = `
 UPDATE communities
 SET communities_name=$1
 WHERE id=$2

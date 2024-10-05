@@ -6,7 +6,7 @@ import (
 	"khelogames/database/models"
 )
 
-const getTournament = `-- name: GetTournament :one
+const getTournament = `
 SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id FROM tournaments
 WHERE id=$1
 `

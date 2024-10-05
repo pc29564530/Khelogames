@@ -1,7 +1,7 @@
 package auth
 
 import (
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/logger"
 	"khelogames/token"
 	"khelogames/util"
