@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
-	db "khelogames/db/sqlc"
+	db "khelogames/database"
 	"khelogames/util"
 	"math/rand"
 	"net/http"
