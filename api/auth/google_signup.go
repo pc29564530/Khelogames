@@ -2,7 +2,6 @@ package auth
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	db "khelogames/database"
 	"khelogames/database/models"
@@ -16,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
 )
 
 var googleOauthConfig = &oauth2.Config{
@@ -26,13 +26,18 @@ var googleOauthConfig = &oauth2.Config{
 	Endpoint:     google.Endpoint,
 }
 
-func (s *AuthServer) HandleGoogleLogin(ctx *gin.Context) {
-
-	url := googleOauthConfig.AuthCodeURL("randomstate")
-	ctx.Redirect(http.StatusTemporaryRedirect, url)
+type getGoogleLoginRequest struct {
+	Code string `json"code"`
 }
 
 func (s *AuthServer) HandleGoogleCallback(ctx *gin.Context) {
+
+	var req getGoogleLoginRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind the login request : ", err)
+		return
+	}
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
@@ -42,36 +47,24 @@ func (s *AuthServer) HandleGoogleCallback(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	code := ctx.Query("code")
-
-	token, err := googleOauthConfig.Exchange(ctx, code)
+	idToken, err := idtoken.Validate(ctx, req.Code, googleOauthConfig.ClientID)
 	if err != nil {
-		s.logger.Error("Failed to exchange token", err)
+		s.logger.Error("Failed to verify idToken: ", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid idToken"})
 		return
 	}
 
-	client := googleOauthConfig.Client(ctx, token)
-	resp, err := client.Get(googleOauthConfig.Scopes[0])
-	if err != nil {
-		s.logger.Error("Failed to get user info: ", err)
-		return
-	}
-
-	defer resp.Body.Close()
-
-	var userInfo struct {
-		Email string `json:"email"`
-		Name  string `json:"name"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		s.logger.Error("Failed to decode user info: ", err)
+	// Extract user info from the verified token
+	email, ok := idToken.Claims["email"].(string)
+	if !ok {
+		s.logger.Error("Failed to get email from idToken")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
 		return
 	}
 
 	//Check if user exists
 	var emptyUser models.User
-	existingUser, err := s.store.GetGoogleMailID(ctx, userInfo.Email)
+	existingUser, err := s.store.GetGoogleMailID(ctx, email)
 	if err != nil {
 		s.logger.Error("Failed to get mail id: ", err)
 	}
@@ -80,9 +73,9 @@ func (s *AuthServer) HandleGoogleCallback(ctx *gin.Context) {
 
 	}
 	if existingUser == emptyUser {
-		username := generateUsername(userInfo.Email)
+		username := generateUsername(email)
 		role := "user"
-		user, err := s.store.CreateGoogleUser(ctx, username, userInfo.Email, role)
+		user, err := s.store.CreateGoogleUser(ctx, username, email, role)
 		if err != nil {
 			s.logger.Error("Failed to create google user: ", err)
 		}
@@ -91,12 +84,12 @@ func (s *AuthServer) HandleGoogleCallback(ctx *gin.Context) {
 			Username:     user.Username,
 			MobileNumber: *user.MobileNumber,
 			Role:         user.Role,
-			Email:        *user.Email,
+			Gmail:        *user.Gmail,
 		}
 
 		s.logger.Debug("successfully created user: ", resp)
 
-		authorizationCode(ctx, user.Username, *user.Email, user.Role, s, tx)
+		authorizationCode(ctx, user.Username, *user.Gmail, user.Role, s, tx)
 
 		argProfile := db.CreateProfileParams{
 			Owner:     resp.Username,
@@ -146,7 +139,7 @@ type createUserResponse struct {
 	MobileNumber string    `json:"mobile_number"`
 	CreatedAt    time.Time `json:"created_at"`
 	Role         string    `json:"role"`
-	Email        string    `json:"email"`
+	Gmail        string    `json:"gmail"`
 }
 
 type loginUserGoogleResponse struct {
@@ -162,10 +155,10 @@ type userGoogleResponse struct {
 	Username     string `json:"username"`
 	MobileNumber string `json:"mobile_number"`
 	Role         string `json:"role"`
-	Email        string `json:"email"`
+	Gmail        string `json:"gmail"`
 }
 
-func authorizationCode(ctx *gin.Context, username string, email string, role string, s *AuthServer, tx *sql.Tx) {
+func authorizationCode(ctx *gin.Context, username string, gmail string, role string, s *AuthServer, tx *sql.Tx) {
 
 	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
 		username,
@@ -216,7 +209,7 @@ func authorizationCode(ctx *gin.Context, username string, email string, role str
 		User: userGoogleResponse{
 			Username: username,
 			Role:     role,
-			Email:    email,
+			Gmail:    gmail,
 		},
 	}
 	s.logger.Info("User logged in successfully")
