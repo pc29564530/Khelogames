@@ -335,10 +335,11 @@ type Uploadmedium struct {
 }
 
 type User struct {
-	Username       string `json:"username"`
-	MobileNumber   string `json:"mobile_number"`
-	HashedPassword string `json:"hashed_password"`
-	Role           string `json:"role"`
+	Username       string  `json:"username"`
+	MobileNumber   *string `json:"mobile_number"`
+	HashedPassword *string `json:"hashed_password"`
+	Role           string  `json:"role"`
+	Gmail          *string `json:"gmail"`
 }
 
 type Wicket struct {
