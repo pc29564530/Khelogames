@@ -67,6 +67,7 @@ func NewServer(config util.Config,
 		public.POST("/tokens/renew_access", authServer.RenewAccessTokenFunc)
 		public.GET("/user/:username", handlersServer.GetUsersFunc)
 		public.GET("/getProfile/:owner", handlersServer.GetProfileFunc)
+		public.POST("/google/handleGoogleCallback", authServer.HandleGoogleCallback)
 	}
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{

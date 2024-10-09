@@ -70,7 +70,7 @@ func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug(fmt.Sprintf("successfully get the user: ", user))
 
-	err = util.CheckPassword(req.Password, user.HashedPassword)
+	err = util.CheckPassword(req.Password, *user.HashedPassword)
 	if err != nil {
 		s.logger.Error("Failed to match password: ", err)
 		ctx.JSON(http.StatusUnauthorized, (err))
@@ -123,7 +123,7 @@ func (s *AuthServer) CreateLoginFunc(ctx *gin.Context) {
 		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
 		User: userResponse{
 			Username:     user.Username,
-			MobileNumber: user.MobileNumber,
+			MobileNumber: *user.MobileNumber,
 			Role:         user.Role,
 		},
 	}

@@ -36,7 +36,7 @@ type createUserRequest struct {
 
 type createUserResponse struct {
 	Username     string    `json:"username"`
-	MobileNumber string    `json:"mobile_number"`
+	MobileNumber *string   `json:"mobile_number"`
 	CreatedAt    time.Time `json:"created_at"`
 	Role         string    `json:"role"`
 }
@@ -162,7 +162,7 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 
 	s.logger.Debug("successfully created user: ", resp)
 
-	authorizationCode(ctx, resp.Username, resp.MobileNumber, resp.Role, s, tx)
+	authorizationCode(ctx, resp.Username, *resp.MobileNumber, resp.Role, s, tx)
 
 	_, err = s.store.DeleteSignup(ctx, req.MobileNumber)
 	if err != nil {
