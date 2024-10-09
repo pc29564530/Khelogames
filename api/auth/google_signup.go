@@ -70,9 +70,8 @@ func (s *AuthServer) HandleGoogleCallback(ctx *gin.Context) {
 	}
 
 	if existingUser != emptyUser {
-
-	}
-	if existingUser == emptyUser {
+		authorizationCode(ctx, existingUser.Username, *existingUser.Gmail, existingUser.Role, s, tx, false)
+	} else {
 		username := generateUsername(email)
 		role := "user"
 		user, err := s.store.CreateGoogleUser(ctx, username, email, role)
@@ -81,15 +80,14 @@ func (s *AuthServer) HandleGoogleCallback(ctx *gin.Context) {
 		}
 
 		resp := createUserResponse{
-			Username:     user.Username,
-			MobileNumber: *user.MobileNumber,
-			Role:         user.Role,
-			Gmail:        *user.Gmail,
+			Username: user.Username,
+			Role:     user.Role,
+			Gmail:    *user.Gmail,
 		}
 
 		s.logger.Debug("successfully created user: ", resp)
 
-		authorizationCode(ctx, user.Username, *user.Gmail, user.Role, s, tx)
+		authorizationCode(ctx, user.Username, *user.Gmail, user.Role, s, tx, true)
 
 		argProfile := db.CreateProfileParams{
 			Owner:     resp.Username,
@@ -135,14 +133,13 @@ func generateUsername(mail string) string {
 }
 
 type createUserResponse struct {
-	Username     string    `json:"username"`
-	MobileNumber string    `json:"mobile_number"`
-	CreatedAt    time.Time `json:"created_at"`
-	Role         string    `json:"role"`
-	Gmail        string    `json:"gmail"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	Gmail    string `json:"gmail"`
 }
 
 type loginUserGoogleResponse struct {
+	IsNewUser             bool               `json:"isNewUser"`
 	SessionID             uuid.UUID          `json:"session_id"`
 	AccessToken           string             `json:"access_token"`
 	AccessTokenExpiresAt  time.Time          `json:"access_token_expires_at"`
@@ -158,7 +155,7 @@ type userGoogleResponse struct {
 	Gmail        string `json:"gmail"`
 }
 
-func authorizationCode(ctx *gin.Context, username string, gmail string, role string, s *AuthServer, tx *sql.Tx) {
+func authorizationCode(ctx *gin.Context, username string, gmail string, role string, s *AuthServer, tx *sql.Tx, isNewUser bool) {
 
 	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
 		username,
@@ -201,6 +198,7 @@ func authorizationCode(ctx *gin.Context, username string, gmail string, role str
 		return
 	}
 	rsp := loginUserGoogleResponse{
+		IsNewUser:             isNewUser,
 		SessionID:             session.ID,
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
