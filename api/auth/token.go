@@ -3,6 +3,7 @@ package auth
 import (
 	"database/sql"
 	"fmt"
+	db "khelogames/database"
 	"khelogames/util"
 	"net/http"
 	"time"
@@ -78,4 +79,55 @@ func (s *AuthServer) RenewAccessTokenFunc(ctx *gin.Context) {
 		AccessTokenExpiresAt: accessPayload.ExpiredAt,
 	}
 	ctx.JSON(http.StatusOK, rsp)
+}
+
+func CreateNewToken(ctx *gin.Context, username string, s *AuthServer, tx *sql.Tx) map[string]interface{} {
+	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
+		username,
+		s.config.AccessTokenDuration,
+	)
+	if err != nil {
+		tx.Rollback()
+		s.logger.Error("Failed to create access token", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return nil
+	}
+	s.logger.Debug("created a accesstoken: ", accessToken)
+
+	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
+		username,
+		s.config.RefreshTokenDuration,
+	)
+	if err != nil {
+		tx.Rollback()
+		s.logger.Error("Failed to create refresh token", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return nil
+	}
+
+	s.logger.Debug("created a refresh token: ", refreshToken)
+
+	session, err := s.store.CreateSessions(ctx, db.CreateSessionsParams{
+		ID:           refreshPayload.ID,
+		Username:     username,
+		RefreshToken: refreshToken,
+		UserAgent:    ctx.Request.UserAgent(),
+		ClientIp:     ctx.ClientIP(),
+		ExpiresAt:    refreshPayload.ExpiredAt,
+	})
+
+	if err != nil {
+		tx.Rollback()
+		s.logger.Error("Failed to create session", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return nil
+	}
+
+	return map[string]interface{}{
+		"accessToken":    accessToken,
+		"accessPayload":  accessPayload,
+		"refreshToken":   refreshToken,
+		"refreshPayload": refreshPayload,
+		"session":        session,
+	}
 }
