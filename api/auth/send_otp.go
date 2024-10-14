@@ -25,8 +25,8 @@ func generateOtp() string {
 
 func (s *AuthServer) Otp(ctx *gin.Context) {
 
-	var reqSendOTP createSendOtpRequest
-	err := ctx.ShouldBindJSON(&reqSendOTP)
+	var req createSendOtpRequest
+	err := ctx.ShouldBindJSON(&req)
 
 	if err != nil {
 		s.logger.Error("unable to bind mobile number: %v", err)
@@ -39,7 +39,7 @@ func (s *AuthServer) Otp(ctx *gin.Context) {
 
 	s.logger.Debug("Otp generate: %v", otp)
 
-	err = s.sendOTP(reqSendOTP.MobileNumber, otp)
+	err = s.sendOTP(req.MobileNumber, otp)
 	if err != nil {
 		s.logger.Error("unable to send otp: %v", err)
 		ctx.JSON(http.StatusNotFound, (err))
@@ -49,7 +49,7 @@ func (s *AuthServer) Otp(ctx *gin.Context) {
 
 	s.logger.Debug("signup arg: %v", err)
 
-	signup, err := s.store.CreateSignup(ctx, reqSendOTP.MobileNumber, otp)
+	signup, err := s.store.CreateMobileSignup(ctx, req.MobileNumber, otp)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.logger.Error("no row in signup: %v", err)

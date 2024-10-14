@@ -3,21 +3,27 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+	"log"
 )
 
-const createSignup = `INSERT INTO signup (
+const createMobileSignup = `INSERT INTO signup (
     mobile_number,
     otp
 ) VALUES (
     $1, $2
-) RETURNING mobile_number, otp
+) RETURNING *;
 `
 
-func (q *Queries) CreateSignup(ctx context.Context, mobileNumber, otp string) (models.Signup, error) {
+func (q *Queries) CreateMobileSignup(ctx context.Context, mobileNumber, otp string) (models.Signup, error) {
+
 	var Signup models.Signup
-	row := q.db.QueryRowContext(ctx, createSignup, mobileNumber, otp)
+	row := q.db.QueryRowContext(ctx, createMobileSignup, mobileNumber, otp)
 	err := row.Scan(&Signup.MobileNumber, &Signup.Otp)
-	return Signup, err
+	if err != nil {
+		log.Printf("Failed to create mobile signup: %v", err)
+		return Signup, err
+	}
+	return Signup, nil
 }
 
 const deleteSignup = `

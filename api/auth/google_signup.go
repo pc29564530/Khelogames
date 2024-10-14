@@ -3,8 +3,6 @@ package auth
 import (
 	"database/sql"
 	"fmt"
-	db "khelogames/database"
-	"khelogames/database/models"
 	utils "khelogames/util"
 	"net/http"
 	"os"
@@ -30,7 +28,35 @@ type getGoogleLoginRequest struct {
 	Code string `json"code"`
 }
 
-func (s *AuthServer) HandleGoogleCallback(ctx *gin.Context) {
+type createUserResponse struct {
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	Gmail    string `json:"gmail"`
+}
+
+type loginUserGoogleResponse struct {
+	IsNewUser             bool               `json:"isNewUser"`
+	SessionID             uuid.UUID          `json:"session_id"`
+	AccessToken           string             `json:"access_token"`
+	AccessTokenExpiresAt  time.Time          `json:"access_token_expires_at"`
+	RefreshToken          string             `json:"refresh_token"`
+	RefreshTokenExpiresAt time.Time          `json:"refresh_token_expires_at"`
+	User                  userGoogleResponse `json:"user"`
+}
+
+type userGoogleResponse struct {
+	Username     string `json:"username"`
+	MobileNumber string `json:"mobile_number"`
+	Role         string `json:"role"`
+	Gmail        string `json:"gmail"`
+}
+
+func (s *AuthServer) HandleGoogleRedirect(ctx *gin.Context) {
+	url := googleOauthConfig.AuthCodeURL("randomstate")
+	ctx.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+func (s *AuthServer) CreateGoogleSignUp(ctx *gin.Context) {
 
 	var req getGoogleLoginRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -62,57 +88,9 @@ func (s *AuthServer) HandleGoogleCallback(ctx *gin.Context) {
 		return
 	}
 
-	//Check if user exists
-	var emptyUser models.User
-	existingUser, err := s.store.GetGoogleMailID(ctx, email)
-	if err != nil {
-		s.logger.Error("Failed to get mail id: ", err)
-	}
-
-	if existingUser != emptyUser {
-		authorizationCode(ctx, existingUser.Username, *existingUser.Gmail, existingUser.Role, s, tx, false)
-	} else {
-		username := generateUsername(email)
-		role := "user"
-		user, err := s.store.CreateGoogleUser(ctx, username, email, role)
-		if err != nil {
-			s.logger.Error("Failed to create google user: ", err)
-		}
-
-		resp := createUserResponse{
-			Username: user.Username,
-			Role:     user.Role,
-			Gmail:    *user.Gmail,
-		}
-
-		s.logger.Debug("successfully created user: ", resp)
-
-		authorizationCode(ctx, user.Username, *user.Gmail, user.Role, s, tx, true)
-
-		argProfile := db.CreateProfileParams{
-			Owner:     resp.Username,
-			FullName:  "",
-			Bio:       "",
-			AvatarUrl: "",
-		}
-
-		_, err = s.store.CreateProfile(ctx, argProfile)
-		if err != nil {
-			tx.Rollback()
-			ctx.JSON(http.StatusInternalServerError, (err))
-			return
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			s.logger.Error("Failed to commit transcation: ", err)
-			return
-		}
-
-		s.logger.Info("Profile created successfully")
-		s.logger.Info("Successfully created the user")
-		return
-	}
+	s.logger.Info("Successfully Sign up using google ", email)
+	ctx.JSON(http.StatusAccepted, email)
+	return
 
 }
 
@@ -132,85 +110,71 @@ func generateUsername(mail string) string {
 	return username
 }
 
-type createUserResponse struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
-	Gmail    string `json:"gmail"`
-}
+func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 
-type loginUserGoogleResponse struct {
-	IsNewUser             bool               `json:"isNewUser"`
-	SessionID             uuid.UUID          `json:"session_id"`
-	AccessToken           string             `json:"access_token"`
-	AccessTokenExpiresAt  time.Time          `json:"access_token_expires_at"`
-	RefreshToken          string             `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time          `json:"refresh_token_expires_at"`
-	User                  userGoogleResponse `json:"user"`
-}
-
-type userGoogleResponse struct {
-	Username     string `json:"username"`
-	MobileNumber string `json:"mobile_number"`
-	Role         string `json:"role"`
-	Gmail        string `json:"gmail"`
-}
-
-func authorizationCode(ctx *gin.Context, username string, gmail string, role string, s *AuthServer, tx *sql.Tx, isNewUser bool) {
-
-	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
-		username,
-		s.config.AccessTokenDuration,
-	)
+	var req getGoogleLoginRequest
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create access token", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return
-	}
-	s.logger.Debug("created a accesstoken: ", accessToken)
-
-	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
-		username,
-		s.config.RefreshTokenDuration,
-	)
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create refresh token", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		s.logger.Error("Failed to bind the login request : ", err)
 		return
 	}
 
-	s.logger.Debug("created a refresh token: ", refreshToken)
-
-	session, err := s.store.CreateSessions(ctx, db.CreateSessionsParams{
-		ID:           refreshPayload.ID,
-		Username:     username,
-		RefreshToken: refreshToken,
-		UserAgent:    ctx.Request.UserAgent(),
-		ClientIp:     ctx.ClientIP(),
-		ExpiresAt:    refreshPayload.ExpiredAt,
-	})
-
+	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create session", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		s.logger.Error("Failed to begin the transcation: ", err)
 		return
 	}
+
+	defer tx.Rollback()
+
+	idToken, err := idtoken.Validate(ctx, req.Code, googleOauthConfig.ClientID)
+	if err != nil {
+		s.logger.Error("Failed to verify idToken: ", err)
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid idToken"})
+		return
+	}
+
+	// Extract user info from the verified token
+	gmail, ok := idToken.Claims["email"].(string)
+	if !ok {
+		s.logger.Error("Failed to get email from idToken")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
+		return
+	}
+
+	user, err := s.store.GetUserByGmail(ctx, gmail)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.logger.Error("User does not exists: ", err)
+			return
+		}
+		s.logger.Error("Failed to get the user by gmail")
+		return
+	}
+
+	tokens := CreateNewToken(ctx, user.Username, s, tx)
+	session := tokens["session"].(map[string]interface{})
+	accessToken := tokens["accessToken"].(string)
+	accessPayload := tokens["accessPayload"].(map[string]interface{})
+	refreshToken := tokens["refreshToken"].(string)
+	refreshPayload := tokens["refreshPayload"].(map[string]interface{})
+
 	rsp := loginUserGoogleResponse{
-		IsNewUser:             isNewUser,
-		SessionID:             session.ID,
+		SessionID:             session["id"].(uuid.UUID),
 		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
+		AccessTokenExpiresAt:  accessPayload["expired_at"].(time.Time),
 		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
+		RefreshTokenExpiresAt: refreshPayload["expired_at"].(time.Time),
 		User: userGoogleResponse{
-			Username: username,
-			Role:     role,
-			Gmail:    gmail,
+			Username:     user.Username,
+			MobileNumber: *user.MobileNumber,
+			Role:         user.Role,
+			Gmail:        *user.Gmail,
 		},
 	}
-	s.logger.Info("User logged in successfully")
+
+	s.logger.Info("Successfully Sign in using google ")
+
 	ctx.JSON(http.StatusAccepted, rsp)
 	return
 }
