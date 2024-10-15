@@ -13,7 +13,7 @@ const createGoogleUser = `INSERT INTO users (
 	role
 ) VALUES (
     $1, $2, $3
-) RETURNING *
+) RETURNIN *
 `
 
 func (q *Queries) CreateGoogleUser(ctx context.Context, username, gmail, role string) (models.User, error) {
@@ -39,14 +39,3 @@ func (q *Queries) GetGoogleMailID(ctx context.Context, gmail string) (models.Use
 	}
 	return User, nil
 }
-
-// const getGoogleSignup = `SELECT mobile_number, otp FROM signup
-// WHERE mobile_number = $1 LIMIT 1
-// `
-
-// func (q *Queries) GetGoogleSignup(ctx context.Context, mobileNumber string) (models.Signup, error) {
-// 	var Signup models.Signup
-// 	row := q.db.QueryRowContext(ctx, getGoogleSignup, mobileNumber)
-// 	err := row.Scan(&Signup.MobileNumber, &Signup.Otp)
-// 	return Signup, err
-// }

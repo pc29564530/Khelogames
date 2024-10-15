@@ -34,26 +34,20 @@ type createUserResponse struct {
 	Gmail    string `json:"gmail"`
 }
 
-type loginUserGoogleResponse struct {
-	IsNewUser             bool               `json:"isNewUser"`
-	SessionID             uuid.UUID          `json:"session_id"`
-	AccessToken           string             `json:"access_token"`
-	AccessTokenExpiresAt  time.Time          `json:"access_token_expires_at"`
-	RefreshToken          string             `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time          `json:"refresh_token_expires_at"`
-	User                  userGoogleResponse `json:"user"`
+type loginUserResponse struct {
+	SessionID             uuid.UUID    `json:"session_id"`
+	AccessToken           string       `json:"access_token"`
+	AccessTokenExpiresAt  time.Time    `json:"access_token_expires_at"`
+	RefreshToken          string       `json:"refresh_token"`
+	RefreshTokenExpiresAt time.Time    `json:"refresh_token_expires_at"`
+	User                  userResponse `json:"user"`
 }
 
-type userGoogleResponse struct {
+type userResponse struct {
 	Username     string `json:"username"`
 	MobileNumber string `json:"mobile_number"`
 	Role         string `json:"role"`
 	Gmail        string `json:"gmail"`
-}
-
-func (s *AuthServer) HandleGoogleRedirect(ctx *gin.Context) {
-	url := googleOauthConfig.AuthCodeURL("randomstate")
-	ctx.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func (s *AuthServer) CreateGoogleSignUp(ctx *gin.Context) {
@@ -159,13 +153,13 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 	refreshToken := tokens["refreshToken"].(string)
 	refreshPayload := tokens["refreshPayload"].(map[string]interface{})
 
-	rsp := loginUserGoogleResponse{
+	rsp := loginUserResponse{
 		SessionID:             session["id"].(uuid.UUID),
 		AccessToken:           accessToken,
 		AccessTokenExpiresAt:  accessPayload["expired_at"].(time.Time),
 		RefreshToken:          refreshToken,
 		RefreshTokenExpiresAt: refreshPayload["expired_at"].(time.Time),
-		User: userGoogleResponse{
+		User: userResponse{
 			Username:     user.Username,
 			MobileNumber: *user.MobileNumber,
 			Role:         user.Role,

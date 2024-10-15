@@ -4,20 +4,12 @@ import (
 	"database/sql"
 	db "khelogames/database"
 
-	"khelogames/util"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
-
-type userResponse struct {
-	Username     string    `json:"username"`
-	MobileNumber string    `json:"mobile_number"`
-	CreatedAt    time.Time `json:"created_at"`
-	Role         string    `json:"role"`
-}
 
 type loginUserResponse struct {
 	SessionID             uuid.UUID    `json:"session_id"`
@@ -28,21 +20,21 @@ type loginUserResponse struct {
 	User                  userResponse `json:"user"`
 }
 type createUserRequest struct {
-	Username       string `json:"username"`
-	MobileNumber   string `json:"mobile_number"`
-	HashedPassword string `json:"password"`
-	Role           string `json:"role"`
+	Username     string `json:"username"`
+	MobileNumber string `json:"mobile_number"`
+	Role         string `json:"role"`
+	Gmail        string `json:"gmail"`
+	SignUpType   string `json:"signup_type"`
 }
 
-type createUserResponse struct {
-	Username     string    `json:"username"`
-	MobileNumber *string   `json:"mobile_number"`
-	CreatedAt    time.Time `json:"created_at"`
-	Role         string    `json:"role"`
+type userResponse struct {
+	Username     string `json:"username"`
+	MobileNumber string `json:"mobile_number"`
+	Role         string `json:"role"`
+	Gmail        string `json:"gmail"`
 }
 
-func authorizationCode(ctx *gin.Context, username string, mobileNumber string, role string, s *HandlersServer, tx *sql.Tx) {
-
+func CreateNewToken(ctx *gin.Context, username string, s *HandlersServer, tx *sql.Tx) map[string]interface{} {
 	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
 		username,
 		s.config.AccessTokenDuration,
@@ -51,7 +43,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 		tx.Rollback()
 		s.logger.Error("Failed to create access token", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
-		return
+		return nil
 	}
 	s.logger.Debug("created a accesstoken: ", accessToken)
 
@@ -63,7 +55,7 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 		tx.Rollback()
 		s.logger.Error("Failed to create refresh token", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
-		return
+		return nil
 	}
 
 	s.logger.Debug("created a refresh token: ", refreshToken)
@@ -81,23 +73,16 @@ func authorizationCode(ctx *gin.Context, username string, mobileNumber string, r
 		tx.Rollback()
 		s.logger.Error("Failed to create session", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
-		return
+		return nil
 	}
-	rsp := loginUserResponse{
-		SessionID:             session.ID,
-		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
-		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
-		User: userResponse{
-			Username:     username,
-			MobileNumber: mobileNumber,
-			Role:         role,
-		},
+
+	return map[string]interface{}{
+		"accessToken":    accessToken,
+		"accessPayload":  accessPayload,
+		"refreshToken":   refreshToken,
+		"refreshPayload": refreshPayload,
+		"session":        session,
 	}
-	s.logger.Info("User logged in successfully")
-	ctx.JSON(http.StatusAccepted, rsp)
-	return
 }
 
 func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
@@ -105,12 +90,12 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 	var req createUserRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		// errCode := db.ErrorCode(err)
-		// if errCode == db.UniqueViolation {
-		// 	s.logger.Error("Unique violation error ", err)
-		// 	ctx.JSON(http.StatusForbidden, (err))
-		// 	return
-		// }
+		errCode := db.ErrorCode(err)
+		if errCode == db.UniqueViolation {
+			s.logger.Error("Unique violation error ", err)
+			ctx.JSON(http.StatusForbidden, (err))
+			return
+		}
 		if err == sql.ErrNoRows {
 			s.logger.Error("No row data", err)
 			ctx.JSON(http.StatusNotFound, (err))
@@ -128,55 +113,56 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to begin the transcation: ", err)
 		return
 	}
-
 	defer tx.Rollback()
 
-	hashedPassword, err := util.HashPassword(req.HashedPassword)
-	if err != nil {
-		s.logger.Error("Failed to hash password", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return
-	}
-
-	// arg := db.CreateUserParams{
-	// 	Username:       req.Username,
-	// 	MobileNumber:   req.MobileNumber,
-	// 	HashedPassword: hashedPassword,
-	// 	Role:           req.Role,
-	// }
-
-	user, err := s.store.CreateUser(ctx, req.Username, req.MobileNumber, hashedPassword, req.Role)
-
+	user, err := s.store.CreateUser(ctx, req.Username, req.MobileNumber, req.Role, req.Gmail)
 	if err != nil {
 		tx.Rollback()
-		s.logger.Error("Unable to create user")
+		s.logger.Error("Unable to create user: ", err)
 		ctx.JSON(http.StatusUnauthorized, (err))
 		return
 	}
 
-	resp := createUserResponse{
-		Username:     user.Username,
-		MobileNumber: user.MobileNumber,
-		Role:         user.Role,
+	s.logger.Debug("successfully created user: ", user)
+
+	tokens := CreateNewToken(ctx, user.Username, s, tx)
+
+	session := tokens["session"].(map[string]interface{})
+	accessToken := tokens["accessToken"].(string)
+	accessPayload := tokens["accessPayload"].(map[string]interface{})
+	refreshToken := tokens["refreshToken"].(string)
+	refreshPayload := tokens["refreshPayload"].(map[string]interface{})
+
+	rsp := loginUserResponse{
+		SessionID:             session["id"].(uuid.UUID),
+		AccessToken:           accessToken,
+		AccessTokenExpiresAt:  accessPayload["expired_at"].(time.Time),
+		RefreshToken:          refreshToken,
+		RefreshTokenExpiresAt: refreshPayload["expired_at"].(time.Time),
+		User: userResponse{
+			Username:     user.Username,
+			MobileNumber: *user.MobileNumber,
+			Role:         user.Role,
+			Gmail:        *user.Gmail,
+		},
 	}
 
-	s.logger.Debug("successfully created user: ", resp)
+	ctx.JSON(http.StatusAccepted, rsp)
 
-	authorizationCode(ctx, resp.Username, *resp.MobileNumber, resp.Role, s, tx)
-
-	_, err = s.store.DeleteSignup(ctx, req.MobileNumber)
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Unable to delete signup details: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return
+	if req.SignUpType == "mobile" {
+		_, err = s.store.DeleteSignup(ctx, req.MobileNumber)
+		if err != nil {
+			tx.Rollback()
+			s.logger.Error("Unable to delete signup details: ", err)
+			ctx.JSON(http.StatusInternalServerError, (err))
+			return
+		}
+		s.logger.Debug("delete the signup details")
 	}
-
-	s.logger.Debug("delete the signup details")
 
 	//createProfile
 	argProfile := db.CreateProfileParams{
-		Owner:     resp.Username,
+		Owner:     user.Username,
 		FullName:  "",
 		Bio:       "",
 		AvatarUrl: "",
@@ -197,7 +183,6 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 
 	s.logger.Info("Profile created successfully")
 	s.logger.Info("Successfully created the user")
-	return
 }
 
 type getUserRequest struct {
