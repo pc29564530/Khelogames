@@ -58,11 +58,11 @@ func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	var req getProfileRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind URI: ", err)
+		s.logger.Error("Failed to bind", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("Request URI bind successful: ", req)
+	s.logger.Debug("Successfully bind: ", req)
 
 	profile, err := s.store.GetProfile(ctx, req.Owner)
 	if err != nil {
@@ -72,14 +72,12 @@ func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	}
 	s.logger.Info("Successfully retrieved profile: ", profile)
 	ctx.JSON(http.StatusOK, profile)
-	return
 }
 
 type editProfileRequest struct {
 	FullName  string `json:"full_name"`
 	Bio       string `json:"bio"`
 	AvatarUrl string `json:"avatar_url,omitempty"`
-	CoverUrl  string `json:"cover_url,omitempty"`
 }
 
 func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
@@ -111,14 +109,6 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("Avatar string decoded successfully")
 
-	b64data = req.CoverUrl[strings.IndexByte(req.CoverUrl, ',')+1:]
-
-	coverData, err := base64.StdEncoding.DecodeString(b64data)
-	if err != nil {
-		s.logger.Error("Failed to decode cover string: ", err)
-		return
-	}
-	s.logger.Debug("Cover string decoded successfully")
 	saveImageStruct := util.NewSaveImageStruct(s.logger)
 	var avatarPath string
 	mediaType := "image"
@@ -128,17 +118,7 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to save avatar image: ", err)
 			return
 		}
-		s.logger.Debug("Avatar saved successfully at %s", avatarPath)
-	}
-
-	var coverPath string
-	if req.CoverUrl != "" {
-		coverPath, err = saveImageStruct.SaveImageToFile(coverData, mediaType)
-		if err != nil {
-			s.logger.Error("Failed to save cover image: ", err)
-			return
-		}
-		s.logger.Debug("Cover saved successfully at %s", coverPath)
+		s.logger.Debug("Avatar saved successfully at ", avatarPath)
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
@@ -275,7 +255,7 @@ func (s *HandlersServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to save avatar image: ", err)
 		return
 	}
-	s.logger.Debug("Avatar saved successfully at %s", path)
+	s.logger.Debug("Avatar saved successfully at ", path)
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
