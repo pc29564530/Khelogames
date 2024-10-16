@@ -16,12 +16,14 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-var googleOauthConfig = &oauth2.Config{
-	ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-	ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-	RedirectURL:  "http://localhost:8080/auth/google/callback",
-	Scopes:       []string{"https://www.googleapis.com/auth/userinfo"},
-	Endpoint:     google.Endpoint,
+func getGoogleOauthConfig() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     os.Getenv("CLIENT_ID"),
+		ClientSecret: os.Getenv("CLIENT_SECRET"),
+		RedirectURL:  "http://localhost:8080/auth/google/callback",
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
+		Endpoint:     google.Endpoint,
+	}
 }
 
 type getGoogleLoginRequest struct {
@@ -50,8 +52,14 @@ type userResponse struct {
 	Gmail        string `json:"gmail"`
 }
 
-func (s *AuthServer) CreateGoogleSignUp(ctx *gin.Context) {
+func (s *AuthServer) HandleGoogleRedirect(ctx *gin.Context) {
+	googleOauthConfig := getGoogleOauthConfig()
+	url := googleOauthConfig.AuthCodeURL("randomstate")
+	ctx.Redirect(http.StatusTemporaryRedirect, url)
+}
 
+func (s *AuthServer) CreateGoogleSignUp(ctx *gin.Context) {
+	googleOauthConfig := getGoogleOauthConfig()
 	var req getGoogleLoginRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -105,7 +113,7 @@ func generateUsername(mail string) string {
 }
 
 func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
-
+	googleOauthConfig := getGoogleOauthConfig()
 	var req getGoogleLoginRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {

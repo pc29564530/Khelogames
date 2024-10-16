@@ -69,9 +69,11 @@ func NewServer(config util.Config,
 		public.GET("/getProfile/:owner", handlersServer.GetProfileFunc)
 		public.POST("/google/createGoogleSignUp", authServer.CreateGoogleSignUp)
 		public.POST("/google/createGoogleSignIn", authServer.CreateGoogleSignIn)
-		//public.GET("/google/handleGoogleRedirect", authServer.HandleGoogleRedirect)
+		public.GET("/google/handleGoogleRedirect", authServer.HandleGoogleRedirect)
 		public.POST("/createMobileSignup", authServer.CreateMobileSignUp)
 		public.POST("/createMobileSignin", authServer.CreateMobileSignIn)
+		public.GET("/getUserByMobileNumber", handlersServer.GetUserByMobileNumber)
+		public.GET("/getUserByGmail", handlersServer.GetUserByGmail)
 	}
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{

@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -24,8 +25,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
+
+func init() {
+	err := godotenv.Load("./app.env")
+	if err != nil {
+		fmt.Errorf("Unable to read env file: ", err)
+	}
+}
 
 func main() {
 	newLogger := logger.NewLogger()

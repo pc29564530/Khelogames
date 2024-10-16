@@ -3,6 +3,8 @@ package handlers
 import (
 	"database/sql"
 	db "khelogames/database"
+	"khelogames/database/models"
+	"khelogames/token"
 
 	"net/http"
 	"time"
@@ -87,8 +89,15 @@ func CreateNewToken(ctx *gin.Context, username string, s *HandlersServer, tx *sq
 
 func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin the transcation: ", err)
+		return
+	}
+	defer tx.Rollback()
+
 	var req createUserRequest
-	err := ctx.ShouldBindJSON(&req)
+	err = ctx.ShouldBindJSON(&req)
 	if err != nil {
 		errCode := db.ErrorCode(err)
 		if errCode == db.UniqueViolation {
@@ -108,16 +117,8 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 
 	s.logger.Debug("bind the request: ", req)
 
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin the transcation: ", err)
-		return
-	}
-	defer tx.Rollback()
-
 	user, err := s.store.CreateUser(ctx, req.Username, req.MobileNumber, req.Role, req.Gmail)
 	if err != nil {
-		tx.Rollback()
 		s.logger.Error("Unable to create user: ", err)
 		ctx.JSON(http.StatusUnauthorized, (err))
 		return
@@ -127,18 +128,18 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 
 	tokens := CreateNewToken(ctx, user.Username, s, tx)
 
-	session := tokens["session"].(map[string]interface{})
+	session := tokens["session"].(models.Session)
 	accessToken := tokens["accessToken"].(string)
-	accessPayload := tokens["accessPayload"].(map[string]interface{})
+	accessPayload := tokens["accessPayload"].(*token.Payload)
 	refreshToken := tokens["refreshToken"].(string)
-	refreshPayload := tokens["refreshPayload"].(map[string]interface{})
+	refreshPayload := tokens["refreshPayload"].(*token.Payload)
 
 	rsp := loginUserResponse{
-		SessionID:             session["id"].(uuid.UUID),
+		SessionID:             session.ID,
 		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessPayload["expired_at"].(time.Time),
+		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
 		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: refreshPayload["expired_at"].(time.Time),
+		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
 		User: userResponse{
 			Username:     user.Username,
 			MobileNumber: *user.MobileNumber,
@@ -152,7 +153,6 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 	if req.SignUpType == "mobile" {
 		_, err = s.store.DeleteSignup(ctx, req.MobileNumber)
 		if err != nil {
-			tx.Rollback()
 			s.logger.Error("Unable to delete signup details: ", err)
 			ctx.JSON(http.StatusInternalServerError, (err))
 			return
@@ -168,16 +168,19 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 		AvatarUrl: "",
 	}
 
-	_, err = s.store.CreateProfile(ctx, argProfile)
+	profileResponse, err := s.store.CreateProfile(ctx, argProfile)
 	if err != nil {
-		tx.Rollback()
+		s.logger.Error("Failed to create a profile", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
+	s.logger.Info("Successfully created the profile: ", profileResponse)
+
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transaction: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction commit failed"})
 		return
 	}
 
@@ -237,4 +240,26 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 	// }
 	// s.logger.Debug("get the users list: ", userList)
 	// ctx.JSON(http.StatusOK, userList)
+}
+
+func (s *HandlersServer) GetUserByMobileNumber(ctx *gin.Context) {
+	mobileNumber := ctx.Query("mobile_number")
+
+	resp, err := s.store.GetUserByMobileNumber(ctx, mobileNumber)
+	if err != nil {
+		s.logger.Error("Failed to get the user by mobile number: ", err)
+		return
+	}
+	ctx.JSON(http.StatusAccepted, resp)
+}
+
+func (s *HandlersServer) GetUserByGmail(ctx *gin.Context) {
+
+	gmail := ctx.Query("gmail")
+	resp, err := s.store.GetUserByGmail(ctx, gmail)
+	if err != nil {
+		s.logger.Error("Failed to get the user by gmail: ", err)
+		return
+	}
+	ctx.JSON(http.StatusAccepted, resp)
 }
