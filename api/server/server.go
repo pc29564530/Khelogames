@@ -60,9 +60,7 @@ func NewServer(config util.Config,
 	public := router.Group("/auth")
 	{
 		public.POST("/send_otp", authServer.Otp)
-		// public.POST("/signup", authServer.CreateSignupFunc)
 		public.POST("/users", handlersServer.CreateUserFunc)
-		// public.POST("/login", authServer.CreateLoginFunc)
 		public.DELETE("/removeSession/:username", authServer.DeleteSessionFunc)
 		public.POST("/tokens/renew_access", authServer.RenewAccessTokenFunc)
 		public.GET("/user/:username", handlersServer.GetUsersFunc)
