@@ -60,13 +60,20 @@ func NewServer(config util.Config,
 	public := router.Group("/auth")
 	{
 		public.POST("/send_otp", authServer.Otp)
-		public.POST("/signup", authServer.CreateSignupFunc)
+		// public.POST("/signup", authServer.CreateSignupFunc)
 		public.POST("/users", handlersServer.CreateUserFunc)
-		public.POST("/login", authServer.CreateLoginFunc)
+		// public.POST("/login", authServer.CreateLoginFunc)
 		public.DELETE("/removeSession/:username", authServer.DeleteSessionFunc)
 		public.POST("/tokens/renew_access", authServer.RenewAccessTokenFunc)
 		public.GET("/user/:username", handlersServer.GetUsersFunc)
 		public.GET("/getProfile/:owner", handlersServer.GetProfileFunc)
+		public.POST("/google/createGoogleSignUp", authServer.CreateGoogleSignUp)
+		public.POST("/google/createGoogleSignIn", authServer.CreateGoogleSignIn)
+		public.GET("/google/handleGoogleRedirect", authServer.HandleGoogleRedirect)
+		public.POST("/createMobileSignup", authServer.CreateMobileSignUp)
+		public.POST("/createMobileSignin", authServer.CreateMobileSignIn)
+		public.GET("/getUserByMobileNumber", handlersServer.GetUserByMobileNumber)
+		public.GET("/getUserByGmail", handlersServer.GetUserByGmail)
 	}
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{

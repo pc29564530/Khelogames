@@ -154,7 +154,7 @@ WHERE owner=$2
 RETURNING id, owner, full_name, bio, avatar_url, created_at
 `
 
-func (q *Queries) UpdateFullName(ctx context.Context, fullName string, owner string) (models.Profile, error) {
+func (q *Queries) UpdateFullName(ctx context.Context, owner string, fullName string) (models.Profile, error) {
 	row := q.db.QueryRowContext(ctx, updateFullName, fullName, owner)
 	var profile models.Profile
 	err := row.Scan(

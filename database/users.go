@@ -9,26 +9,25 @@ const createUser = `
 INSERT INTO users (
   username,
   mobile_number,
-  hashed_password,
-  role
+  role,
+  gmail
 ) VALUES (
   $1, $2, $3, $4
-) RETURNING username, mobile_number, hashed_password, role
-`
+) RETURNING *`
 
-func (q *Queries) CreateUser(ctx context.Context, username string, mobileNumber string, hashedPassword string, role string) (models.User, error) {
+func (q *Queries) CreateUser(ctx context.Context, username string, mobileNumber string, role string, gmail string) (models.User, error) {
 	var users models.User
 	row := q.db.QueryRowContext(ctx, createUser,
 		username,
 		mobileNumber,
-		hashedPassword,
 		role,
+		gmail,
 	)
 	err := row.Scan(
 		&users.Username,
 		&users.MobileNumber,
-		&users.HashedPassword,
 		&users.Role,
+		&users.Gmail,
 	)
 	return users, err
 }
@@ -44,7 +43,6 @@ func (q *Queries) GetUser(ctx context.Context, username string) (models.User, er
 	err := row.Scan(
 		&users.Username,
 		&users.MobileNumber,
-		&users.HashedPassword,
 		&users.Role,
 	)
 	return users, err
@@ -70,8 +68,8 @@ func (q *Queries) ListUser(ctx context.Context, username string) ([]models.User,
 		if err := rows.Scan(
 			&user.Username,
 			&user.MobileNumber,
-			&user.HashedPassword,
 			&user.Role,
+			&user.Gmail,
 		); err != nil {
 			return nil, err
 		}
@@ -84,4 +82,38 @@ func (q *Queries) ListUser(ctx context.Context, username string) ([]models.User,
 		return nil, err
 	}
 	return items, nil
+}
+
+const getUserByMobileNumber = `
+SELECT * FROM users
+WHERE mobile_number = $1
+`
+
+func (q *Queries) GetUserByMobileNumber(ctx context.Context, mobile_number string) (models.User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByMobileNumber, mobile_number)
+	var users models.User
+	err := row.Scan(
+		&users.Username,
+		&users.MobileNumber,
+		&users.Role,
+		&users.Gmail,
+	)
+	return users, err
+}
+
+const getUserByGmail = `
+SELECT * FROM users
+WHERE gmail = $1
+`
+
+func (q *Queries) GetUserByGmail(ctx context.Context, gmail string) (models.User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByGmail, gmail)
+	var users models.User
+	err := row.Scan(
+		&users.Username,
+		&users.MobileNumber,
+		&users.Role,
+		&users.Gmail,
+	)
+	return users, err
 }
