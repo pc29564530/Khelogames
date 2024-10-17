@@ -3,6 +3,8 @@ package auth
 import (
 	"database/sql"
 	"fmt"
+	"khelogames/database/models"
+	"khelogames/token"
 	utils "khelogames/util"
 	"net/http"
 	"os"
@@ -28,12 +30,6 @@ func getGoogleOauthConfig() *oauth2.Config {
 
 type getGoogleLoginRequest struct {
 	Code string `json"code"`
-}
-
-type createUserResponse struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
-	Gmail    string `json:"gmail"`
 }
 
 type loginUserResponse struct {
@@ -155,18 +151,19 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 	}
 
 	tokens := CreateNewToken(ctx, user.Username, s, tx)
-	session := tokens["session"].(map[string]interface{})
+
+	session := tokens["session"].(models.Session)
 	accessToken := tokens["accessToken"].(string)
-	accessPayload := tokens["accessPayload"].(map[string]interface{})
+	accessPayload := tokens["accessPayload"].(*token.Payload)
 	refreshToken := tokens["refreshToken"].(string)
-	refreshPayload := tokens["refreshPayload"].(map[string]interface{})
+	refreshPayload := tokens["refreshPayload"].(*token.Payload)
 
 	rsp := loginUserResponse{
-		SessionID:             session["id"].(uuid.UUID),
+		SessionID:             session.ID,
 		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessPayload["expired_at"].(time.Time),
+		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
 		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: refreshPayload["expired_at"].(time.Time),
+		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
 		User: userResponse{
 			Username:     user.Username,
 			MobileNumber: *user.MobileNumber,
@@ -178,5 +175,4 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 	s.logger.Info("Successfully Sign in using google ")
 
 	ctx.JSON(http.StatusAccepted, rsp)
-	return
 }

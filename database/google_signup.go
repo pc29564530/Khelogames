@@ -19,7 +19,7 @@ const createGoogleUser = `INSERT INTO users (
 func (q *Queries) CreateGoogleUser(ctx context.Context, username, gmail, role string) (models.User, error) {
 	var User models.User
 	row := q.db.QueryRowContext(ctx, createGoogleUser, username, gmail, role)
-	err := row.Scan(&User.Username, &User.MobileNumber, &User.HashedPassword, &User.Role, &User.Gmail)
+	err := row.Scan(&User.Username, &User.MobileNumber, &User.Role, &User.Gmail)
 	if err != nil {
 		log.Printf("Failed to create google user: %v", err)
 		return models.User{}, err

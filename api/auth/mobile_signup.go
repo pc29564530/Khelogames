@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	db "khelogames/database"
+	"khelogames/database/models"
+	"khelogames/token"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type createMobileRequest struct {
@@ -109,7 +109,6 @@ func (s *AuthServer) CreateMobileSignIn(ctx *gin.Context) {
 	}
 
 	s.logger.Debug(fmt.Sprintf("successfully get the otp: %v ", verifyOTP))
-
 	if verifyOTP.Otp != req.Otp {
 		s.logger.Error("Failed to verify otp: ", err)
 		ctx.JSON(http.StatusNotFound, (err))
@@ -127,27 +126,34 @@ func (s *AuthServer) CreateMobileSignIn(ctx *gin.Context) {
 
 	tokens := CreateNewToken(ctx, user.Username, s, tx)
 
-	session := tokens["session"].(map[string]interface{})
+	session := tokens["session"].(models.Session)
 	accessToken := tokens["accessToken"].(string)
-	accessPayload := tokens["accessPayload"].(map[string]interface{})
+	accessPayload := tokens["accessPayload"].(*token.Payload)
 	refreshToken := tokens["refreshToken"].(string)
-	refreshPayload := tokens["refreshPayload"].(map[string]interface{})
+	refreshPayload := tokens["refreshPayload"].(*token.Payload)
 
 	rsp := loginUserResponse{
-		SessionID:             session["id"].(uuid.UUID),
+		SessionID:             session.ID,
 		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessPayload["expired_at"].(time.Time),
+		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
 		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: refreshPayload["expired_at"].(time.Time),
+		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
 		User: userResponse{
 			Username:     user.Username,
-			MobileNumber: *user.MobileNumber,
+			MobileNumber: getStringValue(user.MobileNumber),
 			Role:         user.Role,
-			Gmail:        *user.Gmail,
+			Gmail:        getStringValue(user.Gmail),
 		},
 	}
 
 	s.logger.Info("Successfully sign in account ", rsp)
 	ctx.JSON(http.StatusAccepted, rsp)
 
+}
+
+func getStringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

@@ -68,8 +68,8 @@ func (q *Queries) ListUser(ctx context.Context, username string) ([]models.User,
 		if err := rows.Scan(
 			&user.Username,
 			&user.MobileNumber,
-			&user.HashedPassword,
 			&user.Role,
+			&user.Gmail,
 		); err != nil {
 			return nil, err
 		}
