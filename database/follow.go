@@ -104,3 +104,27 @@ func (q *Queries) GetAllFollowing(ctx context.Context, followerOwner string) ([]
 	}
 	return items, nil
 }
+
+const getConnection = `
+	SELECT 
+		WHEN COUNT(*) > 0 THEN 'true'
+		ELSE 'false'
+	END AS connection_established
+	FROM follow f1
+	JOIN follow AS f2 ON f1.following_owner=f2.follower_owner
+	WHERE f1.follower_owner=$1 AND f2.follower_owner=$2
+`
+
+func (q *Queries) CheckConnection(ctx context.Context, followingOwner, followerOwner string) (bool, error) {
+	rows, err := q.db.QueryContext(ctx, getConnection, followingOwner, followerOwner)
+	if err != nil {
+		return false, err
+	}
+	var connectionEstablished bool
+	defer rows.Close()
+	if err := rows.Scan(&connectionEstablished); err != nil {
+		return false, err
+	}
+
+	return connectionEstablished, nil
+}
