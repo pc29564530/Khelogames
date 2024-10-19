@@ -109,3 +109,18 @@ func (s *HandlersServer) DeleteFollowingFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, following)
 	return
 }
+
+func (s *HandlersServer) CheckConnectionFunc(ctx *gin.Context) {
+
+	followingOwner := ctx.Query("following_owner")
+	followerOwner := ctx.Query("follower_owner")
+
+	connectionEstablished, err := s.store.CheckConnection(ctx, followingOwner, followerOwner)
+	if err != nil {
+		s.logger.Error("Failed to check connection ", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+	s.logger.Info("Successfully checked connection ")
+	ctx.JSON(http.StatusAccepted, connectionEstablished)
+}

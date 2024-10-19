@@ -26,7 +26,6 @@ type createUserRequest struct {
 	MobileNumber string `json:"mobile_number"`
 	Role         string `json:"role"`
 	Gmail        string `json:"gmail"`
-	SignUpType   string `json:"signup_type"`
 }
 
 type userResponse struct {
@@ -149,16 +148,6 @@ func (s *HandlersServer) CreateUserFunc(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, rsp)
-
-	if req.SignUpType == "mobile" {
-		_, err = s.store.DeleteSignup(ctx, req.MobileNumber)
-		if err != nil {
-			s.logger.Error("Unable to delete signup details: ", err)
-			ctx.JSON(http.StatusInternalServerError, (err))
-			return
-		}
-		s.logger.Debug("delete the signup details")
-	}
 
 	//createProfile
 	argProfile := db.CreateProfileParams{
