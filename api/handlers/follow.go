@@ -124,3 +124,16 @@ func (s *HandlersServer) CheckConnectionFunc(ctx *gin.Context) {
 	s.logger.Info("Successfully checked connection ")
 	ctx.JSON(http.StatusAccepted, connectionEstablished)
 }
+
+func (s *HandlersServer) IsFollowingFunc(ctx *gin.Context) {
+	followingOwner := ctx.Query("following_owner")
+	followerOwner := ctx.Query("follower_owner")
+	isFollowing, err := s.store.IsFollowing(ctx, followerOwner, followingOwner)
+	if err != nil {
+		s.logger.Error("Failed to check following ", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+	s.logger.Info("Successfully checked following ")
+	ctx.JSON(http.StatusAccepted, isFollowing)
+}

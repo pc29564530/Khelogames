@@ -125,3 +125,22 @@ func (q *Queries) CheckConnection(ctx context.Context, followingOwner, followerO
 
 	return connectionEstablished, nil
 }
+
+const isFollowing = `
+	SELECT 
+		CASE
+			WHEN COUNT(ID) > 0 THEN 'true'
+			ELSE 'false'
+		END AS is_following
+	FROM follow
+	WHERE follower_owner=$1 AND following_owner=$2 LIMIT 1`
+
+func (q *Queries) IsFollowing(ctx context.Context, followeOwner, followingOwner string) (bool, error) {
+	var isFollowingUser bool
+	err := q.db.QueryRowContext(ctx, isFollowing, followeOwner, followingOwner).Scan(&isFollowingUser)
+	if err != nil {
+		return false, err
+	}
+
+	return isFollowingUser, nil
+}
