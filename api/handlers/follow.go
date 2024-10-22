@@ -98,7 +98,9 @@ func (s *HandlersServer) DeleteFollowingFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
-	following, err := s.store.DeleteFollowing(ctx, req.FollowingOwner)
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	following, err := s.store.DeleteFollowing(ctx, authPayload.Username, req.FollowingOwner)
 	if err != nil {
 		s.logger.Error("Failed to unfollow user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -126,14 +128,16 @@ func (s *HandlersServer) CheckConnectionFunc(ctx *gin.Context) {
 }
 
 func (s *HandlersServer) IsFollowingFunc(ctx *gin.Context) {
-	followingOwner := ctx.Query("following_owner")
-	followerOwner := ctx.Query("follower_owner")
-	isFollowing, err := s.store.IsFollowing(ctx, followerOwner, followingOwner)
+	followingOnwer := ctx.Query("following_owner")
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	isFollowing, err := s.store.IsFollowingF(ctx, authPayload.Username, followingOnwer)
 	if err != nil {
 		s.logger.Error("Failed to check following ", err)
-		ctx.JSON(http.StatusNotFound, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check following status"})
 		return
 	}
-	s.logger.Info("Successfully checked following ")
-	ctx.JSON(http.StatusAccepted, isFollowing)
+
+	s.logger.Info("Successfully checked following status")
+	ctx.JSON(http.StatusOK, gin.H{"is_following": isFollowing})
 }
