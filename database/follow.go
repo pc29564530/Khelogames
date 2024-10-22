@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"khelogames/database/models"
 )
 
@@ -34,11 +35,11 @@ func (q *Queries) CreateFollowing(ctx context.Context, arg CreateFollowingParams
 
 const deleteFollowing = `
 DELETE FROM follow
-WHERE following_owner = $1 RETURNING id, follower_owner, following_owner, created_at
+WHERE follower_owner = $1 AND following_owner = $2 RETURNING id, follower_owner, following_owner, created_at
 `
 
-func (q *Queries) DeleteFollowing(ctx context.Context, followingOwner string) (models.Follow, error) {
-	row := q.db.QueryRowContext(ctx, deleteFollowing, followingOwner)
+func (q *Queries) DeleteFollowing(ctx context.Context, follower_owner, followingOwner string) (models.Follow, error) {
+	row := q.db.QueryRowContext(ctx, deleteFollowing, follower_owner, followingOwner)
 	var i models.Follow
 	err := row.Scan(
 		&i.ID,
@@ -113,7 +114,7 @@ const getConnection = `
 		END AS connection_established
 	FROM follow f1
 	JOIN follow AS f2 ON f1.following_owner=f2.follower_owner
-	WHERE f1.follower_owner=$1 AND f2.follower_owner=$2
+	WHERE f1.follower_owner='pawanch1234' AND f2.follower_owner='akash12';
 `
 
 func (q *Queries) CheckConnection(ctx context.Context, followingOwner, followerOwner string) (bool, error) {
@@ -124,4 +125,22 @@ func (q *Queries) CheckConnection(ctx context.Context, followingOwner, followerO
 	}
 
 	return connectionEstablished, nil
+}
+
+const isFollowingCheck = `
+SELECT COUNT(*) > 0
+FROM follow
+WHERE follower_owner=$1 AND following_owner=$2`
+
+func (q *Queries) IsFollowingF(ctx context.Context, followerOwner, followingOwner string) (bool, error) {
+	var isFollowingUser bool
+	err := q.db.QueryRowContext(ctx, isFollowingCheck, followerOwner, followingOwner).Scan(&isFollowingUser)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return isFollowingUser, nil
 }
