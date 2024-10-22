@@ -114,10 +114,10 @@ const getConnection = `
 		END AS connection_established
 	FROM follow f1
 	JOIN follow AS f2 ON f1.following_owner=f2.follower_owner
-	WHERE f1.follower_owner='pawanch1234' AND f2.follower_owner='akash12';
+	WHERE f1.follower_owner=$1 AND f2.follower_owner=$2;
 `
 
-func (q *Queries) CheckConnection(ctx context.Context, followingOwner, followerOwner string) (bool, error) {
+func (q *Queries) CheckConnection(ctx context.Context, followerOwner, followingOwner string) (bool, error) {
 	var connectionEstablished bool
 	err := q.db.QueryRowContext(ctx, getConnection, followingOwner, followerOwner).Scan(&connectionEstablished)
 	if err != nil {

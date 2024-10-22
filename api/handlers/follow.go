@@ -115,9 +115,9 @@ func (s *HandlersServer) DeleteFollowingFunc(ctx *gin.Context) {
 func (s *HandlersServer) CheckConnectionFunc(ctx *gin.Context) {
 
 	followingOwner := ctx.Query("following_owner")
-	followerOwner := ctx.Query("follower_owner")
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	connectionEstablished, err := s.store.CheckConnection(ctx, followingOwner, followerOwner)
+	connectionEstablished, err := s.store.CheckConnection(ctx, authPayload.Username, followingOwner)
 	if err != nil {
 		s.logger.Error("Failed to check connection ", err)
 		ctx.JSON(http.StatusNotFound, err)
