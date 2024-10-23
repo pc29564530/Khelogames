@@ -93,6 +93,7 @@ type addCricketWicketScore struct {
 	WicketsNumber int32  `json:"wickets_number"`
 	WicketType    string `json:"wicket_type"`
 	BallNumber    int32  `json:"ball_number"`
+	FielderID     *int32 `json:"fielder_id"`
 }
 
 func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
@@ -111,6 +112,7 @@ func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
 		WicketsNumber: req.WicketsNumber,
 		WicketType:    req.WicketType,
 		BallNumber:    req.BallNumber,
+		FielderID:     *req.FielderID,
 	}
 
 	response, err := s.store.AddCricketWickets(ctx, arg)
@@ -472,12 +474,25 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
+		fielderData, err := s.store.GetPlayer(ctx, *wicket.FielderID)
+		if err != nil {
+			s.logger.Error("Failed to get fielder data : ", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+
+		var emptyPlayer models.Player
+		var fielder map[string]interface{}
+		if fielderData == emptyPlayer {
+			fielder = map[string]interface{}{"id": fielderData.ID, "name": fielderData.PlayerName, "slug": fielderData.Slug, "shortName": fielderData.ShortName, "position": fielderData.Positions, "username": fielderData.Username}
+		}
+
 		wicketData := map[string]interface{}{
 			"batsman":      map[string]interface{}{"id": batsmanData.ID, "name": batsmanData.PlayerName, "slug": batsmanData.Slug, "shortName": batsmanData.ShortName, "position": batsmanData.Positions, "username": batsmanData.Username},
 			"bowler":       map[string]interface{}{"id": bowlerData.ID, "name": bowlerData.PlayerName, "slug": bowlerData.Slug, "shortName": bowlerData.ShortName, "position": bowlerData.Positions, "username": bowlerData.Username},
 			"wicketNumber": wicket.WicketsNumber,
 			"wicketType":   wicket.WicketType,
 			"Overs":        wicket.BallNumber,
+			"fielder":      fielder,
 		}
 		wicketsData = append(wicketsData, wicketData)
 	}

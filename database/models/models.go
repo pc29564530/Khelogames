@@ -350,6 +350,7 @@ type Wicket struct {
 	WicketsNumber int32  `json:"wickets_number"`
 	WicketType    string `json:"wicket_type"`
 	BallNumber    int32  `json:"ball_number"`
+	FielderID     *int64 `json:"fielder_id"`
 }
 
 type GetPlayerByTeam struct {

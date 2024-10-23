@@ -128,6 +128,7 @@ type AddCricketWicketsParams struct {
 	WicketsNumber int32  `json:"wickets_number"`
 	WicketType    string `json:"wicket_type"`
 	BallNumber    int32  `json:"ball_number"`
+	FielderID     int32  `json:"fielder_id"`
 }
 
 func (q *Queries) AddCricketWickets(ctx context.Context, arg AddCricketWicketsParams) (models.Wicket, error) {
@@ -139,6 +140,7 @@ func (q *Queries) AddCricketWickets(ctx context.Context, arg AddCricketWicketsPa
 		arg.WicketsNumber,
 		arg.WicketType,
 		arg.BallNumber,
+		arg.FielderID,
 	)
 	var i models.Wicket
 	err := row.Scan(
@@ -150,6 +152,7 @@ func (q *Queries) AddCricketWickets(ctx context.Context, arg AddCricketWicketsPa
 		&i.WicketsNumber,
 		&i.WicketType,
 		&i.BallNumber,
+		&i.FielderID,
 	)
 	return i, err
 }
