@@ -75,6 +75,7 @@ func NewServer(config util.Config,
 	}
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
+		authRouter.GET("/getGroups", tournamentServer.GetGroupsFunc)
 		authRouter.GET("/isFollowing", handlersServer.IsFollowingFunc)
 		authRouter.GET("/checkConnection", handlersServer.CheckConnectionFunc)
 		authRouter.PUT("/updateProfile", handlersServer.UpdateProfileFunc)
