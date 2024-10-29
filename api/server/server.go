@@ -157,19 +157,13 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getCricketStanding", tournamentServer.GetCricketStandingFunc)
 	sportRouter.PUT("/updateFootballStanding", tournamentServer.UpdateFootballStandingFunc)
 	sportRouter.PUT("/updateCricketStanding", tournamentServer.UpdateCricketStandingFunc)
-	//sportRouter.PUT("/updateTournamentStanding", tournamentServer.UpdateTournamentStandingFunc)
 	sportRouter.PUT("/updateTournamentDate", tournamentServer.UpdateTournamentDateFunc)
 
 	sportRouter.POST("/createTournamentStanding", tournamentServer.CreateTournamentStandingFunc)
-	//sportRouter.POST("/createTournamentGroup", tournamentServer.CreateTournamentGroupFunc)
-	// sportRouter.GET("/getTournamentGroup", tournamentServer.GetTournamentGroupFunc)
-	// sportRouter.GET("/getTournamentGroups", tournamentServer.GetTournamentGroupsFunc)
-	sportRouter.GET("/getTournamentStanding", tournamentServer.GetTournamentStandingFunc)
 	sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
 	sportRouter.PUT("/updateMatchStatus", tournamentServer.UpdateMatchStatusFunc)
 	sportRouter.PUT("/updateTournamentStatus", tournamentServer.UpdateTournamentStatusFunc)
-	// sportRouter.POST("/addGroupTeam", tournamentServer.AddGroupTeamFunc)
 
 	//teams
 	sportRouter.POST("/newTeams", teamsServer.AddTeam)
