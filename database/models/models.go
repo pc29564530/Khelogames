@@ -196,6 +196,7 @@ type Match struct {
 	EndTimestamp   int64  `json:"end_timestamp"`
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
+	Result         string `json:"match"`
 }
 
 type Message struct {

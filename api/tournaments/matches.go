@@ -46,6 +46,7 @@ type createTournamentMatchRequest struct {
 	EndTimestamp   string `json:"end_timestamp"`
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
+	Result         string `json:"result"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -80,6 +81,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		EndTimestamp:   endTimeStamp,
 		Type:           req.Type,
 		StatusCode:     req.StatusCode,
+		Result:         req.Result,
 	}
 
 	s.logger.Debug("Create match params: ", arg)
