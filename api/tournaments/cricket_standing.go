@@ -2,7 +2,6 @@ package tournaments
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -20,8 +19,6 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		return
 	}
 
-	//need to response back with group
-
 	rows, err := s.store.GetCricketStanding(ctx, tournamentID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament standing: ", err)
@@ -29,34 +26,72 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		return
 	}
 
-	var standings []map[string]interface{}
+	var standingsData []map[string]interface{}
 	for _, row := range rows {
 		var data map[string]interface{}
-
-		tt := (row.StandingData).([]byte)
-
-		err := json.Unmarshal(tt, &data)
+		err := json.Unmarshal(row.StandingData.([]byte), &data)
 		if err != nil {
 			s.logger.Error("Failed to unmarshal ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal standings data"})
 			return
 		}
-		standing := map[string]interface{}{
-			"tournament": data["tournament"],
-			"group":      data["group"],
-			"teams":      data["teams"],
-			"id":         data["id"],
-			"matches":    data["matches"],
-			"wins":       data["wins"],
-			"loss":       data["loss"],
-			"draw":       data["draw"],
-			"points":     data["points"],
-		}
-		standings = append(standings, standing)
 
+		standing := map[string]interface{}{
+			"tournament":    data["tournament"],
+			"group":         data["group"],
+			"teams":         data["teams"],
+			"tournament_id": row.TournamentID,
+			"group_id":      row.GroupID,
+			"id":            row.ID,
+			"matches":       row.Matches,
+			"wins":          row.Wins,
+			"loss":          row.Loss,
+			"draw":          row.Draw,
+			"points":        row.Points,
+		}
+
+		standingsData = append(standingsData, standing)
 	}
 
-	fmt.Println("Standings: ", standings)
+	groupData := make(map[int64][]map[string]interface{})
+	visited := make(map[int]string)
+	var standings []map[string]interface{}
 
+	for _, standing := range standingsData {
+		groupID := standing["group_id"].(*int64)
+		grpID := *groupID
+
+		// Append standings data to groupData by groupID
+		groupData[grpID] = append(groupData[grpID], map[string]interface{}{
+			"teams":   standing["teams"],
+			"id":      standing["id"],
+			"matches": standing["matches"],
+			"wins":    standing["wins"],
+			"loss":    standing["loss"],
+			"draw":    standing["draw"],
+			"points":  standing["points"],
+		})
+
+		// Set the group name if not already visited
+		if _, ok := visited[int(grpID)]; !ok {
+			vis, ok := standing["group"].(map[string]interface{})["name"].(string)
+			if ok {
+				visited[int(grpID)] = vis
+			}
+		}
+	}
+
+	// Add grouped standings to the final standings slice
+	standings = append(standings, map[string]interface{}{
+		"tournament": standingsData[0]["tournament"],
+	})
+	for grpID, grpData := range groupData {
+		groupName := visited[int(grpID)]
+		standings = append(standings, map[string]interface{}{
+			"group_name": groupName,
+			"team_row":   grpData,
+		})
+	}
 	ctx.JSON(http.StatusAccepted, standings)
 	return
 }
