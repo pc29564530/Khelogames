@@ -163,6 +163,7 @@ func NewServer(config util.Config,
 	sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
 	sportRouter.PUT("/updateMatchStatus", tournamentServer.UpdateMatchStatusFunc)
+	sportRouter.PUT("/updateMatchResult", tournamentServer.UpdateMatchResultFunc)
 	sportRouter.PUT("/updateTournamentStatus", tournamentServer.UpdateTournamentStatusFunc)
 
 	//teams

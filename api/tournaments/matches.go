@@ -210,3 +210,27 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, updatedMatchData)
 }
+
+type updateMatchResultRequest struct {
+	ID     int64  `json:"id"`
+	Result string `json:"result"`
+}
+
+func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
+	var req updateMatchResultRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind ", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	response, err := s.store.UpdateMatchResult(ctx, req.ID, req.Result)
+	if err != nil {
+		s.logger.Error("Failed to update result: ", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	s.logger.Info("Successfully update match result")
+	ctx.JSON(http.StatusAccepted, response)
+}
