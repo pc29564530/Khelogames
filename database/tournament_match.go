@@ -248,7 +248,7 @@ type NewMatchParams struct {
 	EndTimestamp   int64  `json:"end_timestamp"`
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
-	Result         string `json:"result"`
+	Result         int64  `json:"result"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
