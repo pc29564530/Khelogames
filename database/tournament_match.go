@@ -341,7 +341,7 @@ WHERE id=$2
 RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result
 `
 
-func (q *Queries) UpdateMatchResult(ctx context.Context, id int64, result string) (models.Match, error) {
+func (q *Queries) UpdateMatchResult(ctx context.Context, id, result int64) (models.Match, error) {
 	row := q.db.QueryRowContext(ctx, updateMatchResult, id, result)
 	var i models.Match
 	err := row.Scan(

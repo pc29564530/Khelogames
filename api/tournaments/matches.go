@@ -212,8 +212,8 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 }
 
 type updateMatchResultRequest struct {
-	ID     int64  `json:"id"`
-	Result string `json:"result"`
+	ID     int64 `json:"id"`
+	Result int64 `json:"result"`
 }
 
 func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
