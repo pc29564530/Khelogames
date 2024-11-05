@@ -101,7 +101,6 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 type updateStatusRequest struct {
 	ID         int64  `json:"id"`
 	StatusCode string `json:"status_code"`
-	Sports     string `json:"sports"`
 }
 
 func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
@@ -113,6 +112,8 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+
+	game := ctx.Param("sport")
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
@@ -134,7 +135,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	s.logger.Info("successfully updated the match status")
 
-	if updatedMatchData.StatusCode == "started" && req.Sports == "Football" {
+	if updatedMatchData.StatusCode == "started" && game == "football" {
 		argAway := db.NewFootballScoreParams{
 			MatchID:    updatedMatchData.ID,
 			TeamID:     updatedMatchData.AwayTeamID,
@@ -199,6 +200,43 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		_, err = s.store.CreateFootballStatistics(ctx, argStatisticsAway)
 		if err != nil {
 			s.logger.Error("Failed to add the football statistics: ", err)
+		}
+	} else if updatedMatchData.StatusCode == "finished" {
+
+		argAway := db.GetCricketScoreParams{
+			MatchID: updatedMatchData.ID,
+			TeamID:  updatedMatchData.AwayTeamID,
+		}
+
+		awayScore, err := s.store.GetCricketScore(ctx, argAway)
+		if err != nil {
+			tx.Rollback()
+			s.logger.Error("Failed to get away score: ", err)
+		}
+
+		argHome := db.GetCricketScoreParams{
+			MatchID: updatedMatchData.ID,
+			TeamID:  updatedMatchData.HomeTeamID,
+		}
+
+		homeScore, err := s.store.GetCricketScore(ctx, argHome)
+		if err != nil {
+			tx.Rollback()
+			s.logger.Error("Failed to get away score: ", err)
+		}
+
+		if awayScore.Score > homeScore.Score {
+			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, awayScore.ID)
+			if err != nil {
+				tx.Rollback()
+				s.logger.Error("Failed to update match result: ", err)
+			}
+		} else if homeScore.Score > awayScore.Score {
+			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, awayScore.ID)
+			if err != nil {
+				tx.Rollback()
+				s.logger.Error("Failed to update match result: ", err)
+			}
 		}
 	}
 
