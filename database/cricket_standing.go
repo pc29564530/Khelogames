@@ -51,8 +51,7 @@ func (q *Queries) CreateCricketStanding(ctx context.Context, tournamentID, group
 }
 
 const getCricketStanding = `
-	SELECT 
-		DISTINCT ON (COALESCE(fs.group_id, fs.id))
+	SELECT
 		fs.id, fs.tournament_id, fs.group_id, fs.team_id, fs.matches, fs.wins, fs.loss, fs.draw, fs.goal_for, fs.goal_against, fs.goal_difference, fs.points,
 		JSON_BUILD_OBJECT(
 			'tournament', JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id),
@@ -64,7 +63,6 @@ const getCricketStanding = `
 	JOIN tournaments t ON t.id = fs.tournament_id
 	JOIN teams tm ON fs.team_id = tm.id
 	WHERE fs.tournament_id = $1
-	ORDER BY COALESCE(fs.group_id, fs.id), fs.id
 `
 
 type GetCricketStandingR struct {
