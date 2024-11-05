@@ -110,7 +110,7 @@ SET
             WHEN ms.away_team_id = ts.team_id THEN fs.goals
             ELSE 0
         END)
-        FROM football_score AS fs
+        FROM cricket_score AS fs
         JOIN matches AS ms ON fs.match_id = ms.id
         WHERE fs.team_id = ts.team_id
     ), 0),
@@ -131,6 +131,14 @@ SET
         WHERE ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id
     ), 0),
     goal_difference = COALESCE(goal_for, 0) - COALESCE(goal_against, 0),
+	matches = COALESCE((
+		SELECT SUM(CASE
+			WHEN ms.home_team_id = ts.team_id THEN (
+				SELECT SUM()
+			)
+		) FROM matches AS ms
+		WHERE ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id
+	),0),
     wins = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms

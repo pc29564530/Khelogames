@@ -1,8 +1,10 @@
 package tournaments
 
 import (
+	"database/sql"
 	"fmt"
 	db "khelogames/database"
+	"khelogames/database/models"
 	"khelogames/util"
 	"net/http"
 	"strconv"
@@ -98,44 +100,8 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 }
 
-type updateStatusRequest struct {
-	ID         int64  `json:"id"`
-	StatusCode string `json:"status_code"`
-}
-
-func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
-
-	var req updateStatusRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return
-	}
-
-	game := ctx.Param("sport")
-
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("unable to begin tx: ", err)
-		return
-	}
-
-	arg := db.UpdateMatchStatusParams{
-		ID:         req.ID,
-		StatusCode: req.StatusCode,
-	}
-
-	updatedMatchData, err := s.store.UpdateMatchStatus(ctx, arg)
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("unable to update the match status: ", err)
-		return
-	}
-
-	s.logger.Info("successfully updated the match status")
-
-	if updatedMatchData.StatusCode == "started" && game == "football" {
+func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, game string, s *TournamentServer, tx *sql.Tx) {
+	if updatedMatchData.StatusCode == "not_started" {
 		argAway := db.NewFootballScoreParams{
 			MatchID:    updatedMatchData.ID,
 			TeamID:     updatedMatchData.AwayTeamID,
@@ -202,7 +168,46 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to add the football statistics: ", err)
 		}
 	} else if updatedMatchData.StatusCode == "finished" {
+		argAway := db.GetFootballScoreParams{
+			MatchID: updatedMatchData.ID,
+			TeamID:  updatedMatchData.AwayTeamID,
+		}
 
+		awayScore, err := s.store.GetFootballScore(ctx, argAway)
+		if err != nil {
+			tx.Rollback()
+			s.logger.Error("Failed to get away score: ", err)
+		}
+
+		argHome := db.GetFootballScoreParams{
+			MatchID: updatedMatchData.ID,
+			TeamID:  updatedMatchData.HomeTeamID,
+		}
+
+		homeScore, err := s.store.GetFootballScore(ctx, argHome)
+		if err != nil {
+			tx.Rollback()
+			s.logger.Error("Failed to get away score: ", err)
+		}
+
+		if awayScore.Goals > homeScore.Goals {
+			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, updatedMatchData.AwayTeamID)
+			if err != nil {
+				tx.Rollback()
+				s.logger.Error("Failed to update match result: ", err)
+			}
+		} else if homeScore.Goals > awayScore.Goals {
+			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, updatedMatchData.HomeTeamID)
+			if err != nil {
+				tx.Rollback()
+				s.logger.Error("Failed to update match result: ", err)
+			}
+		}
+	}
+}
+
+func updateCricketStatusCode(ctx *gin.Context, updatedMatchData models.Match, game string, s *TournamentServer, tx *sql.Tx) {
+	if updatedMatchData.StatusCode == "finished" {
 		argAway := db.GetCricketScoreParams{
 			MatchID: updatedMatchData.ID,
 			TeamID:  updatedMatchData.AwayTeamID,
@@ -226,18 +231,62 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		}
 
 		if awayScore.Score > homeScore.Score {
-			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, awayScore.ID)
+			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, updatedMatchData.AwayTeamID)
 			if err != nil {
 				tx.Rollback()
 				s.logger.Error("Failed to update match result: ", err)
 			}
 		} else if homeScore.Score > awayScore.Score {
-			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, awayScore.ID)
+			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, updatedMatchData.HomeTeamID)
 			if err != nil {
 				tx.Rollback()
 				s.logger.Error("Failed to update match result: ", err)
 			}
 		}
+	}
+}
+
+type updateStatusRequest struct {
+	ID         int64  `json:"id"`
+	StatusCode string `json:"status_code"`
+}
+
+func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
+
+	var req updateStatusRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+
+	game := ctx.Param("sport")
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("unable to begin tx: ", err)
+		return
+	}
+
+	arg := db.UpdateMatchStatusParams{
+		ID:         req.ID,
+		StatusCode: req.StatusCode,
+	}
+
+	updatedMatchData, err := s.store.UpdateMatchStatus(ctx, arg)
+	if err != nil {
+		tx.Rollback()
+		s.logger.Error("unable to update the match status: ", err)
+		return
+	}
+
+	s.logger.Info("successfully updated the match status")
+
+	if game == "football" {
+		updateFootballStatusCode(ctx, updatedMatchData, game, s, tx)
+	} else if game == "cricket" {
+		updateCricketStatusCode(updatedMatchData, game, s)
 	}
 
 	err = tx.Commit()
