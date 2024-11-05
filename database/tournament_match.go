@@ -6,7 +6,7 @@ import (
 )
 
 const getMatch = `
-SELECT id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result FROM matches
+SELECT * FROM matches
 WHERE id=$1 AND tournament_id=$2
 `
 
@@ -340,11 +340,11 @@ const updateMatchResult = `
 UPDATE matches
 SET result=$1
 WHERE id=$2
-RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result
+RETURNING *
 `
 
 func (q *Queries) UpdateMatchResult(ctx context.Context, id, result int64) (models.Match, error) {
-	row := q.db.QueryRowContext(ctx, updateMatchResult, id, result)
+	row := q.db.QueryRowContext(ctx, updateMatchResult, result, id)
 	var i models.Match
 	err := row.Scan(
 		&i.ID,
