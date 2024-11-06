@@ -283,10 +283,69 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	s.logger.Info("successfully updated the match status")
 
+	var awayScore map[string]interface{}
+	var homeScore map[string]interface{}
+
 	if game == "football" {
+
+		score, err := s.store.GetFootballScoreByMatchID(ctx, updatedMatchData.ID)
+		if err != nil {
+			s.logger.Error("Failed to get score: ", err)
+		}
+
+		for _, scr := range score {
+			if updatedMatchData.HomeTeamID == scr.TeamID {
+				homeScore = map[string]interface{}{
+					"id":          scr.ID,
+					"match_id":    scr.MatchID,
+					"team_id":     scr.TeamID,
+					"first_half":  scr.FirstHalf,
+					"second_half": scr.SecondHalf,
+					"score":       scr.Goals,
+				}
+			} else {
+				awayScore = map[string]interface{}{
+					"id":          scr.ID,
+					"match_id":    scr.MatchID,
+					"team_id":     scr.TeamID,
+					"first_half":  scr.FirstHalf,
+					"second_half": scr.SecondHalf,
+					"score":       scr.Goals,
+				}
+			}
+		}
+
 		updateFootballStatusCode(ctx, updatedMatchData, game, s, tx)
 	} else if game == "cricket" {
-		updateCricketStatusCode(updatedMatchData, game, s)
+		updateCricketStatusCode(ctx, updatedMatchData, game, s, tx)
+	}
+
+	var awayTeam map[string]interface{}
+	var homeTeam map[string]interface{}
+
+	match, err := s.store.GetMatchByMatchID(ctx, updatedMatchData.ID)
+	if err != nil {
+		s.logger.Error("Failed to get match: ", err)
+	}
+
+	awayTeam = map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount}
+	homeTeam = map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount}
+
+	updateData := map[string]interface{}{
+		"id":             match.ID,
+		"tournamentID":   match.TournamentID,
+		"tournament":     map[string]interface{}{},
+		"awayTeamId":     match.AwayTeamID,
+		"homeTeamId":     match.HomeTeamID,
+		"startTimestamp": match.StartTimestamp,
+		"endTimestamp":   match.EndTimestamp,
+		"type":           match.Type,
+		"status":         match.StatusCode,
+		"result":         match.Result,
+		"awayTeam":       awayTeam,
+		"homeTeam":       homeTeam,
+		"awayScore":      awayScore,
+		"homeScore":      homeScore,
 	}
 
 	err = tx.Commit()
@@ -295,7 +354,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, updatedMatchData)
+	ctx.JSON(http.StatusAccepted, updateData)
 }
 
 type updateMatchResultRequest struct {
