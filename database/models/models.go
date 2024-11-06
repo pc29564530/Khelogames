@@ -166,10 +166,8 @@ type Goal struct {
 }
 
 type Group struct {
-	ID           int64  `json:"id"`
-	Name         string `json:"name"`
-	TournamentID int64  `json:"tournament_id"`
-	Strength     int32  `json:"strength"`
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
 }
 
 type JoinCommunity struct {
@@ -198,6 +196,7 @@ type Match struct {
 	EndTimestamp   int64  `json:"end_timestamp"`
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
+	Result         *int64 `json:"match"`
 }
 
 type Message struct {
@@ -308,18 +307,31 @@ type Tournament struct {
 	GameID         int64  `json:"game_id"`
 }
 
-type TournamentStanding struct {
-	StandingID     int64 `json:"standing_id"`
-	TournamentID   int64 `json:"tournament_id"`
-	GroupID        int64 `json:"group_id"`
-	TeamID         int64 `json:"team_id"`
-	Wins           int64 `json:"wins"`
-	Loss           int64 `json:"loss"`
-	Draw           int64 `json:"draw"`
-	GoalFor        int64 `json:"goal_for"`
-	GoalAgainst    int64 `json:"goal_against"`
-	GoalDifference int64 `json:"goal_difference"`
-	Points         int64 `json:"points"`
+type FootballStanding struct {
+	ID             int64  `json:"id"`
+	TournamentID   int64  `json:"tournament_id"`
+	GroupID        *int64 `json:"group_id"`
+	TeamID         int64  `json:"team_id"`
+	Matches        *int64 `json:"json:"matches"`
+	Wins           *int64 `json:"wins"`
+	Loss           *int64 `json:"loss"`
+	Draw           *int64 `json:"draw"`
+	GoalFor        *int64 `json:"goal_for"`
+	GoalAgainst    *int64 `json:"goal_against"`
+	GoalDifference *int64 `json:"goal_difference"`
+	Points         *int64 `json:"points"`
+}
+
+type CricketStanding struct {
+	ID           int64  `json:"id"`
+	TournamentID int64  `json:"tournament_id"`
+	GroupID      *int64 `json:"group_id"`
+	TeamID       int64  `json:"team_id"`
+	Matches      int64  `json:"json:"matches"`
+	Wins         *int64 `json:"wins"`
+	Loss         *int64 `json:"loss"`
+	Draw         *int64 `json:"draw"`
+	Points       *int64 `json:"points"`
 }
 
 type TournamentTeam struct {

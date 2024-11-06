@@ -5,6 +5,37 @@ import (
 	"khelogames/database/models"
 )
 
+const GetFootballScoreByMatchID = `
+SELECT * FROM football_score
+WHERE match_id=$1
+`
+
+func (q *Queries) GetFootballScoreByMatchID(ctx context.Context, matchID int64) ([]models.FootballScore, error) {
+	rows, err := q.db.QueryContext(ctx, GetFootballScoreByMatchID, matchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []models.FootballScore
+	for rows.Next() {
+		var i models.FootballScore
+		err := rows.Scan(
+			&i.ID,
+			&i.MatchID,
+			&i.TeamID,
+			&i.FirstHalf,
+			&i.SecondHalf,
+			&i.Goals,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		items = append(items, i)
+	}
+	return items, nil
+}
+
 const getFootballScore = `
 SELECT id, match_id, team_id, first_half, second_half, goals FROM football_score
 WHERE match_id=$1 AND team_id=$2
