@@ -102,11 +102,15 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 
 		matchMap := map[string]interface{}{
 			"tournament": map[string]interface{}{
-				"id":      tournament.ID,
-				"name":    tournament.TournamentName,
-				"slug":    tournament.Slug,
-				"country": tournament.Country,
-				"sports":  tournament.Sports,
+				"id":              tournament.ID,
+				"name":            tournament.Name,
+				"slug":            tournament.Slug,
+				"country":         tournament.Country,
+				"sports":          tournament.Sports,
+				"status_code":     tournament.StatusCode,
+				"level":           tournament.Level,
+				"start_timestamp": tournament.StartTimestamp,
+				"game_id":         tournament.GameID,
 			},
 			"id":             match.ID,
 			"homeTeam":       map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount},

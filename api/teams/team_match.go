@@ -101,7 +101,7 @@ func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMat
 
 		matchDetail := map[string]interface{}{
 			"matchId":        match.MatchID,
-			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.Name, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
 			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
 			"homeScore":      homeScoreMap,
 			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
@@ -173,7 +173,7 @@ func (s *TeamsServer) getFootballMatchScore(ctx *gin.Context, matches []db.GetMa
 
 		matchDetail := map[string]interface{}{
 			"matchId":        match.MatchID,
-			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.TournamentName, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.Name, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
 			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
 			"homeScore":      homeScoreMap,
 			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},

@@ -297,7 +297,7 @@ type Thread struct {
 
 type Tournament struct {
 	ID             int64  `json:"id"`
-	TournamentName string `json:"tournament_name"`
+	Name           string `json:"name"`
 	Slug           string `json:"slug"`
 	Sports         string `json:"sports"`
 	Country        string `json:"country"`
