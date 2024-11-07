@@ -29,7 +29,7 @@ func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) 
 }
 
 type GetMatchByTeamRow struct {
-	TournamentID   int64  `json:"tournament_id"`
+	TournamentID   int64  `json:"touranment_id"`
 	TournamentName string `json:"tournament_name"`
 	MatchID        int64  `json:"match_id"`
 	HomeTeamID     int64  `json:"home_team_id"`
@@ -45,7 +45,7 @@ type GetMatchByTeamRow struct {
 const getMatchByTeam = `
 SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
 FROM matches tm
-JOIN tournaments t ON tm.tournament_id = t.id
+JOIN tournaments t ON tm.id = t.id
 JOIN teams c1 ON tm.home_team_id = c1.id
 JOIN teams c2 ON tm.away_team_id = c2.id
 WHERE c1.id=$1 OR c2.id=$1
@@ -315,16 +315,16 @@ func (q *Queries) GetTeamsBySport(ctx context.Context, gameID int64) ([]GetTeams
 }
 
 const getTournamentsByTeam = `
-SELECT t.id, t.tournament_name, t.sports FROM tournaments t
-JOIN tournament_team tt ON t.id=tt.tournament_id
+SELECT t.id, t.name, t.sports FROM tournaments t
+JOIN tournament_team tt ON t.id=tt.id
 JOIN teams c ON tt.team_id=c.id
 WHERE c.id=$1
 `
 
 type GetTournamentsByTeamRow struct {
-	ID             int64  `json:"id"`
-	TournamentName string `json:"tournament_name"`
-	Sports         string `json:"sports"`
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	Sports string `json:"sports"`
 }
 
 func (q *Queries) GetTournamentsByTeam(ctx context.Context, id int64) ([]GetTournamentsByTeamRow, error) {
@@ -336,7 +336,7 @@ func (q *Queries) GetTournamentsByTeam(ctx context.Context, id int64) ([]GetTour
 	var items []GetTournamentsByTeamRow
 	for rows.Next() {
 		var i GetTournamentsByTeamRow
-		if err := rows.Scan(&i.ID, &i.TournamentName, &i.Sports); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.Sports); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

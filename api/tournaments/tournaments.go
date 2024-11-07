@@ -13,7 +13,7 @@ import (
 )
 
 type addTournamentRequest struct {
-	TournamentName string `json:"tournament_name"`
+	Name           string `json:"name"`
 	Slug           string `json:"slug"`
 	Sports         string `json:"sports"`
 	Country        string `json:"country"`
@@ -44,7 +44,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 	s.logger.Debug("Bind data: ", req)
 	timestamp := req.StartTimestamp
 
-	slug := util.GenerateSlug(req.TournamentName)
+	slug := util.GenerateSlug(req.Name)
 	startTimeStamp, err := util.ConvertTimeStamp(timestamp)
 	if err != nil {
 		s.logger.Error("unable to convert time to second: ", err)
@@ -52,7 +52,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 	}
 
 	arg := db.NewTournamentParams{
-		TournamentName: req.TournamentName,
+		Name:           req.Name,
 		Slug:           slug,
 		Sports:         req.Sports,
 		Country:        req.Country,

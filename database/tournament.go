@@ -7,7 +7,7 @@ import (
 )
 
 const getTournament = `
-SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id FROM tournaments
+SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id FROM tournaments
 WHERE id=$1
 `
 
@@ -16,7 +16,7 @@ func (q *Queries) GetTournament(ctx context.Context, id int64) (models.Tournamen
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
-		&i.TournamentName,
+		&i.Name,
 		&i.Slug,
 		&i.Sports,
 		&i.Country,
@@ -29,7 +29,7 @@ func (q *Queries) GetTournament(ctx context.Context, id int64) (models.Tournamen
 }
 
 const getTournaments = `
-SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id FROM tournaments
+SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id FROM tournaments
 `
 
 func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, error) {
@@ -43,7 +43,7 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 		var i models.Tournament
 		if err := rows.Scan(
 			&i.ID,
-			&i.TournamentName,
+			&i.Name,
 			&i.Slug,
 			&i.Sports,
 			&i.Country,
@@ -86,7 +86,7 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsB
 		var i models.Tournament
 		if err := rows.Scan(
 			&i.ID,
-			&i.TournamentName,
+			&i.Name,
 			&i.Slug,
 			&i.Sports,
 			&i.Country,
@@ -153,7 +153,7 @@ func (q *Queries) GetTournamentsBySport(ctx context.Context, gameID int64) ([]Ge
 
 const newTournament = `
 INSERT INTO tournaments (
-    tournament_name,
+    name,
     slug,
     sports,
     country,
@@ -162,11 +162,11 @@ INSERT INTO tournaments (
     start_timestamp,
     game_id
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id
+RETURNING id, name, slug, sports, country, status_code, level, start_timestamp, game_id
 `
 
 type NewTournamentParams struct {
-	TournamentName string `json:"tournament_name"`
+	Name           string `json:"name"`
 	Slug           string `json:"slug"`
 	Sports         string `json:"sports"`
 	Country        string `json:"country"`
@@ -178,7 +178,7 @@ type NewTournamentParams struct {
 
 func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (models.Tournament, error) {
 	row := q.db.QueryRowContext(ctx, newTournament,
-		arg.TournamentName,
+		arg.Name,
 		arg.Slug,
 		arg.Sports,
 		arg.Country,
@@ -190,7 +190,7 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
-		&i.TournamentName,
+		&i.Name,
 		&i.Slug,
 		&i.Sports,
 		&i.Country,
@@ -206,7 +206,7 @@ const updateTournamentDate = `
 UPDATE tournaments
 SET start_timestamp=$1
 WHERE id=$2
-RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id
+RETURNING id, name, slug, sports, country, status_code, level, start_timestamp, game_id
 `
 
 type UpdateTournamentDateParams struct {
@@ -219,7 +219,7 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
-		&i.TournamentName,
+		&i.Name,
 		&i.Slug,
 		&i.Sports,
 		&i.Country,
@@ -235,7 +235,7 @@ const updateTournamentStatus = `
 UPDATE tournaments
 SET status_code=$1
 WHERE id=$2
-RETURNING id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id
+RETURNING id, name, slug, sports, country, status_code, level, start_timestamp, game_id
 `
 
 type UpdateTournamentStatusParams struct {
@@ -248,7 +248,7 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
-		&i.TournamentName,
+		&i.Name,
 		&i.Slug,
 		&i.Sports,
 		&i.Country,
