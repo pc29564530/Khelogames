@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"encoding/json"
 	"khelogames/database/models"
 )
 
@@ -67,7 +66,7 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 
 const getTournamentsByLevel = `
 SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id FROM tournaments
-WHERE sports=$1 AND level=$2
+WHERE game_id=$1 AND level=$2
 `
 
 type GetTournamentsByLevelParams struct {
@@ -117,10 +116,10 @@ WHERE t.game_id=$1
 `
 
 type GetTournamentsBySportRow struct {
-	ID             int64           `json:"id"`
-	Name           string          `json:"name"`
-	MinPlayers     int32           `json:"min_players"`
-	TournamentData json.RawMessage `json:"tournament_data"`
+	ID         int64       `json:"id"`
+	Name       string      `json:"name"`
+	MinPlayers int32       `json:"min_players"`
+	Tournament interface{} `json:"tournament_data"`
 }
 
 func (q *Queries) GetTournamentsBySport(ctx context.Context, gameID int64) ([]GetTournamentsBySportRow, error) {
@@ -136,7 +135,7 @@ func (q *Queries) GetTournamentsBySport(ctx context.Context, gameID int64) ([]Ge
 			&i.ID,
 			&i.Name,
 			&i.MinPlayers,
-			&i.TournamentData,
+			&i.Tournament,
 		); err != nil {
 			return nil, err
 		}
