@@ -262,28 +262,33 @@ func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
 	}
 
 	var results map[string]interface{}
-	var tournamentData []map[string]interface{}
 	var gameDetail map[string]interface{}
+	var tournaments []map[string]interface{}
 	for _, row := range rows {
-		var tournamentDetails map[string]interface{}
-		err := json.Unmarshal((row.TournamentData), &tournamentDetails)
+		gameDetail = map[string]interface{}{
+			"id":          row.ID,
+			"name":        row.Name,
+			"min_players": row.MinPlayers,
+		}
+		var tournament map[string]interface{}
+		tt := (row.Tournament).([]byte)
+		err := json.Unmarshal(tt, &tournament)
 		if err != nil {
 			s.logger.Error("Failed to unmarshal tournament data: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process tournament data"})
 			return
 		}
 
-		tournamentData = append(tournamentData, tournamentDetails)
-		gameDetail = map[string]interface{}{
-			"id":          row.ID,
-			"name":        row.Name,
-			"min_players": row.MinPlayers,
-		}
+		tournaments = append(tournaments, tournament)
 	}
 
 	results = map[string]interface{}{
-		"game":       gameDetail,
-		"tournament": tournamentData,
+		"tournament": map[string]interface{}{
+			"id":          gameDetail["id"],
+			"name":        gameDetail["name"],
+			"min_players": gameDetail["min_players"],
+			"tournament":  tournaments,
+		},
 	}
 
 	ctx.JSON(http.StatusOK, results)
