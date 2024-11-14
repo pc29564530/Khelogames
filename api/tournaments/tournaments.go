@@ -283,12 +283,10 @@ func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
 	}
 
 	results = map[string]interface{}{
-		"tournament": map[string]interface{}{
-			"id":          gameDetail["id"],
-			"name":        gameDetail["name"],
-			"min_players": gameDetail["min_players"],
-			"tournament":  tournaments,
-		},
+		"id":          gameDetail["id"],
+		"name":        gameDetail["name"],
+		"min_players": gameDetail["min_players"],
+		"tournament":  tournaments,
 	}
 
 	ctx.JSON(http.StatusOK, results)
