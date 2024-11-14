@@ -104,6 +104,8 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"end_timestamp":  match.EndTimestamp,
 			"status":         match.StatusCode,
 			"game":           game,
+			"result":         match.Result,
+			"group_name":     match.GroupName,
 		}
 		matchDetail = append(matchDetail, matchMap)
 	}
