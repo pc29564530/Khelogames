@@ -33,29 +33,65 @@ func (q *Queries) GetMatch(ctx context.Context, arg GetMatchParams) (models.Matc
 }
 
 const getMatchByID = `
+WITH cricket_groups AS (
+    SELECT team_id, group_id
+    FROM cricket_standing
+    WHERE tournament_id = $1
+),
+football_groups AS (
+    SELECT team_id, group_id
+    FROM football_standing
+    WHERE tournament_id = $1
+)
 SELECT DISTINCT
-    m.id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result,
-	CASE
-		WHEN g.name='cricket' THEN cs.group_id
-		ELSE NULL
-	END AS group_id,
-	gr.name AS group_name,
-    t1.name AS home_team_name, t1.slug AS home_team_slug, t1.shortName AS home_team_shortName, t1.media_url AS home_team_media_url, t1.gender AS home_team_gender, t1.country AS home_team_country, t1.national AS home_team_national, t1.type AS home_team_type, t1.player_count AS home_team_player_count, t1.game_id AS home_game_id,
-    t2.name AS away_team_name, t2.slug AS away_team_slug, t2.shortName AS away_team_shortName, t2.media_url AS away_team_media_url, t2.gender AS away_team_gender, t2.country AS away_team_country, t2.national AS away_team_national, t2.type AS away_team_type, t2.player_count AS away_team_player_count, t1.game_id AS away_game_id
+    m.id,
+    m.tournament_id,
+    m.away_team_id,
+    m.home_team_id,
+    m.start_timestamp,
+    m.end_timestamp,
+    m.type,
+    m.status_code,
+    m.result,
+    CASE
+        WHEN g.name = 'cricket' THEN cg.group_id
+        ELSE NULL
+    END AS group_id,
+    gr.name AS group_name,
+    t1.name AS home_team_name,
+    t1.slug AS home_team_slug,
+    t1.shortName AS home_team_shortName,
+    t1.media_url AS home_team_media_url,
+    t1.gender AS home_team_gender,
+    t1.country AS home_team_country,
+    t1.national AS home_team_national,
+    t1.type AS home_team_type,
+    t1.player_count AS home_team_player_count,
+    t1.game_id AS home_game_id,
+    t2.name AS away_team_name,
+    t2.slug AS away_team_slug,
+    t2.shortName AS away_team_shortName,
+    t2.media_url AS away_team_media_url,
+    t2.gender AS away_team_gender,
+    t2.country AS away_team_country,
+    t2.national AS away_team_national,
+    t2.type AS away_team_type,
+    t2.player_count AS away_team_player_count,
+    t1.game_id AS away_game_id
 FROM matches m
-JOIN teams AS t1 ON m.home_team_id=t1.id
-JOIN teams AS t2 ON m.away_team_id=t2.id
-JOIN games AS g ON g.id=t1.game_id
-LEFT JOIN cricket_standing AS cs ON cs.team_id IN (m.home_team_id, m.away_team_id)
-LEFT JOIN football_standing AS fs ON fs.team_id IN (m.home_team_id, m.away_team_id)
+JOIN teams AS t1 ON m.home_team_id = t1.id
+JOIN teams AS t2 ON m.away_team_id = t2.id
+JOIN games AS g ON g.id = t1.game_id
+LEFT JOIN cricket_groups cg ON cg.team_id = m.home_team_id OR cg.team_id = m.away_team_id
+LEFT JOIN football_groups fg ON fg.team_id = m.home_team_id OR fg.team_id = m.away_team_id
 JOIN groups AS gr ON gr.id = 
-	CASE
-		WHEN g.name='cricket' THEN cs.group_id
-		WHEN g.name='football' THEN fs.group_id
-		ELSE NULL
-	END
-WHERE m.tournament_id=$1
-ORDER BY m.id ASC
+    CASE
+        WHEN g.name = 'cricket' THEN cg.group_id
+        WHEN g.name = 'football' THEN fg.group_id
+        ELSE NULL
+    END
+WHERE m.tournament_id = $1
+ORDER BY m.id ASC;
 `
 
 type GetMatchByIDRow struct {
@@ -284,7 +320,7 @@ INSERT INTO matches (
     status_code,
 	result
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 ) RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result
 `
 
@@ -296,7 +332,7 @@ type NewMatchParams struct {
 	EndTimestamp   int64  `json:"end_timestamp"`
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
-	Result         int64  `json:"result"`
+	Result         *int64 `json:"result"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
@@ -308,6 +344,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		arg.EndTimestamp,
 		arg.Type,
 		arg.StatusCode,
+		arg.Result,
 	)
 	var i models.Match
 	err := row.Scan(
