@@ -26,57 +26,91 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		return
 	}
 
+	// Check if rows or rows.StandingData is nil
+	if rows == nil || rows.StandingData == nil {
+		s.logger.Warn("No standings data available")
+		ctx.JSON(http.StatusNoContent, gin.H{"message": "No standings data available"})
+		return
+	}
+
+	var standings []map[string]interface{}
 	var standingsData []map[string]interface{}
-	for _, row := range rows {
-		var data map[string]interface{}
-		err := json.Unmarshal(row.StandingData.([]byte), &data)
-		if err != nil {
-			s.logger.Error("Failed to unmarshal ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal standings data"})
+	var standingData []interface{}
+
+	err = json.Unmarshal(rows.StandingData.([]byte), &standingData)
+	if err != nil {
+		s.logger.Error("Failed to unmarshal ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal standings data"})
+		return
+	}
+	for _, data := range standingData {
+
+		// Ensure data is of type map[string]interface{}
+		dataMap, ok := data.(map[string]interface{})
+		if !ok {
+			s.logger.Error("Invalid data format")
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid data format"})
 			return
 		}
 
-		standing := map[string]interface{}{
-			"tournament":    data["tournament"],
-			"group":         data["group"],
-			"teams":         data["teams"],
-			"tournament_id": row.TournamentID,
-			"group_id":      row.GroupID,
-			"id":            row.ID,
-			"matches":       row.Matches,
-			"wins":          row.Wins,
-			"loss":          row.Loss,
-			"draw":          row.Draw,
-			"points":        row.Points,
-		}
+		// Safely extract and convert numeric fields
+		tournamentID, _ := dataMap["tournament_id"].(float64)
+		groupID, _ := dataMap["group_id"].(float64)
+		id, _ := dataMap["id"].(float64)
+		matches, _ := dataMap["matches"].(float64)
+		wins, _ := dataMap["wins"].(float64)
+		loss, _ := dataMap["loss"].(float64)
+		draw, _ := dataMap["draw"].(float64)
+		goalFor, _ := dataMap["goal_for"].(float64)
+		goalAgainst, _ := dataMap["goal_against"].(float64)
+		goalDifference, _ := dataMap["goal_difference"].(float64)
+		points, _ := dataMap["points"].(float64)
 
+		standing := map[string]interface{}{
+			"tournament":      dataMap["tournament"],
+			"group":           dataMap["group"],
+			"teams":           dataMap["teams"],
+			"tournament_id":   int64(tournamentID),
+			"group_id":        int64(groupID),
+			"id":              int64(id),
+			"matches":         int64(matches),
+			"wins":            int64(wins),
+			"loss":            int64(loss),
+			"draw":            int64(draw),
+			"goal_for":        int64(goalFor),
+			"goal_against":    int64(goalAgainst),
+			"goal_difference": int64(goalDifference),
+			"points":          int64(points),
+		}
 		standingsData = append(standingsData, standing)
 	}
 
 	groupData := make(map[int64][]map[string]interface{})
-	visited := make(map[int]string)
-	var standings []map[string]interface{}
+	visited := make(map[int]string) // Initialize the visited map to prevent nil map errors
 
 	for _, standing := range standingsData {
-		groupID := standing["group_id"].(*int64)
-		grpID := *groupID
+		groupID := standing["group_id"]
+		grpID := groupID
 
 		// Append standings data to groupData by groupID
-		groupData[grpID] = append(groupData[grpID], map[string]interface{}{
-			"teams":   standing["teams"],
-			"id":      standing["id"],
-			"matches": standing["matches"],
-			"wins":    standing["wins"],
-			"loss":    standing["loss"],
-			"draw":    standing["draw"],
-			"points":  standing["points"],
+		groupData[grpID.(int64)] = append(groupData[grpID.(int64)], map[string]interface{}{
+			"teams":           standing["teams"],
+			"id":              standing["id"],
+			"matches":         standing["matches"],
+			"wins":            standing["wins"],
+			"loss":            standing["loss"],
+			"draw":            standing["draw"],
+			"goal_for":        standing["goal_for"],
+			"goal_against":    standing["goal_against"],
+			"goal_difference": standing["goal_difference"],
+			"points":          standing["points"],
 		})
 
 		// Set the group name if not already visited
-		if _, ok := visited[int(grpID)]; !ok {
+		if _, ok := visited[int(grpID.(int64))]; !ok {
 			vis, ok := standing["group"].(map[string]interface{})["name"].(string)
 			if ok {
-				visited[int(grpID)] = vis
+				visited[int(grpID.(int64))] = vis
 			}
 		}
 	}
@@ -92,8 +126,8 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 			"team_row":   grpData,
 		})
 	}
+
 	ctx.JSON(http.StatusAccepted, standings)
-	return
 }
 
 type updateCricketStandingRequest struct {
