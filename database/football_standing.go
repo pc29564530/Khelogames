@@ -55,56 +55,101 @@ func (q *Queries) CreateFootballStanding(ctx context.Context, tournamentID, grou
 
 const getFootballStanding = `
 	SELECT
-		fs.id, fs.tournament_id, fs.group_id, fs.team_id, fs.matches, fs.wins, fs.loss, fs.draw, fs.goal_for, fs.goal_against, fs.goal_difference, fs.points,
-		JSON_BUILD_OBJECT(
-			'tournament', JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id),
-			'group', CASE WHEN g.id IS NOT NULL THEN JSON_BUILD_OBJECT('id', g.id, 'name', g.name) ELSE NULL END,
-			'teams', JSON_BUILD_OBJECT('id', tm.id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id)
-		) AS standing_data
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM football_standing fs
+            WHERE tournament_id = $1
+        ) THEN 
+            JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'id', fs.id,
+                    'tournament_id', fs.tournament_id,
+                    'group_id', fs.group_id,
+                    'team_id', fs.team_id,
+                    'matches', fs.matches,
+                    'wins', fs.wins,
+                    'loss', fs.loss,
+                    'draw', fs.draw,
+                    'goal_for', fs.goal_for,
+                    'goal_against', fs.goal_against,
+                    'goal_difference', fs.goal_difference,
+                    'points', fs.points,
+                    'tournament', JSON_BUILD_OBJECT(
+                        'id', t.id,
+                        'name', t.name,
+                        'slug', t.slug,
+                        'country', t.country,
+                        'status_code', t.status_code,
+                        'level', t.level,
+                        'start_timestamp', t.start_timestamp,
+                        'game_id', t.game_id
+                    ),
+                    'group', CASE 
+                        WHEN g.id IS NOT NULL THEN JSON_BUILD_OBJECT(
+                            'id', g.id,
+                            'name', g.name
+                        ) 
+                        ELSE NULL 
+                    END,
+                    'teams', JSON_BUILD_OBJECT(
+                        'id', tm.id,
+                        'name', tm.name,
+                        'slug', tm.slug,
+                        'short_name', tm.shortname,
+                        'admin', tm.admin,
+                        'media_url', tm.media_url,
+                        'gender', tm.gender,
+                        'national', tm.national,
+                        'country', tm.country,
+                        'type', tm.type,
+                        'player_count', tm.player_count,
+                        'game_id', tm.game_id
+                    )
+                )
+            )
+			ELSE NULL
+		END AS standing_data
 	FROM football_standing fs
 	LEFT JOIN groups g ON fs.group_id = g.id
 	JOIN tournaments t ON t.id = fs.tournament_id
 	JOIN teams tm ON fs.team_id = tm.id
-	WHERE fs.tournament_id = $1
+	WHERE fs.tournament_id = $1;
 `
 
 type GetFootballStandingR struct {
-	ID             int64       `json:"id"`
-	TournamentID   int64       `json:"tournament_id"`
-	GroupID        *int64      `json:"group_id"`
-	TeamID         int64       `json:"team_id"`
-	Matches        *int64      `json:"json:"matches"`
-	Wins           *int64      `json:"wins"`
-	Loss           *int64      `json:"loss"`
-	Draw           *int64      `json:"draw"`
-	GoalFor        *int64      `json:"goal_for"`
-	GoalAgainst    *int64      `json:"goal_against"`
-	GoalDifference *int64      `json:"goal_difference"`
-	Points         *int64      `json:"points"`
-	StandingData   interface{} `json:"standing_data"`
+	StandingData interface{} `json:"standing_data"`
 }
 
-func (q *Queries) GetFootballStanding(ctx context.Context, tournamentId int64) ([]GetFootballStandingR, error) {
+func (q *Queries) GetFootballStanding(ctx context.Context, tournamentId int64) (*GetFootballStandingR, error) {
 	rows, err := q.db.QueryContext(ctx, getFootballStanding, tournamentId)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var standings []GetFootballStandingR
-	for rows.Next() {
-		var i GetFootballStandingR
-		if err := rows.Scan(&i.ID, &i.TournamentID, &i.GroupID, &i.TeamID, &i.Matches, &i.Wins, &i.Loss, &i.Draw, &i.GoalFor, &i.GoalAgainst, &i.GoalDifference, &i.Points, &i.StandingData); err != nil {
+	var standings GetFootballStandingR
+
+	if rows.Next() {
+		if err := rows.Scan(&standings.StandingData); err != nil {
 			return nil, err
 		}
-		standings = append(standings, i)
+	} else {
+		return nil, nil
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return standings, nil
+	// for rows.Next() {
+	// 	var i GetFootballStandingR
+	// 	if err := rows.Scan(&i.StandingData); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	standings = append(standings, i)
+	// }
+	// if err := rows.Close(); err != nil {
+	// 	return nil, err
+	// }
+	// if err := rows.Err(); err != nil {
+	// 	return nil, err
+	// }
+	return &standings, nil
 }
 
 const updateFootballStanding = `
