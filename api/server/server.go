@@ -172,6 +172,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTeams", teamsServer.GetTeamsFunc)
 	sportRouter.GET("/searchTeams", teamsServer.SearchTeamFunc)
 	sportRouter.POST("/addTeamsMemberFunc", teamsServer.AddTeamsMemberFunc)
+	sportRouter.PUT("/removePlayerFromTeam", teamsServer.RemovePlayerFromTeamFunc)
 	sportRouter.GET("/getTeamsMemberFunc", teamsServer.GetTeamsMemberFunc)
 	sportRouter.GET("/getTeamsBySport/:game_id", teamsServer.GetTeamsBySportFunc)
 	sportRouter.GET("/getMatchByTeamFunc", teamsServer.GetMatchByTeamFunc)

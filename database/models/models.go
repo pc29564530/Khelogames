@@ -271,9 +271,10 @@ type Team struct {
 }
 
 type TeamPlayer struct {
-	TeamID      int64  `json:"team_id"`
-	PlayerID    int64  `json:"player_id"`
-	CurrentTeam string `json:"current_team"`
+	TeamID    int64  `json:"team_id"`
+	PlayerID  int64  `json:"player_id"`
+	JoinDate  int32  `json:"join_date"`
+	LeaveDate *int32 `json:"leave_date"`
 }
 
 type TeamsGroup struct {

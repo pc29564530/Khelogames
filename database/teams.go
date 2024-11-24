@@ -10,21 +10,23 @@ const addTeamPlayers = `
 INSERT INTO team_players (
     team_id,
     player_id,
-    current_team
-) VALUES ($1, $2, $3)
-RETURNING team_id, player_id, current_team
+	join_date,
+	leave_date
+) VALUES ($1, $2, $3, $4)
+RETURNING *
 `
 
 type AddTeamPlayersParams struct {
-	TeamID      int64  `json:"team_id"`
-	PlayerID    int64  `json:"player_id"`
-	CurrentTeam string `json:"current_team"`
+	TeamID    int64  `json:"team_id"`
+	PlayerID  int64  `json:"player_id"`
+	JoinDate  int32  `json:"join_date"`
+	LeaveDate *int32 `json:"leave_date"`
 }
 
 func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID, arg.CurrentTeam)
+	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID, arg.JoinDate, arg.LeaveDate)
 	var i models.TeamPlayer
-	err := row.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam)
+	err := row.Scan(&i.TeamID, &i.PlayerID, &i.JoinDate, &i.LeaveDate)
 	return i, err
 }
 
@@ -533,6 +535,25 @@ func (q *Queries) UpdateTeamName(ctx context.Context, arg UpdateTeamNameParams) 
 		&i.Sports,
 		&i.PlayerCount,
 		&i.GameID,
+	)
+	return i, err
+}
+
+const removePlayerFromTeam = `
+	UPDATE team_players
+	SET leave_date=$1
+	WHERE team_id=$2 AND player_id=&3
+	RETURNING *
+`
+
+func (q *Queries) RemovePlayerFromTeam(ctx context.Context, team_id int64, player_id int64, leaveDate int32) (models.TeamPlayer, error) {
+	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, team_id, player_id, leaveDate)
+	var i models.TeamPlayer
+	err := row.Scan(
+		&i.TeamID,
+		&i.PlayerID,
+		&i.JoinDate,
+		&i.LeaveDate,
 	)
 	return i, err
 }

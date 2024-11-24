@@ -2,6 +2,7 @@ package teams
 
 import (
 	db "khelogames/database"
+	"khelogames/util"
 	"net/http"
 	"strconv"
 
@@ -9,8 +10,9 @@ import (
 )
 
 type addPlayerToTeamRequest struct {
-	PlayerID int64 `json:"player_id"`
-	TeamID   int64 `json:"team_id"`
+	PlayerID int64  `json:"player_id"`
+	TeamID   int64  `json:"team_id"`
+	JoinDate string `json:"join_date"`
 }
 
 func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
@@ -22,9 +24,13 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		return
 	}
 
+	//convert the date to second to insert into the teamplayer table
+	startDate, err := util.ConvertTimeStamp(req.JoinDate)
 	arg := db.AddTeamPlayersParams{
-		TeamID:   req.TeamID,
-		PlayerID: req.PlayerID,
+		TeamID:    req.TeamID,
+		PlayerID:  req.PlayerID,
+		JoinDate:  int32(startDate),
+		LeaveDate: nil,
 	}
 
 	members, err := s.store.AddTeamPlayers(ctx, arg)
@@ -72,4 +78,32 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, playerList)
 	return
+}
+
+type removePlayerFromTeamRequest struct {
+	TeamID    int64  `json:"team_id"`
+	PlayerID  int64  `json:"player_id"`
+	LeaveDate string `json:"leave_date"`
+}
+
+func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
+	var req removePlayerFromTeamRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+	endDate, err := util.ConvertTimeStamp(req.LeaveDate)
+	if err != nil {
+		s.logger.Error("Failed to convert to second")
+		return
+	}
+
+	response, err := s.store.RemovePlayerFromTeam(ctx, req.TeamID, req.PlayerID, int32(endDate))
+	if err != nil {
+		s.logger.Error("Failed to remove player from team: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
 }
