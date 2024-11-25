@@ -45,7 +45,7 @@ type GetMatchByTeamRow struct {
 }
 
 const getMatchByTeam = `
-SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
+SELECT t.id AS tournament_id, t.name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
 FROM matches tm
 JOIN tournaments t ON tm.id = t.id
 JOIN teams c1 ON tm.home_team_id = c1.id
@@ -521,14 +521,14 @@ func (q *Queries) UpdateTeamName(ctx context.Context, arg UpdateTeamNameParams) 
 }
 
 const removePlayerFromTeam = `
-	UPDATE team_players
-	SET leave_date=$1
-	WHERE team_id=$2 AND player_id=&3
-	RETURNING *
+UPDATE team_players
+SET leave_date=$1
+WHERE team_id=$2 AND player_id=$3
+RETURNING *;
 `
 
-func (q *Queries) RemovePlayerFromTeam(ctx context.Context, team_id int64, player_id int64, leaveDate int32) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, team_id, player_id, leaveDate)
+func (q *Queries) RemovePlayerFromTeam(ctx context.Context, teamID int64, playerID int64, leaveDate int32) (models.TeamPlayer, error) {
+	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, leaveDate, teamID, playerID)
 	var i models.TeamPlayer
 	err := row.Scan(
 		&i.TeamID,
