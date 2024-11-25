@@ -26,6 +26,9 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 
 	//convert the date to second to insert into the teamplayer table
 	startDate, err := util.ConvertTimeStamp(req.JoinDate)
+	if err != nil {
+		s.logger.Error("Failed to convert the timestamp to second ", err)
+	}
 	arg := db.AddTeamPlayersParams{
 		TeamID:    req.TeamID,
 		PlayerID:  req.PlayerID,
