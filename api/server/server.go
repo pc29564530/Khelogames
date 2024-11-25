@@ -189,7 +189,6 @@ func NewServer(config util.Config,
 	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
 
 	//football->player
-	sportRouter.PUT("/updateCurrentTeamByPlayer", teamsServer.UpdateCurrentTeamByPlayerFunc)
 	sportRouter.POST("/addFootballLineUp", footballServer.AddFootballLineUpFunc)
 	sportRouter.POST("/addFootballSubstitution", footballServer.AddFootballSubstitionFunc)
 	sportRouter.GET("/getFootballLineUp", footballServer.GetFootballLineUpFunc)
