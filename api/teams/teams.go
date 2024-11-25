@@ -249,29 +249,3 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, teamDetails)
 }
-
-type UpdateCurrentTeamByPlayerRequest struct {
-	TeamID   int64 `json:"team_id"`
-	PlayerID int64 `json:"player_id"`
-}
-
-func (s *TeamsServer) UpdateCurrentTeamByPlayerFunc(ctx *gin.Context) {
-	var req UpdateCurrentTeamByPlayerRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		return
-	}
-
-	arg := db.UpdateCurrentTeamParams{
-		TeamID:   req.TeamID,
-		PlayerID: req.PlayerID,
-	}
-
-	response, err := s.store.UpdateCurrentTeam(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to update the current team: ", err)
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-}

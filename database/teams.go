@@ -90,7 +90,7 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 }
 
 const getPlayerByTeam = `
-SELECT team_id, player_id, current_team, id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM team_players
+SELECT team_id, player_id, join_date, leave_date, id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM team_players
 JOIN players ON team_players.player_id=players.id
 WHERE team_id=$1
 `
@@ -107,7 +107,8 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.G
 		if err := rows.Scan(
 			&i.TeamID,
 			&i.PlayerID,
-			&i.CurrentTeam,
+			&i.JoinDate,
+			&i.LeaveDate,
 			&i.ID,
 			&i.Username,
 			&i.Slug,
@@ -205,7 +206,7 @@ func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models
 }
 
 const getTeamPlayers = `
-SELECT team_id, player_id, current_team FROM team_players
+SELECT * FROM team_players
 WHERE team_id=$1
 `
 
@@ -218,7 +219,7 @@ func (q *Queries) GetTeamPlayers(ctx context.Context, teamID int64) ([]models.Te
 	var items []models.TeamPlayer
 	for rows.Next() {
 		var i models.TeamPlayer
-		if err := rows.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam); err != nil {
+		if err := rows.Scan(&i.TeamID, &i.PlayerID, &i.JoinDate, &i.LeaveDate); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -451,26 +452,6 @@ func (q *Queries) SearchTeam(ctx context.Context, name string) ([]models.SearchT
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateCurrentTeam = `
-UPDATE team_players
-SET current_team=$1
-WHERE team_id=$2 AND player_id=$3
-RETURNING team_id, player_id, current_team
-`
-
-type UpdateCurrentTeamParams struct {
-	CurrentTeam string `json:"current_team"`
-	TeamID      int64  `json:"team_id"`
-	PlayerID    int64  `json:"player_id"`
-}
-
-func (q *Queries) UpdateCurrentTeam(ctx context.Context, arg UpdateCurrentTeamParams) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, updateCurrentTeam, arg.CurrentTeam, arg.TeamID, arg.PlayerID)
-	var i models.TeamPlayer
-	err := row.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam)
-	return i, err
 }
 
 const updateMediaUrl = `
