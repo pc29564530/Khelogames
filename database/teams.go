@@ -522,13 +522,19 @@ func (q *Queries) UpdateTeamName(ctx context.Context, arg UpdateTeamNameParams) 
 
 const removePlayerFromTeam = `
 UPDATE team_players
-SET leave_date=$1
-WHERE team_id=$2 AND player_id=$3
+SET leave_date=$3
+WHERE team_id=$1 AND player_id=$2
 RETURNING *;
 `
 
-func (q *Queries) RemovePlayerFromTeam(ctx context.Context, teamID int64, playerID int64, leaveDate int32) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, leaveDate, teamID, playerID)
+type UpdateLeaveDateParams struct {
+	TeamID    int64  `json:"team_id"`
+	PlayerID  int64  `json:"player_id"`
+	LeaveDate *int32 `json:"leave_date"`
+}
+
+func (q *Queries) RemovePlayerFromTeam(ctx context.Context, arg UpdateLeaveDateParams) (models.TeamPlayer, error) {
+	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, arg.TeamID, arg.PlayerID, arg.LeaveDate)
 	var i models.TeamPlayer
 	err := row.Scan(
 		&i.TeamID,
@@ -537,4 +543,20 @@ func (q *Queries) RemovePlayerFromTeam(ctx context.Context, teamID int64, player
 		&i.LeaveDate,
 	)
 	return i, err
+}
+
+const getTeamPlayer = `
+SELECT COUNT(*) > 0
+FROM team_players
+WHERE team_id = $1 AND player_id = $2 AND leave_date IS NOT NULL
+`
+
+func (q *Queries) GetTeamPlayer(ctx context.Context, teamID int64, playerID int64) bool {
+	var exists bool
+	err := q.db.QueryRowContext(ctx, getTeamPlayer, teamID, playerID).Scan(&exists)
+	if err != nil {
+		ctx.Err()
+		return false
+	}
+	return exists
 }

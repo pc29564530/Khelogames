@@ -29,21 +29,54 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to convert the timestamp to second ", err)
 	}
-	arg := db.AddTeamPlayersParams{
-		TeamID:    req.TeamID,
-		PlayerID:  req.PlayerID,
-		JoinDate:  int32(startDate),
-		LeaveDate: nil,
-	}
 
-	members, err := s.store.AddTeamPlayers(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to add club member: ", err)
-		ctx.JSON(http.StatusNotFound, err)
+	checkPlayerExist := s.store.GetTeamPlayer(ctx, req.TeamID, req.PlayerID)
+	if checkPlayerExist {
+		arg := db.UpdateLeaveDateParams{
+			TeamID:    req.TeamID,
+			PlayerID:  req.PlayerID,
+			LeaveDate: nil,
+		}
+		_, err := s.store.RemovePlayerFromTeam(ctx, arg)
+		if err != nil {
+			s.logger.Error("Failed to update the the leave date: ", err)
+			return
+		}
+
+		player, err := s.store.GetPlayer(ctx, arg.PlayerID)
+		if err != nil {
+			s.logger.Error("Failed to get the player: ", err)
+			return
+		}
+		playerData := map[string]interface{}{
+			"id":          player.ID,
+			"player_name": player.PlayerName,
+			"slug":        player.Slug,
+			"short_name":  player.ShortName,
+			"position":    player.Positions,
+			"country":     player.Country,
+			"sports":      player.Sports,
+			"media_url":   player.MediaUrl,
+		}
+		ctx.JSON(http.StatusAccepted, playerData)
 		return
+	} else {
+		arg := db.AddTeamPlayersParams{
+			TeamID:    req.TeamID,
+			PlayerID:  req.PlayerID,
+			JoinDate:  int32(startDate),
+			LeaveDate: nil,
+		}
+
+		members, err := s.store.AddTeamPlayers(ctx, arg)
+		if err != nil {
+			s.logger.Error("Failed to add club member: ", err)
+			ctx.JSON(http.StatusNotFound, err)
+			return
+		}
+		s.logger.Info("successfully added member to the club")
+		ctx.JSON(http.StatusAccepted, members)
 	}
-	s.logger.Info("successfully added member to the club")
-	ctx.JSON(http.StatusAccepted, members)
 }
 
 func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
@@ -96,13 +129,23 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind: ", err)
 		return
 	}
+	//var endDate *int64
 	endDate, err := util.ConvertTimeStamp(req.LeaveDate)
 	if err != nil {
 		s.logger.Error("Failed to convert to second")
 		return
 	}
 
-	response, err := s.store.RemovePlayerFromTeam(ctx, req.TeamID, req.PlayerID, int32(endDate))
+	leave := int32(endDate)
+	var eddPointer *int32 = &leave
+
+	arg := db.UpdateLeaveDateParams{
+		TeamID:    req.TeamID,
+		PlayerID:  req.PlayerID,
+		LeaveDate: eddPointer,
+	}
+
+	response, err := s.store.RemovePlayerFromTeam(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to remove player from team: ", err)
 		return
