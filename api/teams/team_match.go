@@ -44,9 +44,9 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 
 func (s *TeamsServer) getMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, sport string, matchesDetails []map[string]interface{}) []map[string]interface{} {
 	switch sport {
-	case "Cricket":
+	case "cricket":
 		return s.getCricketMatchScore(ctx, matches, matchesDetails)
-	case "Football":
+	case "football":
 		return s.getFootballMatchScore(ctx, matches, matchesDetails)
 	default:
 		s.logger.Error("Unsupported sport type:", matches)

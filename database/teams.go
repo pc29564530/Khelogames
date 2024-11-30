@@ -10,21 +10,23 @@ const addTeamPlayers = `
 INSERT INTO team_players (
     team_id,
     player_id,
-    current_team
-) VALUES ($1, $2, $3)
-RETURNING team_id, player_id, current_team
+	join_date,
+	leave_date
+) VALUES ($1, $2, $3, $4)
+RETURNING *
 `
 
 type AddTeamPlayersParams struct {
-	TeamID      int64  `json:"team_id"`
-	PlayerID    int64  `json:"player_id"`
-	CurrentTeam string `json:"current_team"`
+	TeamID    int64  `json:"team_id"`
+	PlayerID  int64  `json:"player_id"`
+	JoinDate  int32  `json:"join_date"`
+	LeaveDate *int32 `json:"leave_date"`
 }
 
 func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID, arg.CurrentTeam)
+	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID, arg.JoinDate, arg.LeaveDate)
 	var i models.TeamPlayer
-	err := row.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam)
+	err := row.Scan(&i.TeamID, &i.PlayerID, &i.JoinDate, &i.LeaveDate)
 	return i, err
 }
 
@@ -43,7 +45,7 @@ type GetMatchByTeamRow struct {
 }
 
 const getMatchByTeam = `
-SELECT t.id AS tournament_id, t.tournament_name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
+SELECT t.id AS tournament_id, t.name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
 FROM matches tm
 JOIN tournaments t ON tm.id = t.id
 JOIN teams c1 ON tm.home_team_id = c1.id
@@ -88,9 +90,9 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 }
 
 const getPlayerByTeam = `
-SELECT team_id, player_id, current_team, id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM team_players
+SELECT team_id, player_id, join_date, leave_date, id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM team_players
 JOIN players ON team_players.player_id=players.id
-WHERE team_id=$1
+WHERE team_id=$1 AND leave_date IS NULL;
 `
 
 func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.GetPlayerByTeam, error) {
@@ -105,7 +107,8 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.G
 		if err := rows.Scan(
 			&i.TeamID,
 			&i.PlayerID,
-			&i.CurrentTeam,
+			&i.JoinDate,
+			&i.LeaveDate,
 			&i.ID,
 			&i.Username,
 			&i.Slug,
@@ -203,7 +206,7 @@ func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models
 }
 
 const getTeamPlayers = `
-SELECT team_id, player_id, current_team FROM team_players
+SELECT * FROM team_players
 WHERE team_id=$1
 `
 
@@ -216,7 +219,7 @@ func (q *Queries) GetTeamPlayers(ctx context.Context, teamID int64) ([]models.Te
 	var items []models.TeamPlayer
 	for rows.Next() {
 		var i models.TeamPlayer
-		if err := rows.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam); err != nil {
+		if err := rows.Scan(&i.TeamID, &i.PlayerID, &i.JoinDate, &i.LeaveDate); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -451,26 +454,6 @@ func (q *Queries) SearchTeam(ctx context.Context, name string) ([]models.SearchT
 	return items, nil
 }
 
-const updateCurrentTeam = `
-UPDATE team_players
-SET current_team=$1
-WHERE team_id=$2 AND player_id=$3
-RETURNING team_id, player_id, current_team
-`
-
-type UpdateCurrentTeamParams struct {
-	CurrentTeam string `json:"current_team"`
-	TeamID      int64  `json:"team_id"`
-	PlayerID    int64  `json:"player_id"`
-}
-
-func (q *Queries) UpdateCurrentTeam(ctx context.Context, arg UpdateCurrentTeamParams) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, updateCurrentTeam, arg.CurrentTeam, arg.TeamID, arg.PlayerID)
-	var i models.TeamPlayer
-	err := row.Scan(&i.TeamID, &i.PlayerID, &i.CurrentTeam)
-	return i, err
-}
-
 const updateMediaUrl = `
 UPDATE teams
 SET media_url=$1
@@ -535,4 +518,45 @@ func (q *Queries) UpdateTeamName(ctx context.Context, arg UpdateTeamNameParams) 
 		&i.GameID,
 	)
 	return i, err
+}
+
+const removePlayerFromTeam = `
+UPDATE team_players
+SET leave_date=$3
+WHERE team_id=$1 AND player_id=$2
+RETURNING *;
+`
+
+type UpdateLeaveDateParams struct {
+	TeamID    int64  `json:"team_id"`
+	PlayerID  int64  `json:"player_id"`
+	LeaveDate *int32 `json:"leave_date"`
+}
+
+func (q *Queries) RemovePlayerFromTeam(ctx context.Context, arg UpdateLeaveDateParams) (models.TeamPlayer, error) {
+	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, arg.TeamID, arg.PlayerID, arg.LeaveDate)
+	var i models.TeamPlayer
+	err := row.Scan(
+		&i.TeamID,
+		&i.PlayerID,
+		&i.JoinDate,
+		&i.LeaveDate,
+	)
+	return i, err
+}
+
+const getTeamPlayer = `
+SELECT COUNT(*) > 0
+FROM team_players
+WHERE team_id = $1 AND player_id = $2 AND leave_date IS NOT NULL
+`
+
+func (q *Queries) GetTeamPlayer(ctx context.Context, teamID int64, playerID int64) bool {
+	var exists bool
+	err := q.db.QueryRowContext(ctx, getTeamPlayer, teamID, playerID).Scan(&exists)
+	if err != nil {
+		ctx.Err()
+		return false
+	}
+	return exists
 }

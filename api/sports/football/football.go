@@ -122,6 +122,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			"status":         match.StatusCode,
 			"game":           game,
 			"result":         match.Result,
+			"group_name":     match.GroupName,
 		}
 		matchDetail = append(matchDetail, matchMap)
 	}

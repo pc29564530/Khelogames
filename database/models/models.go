@@ -271,9 +271,10 @@ type Team struct {
 }
 
 type TeamPlayer struct {
-	TeamID      int64  `json:"team_id"`
-	PlayerID    int64  `json:"player_id"`
-	CurrentTeam string `json:"current_team"`
+	TeamID    int64  `json:"team_id"`
+	PlayerID  int64  `json:"player_id"`
+	JoinDate  int32  `json:"join_date"`
+	LeaveDate *int32 `json:"leave_date"`
 }
 
 type TeamsGroup struct {
@@ -366,19 +367,20 @@ type Wicket struct {
 }
 
 type GetPlayerByTeam struct {
-	TeamID      int64  `json:"team_id"`
-	PlayerID    int64  `json:"player_id"`
-	CurrentTeam string `json:"current_team"`
-	ID          int64  `json:"id"`
-	Username    string `json:"username"`
-	Slug        string `json:"slug"`
-	ShortName   string `json:"short_name"`
-	MediaUrl    string `json:"media_url"`
-	Positions   string `json:"positions"`
-	Sports      string `json:"sports"`
-	Country     string `json:"country"`
-	PlayerName  string `json:"player_name"`
-	GameID      int64  `json:"game_id"`
+	TeamID     int64  `json:"team_id"`
+	PlayerID   int64  `json:"player_id"`
+	JoinDate   *int32 `json:"join_date"`
+	LeaveDate  *int32 `json:"leave_date"`
+	ID         int64  `json:"id"`
+	Username   string `json:"username"`
+	Slug       string `json:"slug"`
+	ShortName  string `json:"short_name"`
+	MediaUrl   string `json:"media_url"`
+	Positions  string `json:"positions"`
+	Sports     string `json:"sports"`
+	Country    string `json:"country"`
+	PlayerName string `json:"player_name"`
+	GameID     int64  `json:"game_id"`
 }
 
 type GetTeamByPlayer struct {
