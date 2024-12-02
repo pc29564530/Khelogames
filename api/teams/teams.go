@@ -21,8 +21,8 @@ type addTeamsRequest struct {
 	National    bool   `json:"national"`
 	Country     string `json:"country"`
 	Type        string `json:"type"`
-	Sports      string `json:"sports"`
 	PlayerCount int    `json:"player_count"`
+	GameID      int64  `json:"game_id"`
 }
 
 func (s *TeamsServer) AddTeam(ctx *gin.Context) {
@@ -63,16 +63,17 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 	shortName := util.GenerateShortName(req.Name)
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.NewTeamsParams{
-		Name:      req.Name,
-		Slug:      slug,
-		Shortname: shortName,
-		Admin:     authPayload.Username,
-		MediaUrl:  path,
-		Gender:    req.Gender,
-		National:  req.National,
-		Country:   req.Country,
-		Type:      req.Type,
-		Sports:    req.Sports,
+		Name:        req.Name,
+		Slug:        slug,
+		Shortname:   shortName,
+		Admin:       authPayload.Username,
+		MediaUrl:    path,
+		Gender:      req.Gender,
+		National:    false,
+		Country:     req.Country,
+		Type:        req.Type,
+		PlayerCount: int32(req.PlayerCount),
+		GameID:      req.GameID,
 	}
 
 	response, err := s.store.NewTeams(ctx, arg)
