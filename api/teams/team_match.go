@@ -31,13 +31,15 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 		return
 	}
 
+	sport := ctx.Param("sport")
+
 	matches, err := s.store.GetMatchByTeam(ctx, teamID)
 	if err != nil {
 		s.logger.Error("Failed to get match by team id: ", err)
 		return
 	}
 	var matchesDetails []map[string]interface{}
-	clubMatchDetails := s.getMatchScore(ctx, matches, matches[0].Sports, matchesDetails)
+	clubMatchDetails := s.getMatchScore(ctx, matches, sport, matchesDetails)
 	ctx.JSON(http.StatusAccepted, clubMatchDetails)
 	return
 }
