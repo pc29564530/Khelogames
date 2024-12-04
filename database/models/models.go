@@ -197,6 +197,7 @@ type Match struct {
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
 	Result         *int64 `json:"match"`
+	Stage          string `json:"stage"`
 }
 
 type Message struct {

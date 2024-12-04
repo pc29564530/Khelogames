@@ -53,6 +53,7 @@ SELECT DISTINCT
     m.type,
     m.status_code,
     m.result,
+	m.stage,
     CASE
         WHEN g.name = 'cricket' THEN cg.group_id
         ELSE NULL
@@ -104,6 +105,7 @@ type GetMatchByIDRow struct {
 	Type                string `json:"type"`
 	StatusCode          string `json:"status_code"`
 	Result              *int64 `json:"result"`
+	Stage               string `json:"stage"`
 	GroupID             *int64 `json:"group_id"`
 	GroupName           string `json:"group_name"`
 	HomeTeamName        string `json:"home_team_name"`
@@ -147,6 +149,7 @@ func (q *Queries) GetMatchByID(ctx context.Context, tournamentID int64) ([]GetMa
 			&i.Type,
 			&i.StatusCode,
 			&i.Result,
+			&i.Stage,
 			&i.GroupID,
 			&i.GroupName,
 			&i.HomeTeamName,
@@ -185,7 +188,7 @@ func (q *Queries) GetMatchByID(ctx context.Context, tournamentID int64) ([]GetMa
 
 const getMatchByMatchID = `
 SELECT
-    m.id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result,
+    m.id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result, m.stage,
     t1.name AS home_team_name, t1.slug AS home_team_slug, t1.shortName AS home_team_shortName, t1.media_url AS home_team_media_url, t1.gender AS home_team_gender, t1.country AS home_team_country, t1.national AS home_team_national, t1.type AS home_team_type, t1.player_count AS home_team_player_count, t1.game_id AS home_game_id,
     t2.name AS away_team_name, t2.slug AS away_team_slug, t2.shortName AS away_team_shortName, t2.media_url AS away_team_media_url, t2.gender AS away_team_gender, t2.country AS away_team_country, t2.national AS away_team_national, t2.type AS away_team_type, t2.player_count AS away_team_player_count, t1.game_id AS away_game_id
 FROM matches m
@@ -207,6 +210,7 @@ func (q *Queries) GetMatchByMatchID(ctx context.Context, id int64) (GetMatchByID
 		&i.Type,
 		&i.StatusCode,
 		&i.Result,
+		&i.Stage,
 		&i.HomeTeamName,
 		&i.HomeTeamSlug,
 		&i.HomeTeamShortname,
@@ -256,6 +260,7 @@ func (q *Queries) GetMatches(ctx context.Context, tournamentID int64) ([]models.
 			&i.Type,
 			&i.StatusCode,
 			&i.Result,
+			&i.Stage,
 		); err != nil {
 			return nil, err
 		}
@@ -271,7 +276,7 @@ func (q *Queries) GetMatches(ctx context.Context, tournamentID int64) ([]models.
 }
 
 const getMatchesByTournamentID = `
-SELECT id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result FROM matches
+SELECT id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result, stage FROM matches
 WHERE tournament_id=$1
 ORDER BY id ASC
 `
@@ -295,6 +300,7 @@ func (q *Queries) GetMatchesByTournamentID(ctx context.Context, tournamentID int
 			&i.Type,
 			&i.StatusCode,
 			&i.Result,
+			&i.Stage,
 		); err != nil {
 			return nil, err
 		}
@@ -318,10 +324,11 @@ INSERT INTO matches (
     end_timestamp,
     type,
     status_code,
-	result
+	result,
+	stage
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result
+) RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result, stage
 `
 
 type NewMatchParams struct {
@@ -333,6 +340,7 @@ type NewMatchParams struct {
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
 	Result         *int64 `json:"result"`
+	Stage          string `json:"stage"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
@@ -345,6 +353,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		arg.Type,
 		arg.StatusCode,
 		arg.Result,
+		arg.Stage,
 	)
 	var i models.Match
 	err := row.Scan(
@@ -357,6 +366,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		&i.Type,
 		&i.StatusCode,
 		&i.Result,
+		&i.Stage,
 	)
 	return i, err
 }
@@ -365,7 +375,7 @@ const updateMatchSchedule = `
 UPDATE matches
 SET start_timestamp=$1
 WHERE id=$2
-RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result
+RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result, stage
 `
 
 type UpdateMatchScheduleParams struct {
@@ -386,6 +396,7 @@ func (q *Queries) UpdateMatchSchedule(ctx context.Context, arg UpdateMatchSchedu
 		&i.Type,
 		&i.StatusCode,
 		&i.Result,
+		&i.Stage,
 	)
 	return i, err
 }
@@ -394,7 +405,7 @@ const updateMatchStatus = `
 UPDATE matches
 SET status_code=$1
 WHERE id=$2
-RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result
+RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result, stage
 `
 
 type UpdateMatchStatusParams struct {
@@ -415,6 +426,7 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, arg UpdateMatchStatusPa
 		&i.Type,
 		&i.StatusCode,
 		&i.Result,
+		&i.Stage,
 	)
 	return i, err
 }
@@ -439,6 +451,7 @@ func (q *Queries) UpdateMatchResult(ctx context.Context, id, result int64) (mode
 		&i.Type,
 		&i.StatusCode,
 		&i.Result,
+		&i.Stage,
 	)
 	return i, err
 }
