@@ -49,6 +49,7 @@ type createTournamentMatchRequest struct {
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
 	Result         *int64 `json:"result"`
+	Stage          string `json:"stage"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -84,6 +85,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		Type:           req.Type,
 		StatusCode:     req.StatusCode,
 		Result:         req.Result,
+		Stage:          req.Stage,
 	}
 
 	s.logger.Debug("Create match params: ", arg)
@@ -342,6 +344,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		"type":           match.Type,
 		"status":         match.StatusCode,
 		"result":         match.Result,
+		"stage":          match.Stage,
 		"awayTeam":       awayTeam,
 		"homeTeam":       homeTeam,
 		"awayScore":      awayScore,
