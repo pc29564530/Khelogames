@@ -6,7 +6,7 @@ import (
 )
 
 const getTournament = `
-SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_count FROM tournaments
+SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_count, stage FROM tournaments
 WHERE id=$1
 `
 
@@ -24,13 +24,14 @@ func (q *Queries) GetTournament(ctx context.Context, id int64) (models.Tournamen
 		&i.StartTimestamp,
 		&i.GameID,
 		&i.GroupCount,
-		&i.MaxGroupteam,
+		&i.MaxGroupTeam,
+		&i.Stage,
 	)
 	return i, err
 }
 
 const getTournaments = `
-SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_count FROM tournaments
+SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_count, stage FROM tournaments
 `
 
 func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, error) {
@@ -53,7 +54,8 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 			&i.StartTimestamp,
 			&i.GameID,
 			&i.GroupCount,
-			&i.MaxGroupteam,
+			&i.MaxGroupTeam,
+			&i.Stage,
 		); err != nil {
 			return nil, err
 		}
@@ -69,7 +71,7 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 }
 
 const getTournamentsByLevel = `
-SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_count FROM tournaments
+SELECT id, tournament_name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_count, stage FROM tournaments
 WHERE game_id=$1 AND level=$2
 `
 
@@ -98,7 +100,8 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsB
 			&i.StartTimestamp,
 			&i.GameID,
 			&i.GroupCount,
-			&i.MaxGroupteam,
+			&i.MaxGroupTeam,
+			&i.Stage,
 		); err != nil {
 			return nil, err
 		}
@@ -115,7 +118,7 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsB
 
 const getTournamentsBySport = `
 SELECT 
-    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count': t.group_count, 'max_group_team': t.max_group_team) AS tournament_data
+    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_team, 'stage', t.stage) AS tournament_data
 FROM tournaments t
 JOIN games AS g ON g.id = t.game_id
 WHERE t.game_id=$1
@@ -167,9 +170,10 @@ INSERT INTO tournaments (
     start_timestamp,
     game_id,
 	group_count,
-	max_group_team
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_team
+	max_group_team,
+	stage
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_team, stage
 `
 
 type NewTournamentParams struct {
@@ -183,6 +187,7 @@ type NewTournamentParams struct {
 	GameID         *int64 `json:"game_id"`
 	GroupCount     *int32 `json:"group_count"`
 	MaxGroupTeam   *int32 `json:"max_group_team"`
+	Stage          string `json:"stage"`
 }
 
 func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (models.Tournament, error) {
@@ -197,6 +202,7 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		arg.GameID,
 		arg.GroupCount,
 		arg.MaxGroupTeam,
+		arg.Stage,
 	)
 	var i models.Tournament
 	err := row.Scan(
@@ -209,8 +215,9 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,
-		arg.GroupCount,
-		arg.MaxGroupTeam,
+		&i.GroupCount,
+		&i.MaxGroupTeam,
+		&i.Stage,
 	)
 	return i, err
 }
@@ -240,6 +247,9 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,
+		&i.GroupCount,
+		&i.MaxGroupTeam,
+		&i.Stage,
 	)
 	return i, err
 }
@@ -270,7 +280,8 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 		&i.StartTimestamp,
 		&i.GameID,
 		&i.GroupCount,
-		&i.MaxGroupteam,
+		&i.MaxGroupTeam,
+		&i.Stage,
 	)
 	return i, err
 }

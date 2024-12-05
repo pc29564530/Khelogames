@@ -3,8 +3,6 @@ package tournaments
 import (
 	"encoding/json"
 	db "khelogames/database"
-	"khelogames/pkg"
-	"khelogames/token"
 	"khelogames/util"
 	"net/http"
 	"strconv"
@@ -23,6 +21,7 @@ type addTournamentRequest struct {
 	GameID         *int64 `json:"game_id"`
 	GroupCount     *int32 `json:"group_count"`
 	MaxGroupTeam   *int32 `json:"max_group_team"`
+	Stage          string `json:"stage"`
 }
 
 func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
@@ -64,6 +63,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		GameID:         req.GameID,
 		GroupCount:     req.GroupCount,
 		MaxGroupTeam:   req.MaxGroupTeam,
+		Stage:          req.Stage,
 	}
 
 	newTournament, err := s.store.NewTournament(ctx, arg)
@@ -73,17 +73,17 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	// authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	argAdmin := db.AddAdminParams{
-		ContentID: newTournament.ID,
-		Admin:     authPayload.Username,
-	}
+	// argAdmin := db.AddAdminParams{
+	// 	ContentID: newTournament.ID,
+	// 	Admin:     authPayload.Username,
+	// }
 
-	_, err = s.store.AddAdmin(ctx, argAdmin)
-	if err != nil {
-		s.logger.Error("Failed to add admin for the tournament: ", err)
-	}
+	// _, err = s.store.AddAdmin(ctx, argAdmin)
+	// if err != nil {
+	// 	s.logger.Error("Failed to add admin for the tournament: ", err)
+	// }
 
 	err = tx.Commit()
 	if err != nil {

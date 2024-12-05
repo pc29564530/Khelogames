@@ -207,7 +207,7 @@ SET
         OR (ms.away_team_id = ts.team_id AND fs_away.goals = fs_home.goals)
     ), 0),
     points = ((wins * 3) + draw)
-WHERE ts.tournament_id = $1 AND ts.team_id = $2
+WHERE ts.tournament_id = $1 AND ts.team_id = $2 AND (ms.stage = 'group' OR ms.stage = 'league')
 RETURNING standing_id, tournament_id, group_id, team_id, wins, loss, draw, goal_for, goal_against, goal_difference, points
 `
 

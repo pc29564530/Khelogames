@@ -308,14 +308,15 @@ type Tournament struct {
 	StartTimestamp int64  `json:"start_timestamp"`
 	GameID         *int64 `json:"game_id"`
 	GroupCount     *int32 `json:"group_count"`
-	MaxGroupteam   *int32 `json:"max_group_team"`
+	MaxGroupTeam   *int32 `json:"max_group_team"`
+	Stage          string `json:"stage"`
 }
 
 type FootballStanding struct {
 	ID             int64  `json:"id"`
 	TournamentID   int64  `json:"tournament_id"`
 	GroupID        *int64 `json:"group_id"`
-	TeamID         int64  `json:"team_id"`
+	TeamID         *int64 `json:"team_id"`
 	Matches        *int64 `json:"json:"matches"`
 	Wins           *int64 `json:"wins"`
 	Loss           *int64 `json:"loss"`
