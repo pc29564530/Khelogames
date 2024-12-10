@@ -5,6 +5,12 @@ import (
 	"khelogames/database/models"
 )
 
+type TournamentStandingParams struct {
+	TournamentID int64  `json:"tournament_id"`
+	GroupID      *int64 `json:"group_id"`
+	TeamID       int64  `json:"teamID"`
+}
+
 const createFootballStanding = `
 INSERT INTO football_standing (
     tournament_id,
@@ -22,6 +28,7 @@ INSERT INTO football_standing (
 `
 
 func (q *Queries) CreateFootballStanding(ctx context.Context, tournamentID, groupID, teamID int64) (models.FootballStanding, error) {
+
 	row := q.db.QueryRowContext(ctx, createFootballStanding,
 		tournamentID,
 		groupID,
@@ -65,7 +72,10 @@ const getFootballStanding = `
                 JSON_BUILD_OBJECT(
                     'id', fs.id,
                     'tournament_id', fs.tournament_id,
-                    'group_id', fs.group_id,
+                    'group_id', CASE
+                        WHEN fs.group_id IS NOT NULL THEN fs.group_id
+                        ELSE NULL
+                    END,
                     'team_id', fs.team_id,
                     'matches', fs.matches,
                     'wins', fs.wins,
@@ -136,19 +146,6 @@ func (q *Queries) GetFootballStanding(ctx context.Context, tournamentId int64) (
 	} else {
 		return nil, nil
 	}
-	// for rows.Next() {
-	// 	var i GetFootballStandingR
-	// 	if err := rows.Scan(&i.StandingData); err != nil {
-	// 		return nil, err
-	// 	}
-	// 	standings = append(standings, i)
-	// }
-	// if err := rows.Close(); err != nil {
-	// 	return nil, err
-	// }
-	// if err := rows.Err(); err != nil {
-	// 	return nil, err
-	// }
 	return &standings, nil
 }
 
