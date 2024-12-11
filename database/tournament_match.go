@@ -106,6 +106,7 @@ type GetMatchByIDRow struct {
 	StatusCode          string `json:"status_code"`
 	Result              *int64 `json:"result"`
 	Stage               string `json:"stage"`
+	KnockoutLevelID     *int32 `json:"knockout_level_id"`
 	GroupID             *int64 `json:"group_id"`
 	GroupName           string `json:"group_name"`
 	HomeTeamName        string `json:"home_team_name"`
@@ -150,6 +151,7 @@ func (q *Queries) GetMatchByID(ctx context.Context, tournamentID int64) ([]GetMa
 			&i.StatusCode,
 			&i.Result,
 			&i.Stage,
+			&i.KnockoutLevelID,
 			&i.GroupID,
 			&i.GroupName,
 			&i.HomeTeamName,
@@ -188,7 +190,7 @@ func (q *Queries) GetMatchByID(ctx context.Context, tournamentID int64) ([]GetMa
 
 const getMatchByMatchID = `
 SELECT
-    m.id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result, m.stage,
+    m.id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result, m.stage, m.knockout_level_id,
     t1.name AS home_team_name, t1.slug AS home_team_slug, t1.shortName AS home_team_shortName, t1.media_url AS home_team_media_url, t1.gender AS home_team_gender, t1.country AS home_team_country, t1.national AS home_team_national, t1.type AS home_team_type, t1.player_count AS home_team_player_count, t1.game_id AS home_game_id,
     t2.name AS away_team_name, t2.slug AS away_team_slug, t2.shortName AS away_team_shortName, t2.media_url AS away_team_media_url, t2.gender AS away_team_gender, t2.country AS away_team_country, t2.national AS away_team_national, t2.type AS away_team_type, t2.player_count AS away_team_player_count, t1.game_id AS away_game_id
 FROM matches m
@@ -211,6 +213,7 @@ func (q *Queries) GetMatchByMatchID(ctx context.Context, id int64) (GetMatchByID
 		&i.StatusCode,
 		&i.Result,
 		&i.Stage,
+		&i.KnockoutLevelID,
 		&i.HomeTeamName,
 		&i.HomeTeamSlug,
 		&i.HomeTeamShortname,
@@ -332,15 +335,16 @@ INSERT INTO matches (
 `
 
 type NewMatchParams struct {
-	TournamentID   int64  `json:"tournament_id"`
-	AwayTeamID     int64  `json:"away_team_id"`
-	HomeTeamID     int64  `json:"home_team_id"`
-	StartTimestamp int64  `json:"start_timestamp"`
-	EndTimestamp   int64  `json:"end_timestamp"`
-	Type           string `json:"type"`
-	StatusCode     string `json:"status_code"`
-	Result         *int64 `json:"result"`
-	Stage          string `json:"stage"`
+	TournamentID    int64  `json:"tournament_id"`
+	AwayTeamID      int64  `json:"away_team_id"`
+	HomeTeamID      int64  `json:"home_team_id"`
+	StartTimestamp  int64  `json:"start_timestamp"`
+	EndTimestamp    int64  `json:"end_timestamp"`
+	Type            string `json:"type"`
+	StatusCode      string `json:"status_code"`
+	Result          *int64 `json:"result"`
+	Stage           string `json:"stage"`
+	KnockoutLevelID *int32 `json:"knockout_level_id"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
@@ -354,6 +358,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		arg.StatusCode,
 		arg.Result,
 		arg.Stage,
+		arg.KnockoutLevelID,
 	)
 	var i models.Match
 	err := row.Scan(
@@ -367,6 +372,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		&i.StatusCode,
 		&i.Result,
 		&i.Stage,
+		&i.KnockoutLevelID,
 	)
 	return i, err
 }
