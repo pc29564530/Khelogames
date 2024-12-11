@@ -197,6 +197,7 @@ type Match struct {
 	Type           string `json:"type"`
 	StatusCode     string `json:"status_code"`
 	Result         *int64 `json:"match"`
+	Stage          string `json:"stage"`
 }
 
 type Message struct {
@@ -305,14 +306,17 @@ type Tournament struct {
 	StatusCode     string `json:"status_code"`
 	Level          string `json:"level"`
 	StartTimestamp int64  `json:"start_timestamp"`
-	GameID         int64  `json:"game_id"`
+	GameID         *int64 `json:"game_id"`
+	GroupCount     *int32 `json:"group_count"`
+	MaxGroupTeam   *int32 `json:"max_group_team"`
+	Stage          string `json:"stage"`
 }
 
 type FootballStanding struct {
 	ID             int64  `json:"id"`
 	TournamentID   int64  `json:"tournament_id"`
 	GroupID        *int64 `json:"group_id"`
-	TeamID         int64  `json:"team_id"`
+	TeamID         *int64 `json:"team_id"`
 	Matches        *int64 `json:"json:"matches"`
 	Wins           *int64 `json:"wins"`
 	Loss           *int64 `json:"loss"`

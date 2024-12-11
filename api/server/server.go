@@ -116,7 +116,6 @@ func NewServer(config util.Config,
 		authRouter.GET("getThreadByUser/:username", handlersServer.GetThreadByUserFunc)
 		authRouter.GET("/getMessage/:receiver_username", messageServer.GetMessageByReceiverFunc)
 		authRouter.PUT("/updateAvatarUrl", handlersServer.UpdateAvatarUrlFunc)
-		authRouter.POST("/createTournament", tournamentServer.AddTournamentFunc)
 		authRouter.GET("/getMessagedUser", messageServer.GetUserByMessageSendFunc)
 		authRouter.POST("/createUploadMedia", messageServer.CreateUploadMediaFunc)
 		authRouter.POST("/createMessageMedia", messageServer.CreateMessageMediaFunc)
@@ -145,6 +144,7 @@ func NewServer(config util.Config,
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)
+	sportRouter.POST("/createTournament", tournamentServer.AddTournamentFunc)
 	//sportRouter.GET("/getTeamsByGroup", tournamentServer.GetTeamsByGroupFunc)
 	//sportRouter.GET("/getTeams/:tournament_id", tournamentServer.GetTeamsFunc)
 	sportRouter.GET("/getTournamentTeam/:tournament_id", tournamentServer.GetTournamentTeamsFunc)
