@@ -328,10 +328,11 @@ INSERT INTO matches (
     type,
     status_code,
 	result,
-	stage
+	stage,
+	knockout_level_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
-) RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result, stage
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, &10, &11
+) RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result, stage, knockout_level_id
 `
 
 type NewMatchParams struct {
