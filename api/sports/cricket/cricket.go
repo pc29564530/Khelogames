@@ -64,6 +64,16 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 	}
 
 	var matchDetail []map[string]interface{}
+	knockoutMatches := map[string][]map[string]interface{}{
+		"final":       {},
+		"semifinal":   {},
+		"quaterfinal": {},
+		"round_16":    {},
+		"round_32":    {},
+		"round_64":    {},
+		"round_128":   {},
+	}
+	var groupMatches []map[string]interface{}
 	for _, match := range matches {
 
 		homeTeamArg := db.GetCricketScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
@@ -81,7 +91,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		var homeScoreMap map[string]interface{}
 		var emptyScore models.CricketScore
 		if awayScore != emptyScore {
-			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Inning, "runRate": awayScore.RunRate, "targetRunRate": awayScore.TargetRunRate}
+			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": awayScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Inning, "runRate": awayScore.RunRate, "targetRunRate": awayScore.TargetRunRate}
 		}
 
 		if homeScore != emptyScore {
@@ -94,21 +104,59 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		}
 
 		matchMap := map[string]interface{}{
-			"matchId":        match.ID,
-			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.Name, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
-			"homeTeam":       map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount},
-			"homeScore":      homeScoreMap,
-			"awayTeam":       map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount},
-			"awayScore":      awayScoreMap,
-			"startTimeStamp": match.StartTimestamp,
-			"end_timestamp":  match.EndTimestamp,
-			"status":         match.StatusCode,
-			"game":           game,
-			"result":         match.Result,
-			"group_name":     match.GroupName,
+			"matchId":         match.ID,
+			"tournament":      map[string]interface{}{"id": tournament.ID, "name": tournament.Name, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"homeTeam":        map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount},
+			"homeScore":       homeScoreMap,
+			"awayTeam":        map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount},
+			"awayScore":       awayScoreMap,
+			"startTimeStamp":  match.StartTimestamp,
+			"endTimestamp":    match.EndTimestamp,
+			"status":          match.StatusCode,
+			"game":            game,
+			"result":          match.Result,
+			"stage":           match.Stage,
+			"knockoutLevelId": match.KnockoutLevelID,
 		}
-		matchDetail = append(matchDetail, matchMap)
+
+		if *match.Stage == "Group" {
+			groupMatches = append(groupMatches, matchMap)
+		} else if match.Stage != nil && *match.Stage == "Knockout" {
+			switch *match.KnockoutLevelID {
+			case 1:
+				knockoutMatches["final"] = append(knockoutMatches["final"], matchMap)
+			case 2:
+				knockoutMatches["semifinal"] = append(knockoutMatches["semifinal"], matchMap)
+			case 3:
+				knockoutMatches["quaterfinal"] = append(knockoutMatches["quaterfinal"], matchMap)
+			case 4:
+				knockoutMatches["round_16"] = append(knockoutMatches["round_16"], matchMap)
+			case 5:
+				knockoutMatches["round_32"] = append(knockoutMatches["round_32"], matchMap)
+			case 6:
+				knockoutMatches["round_64"] = append(knockoutMatches["round_64"], matchMap)
+			case 7:
+				knockoutMatches["round_128"] = append(knockoutMatches["round_128"], matchMap)
+			}
+		}
 	}
+	matchDetail = append(matchDetail, map[string]interface{}{
+		"tournament": map[string]interface{}{
+			"id":              tournament.ID,
+			"name":            tournament.Name,
+			"slug":            tournament.Slug,
+			"country":         tournament.Country,
+			"sports":          tournament.Sports,
+			"status_code":     tournament.StatusCode,
+			"level":           tournament.Level,
+			"start_timestamp": tournament.StartTimestamp,
+			"game_id":         tournament.GameID,
+			"group_count":     tournament.GroupCount,
+			"max_group_team":  tournament.MaxGroupTeam,
+		},
+		"group_stage":    groupMatches,
+		"knockout_stage": knockoutMatches,
+	})
 	return matchDetail
 }
 

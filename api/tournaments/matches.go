@@ -40,16 +40,17 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 }
 
 type createTournamentMatchRequest struct {
-	ID             int64  `json:"id"`
-	TournamentID   int64  `json:"tournament_id"`
-	AwayTeamID     int64  `json:"away_team_id"`
-	HomeTeamID     int64  `json:"home_team_id"`
-	StartTimestamp string `json:"start_timestamp"`
-	EndTimestamp   string `json:"end_timestamp"`
-	Type           string `json:"type"`
-	StatusCode     string `json:"status_code"`
-	Result         *int64 `json:"result"`
-	Stage          string `json:"stage"`
+	ID              int64  `json:"id"`
+	TournamentID    int64  `json:"tournament_id"`
+	AwayTeamID      int64  `json:"away_team_id"`
+	HomeTeamID      int64  `json:"home_team_id"`
+	StartTimestamp  string `json:"start_timestamp"`
+	EndTimestamp    string `json:"end_timestamp"`
+	Type            string `json:"type"`
+	StatusCode      string `json:"status_code"`
+	Result          *int64 `json:"result"`
+	Stage           string `json:"stage"`
+	KnockoutLevelID *int32 `json:"knockout_level_id"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -77,15 +78,16 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	}
 
 	arg := db.NewMatchParams{
-		TournamentID:   req.TournamentID,
-		AwayTeamID:     req.AwayTeamID,
-		HomeTeamID:     req.HomeTeamID,
-		StartTimestamp: startTimeStamp,
-		EndTimestamp:   endTimeStamp,
-		Type:           req.Type,
-		StatusCode:     req.StatusCode,
-		Result:         req.Result,
-		Stage:          req.Stage,
+		TournamentID:    req.TournamentID,
+		AwayTeamID:      req.AwayTeamID,
+		HomeTeamID:      req.HomeTeamID,
+		StartTimestamp:  startTimeStamp,
+		EndTimestamp:    endTimeStamp,
+		Type:            req.Type,
+		StatusCode:      req.StatusCode,
+		Result:          req.Result,
+		Stage:           req.Stage,
+		KnockoutLevelID: req.KnockoutLevelID,
 	}
 
 	s.logger.Debug("Create match params: ", arg)

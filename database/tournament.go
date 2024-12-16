@@ -6,7 +6,7 @@ import (
 )
 
 const getTournament = `
-SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_count, stage FROM tournaments
+SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_team, stage FROM tournaments
 WHERE id=$1
 `
 
@@ -31,7 +31,7 @@ func (q *Queries) GetTournament(ctx context.Context, id int64) (models.Tournamen
 }
 
 const getTournaments = `
-SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_count, stage FROM tournaments
+SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_team, stage FROM tournaments
 `
 
 func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, error) {
