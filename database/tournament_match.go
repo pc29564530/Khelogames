@@ -53,12 +53,15 @@ SELECT DISTINCT
     m.type,
     m.status_code,
     m.result,
-	m.stage,
+    m.stage,
+    CASE  WHEN m.stage = 'Knockout' THEN m.knockout_level_id
+		  ELSE NULL
+	END AS knockout_level_id,
     CASE
-        WHEN g.name = 'cricket' THEN cg.group_id
+        WHEN m.stage = 'Group' AND g.name = 'cricket' THEN cg.group_id
+        WHEN m.stage = 'Group' AND g.name = 'football' THEN fg.group_id
         ELSE NULL
     END AS group_id,
-    gr.name AS group_name,
     t1.name AS home_team_name,
     t1.slug AS home_team_slug,
     t1.shortName AS home_team_shortName,
@@ -85,10 +88,10 @@ JOIN teams AS t2 ON m.away_team_id = t2.id
 JOIN games AS g ON g.id = t1.game_id
 LEFT JOIN cricket_groups cg ON cg.team_id = m.home_team_id OR cg.team_id = m.away_team_id
 LEFT JOIN football_groups fg ON fg.team_id = m.home_team_id OR fg.team_id = m.away_team_id
-JOIN groups AS gr ON gr.id = 
+LEFT JOIN groups AS gr ON gr.id = 
     CASE
-        WHEN g.name = 'cricket' THEN cg.group_id
-        WHEN g.name = 'football' THEN fg.group_id
+        WHEN m.stage = 'Group' AND g.name = 'cricket' THEN cg.group_id
+        WHEN m.stage = 'Group' AND g.name = 'football' THEN fg.group_id
         ELSE NULL
     END
 WHERE m.tournament_id = $1
@@ -96,39 +99,38 @@ ORDER BY m.id ASC;
 `
 
 type GetMatchByIDRow struct {
-	ID                  int64  `json:"id"`
-	TournamentID        int64  `json:"tournament_id"`
-	AwayTeamID          int64  `json:"away_team_id"`
-	HomeTeamID          int64  `json:"home_team_id"`
-	StartTimestamp      int64  `json:"start_timestamp"`
-	EndTimestamp        int64  `json:"end_timestamp"`
-	Type                string `json:"type"`
-	StatusCode          string `json:"status_code"`
-	Result              *int64 `json:"result"`
-	Stage               string `json:"stage"`
-	KnockoutLevelID     *int32 `json:"knockout_level_id"`
-	GroupID             *int64 `json:"group_id"`
-	GroupName           string `json:"group_name"`
-	HomeTeamName        string `json:"home_team_name"`
-	HomeTeamSlug        string `json:"home_team_slug"`
-	HomeTeamShortname   string `json:"home_team_shortname"`
-	HomeTeamMediaUrl    string `json:"home_team_media_url"`
-	HomeTeamGender      string `json:"home_team_gender"`
-	HomeTeamCountry     string `json:"home_team_country"`
-	HomeTeamNational    bool   `json:"home_team_national"`
-	HomeTeamType        string `json:"home_team_type"`
-	HomeTeamPlayerCount int32  `json:"home_team_player_count"`
-	HomeGameID          int64  `json:"home_game_id"`
-	AwayTeamName        string `json:"away_team_name"`
-	AwayTeamSlug        string `json:"away_team_slug"`
-	AwayTeamShortname   string `json:"away_team_shortname"`
-	AwayTeamMediaUrl    string `json:"away_team_media_url"`
-	AwayTeamGender      string `json:"away_team_gender"`
-	AwayTeamCountry     string `json:"away_team_country"`
-	AwayTeamNational    bool   `json:"away_team_national"`
-	AwayTeamType        string `json:"away_team_type"`
-	AwayTeamPlayerCount int32  `json:"away_team_player_count"`
-	AwayGameID          int64  `json:"away_game_id"`
+	ID                  int64   `json:"id"`
+	TournamentID        int64   `json:"tournament_id"`
+	AwayTeamID          int64   `json:"away_team_id"`
+	HomeTeamID          int64   `json:"home_team_id"`
+	StartTimestamp      int64   `json:"start_timestamp"`
+	EndTimestamp        int64   `json:"end_timestamp"`
+	Type                string  `json:"type"`
+	StatusCode          string  `json:"status_code"`
+	Result              *int64  `json:"result"`
+	Stage               *string `json:"stage"`
+	KnockoutLevelID     *int32  `json:"knockout_level_id"`
+	GroupID             *int64  `json:"group_id"`
+	HomeTeamName        string  `json:"home_team_name"`
+	HomeTeamSlug        string  `json:"home_team_slug"`
+	HomeTeamShortname   string  `json:"home_team_shortname"`
+	HomeTeamMediaUrl    string  `json:"home_team_media_url"`
+	HomeTeamGender      string  `json:"home_team_gender"`
+	HomeTeamCountry     string  `json:"home_team_country"`
+	HomeTeamNational    bool    `json:"home_team_national"`
+	HomeTeamType        string  `json:"home_team_type"`
+	HomeTeamPlayerCount int32   `json:"home_team_player_count"`
+	HomeGameID          int64   `json:"home_game_id"`
+	AwayTeamName        string  `json:"away_team_name"`
+	AwayTeamSlug        string  `json:"away_team_slug"`
+	AwayTeamShortname   string  `json:"away_team_shortname"`
+	AwayTeamMediaUrl    string  `json:"away_team_media_url"`
+	AwayTeamGender      string  `json:"away_team_gender"`
+	AwayTeamCountry     string  `json:"away_team_country"`
+	AwayTeamNational    bool    `json:"away_team_national"`
+	AwayTeamType        string  `json:"away_team_type"`
+	AwayTeamPlayerCount int32   `json:"away_team_player_count"`
+	AwayGameID          int64   `json:"away_game_id"`
 }
 
 func (q *Queries) GetMatchByID(ctx context.Context, tournamentID int64) ([]GetMatchByIDRow, error) {
@@ -153,7 +155,6 @@ func (q *Queries) GetMatchByID(ctx context.Context, tournamentID int64) ([]GetMa
 			&i.Stage,
 			&i.KnockoutLevelID,
 			&i.GroupID,
-			&i.GroupName,
 			&i.HomeTeamName,
 			&i.HomeTeamSlug,
 			&i.HomeTeamShortname,
