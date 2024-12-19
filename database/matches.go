@@ -34,7 +34,7 @@ SELECT
             'game_id', ht.game_id
         ),
         'homeScore', CASE 
-            WHEN g.name = 'football' AND fs.id IS NOT NULL THEN json_build_object(
+            WHEN g.name = 'football' AND fs.id IS NOT NULL AND fs.team_id=m.home_team_id THEN json_build_object(
                 'id', fs.id,
                 'match_id', fs.match_id,
                 'team_id', fs.team_id,
@@ -42,7 +42,7 @@ SELECT
                 'second_half', fs.second_half,
                 'goals', fs.goals
             )
-            WHEN g.name = 'cricket' AND cs.id IS NOT NULL THEN json_build_object(
+            WHEN g.name = 'cricket' AND cs.id IS NOT NULL AND fs.team_id=m.home_team_id THEN json_build_object(
                 'id', cs.id,
                 'match_id', cs.match_id,
                 'team_id', cs.team_id,
@@ -70,7 +70,7 @@ SELECT
             'game_id', at.game_id
         ),
         'awayScore', CASE 
-            WHEN g.name = 'football' AND fs.id IS NOT NULL THEN json_build_object(
+            WHEN g.name = 'football' AND fs.id IS NOT NULL AND cs.team_id=m.away_team_id THEN json_build_object(
                 'id', fs.id,
                 'match_id', fs.match_id,
                 'team_id', fs.team_id,
@@ -78,7 +78,7 @@ SELECT
                 'second_half', fs.second_half,
                 'goals', fs.goals
             )
-            WHEN g.name = 'cricket' AND cs.id IS NOT NULL THEN json_build_object(
+            WHEN g.name = 'cricket' AND cs.id IS NOT NULL AND cs.team_id=m.away_team_id THEN json_build_object(
                 'id', cs.id,
                 'match_id', cs.match_id,
                 'team_id', cs.team_id,
