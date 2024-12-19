@@ -178,6 +178,8 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getMatchByTeamFunc", teamsServer.GetMatchByTeamFunc)
 	sportRouter.GET("/getTournamentByTeamFunc", teamsServer.GetTournamentbyTeamFunc)
 
+	sportRouter.GET("/getAllMatches", handlersServer.GetAllMatchesFunc)
+
 	//football
 	// sportRouter.GET("/getFootballScore", footballServer.GetFootballScore)
 	sportRouter.POST("/addFootballIncidents", footballServer.AddFootballIncidents)

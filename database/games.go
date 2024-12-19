@@ -17,6 +17,18 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (models.Game, error) {
 	return i, err
 }
 
+const getGameByName = `
+	SELECT * FROM games
+	WHERE name=$1
+`
+
+func (q *Queries) GetGamebyName(ctx context.Context, name string) (models.Game, error) {
+	row := q.db.QueryRowContext(ctx, getGameByName, name)
+	var i models.Game
+	err := row.Scan(&i.ID, &i.Name, &i.MinPlayers)
+	return i, err
+}
+
 const getGames = `
 SELECT id, name, min_players FROM games
 `
