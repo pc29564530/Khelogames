@@ -21,8 +21,8 @@ type addTeamsRequest struct {
 	National    bool   `json:"national"`
 	Country     string `json:"country"`
 	Type        string `json:"type"`
-	Sports      string `json:"sports"`
 	PlayerCount int    `json:"player_count"`
+	GameID      int32  `json:"game_id"`
 }
 
 func (s *TeamsServer) AddTeam(ctx *gin.Context) {
@@ -72,7 +72,7 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 		National:  req.National,
 		Country:   req.Country,
 		Type:      req.Type,
-		Sports:    req.Sports,
+		GameID:    int64(req.GameID),
 	}
 
 	response, err := s.store.NewTeams(ctx, arg)

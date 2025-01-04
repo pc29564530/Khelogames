@@ -364,12 +364,11 @@ INSERT INTO teams (
     national,
     country,
     type,
-    sports,
     player_count,
     game_id 
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-) RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, player_count, game_id
+) RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, player_count, game_id
 `
 
 type NewTeamsParams struct {
@@ -382,7 +381,6 @@ type NewTeamsParams struct {
 	National    bool   `json:"national"`
 	Country     string `json:"country"`
 	Type        string `json:"type"`
-	Sports      string `json:"sports"`
 	PlayerCount int32  `json:"player_count"`
 	GameID      int64  `json:"game_id"`
 }
@@ -398,7 +396,6 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team
 		arg.National,
 		arg.Country,
 		arg.Type,
-		arg.Sports,
 		arg.PlayerCount,
 		arg.GameID,
 	)
@@ -414,7 +411,6 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team
 		&i.National,
 		&i.Country,
 		&i.Type,
-		&i.Sports,
 		&i.PlayerCount,
 		&i.GameID,
 	)

@@ -267,7 +267,6 @@ type Team struct {
 	National    bool   `json:"national"`
 	Country     string `json:"country"`
 	Type        string `json:"type"`
-	Sports      string `json:"sports"`
 	PlayerCount int32  `json:"player_count"`
 	GameID      int64  `json:"game_id"`
 }
