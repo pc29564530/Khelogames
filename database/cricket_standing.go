@@ -54,7 +54,7 @@ const getCricketStanding = `
 	SELECT
 		CASE
 			WHEN EXISTS (
-				SELECT 1 FROM cricket_standing fs
+				SELECT 1 FROM cricket_standing cs
 				WHERE cs.tournament_id=$1
 			) THEN
 				JSON_AGG(
@@ -68,7 +68,7 @@ const getCricketStanding = `
 					)
 				) ELSE NULL
 		END AS standing_data
-	FROM cricket_standing fs
+	FROM cricket_standing cs
 	LEFT JOIN groups g ON cs.group_id = g.id
 	JOIN tournaments t ON t.id = cs.tournament_id
 	JOIN teams tm ON cs.team_id = tm.id
