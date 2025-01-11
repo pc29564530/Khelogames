@@ -7,27 +7,29 @@ import (
 )
 
 type Ball struct {
-	ID       int64 `json:"id"`
-	TeamID   int64 `json:"team_id"`
-	MatchID  int64 `json:"match_id"`
-	BowlerID int64 `json:"bowler_id"`
-	Ball     int32 `json:"ball"`
-	Runs     int32 `json:"runs"`
-	Wickets  int32 `json:"wickets"`
-	Wide     int32 `json:"wide"`
-	NoBall   int32 `json:"no_ball"`
+	ID            int64 `json:"id"`
+	TeamID        int64 `json:"team_id"`
+	MatchID       int64 `json:"match_id"`
+	BowlerID      int64 `json:"bowler_id"`
+	Ball          int32 `json:"ball"`
+	Runs          int32 `json:"runs"`
+	Wickets       int32 `json:"wickets"`
+	Wide          int32 `json:"wide"`
+	NoBall        int32 `json:"no_ball"`
+	BowlingStatus bool  `json:"bowling_status"`
 }
 
 type Bat struct {
-	ID         int64 `json:"id"`
-	BatsmanID  int64 `json:"batsman_id"`
-	TeamID     int64 `json:"team_id"`
-	MatchID    int64 `json:"match_id"`
-	Position   int32 `json:"position"`
-	RunsScored int32 `json:"runs_scored"`
-	BallsFaced int32 `json:"balls_faced"`
-	Fours      int32 `json:"fours"`
-	Sixes      int32 `json:"sixes"`
+	ID            int64  `json:"id"`
+	BatsmanID     int64  `json:"batsman_id"`
+	TeamID        int64  `json:"team_id"`
+	MatchID       int64  `json:"match_id"`
+	Position      string `json:"position"`
+	RunsScored    int32  `json:"runs_scored"`
+	BallsFaced    int32  `json:"balls_faced"`
+	Fours         int32  `json:"fours"`
+	Sixes         int32  `json:"sixes"`
+	BattingStatus bool   `json:"batting_status"`
 }
 
 type Comment struct {
@@ -188,17 +190,18 @@ type Login struct {
 }
 
 type Match struct {
-	ID              int64  `json:"id"`
-	TournamentID    int64  `json:"tournament_id"`
-	AwayTeamID      int64  `json:"away_team_id"`
-	HomeTeamID      int64  `json:"home_team_id"`
-	StartTimestamp  int64  `json:"start_timestamp"`
-	EndTimestamp    int64  `json:"end_timestamp"`
-	Type            string `json:"type"`
-	StatusCode      string `json:"status_code"`
-	Result          *int64 `json:"match"`
-	Stage           string `json:"stage"`
-	KnockoutLevelID *int32 `json:"KnockoutLevelID"`
+	ID              int64   `json:"id"`
+	TournamentID    int64   `json:"tournament_id"`
+	AwayTeamID      int64   `json:"away_team_id"`
+	HomeTeamID      int64   `json:"home_team_id"`
+	StartTimestamp  int64   `json:"start_timestamp"`
+	EndTimestamp    int64   `json:"end_timestamp"`
+	Type            string  `json:"type"`
+	StatusCode      string  `json:"status_code"`
+	Result          *int64  `json:"match"`
+	Stage           string  `json:"stage"`
+	KnockoutLevelID *int32  `json:"KnockoutLevelID"`
+	MatchFormat     *string `json:"MatchFormat"`
 }
 
 type Message struct {

@@ -330,23 +330,25 @@ INSERT INTO matches (
     status_code,
 	result,
 	stage,
-	knockout_level_id
+	knockout_level_id,
+	match_format
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result, stage, knockout_level_id
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+) RETURNING id, tournament_id, away_team_id, home_team_id, start_timestamp, end_timestamp, type, status_code, result, stage, knockout_level_id, match_format
 `
 
 type NewMatchParams struct {
-	TournamentID    int64  `json:"tournament_id"`
-	AwayTeamID      int64  `json:"away_team_id"`
-	HomeTeamID      int64  `json:"home_team_id"`
-	StartTimestamp  int64  `json:"start_timestamp"`
-	EndTimestamp    int64  `json:"end_timestamp"`
-	Type            string `json:"type"`
-	StatusCode      string `json:"status_code"`
-	Result          *int64 `json:"result"`
-	Stage           string `json:"stage"`
-	KnockoutLevelID *int32 `json:"knockout_level_id"`
+	TournamentID    int64   `json:"tournament_id"`
+	AwayTeamID      int64   `json:"away_team_id"`
+	HomeTeamID      int64   `json:"home_team_id"`
+	StartTimestamp  int64   `json:"start_timestamp"`
+	EndTimestamp    int64   `json:"end_timestamp"`
+	Type            string  `json:"type"`
+	StatusCode      string  `json:"status_code"`
+	Result          *int64  `json:"result"`
+	Stage           string  `json:"stage"`
+	KnockoutLevelID *int32  `json:"knockout_level_id"`
+	MatchFormat     *string `json:"match_format"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
@@ -361,6 +363,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		arg.Result,
 		arg.Stage,
 		arg.KnockoutLevelID,
+		arg.MatchFormat,
 	)
 	var i models.Match
 	err := row.Scan(
@@ -375,6 +378,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		&i.Result,
 		&i.Stage,
 		&i.KnockoutLevelID,
+		&i.MatchFormat,
 	)
 	return i, err
 }

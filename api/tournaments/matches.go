@@ -54,8 +54,17 @@ type createTournamentMatchRequest struct {
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation: ", err)
+		return
+	}
+
+	defer tx.Rollback()
+
 	var req createTournamentMatchRequest
-	err := ctx.ShouldBindJSON(&req)
+	err = ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -76,6 +85,8 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 			return
 		}
 	}
+
+	game := ctx.Param("sport")
 
 	arg := db.NewMatchParams{
 		TournamentID:    req.TournamentID,
@@ -98,8 +109,79 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+	if game == "football" {
+
+		argAway := db.NewFootballScoreParams{
+			MatchID:    response.AwayTeamID,
+			TeamID:     response.AwayTeamID,
+			FirstHalf:  0,
+			SecondHalf: 0,
+			Goals:      0,
+		}
+
+		argHome := db.NewFootballScoreParams{
+			MatchID:    response.HomeTeamID,
+			TeamID:     response.HomeTeamID,
+			FirstHalf:  0,
+			SecondHalf: 0,
+			Goals:      0,
+		}
+
+		_, err := s.store.NewFootballScore(ctx, argAway)
+		if err != nil {
+			s.logger.Error("Failed to add away score: ", err)
+			return
+		}
+
+		_, err = s.store.NewFootballScore(ctx, argHome)
+		if err != nil {
+			s.logger.Error("Failed to add home score: ", err)
+			return
+		}
+
+	} else if game == "cricket" {
+		argAway := db.NewCricketScoreParams{
+			MatchID:       response.ID,
+			TeamID:        response.AwayTeamID,
+			Inning:        "",
+			Score:         0,
+			Wickets:       0,
+			Overs:         0,
+			RunRate:       "",
+			TargetRunRate: "",
+		}
+
+		argHome := db.NewCricketScoreParams{
+			MatchID:       response.ID,
+			TeamID:        response.AwayTeamID,
+			Inning:        "",
+			Score:         0,
+			Wickets:       0,
+			Overs:         0,
+			RunRate:       "",
+			TargetRunRate: "",
+		}
+
+		_, err := s.store.NewCricketScore(ctx, argHome)
+		if err != nil {
+			s.logger.Error("Failed to add the home team score: ", err)
+			return
+		}
+
+		_, err = s.store.NewCricketScore(ctx, argAway)
+		if err != nil {
+			s.logger.Error("Failed to add the away team score: ", err)
+			return
+		}
+	}
 	s.logger.Debug("Successfully create match: ", response)
 	s.logger.Info("Successfully create match")
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+		return
+	}
 
 	ctx.JSON(http.StatusAccepted, response)
 }
