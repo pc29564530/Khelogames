@@ -688,8 +688,8 @@ const updateStricketSwapQuery = `
 func (q *Queries) ToggleCricketStricker(ctx context.Context, matchID int64) error {
 	_, err := q.db.ExecContext(ctx, `
 		UPDATE bats
-		SET is_striker = NOT is_striker;
-		WHERE match_id=$2 AND is_currently_batting=true
+		SET is_striker = NOT is_striker
+		WHERE match_id=$1 AND is_currently_batting=true
 		RETURNING *;
 	`, matchID)
 	if err != nil {
