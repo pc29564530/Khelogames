@@ -716,20 +716,20 @@ func (q *Queries) UpdateWideball(ctx context.Context, matchID, battingTeamID, bo
 const updateWideRun = `
 	WITH update_bowler AS (
 		UPDATE balls
-		SET wide = wide + 1 
-		SET runs = runs + 1
-		WHERE match=$1 AND bowler_id=$2 AND is_current_bowler = true
-		RETURNING *;
+		SET wide = wide + 1, 
+		    runs = runs + 1
+		WHERE match_id = $1 AND bowler_id = $2 AND is_current_bowler = true
+		RETURNING team_id, wide, runs
 	),
 	update_team_score AS (
 		UPDATE cricket_score
 		SET score = score + 1
-		WHERE match=$1 AND team_id=$3
-		RETURNING *;
+		WHERE match_id = $1 AND team_id = $3
+		RETURNING team_id, score
 	)
-	SELECT *
+	SELECT b.team_id, b.wide, b.runs, t.score
 	FROM update_bowler b
-	JOIN update_team_score t ON b.team_id = t.team_id
+	JOIN update_team_score t ON b.team_id = t.team_id;
 `
 
 func (q *Queries) UpdateWideRuns(ctx context.Context, matchID, bowlerID, battingTeamID int64) error {
@@ -743,22 +743,24 @@ func (q *Queries) UpdateWideRuns(ctx context.Context, matchID, bowlerID, batting
 const updateNoBallRun = `
 	WITH update_bowler AS (
 		UPDATE balls
-		SET no_ball = no_ball + 1 
-		SET runs = runs + $1
+		SET no_ball = no_ball + 1,
+			runs = runs + $1
 		WHERE match_id=$2 AND bowler_id=$3 AND is_current_bowler = true
-		RETURNING *;
+		RETURNING *
 	),
 	update_team_score AS (
 		UPDATE cricket_score
 		SET score = score + 1 + $1
 		WHERE match_id=$1 AND team_id=$4
-		RETURNING *;
-	)
+		RETURNING *
+	),
 	update_batsman_runs AS (
 		UPDATE bats
-		SET runs_scored = runs_scored + $1
+		SET runs_scored = runs_scored + $1,
+			fours = fours + CASE WHEN $1 = 4 THEN 1 ELSE 0 END,
+			sixes = sixes + CASE WHEN $1 = 6 THEN 1 ELSE 0 END
 		WHERE match_id = $2 AND is_currently_batting = true AND is_striker = true
-		RETURNING *;
+		RETURNING *
 	)
 	SELECT *
 	FROM update_bowler b

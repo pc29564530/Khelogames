@@ -51,8 +51,7 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 		IsCurrentlyBatting: req.IsCurrentlyBatting,
 	}
 
-	var emptyBats models.Bat
-	if strickerResponse != emptyBats {
+	if strickerResponse != nil {
 		arg.IsStriker = false
 	} else {
 		arg.IsStriker = true
@@ -313,10 +312,13 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	}
 
 	var battingTeamId int64
+	var bowlingTeamId int64
 	if teamID == match.HomeTeamID {
 		battingTeamId = teamID
+		bowlingTeamId = match.AwayTeamID
 	} else {
 		battingTeamId = teamID
+		bowlingTeamId = match.HomeTeamID
 	}
 
 	battingTeam, err := s.store.GetTeam(ctx, battingTeamId)
@@ -333,11 +335,14 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		battingDetails = append(battingDetails, map[string]interface{}{
-			"player":     map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
-			"runsScored": playerScore.RunsScored,
-			"ballFaced":  playerScore.BallsFaced,
-			"fours":      playerScore.Fours,
-			"sixes":      playerScore.Sixes,
+			"player":               map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+			"runsScored":           playerScore.RunsScored,
+			"ballFaced":            playerScore.BallsFaced,
+			"fours":                playerScore.Fours,
+			"sixes":                playerScore.Sixes,
+			"batting_status":       playerScore.BattingStatus,
+			"is_striker":           playerScore.IsStriker,
+			"is_currently_batting": playerScore.IsCurrentlyBatting,
 		})
 	}
 	var scoreDetails map[string]interface{}
@@ -355,8 +360,9 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	}
 
 	argCricketScore := db.UpdateCricketScoreParams{
-		MatchID: matchID,
-		TeamID:  teamID,
+		MatchID:       matchID,
+		BattingTeamID: battingTeamId,
+		BowlingTeamID: bowlingTeamId,
 	}
 	fmt.Println("arg: cricket score: ", argCricketScore)
 	_, err = s.store.UpdateCricketScore(ctx, argCricketScore)
@@ -425,12 +431,14 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 			return
 		}
 		bowlingDetails[i] = map[string]interface{}{
-			"player":  map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
-			"runs":    playerScore.Runs,
-			"ball":    playerScore.Ball,
-			"wide":    playerScore.Wide,
-			"noBall":  playerScore.NoBall,
-			"wickets": playerScore.Wickets,
+			"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+			"runs":              playerScore.Runs,
+			"ball":              playerScore.Ball,
+			"wide":              playerScore.Wide,
+			"noBall":            playerScore.NoBall,
+			"wickets":           playerScore.Wickets,
+			"bowling_status":    playerScore.BowlingStatus,
+			"is_current_bowler": playerScore.IsCurrentBowler,
 		}
 	}
 
@@ -447,17 +455,17 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		},
 		"innings": bowlingDetails,
 	}
-	fmt.Println("Batting TeamId: ", battingTeamId)
-	// arg1 := db.UpdateCricketOversParams{
-	// 	MatchID: req.MatchID,
-	// 	TeamID:  battingTeamId,
-	// }
 
-	// _, err = s.store.UpdateCricketOvers(ctx, arg1)
-	// if err != nil {
-	// 	s.logger.Error("Failed to add the cricket overs: ", gin.H{"error": err.Error()})
-	// 	return
-	// }
+	arg1 := db.UpdateCricketOversParams{
+		MatchID: req.MatchID,
+		TeamID:  battingTeamId,
+	}
+
+	_, err = s.store.UpdateCricketOvers(ctx, arg1)
+	if err != nil {
+		s.logger.Error("Failed to update the cricket overs: ", gin.H{"error": err.Error()})
+		return
+	}
 
 	ctx.JSON(http.StatusAccepted, scoreDetails)
 }
@@ -563,7 +571,6 @@ type updateCricketBatsmanScoreRequest struct {
 	MatchID    int64  `json:"match_id"`
 	Position   string `json:"position"`
 	RunsScored int32  `json:"runs_scored"`
-	BallsFaced int32  `json:"balls_faced"`
 	Fours      int32  `json:"fours"`
 	Sixes      int32  `json:"sixes"`
 }
@@ -574,7 +581,6 @@ type updateCricketPlayerStatsRequest struct {
 	MatchID     int64  `json:"match_id"`
 	Position    string `json:"position"`
 	RunsScored  int32  `json:"runs_scored"`
-	BallsFaced  int32  `json:"balls_faced"`
 	BowlerBalls int32  `json:"bowler_balls"`
 	Fours       int32  `json:"fours"`
 	Sixes       int32  `json:"sixes"`
@@ -596,15 +602,8 @@ func (s *CricketServer) UpdateRunsScoreFunc(ctx *gin.Context) {
 	}
 
 	defer tx.Rollback()
-	var fours int32
-	var sixes int32
-	if req.RunsScored == 4 {
-		fours = 1
-	} else if req.RunsScored == 6 {
-		sixes = 1
-	}
 
-	_, err = s.store.UpdateCricketBatsmanScore(ctx, req.RunsScored, req.BallsFaced, fours, sixes, req.MatchID, req.BatsmanID)
+	_, err = s.store.UpdateCricketBatsmanScore(ctx, req.RunsScored, req.MatchID, req.BatsmanID)
 	if err != nil {
 		s.logger.Error("Failed to update batsman scored: ", err)
 		return
@@ -612,11 +611,16 @@ func (s *CricketServer) UpdateRunsScoreFunc(ctx *gin.Context) {
 
 	bowlerStats, err := s.store.UpdateBowlerStats(ctx, req.RunsScored, req.MatchID, req.BowlerID)
 	if err != nil {
-		s.logger.Error("Failed to update batsman scored: ", err)
+		s.logger.Error("Failed to update bowler scored: ", err)
 		return
 	}
 
 	if bowlerStats.Ball%6 == 0 && req.RunsScored%2 == 0 {
+		err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		if err != nil {
+			s.logger.Error("Failed to update stricker: ", err)
+		}
+	} else if bowlerStats.Ball%6 != 0 && req.RunsScored%2 != 0 {
 		err = s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
 			s.logger.Error("Failed to update stricker: ", err)
