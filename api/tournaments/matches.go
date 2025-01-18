@@ -40,17 +40,18 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 }
 
 type createTournamentMatchRequest struct {
-	ID              int64  `json:"id"`
-	TournamentID    int64  `json:"tournament_id"`
-	AwayTeamID      int64  `json:"away_team_id"`
-	HomeTeamID      int64  `json:"home_team_id"`
-	StartTimestamp  string `json:"start_timestamp"`
-	EndTimestamp    string `json:"end_timestamp"`
-	Type            string `json:"type"`
-	StatusCode      string `json:"status_code"`
-	Result          *int64 `json:"result"`
-	Stage           string `json:"stage"`
-	KnockoutLevelID *int32 `json:"knockout_level_id"`
+	ID              int64   `json:"id"`
+	TournamentID    int64   `json:"tournament_id"`
+	AwayTeamID      int64   `json:"away_team_id"`
+	HomeTeamID      int64   `json:"home_team_id"`
+	StartTimestamp  string  `json:"start_timestamp"`
+	EndTimestamp    string  `json:"end_timestamp"`
+	Type            string  `json:"type"`
+	StatusCode      string  `json:"status_code"`
+	Result          *int64  `json:"result"`
+	Stage           string  `json:"stage"`
+	KnockoutLevelID *int32  `json:"knockout_level_id"`
+	MatchFormat     *string `json:"match_format"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -87,6 +88,18 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	}
 
 	game := ctx.Param("sport")
+	var matchFormat string
+	if game == "cricket" {
+		if req.MatchFormat != nil {
+			matchFormat = *req.MatchFormat
+		} else {
+			s.logger.Error("Match format is required for cricket matches")
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": "Match format is required for cricket matches. Please provide a valid match format.",
+			})
+			return
+		}
+	}
 
 	arg := db.NewMatchParams{
 		TournamentID:    req.TournamentID,
@@ -99,6 +112,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		Result:          req.Result,
 		Stage:           req.Stage,
 		KnockoutLevelID: req.KnockoutLevelID,
+		MatchFormat:     &matchFormat,
 	}
 
 	s.logger.Debug("Create match params: ", arg)
@@ -140,39 +154,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		}
 
 	} else if game == "cricket" {
-		argAway := db.NewCricketScoreParams{
-			MatchID:       response.ID,
-			TeamID:        response.AwayTeamID,
-			Inning:        "",
-			Score:         0,
-			Wickets:       0,
-			Overs:         0,
-			RunRate:       "",
-			TargetRunRate: "",
-		}
 
-		argHome := db.NewCricketScoreParams{
-			MatchID:       response.ID,
-			TeamID:        response.AwayTeamID,
-			Inning:        "",
-			Score:         0,
-			Wickets:       0,
-			Overs:         0,
-			RunRate:       "",
-			TargetRunRate: "",
-		}
-
-		_, err := s.store.NewCricketScore(ctx, argHome)
-		if err != nil {
-			s.logger.Error("Failed to add the home team score: ", err)
-			return
-		}
-
-		_, err = s.store.NewCricketScore(ctx, argAway)
-		if err != nil {
-			s.logger.Error("Failed to add the away team score: ", err)
-			return
-		}
 	}
 	s.logger.Debug("Successfully create match: ", response)
 	s.logger.Info("Successfully create match")
