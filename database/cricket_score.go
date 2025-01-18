@@ -170,7 +170,7 @@ UPDATE cricket_score cs
 SET score = (
         SELECT SUM(bt.runs_scored) + SUM(bl.wide + bl.no_ball)
         FROM bats bt
-		LEFT JOIN balls AS bl ON bt.match_id=bl.match_id AND bl.bowling_status=true
+		LEFT JOIN balls AS bl ON bt.match_id=bl.match_id AND bl.team_id = bl.bowling_status=true
         WHERE bt.match_id=cs.match_id
         GROUP BY (bt.match_id, bt.team_id)
     )

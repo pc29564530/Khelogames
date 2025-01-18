@@ -134,7 +134,7 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.G
 }
 
 const getTeam = `
-SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, sports, player_count, game_id FROM teams
+SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, player_count, game_id FROM teams
 WHERE id=$1
 `
 
