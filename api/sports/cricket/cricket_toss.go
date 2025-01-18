@@ -34,6 +34,40 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+
+	match, err := s.store.GetMatchByMatchID(ctx, arg.MatchID)
+	if err != nil {
+		s.logger.Error("Failed to get the match by id: ", err)
+		return
+	}
+	var teamID int64
+	if arg.TossDecision == "batting" {
+		teamID = arg.TossWin
+	} else {
+		if match.HomeTeamID != arg.TossWin {
+			teamID = match.AwayTeamID
+		}
+	}
+	inningR := db.NewCricketScoreParams{
+		MatchID:           response.ID,
+		TeamID:            teamID,
+		Inning:            "inning1",
+		Score:             0,
+		Wickets:           0,
+		Overs:             0,
+		RunRate:           "0.00",
+		TargetRunRate:     "0.00",
+		FollowOn:          false,
+		IsInningCompleted: false,
+		Declared:          false,
+	}
+
+	_, err = s.store.NewCricketScore(ctx, inningR)
+	if err != nil {
+		s.logger.Error("Failed to add the team score: ", err)
+		return
+	}
+
 	ctx.JSON(http.StatusAccepted, response)
 	return
 }
