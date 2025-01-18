@@ -7,29 +7,32 @@ import (
 )
 
 type Ball struct {
-	ID            int64 `json:"id"`
-	TeamID        int64 `json:"team_id"`
-	MatchID       int64 `json:"match_id"`
-	BowlerID      int64 `json:"bowler_id"`
-	Ball          int32 `json:"ball"`
-	Runs          int32 `json:"runs"`
-	Wickets       int32 `json:"wickets"`
-	Wide          int32 `json:"wide"`
-	NoBall        int32 `json:"no_ball"`
-	BowlingStatus bool  `json:"bowling_status"`
+	ID              int64 `json:"id"`
+	TeamID          int64 `json:"team_id"`
+	MatchID         int64 `json:"match_id"`
+	BowlerID        int64 `json:"bowler_id"`
+	Ball            int32 `json:"ball"`
+	Runs            int32 `json:"runs"`
+	Wickets         int32 `json:"wickets"`
+	Wide            int32 `json:"wide"`
+	NoBall          int32 `json:"no_ball"`
+	BowlingStatus   bool  `json:"bowling_status"`
+	IsCurrentBowler bool  `json:"is_current_bowler"`
 }
 
 type Bat struct {
-	ID            int64  `json:"id"`
-	BatsmanID     int64  `json:"batsman_id"`
-	TeamID        int64  `json:"team_id"`
-	MatchID       int64  `json:"match_id"`
-	Position      string `json:"position"`
-	RunsScored    int32  `json:"runs_scored"`
-	BallsFaced    int32  `json:"balls_faced"`
-	Fours         int32  `json:"fours"`
-	Sixes         int32  `json:"sixes"`
-	BattingStatus bool   `json:"batting_status"`
+	ID                 int64  `json:"id"`
+	BatsmanID          int64  `json:"batsman_id"`
+	TeamID             int64  `json:"team_id"`
+	MatchID            int64  `json:"match_id"`
+	Position           string `json:"position"`
+	RunsScored         int32  `json:"runs_scored"`
+	BallsFaced         int32  `json:"balls_faced"`
+	Fours              int32  `json:"fours"`
+	Sixes              int32  `json:"sixes"`
+	BattingStatus      bool   `json:"batting_status"`
+	IsStriker          bool   `json:"is_striker"`
+	IsCurrentlyBatting bool   `json:"is_currently_batting"`
 }
 
 type Comment struct {
@@ -64,15 +67,18 @@ type ContentAdmin struct {
 }
 
 type CricketScore struct {
-	ID            int64  `json:"id"`
-	MatchID       int64  `json:"match_id"`
-	TeamID        int64  `json:"team_id"`
-	Inning        string `json:"inning"`
-	Score         int32  `json:"score"`
-	Wickets       int32  `json:"wickets"`
-	Overs         int32  `json:"overs"`
-	RunRate       string `json:"run_rate"`
-	TargetRunRate string `json:"target_run_rate"`
+	ID                int64  `json:"id"`
+	MatchID           int64  `json:"match_id"`
+	TeamID            int64  `json:"team_id"`
+	Inning            string `json:"inning"`
+	Score             int32  `json:"score"`
+	Wickets           int32  `json:"wickets"`
+	Overs             int32  `json:"overs"`
+	RunRate           string `json:"run_rate"`
+	TargetRunRate     string `json:"target_run_rate"`
+	IsInningCompleted bool   `json:"is_inning_completed"`
+	FollowOn          bool   `json:"follow_on"`
+	Declared          bool   `json:"declared"`
 }
 
 type CricketToss struct {
