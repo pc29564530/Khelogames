@@ -208,10 +208,12 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateCricketInning", cricketServer.UpdateCricketInningsFunc)
 	sportRouter.PUT("/updateCricketNoBall", cricketServer.UpdateNoBallsRunsFunc)
 	sportRouter.PUT("/updateCricketWide", cricketServer.UpdateWideBallFunc)
+	sportRouter.PUT("/", cricketServer.UpdateCricketWickets)
+	sportRouter.PUT("/updateCricketRegularScore", cricketServer.UpdateRunsScoreFunc)
 	//cricket->player
 	sportRouter.POST("/addCricketBatScore", cricketServer.AddCricketBatScoreFunc)
 	sportRouter.POST("/addCricketBall", cricketServer.AddCricketBallFunc)
-	sportRouter.GET("/getBatPlayerScore", cricketServer.GetPlayerScoreFunc)
+	sportRouter.GET("/getPlayerScoreFunc", cricketServer.GetPlayerScoreFunc)
 	sportRouter.GET("/getCricketBowlerFunc", cricketServer.GetCricketBowlerFunc)
 	sportRouter.POST("/addCricketWicket", cricketServer.AddCricketWicketFunc)
 	sportRouter.PUT("/updateCricketBat", cricketServer.UpdateCricketBatScoreFunc)
