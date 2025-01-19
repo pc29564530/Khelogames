@@ -174,9 +174,10 @@ INSERT INTO wickets (
     bowler_id,
     wickets_number,
     wicket_type,
-    ball_number
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type, ball_number
+    ball_number,
+	fielder_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING *
 `
 
 type AddCricketWicketsParams struct {
@@ -187,7 +188,7 @@ type AddCricketWicketsParams struct {
 	WicketsNumber int32  `json:"wickets_number"`
 	WicketType    string `json:"wicket_type"`
 	BallNumber    int32  `json:"ball_number"`
-	FielderID     int32  `json:"fielder_id"`
+	FielderID     *int32 `json:"fielder_id"`
 }
 
 func (q *Queries) AddCricketWickets(ctx context.Context, arg AddCricketWicketsParams) (models.Wicket, error) {
@@ -806,7 +807,7 @@ update_batsman AS (
             WHEN $9 > 0 THEN $9
             ELSE 0
         END
-    WHERE match_id = $1 AND batsman_id = $3 AND is_currently_batsman = true AND is_striker = true
+    WHERE match_id = $1 AND batsman_id = $3 AND is_currently_batting = true AND is_striker = true
     RETURNING *
 )
 SELECT 

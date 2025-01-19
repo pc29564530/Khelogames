@@ -132,12 +132,13 @@ func (q *Queries) UpdateCricketInnings(ctx context.Context, arg UpdateCricketInn
 const updateCricketOvers = `
 UPDATE cricket_score cs
 SET overs = (
-        SELECT SUM(bl.balls_faced) FROM bats bl
+        SELECT COALESCE(SUM(bl.balls_faced), 0)
+        FROM bats bl
         WHERE bl.match_id = cs.match_id AND bl.team_id = cs.team_id
-        GROUP BY (bl.match_id, bl.team_id)
     )
-WHERE cs.match_id=$1 AND cs.team_id=$2
-RETURNING *
+WHERE cs.match_id = $1 AND cs.team_id = $2
+RETURNING *;
+
 `
 
 type UpdateCricketOversParams struct {
@@ -170,7 +171,7 @@ UPDATE cricket_score cs
 SET score = (
         SELECT SUM(bt.runs_scored) + SUM(bl.wide + bl.no_ball)
         FROM bats bt
-		LEFT JOIN balls AS bl ON bt.match_id=bl.match_id AND bl.team_id = bl.bowling_status=true
+		LEFT JOIN balls AS bl ON bt.match_id=bl.match_id AND bl.team_id =  $3 AND bl.bowling_status=true
         WHERE bt.match_id=cs.match_id
         GROUP BY (bt.match_id, bt.team_id)
     )
