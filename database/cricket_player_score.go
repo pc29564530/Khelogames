@@ -249,6 +249,7 @@ func (q *Queries) GetCricketBall(ctx context.Context, arg GetCricketBallParams) 
 const getCricketBalls = `
 SELECT * FROM balls
 WHERE match_id=$1 AND team_id=$2
+ORDER BY id
 `
 
 type GetCricketBallsParams struct {
@@ -322,8 +323,10 @@ func (q *Queries) GetCricketPlayerScore(ctx context.Context, arg GetCricketPlaye
 }
 
 const getCricketPlayersScore = `
-SELECT * FROM bats
-WHERE match_id=$1 AND team_id=$2
+SELECT * 
+FROM bats
+WHERE match_id = $1 AND team_id = $2
+ORDER BY id
 `
 
 type GetCricketPlayersScoreParams struct {
