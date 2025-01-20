@@ -320,6 +320,17 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		return
 	}
 
+	argCricketWickets := db.GetCricketWicketsParams{
+		MatchID: matchID,
+		TeamID:  teamID,
+	}
+
+	playerOut, err := s.store.GetCricketWickets(ctx, argCricketWickets)
+	if err != nil {
+		s.logger.Error("Failed to get wicket: ", err)
+		return
+	}
+
 	var battingTeamId int64
 	var bowlingTeamId int64
 	if teamID == match.HomeTeamID {
@@ -343,7 +354,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to get players data : ", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
-		battingDetails = append(battingDetails, map[string]interface{}{
+		playerDetails := map[string]interface{}{
 			"player":               map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
 			"runsScored":           playerScore.RunsScored,
 			"ballFaced":            playerScore.BallsFaced,
@@ -352,7 +363,24 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 			"batting_status":       playerScore.BattingStatus,
 			"is_striker":           playerScore.IsStriker,
 			"is_currently_batting": playerScore.IsCurrentlyBatting,
-		})
+		}
+
+		for _, item := range playerOut {
+			if item.BatsmanID == playerData.ID {
+				bowlerData, err := s.store.GetPlayer(ctx, item.BowlerID)
+				if err != nil {
+					s.logger.Error("Failed to get bowler data : ", err)
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
+				// Add wicket details to the same playerDetails map
+				playerDetails["wicket_type"] = item.WicketType
+				playerDetails["bowler_name"] = bowlerData.PlayerName
+				break
+			}
+		}
+		battingDetails = append(battingDetails, playerDetails)
+
 	}
 	var scoreDetails map[string]interface{}
 	var emptyDetails map[string]interface{}
@@ -763,6 +791,8 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("failed to update cricket overs: ", err)
 	}
+
+	// _, err := s.store.Update(ctx, arg)
 
 	err = tx.Commit()
 	if err != nil {

@@ -323,8 +323,7 @@ func (q *Queries) GetCricketPlayerScore(ctx context.Context, arg GetCricketPlaye
 }
 
 const getCricketPlayersScore = `
-SELECT * 
-FROM bats
+SELECT * FROM bats
 WHERE match_id = $1 AND team_id = $2
 ORDER BY id
 `
@@ -641,7 +640,7 @@ func (q *Queries) UpdateBowlerStats(ctx context.Context, runs int32, matchID, bo
 
 const getCurrentPlayingBatsman = `
 	SELECT * FROM bats bs
-	WHERE bs.match_id = $1 AND bs.is_currently_batting = true;
+	WHERE bs.match_id = $1 AND bs.batting_status = true;
 `
 
 func (q *Queries) GetCurrentPlayingBatsmen(ctx context.Context, matchID int64) ([]models.Bat, error) {
@@ -809,7 +808,9 @@ update_batsman AS (
         runs_scored = runs_scored + CASE 
             WHEN $9 > 0 THEN $9
             ELSE 0
-        END
+        END,
+		is_currently_batting = NOT is_currently_batting,
+		is_striker = false
     WHERE match_id = $1 AND batsman_id = $3 AND is_currently_batting = true AND is_striker = true
     RETURNING *
 )
