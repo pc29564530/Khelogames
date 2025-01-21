@@ -398,7 +398,7 @@ func (q *Queries) GetCricketWicket(ctx context.Context, arg GetCricketWicketPara
 }
 
 const getCricketWickets = `
-SELECT id, match_id, team_id, batsman_id, bowler_id, wickets_number, wicket_type, ball_number FROM wickets
+SELECT * FROM wickets
 WHERE match_id=$1 AND team_id=$2
 `
 
@@ -425,6 +425,7 @@ func (q *Queries) GetCricketWickets(ctx context.Context, arg GetCricketWicketsPa
 			&i.WicketsNumber,
 			&i.WicketType,
 			&i.BallNumber,
+			&i.FielderID,
 		); err != nil {
 			return nil, err
 		}
