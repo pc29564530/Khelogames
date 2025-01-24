@@ -797,7 +797,10 @@ WITH add_wicket AS (
 update_bowler AS (
     UPDATE balls
     SET 
-        wickets = wickets + 1,
+        wickets = CASE
+				WHEN $6 != 'Run Out' THEN wickets + 1
+				ELSE wickets
+			END,
         ball = ball + 1
     WHERE match_id = $1 AND bowler_id = $4 AND is_current_bowler = true
     RETURNING *
