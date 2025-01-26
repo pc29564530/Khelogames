@@ -54,12 +54,12 @@ const getCricketStanding = `
 	SELECT
 		CASE
 			WHEN EXISTS (
-				SELECT 1 FROM cricket_standing fs
-				WHERE fs.tournament_id=$1
+				SELECT 1 FROM cricket_standing cs
+				WHERE cs.tournament_id=$1
 			) THEN
 				JSON_AGG(
 					JSON_BUILD_OBJECT(
-						fs.id, fs.tournament_id, fs.group_id, fs.team_id, fs.matches, fs.wins, fs.loss, fs.draw, fs.points,
+						cs.id, cs.tournament_id, cs.group_id, cs.team_id, cs.matches, cs.wins, cs.loss, cs.draw, cs.points,
 						JSON_BUILD_OBJECT(
 							'tournament', JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id),
 							'group', CASE WHEN g.id IS NOT NULL THEN JSON_BUILD_OBJECT('id', g.id, 'name', g.name) ELSE NULL END,
@@ -68,11 +68,11 @@ const getCricketStanding = `
 					)
 				) ELSE NULL
 		END AS standing_data
-	FROM cricket_standing fs
-	LEFT JOIN groups g ON fs.group_id = g.id
-	JOIN tournaments t ON t.id = fs.tournament_id
-	JOIN teams tm ON fs.team_id = tm.id
-	WHERE fs.tournament_id = $1
+	FROM cricket_standing cs
+	LEFT JOIN groups g ON cs.group_id = g.id
+	JOIN tournaments t ON t.id = cs.tournament_id
+	JOIN teams tm ON cs.team_id = tm.id
+	WHERE cs.tournament_id = $1
 `
 
 type GetCricketStandingR struct {
@@ -112,67 +112,58 @@ func (q *Queries) GetCricketStanding(ctx context.Context, tournamentId int64) (*
 const updateCricketStanding = `
 UPDATE Cricket_standing AS ts
 SET 
-    goal_for = COALESCE((
+    score = COALESCE((
         SELECT SUM(CASE 
-            WHEN ms.home_team_id = ts.team_id THEN fs.goals
-            WHEN ms.away_team_id = ts.team_id THEN fs.goals
+            WHEN ms.home_team_id = ts.team_id THEN cs.score
+            WHEN ms.away_team_id = ts.team_id THEN cs.score
             ELSE 0
         END)
-        FROM cricket_score AS fs
-        JOIN matches AS ms ON fs.match_id = ms.id
-        WHERE fs.team_id = ts.team_id
+        FROM cricket_score AS cs
+        JOIN matches AS ms ON cs.match_id = ms.id
+        WHERE cs.team_id = ts.team_id
     ), 0),
-    goal_against = COALESCE((
+    wickets = COALESCE((
         SELECT SUM(CASE 
             WHEN ms.home_team_id = ts.team_id THEN (
-                SELECT SUM(fs.goals) 
-                FROM football_score AS fs 
-                WHERE fs.match_id = ms.id AND fs.team_id = ms.away_team_id
+                SELECT SUM(cs.goals) 
+                FROM cricket_score AS cs
+                WHERE cs.match_id = ms.id AND cs.team_id = ms.away_team_id
             )
             WHEN ms.away_team_id = ts.team_id THEN (
-                SELECT SUM(fs2.goals) 
-                FROM football_score AS fs2
-                WHERE fs2.match_id = ms.id AND fs2.team_id = ms.home_team_id
+                SELECT SUM(cs.score) 
+                FROM cricket_score AS cs
+                WHERE cs.match_id = ms.id AND cs.team_id = ms.home_team_id
             )
         END)
         FROM matches AS ms
         WHERE ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id
     ), 0),
-    goal_difference = COALESCE(goal_for, 0) - COALESCE(goal_against, 0),
-	matches = COALESCE((
-		SELECT SUM(CASE
-			WHEN ms.home_team_id = ts.team_id THEN (
-				SELECT SUM()
-			)
-		) FROM matches AS ms
-		WHERE ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id
-	),0),
     wins = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms
-        LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = ts.team_id
-        LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
-        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals > fs_away.goals)
-        OR (ms.away_team_id = ts.team_id AND fs_away.goals > fs_home.goals)
+        LEFT JOIN cricket_score AS cs.home ON ms.id = cs.home.match_id AND ms.home_team_id = ts.team_id
+        LEFT JOIN cricket_score AS cs.away ON ms.id = cs.away.match_id AND ms.away_team_id = cs.away.team_id
+        WHERE (ms.home_team_id = ts.team_id AND cs.home.goals > cs.away.goals)
+        OR (ms.away_team_id = ts.team_id AND cs.away.goals > cs.home.goals)
     ), 0),
     loss = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms
-        LEFT JOIN football_score fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = fs_home.team_id
-        LEFT JOIN football_score fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
-        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals < fs_away.goals)
-        OR (ms.away_team_id = ts.team_id AND fs_away.goals < fs_home.goals)
+        LEFT JOIN cricket_score cs.home ON ms.id = cs.home.match_id AND ms.home_team_id = cs.home.team_id
+        LEFT JOIN cricket_score cs.away ON ms.id = cs.away.match_id AND ms.away_team_id = cs.away.team_id
+        WHERE (ms.home_team_id = ts.team_id AND cs.home.goals < cs.away.goals)
+        OR (ms.away_team_id = ts.team_id AND cs.away.goals < cs.home.goals)
     ), 0),
     draw = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms
-        LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = ts.team_id
-        LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
-        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals = fs_away.goals)
-        OR (ms.away_team_id = ts.team_id AND fs_away.goals = fs_home.goals)
+        LEFT JOIN cricket_score AS cs.home ON ms.id = cs.home.match_id AND ms.home_team_id = ts.team_id
+        LEFT JOIN cricket_score AS cs.away ON ms.id = cs.away.match_id AND ms.away_team_id = cs.away.team_id
+        WHERE (ms.home_team_id = ts.team_id AND cs.home.goals = cs.away.goals)
+        OR (ms.away_team_id = ts.team_id AND cs.away.goals = cs.home.goals)
     ), 0),
     points = ((wins * 3) + draw)
-WHERE ts.tournament_id = $1 AND ts.team_id = $2
+WHERE ts.tournament_id = $1 AND ts.team_id = $2 AND (m.stage = 'group' OR m.stage = 'league')
 RETURNING standing_id, tournament_id, group_id, team_id, wins, loss, draw, goal_for, goal_against, goal_difference, points
 `
 

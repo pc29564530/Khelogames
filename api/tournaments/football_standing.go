@@ -42,6 +42,7 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal standings data"})
 		return
 	}
+
 	for _, data := range standingData {
 
 		// Ensure data is of type map[string]interface{}
@@ -52,64 +53,67 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 			return
 		}
 
-		// Safely extract and convert numeric fields
-		tournamentID, _ := dataMap["tournament_id"].(float64)
-		groupID, _ := dataMap["group_id"].(float64)
-		id, _ := dataMap["id"].(float64)
-		matches, _ := dataMap["matches"].(float64)
-		wins, _ := dataMap["wins"].(float64)
-		loss, _ := dataMap["loss"].(float64)
-		draw, _ := dataMap["draw"].(float64)
-		goalFor, _ := dataMap["goal_for"].(float64)
-		goalAgainst, _ := dataMap["goal_against"].(float64)
-		goalDifference, _ := dataMap["goal_difference"].(float64)
-		points, _ := dataMap["points"].(float64)
-
-		standing := map[string]interface{}{
+		standingsData = append(standingsData, map[string]interface{}{
 			"tournament":      dataMap["tournament"],
 			"group":           dataMap["group"],
 			"teams":           dataMap["teams"],
-			"tournament_id":   int64(tournamentID),
-			"group_id":        int64(groupID),
-			"id":              int64(id),
-			"matches":         int64(matches),
-			"wins":            int64(wins),
-			"loss":            int64(loss),
-			"draw":            int64(draw),
-			"goal_for":        int64(goalFor),
-			"goal_against":    int64(goalAgainst),
-			"goal_difference": int64(goalDifference),
-			"points":          int64(points),
-		}
-		standingsData = append(standingsData, standing)
+			"tournament_id":   dataMap["torunament_id"],
+			"group_id":        dataMap["group_id"],
+			"id":              dataMap["id"],
+			"matches":         dataMap["matches"],
+			"wins":            dataMap["wins"],
+			"loss":            dataMap["loss"],
+			"draw":            dataMap["draw"],
+			"goal_for":        dataMap["goal_for"],
+			"goal_against":    dataMap["goal_against"],
+			"goal_difference": dataMap["goalDifference"],
+			"points":          dataMap["points"],
+		})
 	}
 
 	groupData := make(map[int64][]map[string]interface{})
 	visited := make(map[int]string) // Initialize the visited map to prevent nil map errors
 
 	for _, standing := range standingsData {
-		groupID := standing["group_id"]
-		grpID := groupID
 
-		// Append standings data to groupData by groupID
-		groupData[grpID.(int64)] = append(groupData[grpID.(int64)], map[string]interface{}{
-			"teams":           standing["teams"],
-			"id":              standing["id"],
-			"matches":         standing["matches"],
-			"wins":            standing["wins"],
-			"loss":            standing["loss"],
-			"draw":            standing["draw"],
-			"goal_for":        standing["goal_for"],
-			"goal_against":    standing["goal_against"],
-			"goal_difference": standing["goal_difference"],
-			"points":          standing["points"],
-		})
+		if standing["group_id"] == nil {
+			ind := -1
+			groupData[int64(ind)] = append(groupData[int64(ind)], map[string]interface{}{
+				"teams":           standing["teams"],
+				"id":              standing["id"],
+				"matches":         standing["matches"],
+				"wins":            standing["wins"],
+				"loss":            standing["loss"],
+				"draw":            standing["draw"],
+				"goal_for":        standing["goal_for"],
+				"goal_against":    standing["goal_against"],
+				"goal_difference": standing["goal_difference"],
+				"points":          standing["points"],
+			})
+		} else {
+			groupID := standing["group_id"]
+			grpID := groupID.(float64)
 
-		// Set the group name if not already visited
-		if _, ok := visited[int(grpID.(int64))]; !ok {
-			vis, ok := standing["group"].(map[string]interface{})["name"].(string)
-			if ok {
-				visited[int(grpID.(int64))] = vis
+			// Append standings data to groupData by groupID
+			groupData[int64(grpID)] = append(groupData[int64(grpID)], map[string]interface{}{
+				"teams":           standing["teams"],
+				"id":              standing["id"],
+				"matches":         standing["matches"],
+				"wins":            standing["wins"],
+				"loss":            standing["loss"],
+				"draw":            standing["draw"],
+				"goal_for":        standing["goal_for"],
+				"goal_against":    standing["goal_against"],
+				"goal_difference": standing["goal_difference"],
+				"points":          standing["points"],
+			})
+
+			// Set the group name if not already visited
+			if _, ok := visited[int(int64(grpID))]; !ok {
+				vis, ok := standing["group"].(map[string]interface{})["name"].(string)
+				if ok {
+					visited[int(int64(grpID))] = vis
+				}
 			}
 		}
 	}
@@ -119,7 +123,14 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 		"tournament": standingsData[0]["tournament"],
 	})
 	for grpID, grpData := range groupData {
-		groupName := visited[int(grpID)]
+
+		var groupName string
+		if visited[int(grpID)] != "" {
+			groupName = visited[int(grpID)]
+		} else {
+			groupName = "League"
+		}
+
 		standings = append(standings, map[string]interface{}{
 			"group_name": groupName,
 			"team_row":   grpData,

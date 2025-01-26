@@ -22,7 +22,7 @@ type addTeamsRequest struct {
 	Country     string `json:"country"`
 	Type        string `json:"type"`
 	PlayerCount int    `json:"player_count"`
-	GameID      int64  `json:"game_id"`
+	GameID      int32  `json:"game_id"`
 }
 
 func (s *TeamsServer) AddTeam(ctx *gin.Context) {

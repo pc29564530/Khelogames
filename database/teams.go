@@ -311,15 +311,25 @@ func (q *Queries) GetTeamsBySport(ctx context.Context, gameID int64) ([]GetTeams
 }
 
 const getTournamentsByTeam = `
-SELECT t.id, t.name FROM tournaments t
+
+SELECT * FROM tournaments t
 JOIN tournament_team tt ON t.id=tt.id
 JOIN teams c ON tt.team_id=c.id
 WHERE c.id=$1
 `
 
 type GetTournamentsByTeamRow struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID             int64  `json:"id"`
+	Name           string `json:"name"`
+	Slug           string `json:"slug"`
+	Country        string `json:"country"`
+	StatusCode     string `json:"status_code"`
+	Level          string `json:"level"`
+	StartTimestamp int64  `json:"start_timestamp"`
+	GameID         int32  `json:"game_id"`
+	GroupCount     int    `json:"group_count"`
+	MaxGroupTeam   int    `json:"max_group_team"`
+	Stage          string `json:"stage"`
 }
 
 func (q *Queries) GetTournamentsByTeam(ctx context.Context, id int64) ([]GetTournamentsByTeamRow, error) {
@@ -331,7 +341,19 @@ func (q *Queries) GetTournamentsByTeam(ctx context.Context, id int64) ([]GetTour
 	var items []GetTournamentsByTeamRow
 	for rows.Next() {
 		var i GetTournamentsByTeamRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Country,
+			&i.StatusCode,
+			&i.Level,
+			&i.StartTimestamp,
+			&i.GameID,
+			&i.GroupCount,
+			&i.MaxGroupTeam,
+			&i.Stage,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

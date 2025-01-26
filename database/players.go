@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"khelogames/database/models"
 )
 
@@ -48,7 +49,7 @@ SELECT id, username, slug, short_name, media_url, positions, sports, country, pl
 WHERE id=$1
 `
 
-func (q *Queries) GetPlayer(ctx context.Context, id int64) (models.Player, error) {
+func (q *Queries) GetPlayer(ctx context.Context, id int64) (*models.Player, error) {
 	row := q.db.QueryRowContext(ctx, getPlayer, id)
 	var i models.Player
 	err := row.Scan(
@@ -63,7 +64,13 @@ func (q *Queries) GetPlayer(ctx context.Context, id int64) (models.Player, error
 		&i.PlayerName,
 		&i.GameID,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &i, err
 }
 
 const getPlayersCountry = `

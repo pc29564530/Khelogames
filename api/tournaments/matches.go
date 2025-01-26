@@ -40,20 +40,32 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 }
 
 type createTournamentMatchRequest struct {
-	ID             int64  `json:"id"`
-	TournamentID   int64  `json:"tournament_id"`
-	AwayTeamID     int64  `json:"away_team_id"`
-	HomeTeamID     int64  `json:"home_team_id"`
-	StartTimestamp string `json:"start_timestamp"`
-	EndTimestamp   string `json:"end_timestamp"`
-	Type           string `json:"type"`
-	StatusCode     string `json:"status_code"`
-	Result         *int64 `json:"result"`
+	ID              int64   `json:"id"`
+	TournamentID    int64   `json:"tournament_id"`
+	AwayTeamID      int64   `json:"away_team_id"`
+	HomeTeamID      int64   `json:"home_team_id"`
+	StartTimestamp  string  `json:"start_timestamp"`
+	EndTimestamp    string  `json:"end_timestamp"`
+	Type            string  `json:"type"`
+	StatusCode      string  `json:"status_code"`
+	Result          *int64  `json:"result"`
+	Stage           string  `json:"stage"`
+	KnockoutLevelID *int32  `json:"knockout_level_id"`
+	MatchFormat     *string `json:"match_format"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin transcation: ", err)
+		return
+	}
+
+	defer tx.Rollback()
+
 	var req createTournamentMatchRequest
-	err := ctx.ShouldBindJSON(&req)
+	err = ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -75,15 +87,32 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		}
 	}
 
+	game := ctx.Param("sport")
+	var matchFormat string
+	if game == "cricket" {
+		if req.MatchFormat != nil {
+			matchFormat = *req.MatchFormat
+		} else {
+			s.logger.Error("Match format is required for cricket matches")
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": "Match format is required for cricket matches. Please provide a valid match format.",
+			})
+			return
+		}
+	}
+
 	arg := db.NewMatchParams{
-		TournamentID:   req.TournamentID,
-		AwayTeamID:     req.AwayTeamID,
-		HomeTeamID:     req.HomeTeamID,
-		StartTimestamp: startTimeStamp,
-		EndTimestamp:   endTimeStamp,
-		Type:           req.Type,
-		StatusCode:     req.StatusCode,
-		Result:         req.Result,
+		TournamentID:    req.TournamentID,
+		AwayTeamID:      req.AwayTeamID,
+		HomeTeamID:      req.HomeTeamID,
+		StartTimestamp:  startTimeStamp,
+		EndTimestamp:    endTimeStamp,
+		Type:            req.Type,
+		StatusCode:      req.StatusCode,
+		Result:          req.Result,
+		Stage:           req.Stage,
+		KnockoutLevelID: req.KnockoutLevelID,
+		MatchFormat:     &matchFormat,
 	}
 
 	s.logger.Debug("Create match params: ", arg)
@@ -94,8 +123,47 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+	if game == "football" {
+
+		argAway := db.NewFootballScoreParams{
+			MatchID:    response.AwayTeamID,
+			TeamID:     response.AwayTeamID,
+			FirstHalf:  0,
+			SecondHalf: 0,
+			Goals:      0,
+		}
+
+		argHome := db.NewFootballScoreParams{
+			MatchID:    response.HomeTeamID,
+			TeamID:     response.HomeTeamID,
+			FirstHalf:  0,
+			SecondHalf: 0,
+			Goals:      0,
+		}
+
+		_, err := s.store.NewFootballScore(ctx, argAway)
+		if err != nil {
+			s.logger.Error("Failed to add away score: ", err)
+			return
+		}
+
+		_, err = s.store.NewFootballScore(ctx, argHome)
+		if err != nil {
+			s.logger.Error("Failed to add home score: ", err)
+			return
+		}
+
+	} else if game == "cricket" {
+
+	}
 	s.logger.Debug("Successfully create match: ", response)
 	s.logger.Info("Successfully create match")
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+		return
+	}
 
 	ctx.JSON(http.StatusAccepted, response)
 }
@@ -342,6 +410,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		"type":           match.Type,
 		"status":         match.StatusCode,
 		"result":         match.Result,
+		"stage":          match.Stage,
 		"awayTeam":       awayTeam,
 		"homeTeam":       homeTeam,
 		"awayScore":      awayScore,
