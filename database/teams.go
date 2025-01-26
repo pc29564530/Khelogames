@@ -39,13 +39,12 @@ type GetMatchByTeamRow struct {
 	HomeTeamName   string `json:"home_team_name"`
 	AwayTeamName   string `json:"away_team_name"`
 	StartTimestamp int64  `json:"start_timestamp"`
-	Sports         string `json:"sports"`
 	StatusCode     string `json:"status_code"`
 	Type           string `json:"type"`
 }
 
 const getMatchByTeam = `
-SELECT t.id AS tournament_id, t.name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, t.sports, tm.status_code, tm.type
+SELECT t.id AS tournament_id, t.name, tm.id AS match_id, tm.home_team_id, tm.away_team_id, c1.name AS home_team_name, c2.name AS away_team_name, tm.start_timestamp, tm.status_code, tm.type
 FROM matches tm
 JOIN tournaments t ON tm.id = t.id
 JOIN teams c1 ON tm.home_team_id = c1.id
@@ -71,8 +70,6 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 			&i.AwayTeamID,
 			&i.HomeTeamName,
 			&i.AwayTeamName,
-			&i.StartTimestamp,
-			&i.Sports,
 			&i.StatusCode,
 			&i.Type,
 		); err != nil {
@@ -90,7 +87,7 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 }
 
 const getPlayerByTeam = `
-SELECT team_id, player_id, join_date, leave_date, id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id FROM team_players
+SELECT team_id, player_id, join_date, leave_date, id, username, slug, short_name, media_url, positions, country, player_name, game_id FROM team_players
 JOIN players ON team_players.player_id=players.id
 WHERE team_id=$1 AND leave_date IS NULL;
 `
@@ -115,7 +112,6 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.G
 			&i.ShortName,
 			&i.MediaUrl,
 			&i.Positions,
-			&i.Sports,
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
@@ -315,6 +311,7 @@ func (q *Queries) GetTeamsBySport(ctx context.Context, gameID int64) ([]GetTeams
 }
 
 const getTournamentsByTeam = `
+
 SELECT * FROM tournaments t
 JOIN tournament_team tt ON t.id=tt.id
 JOIN teams c ON tt.team_id=c.id
