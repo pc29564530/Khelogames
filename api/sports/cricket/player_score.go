@@ -123,7 +123,23 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	playerData, err := s.store.GetPlayer(ctx, response.BowlerID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+	}
+
+	bowler := map[string]interface{}{
+		"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+		"runs":              response.Runs,
+		"ball":              response.Ball,
+		"wide":              response.Wide,
+		"noBall":            response.NoBall,
+		"wickets":           response.Wickets,
+		"bowling_status":    response.BowlingStatus,
+		"is_current_bowler": response.IsCurrentBowler,
+	}
+
+	ctx.JSON(http.StatusAccepted, bowler)
 }
 
 // type addCricketWicketScore struct {
