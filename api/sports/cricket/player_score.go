@@ -62,7 +62,24 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	playerData, err := s.store.GetPlayer(ctx, response.BatsmanID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	batsman := map[string]interface{}{
+		"player":               map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+		"runsScored":           response.RunsScored,
+		"ballFaced":            response.BallsFaced,
+		"fours":                response.Fours,
+		"sixes":                response.Sixes,
+		"batting_status":       response.BattingStatus,
+		"is_striker":           response.IsStriker,
+		"is_currently_batting": response.IsCurrentlyBatting,
+	}
+
+	ctx.JSON(http.StatusAccepted, batsman)
 	return
 }
 
