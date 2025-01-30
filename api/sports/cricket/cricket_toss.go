@@ -35,7 +35,7 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, arg.MatchID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, arg.MatchID)
 	if err != nil {
 		s.logger.Error("Failed to get the match by id: ", err)
 		return

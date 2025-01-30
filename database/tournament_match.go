@@ -200,7 +200,7 @@ JOIN teams AS t2 ON m.away_team_id=t2.id
 WHERE m.id=$1
 `
 
-func (q *Queries) GetMatchByMatchID(ctx context.Context, id int64) (GetMatchByIDRow, error) {
+func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, id int64) (GetMatchByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getMatchByMatchID, id)
 	var i GetMatchByIDRow
 	err := row.Scan(

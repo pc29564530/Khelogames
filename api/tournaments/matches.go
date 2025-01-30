@@ -391,7 +391,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 	var awayTeam map[string]interface{}
 	var homeTeam map[string]interface{}
 
-	match, err := s.store.GetMatchByMatchID(ctx, updatedMatchData.ID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, updatedMatchData.ID)
 	if err != nil {
 		s.logger.Error("Failed to get match: ", err)
 	}

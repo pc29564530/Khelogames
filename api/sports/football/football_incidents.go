@@ -217,7 +217,7 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, req.MatchID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, req.MatchID)
 	if err != nil {
 		s.logger.Error("Failed to get match data: ", err)
 		return

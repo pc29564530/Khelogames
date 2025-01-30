@@ -165,6 +165,7 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateMatchStatus", tournamentServer.UpdateMatchStatusFunc)
 	sportRouter.PUT("/updateMatchResult", tournamentServer.UpdateMatchResultFunc)
 	sportRouter.PUT("/updateTournamentStatus", tournamentServer.UpdateTournamentStatusFunc)
+	sportRouter.GET("/getMatchByMatchID", handlersServer.GetMatchByMatchIDFunc)
 
 	//teams
 	sportRouter.POST("/newTeams", teamsServer.AddTeam)
@@ -208,7 +209,7 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateCricketInning", cricketServer.UpdateCricketInningsFunc)
 	sportRouter.PUT("/updateCricketNoBall", cricketServer.UpdateNoBallsRunsFunc)
 	sportRouter.PUT("/updateCricketWide", cricketServer.UpdateWideBallFunc)
-	sportRouter.PUT("/updateCricketRegularScore", cricketServer.UpdateRunsScoreFunc)
+	sportRouter.PUT("/updateCricketRegularScore", cricketServer.UpdateInningScoreFunc)
 	//cricket->player
 	sportRouter.POST("/addCricketBatScore", cricketServer.AddCricketBatScoreFunc)
 	sportRouter.POST("/addCricketBall", cricketServer.AddCricketBallFunc)
