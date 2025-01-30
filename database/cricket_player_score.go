@@ -834,3 +834,132 @@ func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsman
 	}
 	return nil
 }
+
+type BattingScore struct {
+	ID                 int64  `json:"id"`
+	BatsmanID          int64  `json:"batsman_id"`
+	MatchID            int64  `json:"match_id"`
+	TeamID             int64  `json:"team_id"`
+	Position           string `json:"position"`
+	RunsScored         int32  `json:"runs_scored"`
+	BallsFaced         int32  `json:"balls_faced"`
+	Fours              int32  `json:"fours"`
+	Sixes              int32  `json:"sixes"`
+	BattingStatus      bool   `json:"batting_status"`
+	IsStriker          bool   `json:"is_striker"`
+	IsCurrentlyBatting bool   `json:"is_currently_batting"`
+}
+
+type BowlingScore struct {
+	ID              int64 `json:"id"`
+	MatchID         int64 `json:"match_id"`
+	TeamID          int64 `json:"team_id"`
+	BowlerID        int64 `json:"bowler_id"`
+	Ball            int32 `json:"ball"`
+	Runs            int32 `json:"runs"`
+	Wickets         int32 `json:"wickets"`
+	Wide            int32 `json:"wide"`
+	NoBall          int32 `json:"no_ball"`
+	BowlingStatus   bool  `json:"bowling_status"`
+	IsCurrentBowler bool  `json:"is_current_bowler"`
+}
+
+type InningScore struct {
+	ID                int64  `json:"id"`
+	MatchID           int64  `json:"match_id"`
+	TeamID            int64  `json:"team_id"`
+	Inning            string `json:"inning"`
+	Score             int32  `json:"score"`
+	Wickets           int32  `json:"wickets"`
+	Overs             int32  `json:"overs"`
+	RunRate           string `json:"run_rate"`
+	TargetRunRate     string `json:"target_run_rate"`
+	FollowOn          bool   `json:"follow_on"`
+	IsInningCompleted bool   `json:"is_inning_completed"`
+	Declared          bool   `json:"declared"`
+}
+
+const updateInningScore = `
+	WITH update_batsman AS (
+		UPDATE bats
+		SET runs_scored = runs_scored + $5,
+			balls_faced = balls_faced + 1,
+			fours = fours + CASE WHEN $5 = 4 THEN 1 ELSE 0 END,
+			sixes = sixes + CASE WHEN $5 = 6 THEN 1 ELSE 0 END
+		WHERE match_id = $1 AND batsman_id = $3
+		RETURNING *
+	),
+	update_bowler AS (
+		UPDATE balls
+		SET runs = runs + $5,
+			ball = ball + 1
+		WHERE match_id = $1 AND bowler_id = $4 AND is_current_bowler = true
+		RETURNING *
+	),
+	update_inning_score AS (
+		UPDATE cricket_score
+		SET score = score + $5,
+			overs = overs + 1
+		WHERE match_id = $1 AND team_id = $2
+		RETURNING *
+	)
+	SELECT 
+		ub.*, 
+		ubl.*, 
+		uis.*
+	FROM update_batsman ub
+	JOIN update_bowler ubl ON ub.match_id = ubl.match_id
+	JOIN update_inning_score uis ON ub.match_id = uis.match_id;
+`
+
+func (q *Queries) UpdateInningScore(ctx context.Context, matchID, batsmanTeamID, batsmanID, bowlerID int64, runsScored int32) (*BattingScore, *BowlingScore, *InningScore, error) {
+	var batsman BattingScore
+	var bowler BowlingScore
+	var inningScore InningScore
+
+	row := q.db.QueryRowContext(ctx, updateInningScore, matchID, batsmanTeamID, batsmanID, bowlerID, runsScored)
+
+	err := row.Scan(
+		&batsman.ID,
+		&batsman.BatsmanID,
+		&batsman.TeamID,
+		&batsman.MatchID,
+		&batsman.Position,
+		&batsman.RunsScored,
+		&batsman.BallsFaced,
+		&batsman.Fours,
+		&batsman.Sixes,
+		&batsman.BattingStatus,
+		&batsman.IsStriker,
+		&batsman.IsCurrentlyBatting,
+		&bowler.ID,
+		&bowler.TeamID,
+		&bowler.MatchID,
+		&bowler.BowlerID,
+		&bowler.Ball,
+		&bowler.Runs,
+		&bowler.Wickets,
+		&bowler.Wide,
+		&bowler.NoBall,
+		&bowler.BowlingStatus,
+		&bowler.IsCurrentBowler,
+		&inningScore.ID,
+		&inningScore.MatchID,
+		&inningScore.TeamID,
+		&inningScore.Inning,
+		&inningScore.Score,
+		&inningScore.Wickets,
+		&inningScore.Overs,
+		&inningScore.RunRate,
+		&inningScore.TargetRunRate,
+		&inningScore.FollowOn,
+		&inningScore.IsInningCompleted,
+		&inningScore.Declared,
+	)
+
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
+	}
+
+	return &batsman, &bowler, &inningScore, nil
+}

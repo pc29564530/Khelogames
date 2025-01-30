@@ -1,6 +1,7 @@
 package cricket
 
 import (
+	"fmt"
 	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
@@ -133,7 +134,7 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		"runs":              response.Runs,
 		"ball":              response.Ball,
 		"wide":              response.Wide,
-		"noBall":            response.NoBall,
+		"no_ball":           response.NoBall,
 		"wickets":           response.Wickets,
 		"bowling_status":    response.BowlingStatus,
 		"is_current_bowler": response.IsCurrentBowler,
@@ -141,66 +142,6 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, bowler)
 }
-
-// type addCricketWicketScore struct {
-// 	MatchID    int64  `json:"match_id"`
-// 	TeamID     int64  `json:"team_id"`
-// 	BatsmanID  int64  `json:"batsman_id"`
-// 	BowlerID   int64  `json:"bowler_id"`
-// 	WicketType string `json:"wicket_type"`
-// 	FielderID  *int32 `json:"fielder_id"`
-// }
-
-// func (s *CricketServer) AddCricketWicketFunc(ctx *gin.Context) {
-// 	var req addCricketWicketScore
-// 	err := ctx.ShouldBindJSON(&req)
-// 	if err != nil {
-// 		s.logger.Error("Failed to bind add cricket wickets: ", err)
-// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
-// 	argCricketScore := db.GetCricketScoreParams{
-// 		MatchID: req.MatchID,
-// 		TeamID:  req.TeamID,
-// 	}
-// 	cricketScore, err := s.store.GetCricketScore(ctx, argCricketScore)
-// 	if err != nil {
-// 		s.logger.Error("Failed to get cricket score: ", err)
-// 		return
-// 	}
-
-// 	arg := db.AddCricketWicketsParams{
-// 		MatchID:       req.MatchID,
-// 		TeamID:        req.TeamID,
-// 		BatsmanID:     req.BatsmanID,
-// 		BowlerID:      req.BowlerID,
-// 		WicketsNumber: cricketScore.Wickets + 1,
-// 		WicketType:    req.WicketType,
-// 		BallNumber:    cricketScore.Overs + 1,
-// 		FielderID:     req.FielderID,
-// 	}
-
-// 	response, err := s.store.AddCricketWickets(ctx, arg)
-// 	if err != nil {
-// 		s.logger.Error("Failed to add the cricket wicket: ", gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	argUpdateWicket := db.UpdateCricketWicketsParams{
-// 		MatchID: req.MatchID,
-// 		TeamID:  req.TeamID,
-// 	}
-
-// 	_, err = s.store.UpdateCricketWickets(ctx, argUpdateWicket)
-
-// 	if err != nil {
-// 		s.logger.Error("Failed to update the cricket wicket: ", gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	ctx.JSON(http.StatusAccepted, response)
-// 	return
-// }
 
 type updateCricketBatRequest struct {
 	BatsmanID  int64  `json:"batsman_id"`
@@ -338,7 +279,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, matchID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchID)
 	if err != nil {
 		s.logger.Error("Failed to get match:", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -381,8 +322,8 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		}
 		playerDetails := map[string]interface{}{
 			"player":               map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
-			"runsScored":           playerScore.RunsScored,
-			"ballFaced":            playerScore.BallsFaced,
+			"runs_scored":          playerScore.RunsScored,
+			"balls_faced":          playerScore.BallsFaced,
 			"fours":                playerScore.Fours,
 			"sixes":                playerScore.Sixes,
 			"batting_status":       playerScore.BattingStatus,
@@ -460,8 +401,8 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	match, err := s.store.GetMatchByMatchID(ctx, req.MatchID)
+	fmt.Println("Match ID: ", req.MatchID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, req.MatchID)
 	if err != nil {
 		s.logger.Error("Failed to get player :", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -494,10 +435,10 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		}
 		bowlingDetails[i] = map[string]interface{}{
 			"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
-			"runs":              playerScore.Runs,
 			"ball":              playerScore.Ball,
+			"runs":              playerScore.Runs,
 			"wide":              playerScore.Wide,
-			"noBall":            playerScore.NoBall,
+			"no_ball":           playerScore.NoBall,
 			"wickets":           playerScore.Wickets,
 			"bowling_status":    playerScore.BowlingStatus,
 			"is_current_bowler": playerScore.IsCurrentBowler,
@@ -859,4 +800,45 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("failed to commit transcation: ", err)
 		return
 	}
+}
+
+func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
+
+	var req struct {
+		MatchID       int64 `json:"match_id"`
+		BatsmanTeamID int64 `json:"batsman_team_id"`
+		BatsmanID     int64 `json:"batsman_id"`
+		BowlerID      int64 `json:"bowler_id"`
+		RunsScored    int32 `json:"runs_scored"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	batsman, bowler, inningScore, err := s.store.UpdateInningScore(ctx, req.MatchID, req.BatsmanTeamID, req.BatsmanID, req.BowlerID, req.RunsScored)
+	if err != nil {
+		s.logger.Error("Failed to update innings: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if bowler.Ball%6 == 0 && req.RunsScored%2 == 0 {
+		err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		if err != nil {
+			s.logger.Error("Failed to update stricker: ", err)
+		}
+	} else if bowler.Ball%6 != 0 && req.RunsScored%2 != 0 {
+		err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		if err != nil {
+			s.logger.Error("Failed to update stricker: ", err)
+		}
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"batsman":      batsman,
+		"bowler":       bowler,
+		"inning_score": inningScore,
+	})
 }
