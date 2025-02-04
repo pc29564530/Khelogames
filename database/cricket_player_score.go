@@ -689,18 +689,49 @@ const updateStricketSwapQuery = `
 	RETURNING *;
 `
 
-func (q *Queries) ToggleCricketStricker(ctx context.Context, matchID int64) error {
-	_, err := q.db.ExecContext(ctx, `
+func (q *Queries) ToggleCricketStricker(ctx context.Context, matchID int64) ([]models.Bat, error) {
+	const query = `
 		UPDATE bats
 		SET is_striker = NOT is_striker
-		WHERE match_id=$1 AND is_currently_batting=true
+		WHERE match_id = $1 AND is_currently_batting = true
 		RETURNING *;
-	`, matchID)
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, matchID)
 	if err != nil {
-		return fmt.Errorf("failed to toggle striker: %w", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var batsmen []models.Bat
+	for rows.Next() {
+		var batsman models.Bat
+		err := rows.Scan(
+			&batsman.ID,
+			&batsman.BatsmanID,
+			&batsman.TeamID,
+			&batsman.MatchID,
+			&batsman.Position,
+			&batsman.RunsScored,
+			&batsman.BallsFaced,
+			&batsman.Fours,
+			&batsman.Sixes,
+			&batsman.BattingStatus,
+			&batsman.IsStriker,
+			&batsman.IsCurrentlyBatting,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		batsmen = append(batsmen, batsman)
 	}
 
-	return nil
+	if len(batsmen) != 2 {
+		return nil, fmt.Errorf("unexpected number of batsmen updated: expected 2, got %d", len(batsmen))
+	}
+
+	return batsmen, nil
 }
 
 func (q *Queries) UpdateWideball(ctx context.Context, matchID, battingTeamID, bowlerID int64) error {
@@ -723,25 +754,76 @@ const updateWideRun = `
 		SET wide = wide + 1, 
 		    runs = runs + 1
 		WHERE match_id = $1 AND bowler_id = $2 AND is_current_bowler = true
-		RETURNING team_id, wide, runs
+		RETURNING *
 	),
-	update_team_score AS (
+	update_inning_score AS (
 		UPDATE cricket_score
 		SET score = score + 1
 		WHERE match_id = $1 AND team_id = $3
-		RETURNING team_id, score
+		RETURNING *
+	),
+	update_batsman AS (
+		UPDATE bats
+		SET runs_scored = runs_scored + $4
+		WHERE match_id = $1 AND is_striker = true
+		RETURNING *
 	)
-	SELECT b.team_id, b.wide, b.runs, t.score
-	FROM update_bowler b
-	JOIN update_team_score t ON b.team_id = t.team_id;
+	SELECT 
+		ub.*, 
+		ubl.*, 
+		uis.*
+	FROM update_batsman ub
+	JOIN update_bowler ubl ON ub.match_id = ubl.match_id
+	JOIN update_inning_score uis ON ub.match_id = uis.match_id
 `
 
-func (q *Queries) UpdateWideRuns(ctx context.Context, matchID, bowlerID, battingTeamID int64) error {
-	_, err := q.db.ExecContext(ctx, updateWideRun, matchID, bowlerID, battingTeamID)
+func (q *Queries) UpdateWideRuns(ctx context.Context, matchID, bowlerID, battingTeamID int64, runsScored int32) (*models.Bat, *models.Ball, *models.CricketScore, error) {
+	var bowler models.Ball
+	var batsman models.Bat
+	var inningScore models.CricketScore
+	row := q.db.QueryRowContext(ctx, updateWideRun, matchID, bowlerID, battingTeamID, runsScored)
+	err := row.Scan(
+		&batsman.ID,
+		&batsman.BatsmanID,
+		&batsman.TeamID,
+		&batsman.MatchID,
+		&batsman.Position,
+		&batsman.RunsScored,
+		&batsman.BallsFaced,
+		&batsman.Fours,
+		&batsman.Sixes,
+		&batsman.BattingStatus,
+		&batsman.IsStriker,
+		&batsman.IsCurrentlyBatting,
+		&bowler.ID,
+		&bowler.BowlerID,
+		&bowler.TeamID,
+		&bowler.MatchID,
+		&bowler.Ball,
+		&bowler.Runs,
+		&bowler.Wickets,
+		&bowler.Wide,
+		&bowler.NoBall,
+		&bowler.BowlingStatus,
+		&bowler.IsCurrentBowler,
+		&inningScore.ID,
+		&inningScore.MatchID,
+		&inningScore.TeamID,
+		&inningScore.Inning,
+		&inningScore.Score,
+		&inningScore.Wickets,
+		&inningScore.Overs,
+		&inningScore.RunRate,
+		&inningScore.TargetRunRate,
+		&inningScore.FollowOn,
+		&inningScore.IsInningCompleted,
+		&inningScore.Declared,
+	)
 	if err != nil {
-		return fmt.Errorf("Failed to execute wide query: ", err)
+		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
 	}
-	return nil
+
+	return &batsman, &bowler, &inningScore, nil
 }
 
 const updateNoBallRun = `
@@ -912,10 +994,10 @@ const updateInningScore = `
 	JOIN update_inning_score uis ON ub.match_id = uis.match_id;
 `
 
-func (q *Queries) UpdateInningScore(ctx context.Context, matchID, batsmanTeamID, batsmanID, bowlerID int64, runsScored int32) (*BattingScore, *BowlingScore, *InningScore, error) {
-	var batsman BattingScore
-	var bowler BowlingScore
-	var inningScore InningScore
+func (q *Queries) UpdateInningScore(ctx context.Context, matchID, batsmanTeamID, batsmanID, bowlerID int64, runsScored int32) (*models.Bat, *models.Ball, *models.CricketScore, error) {
+	var batsman models.Bat
+	var bowler models.Ball
+	var inningScore models.CricketScore
 
 	row := q.db.QueryRowContext(ctx, updateInningScore, matchID, batsmanTeamID, batsmanID, bowlerID, runsScored)
 
@@ -933,9 +1015,9 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchID, batsmanTeamID,
 		&batsman.IsStriker,
 		&batsman.IsCurrentlyBatting,
 		&bowler.ID,
+		&bowler.BowlerID,
 		&bowler.TeamID,
 		&bowler.MatchID,
-		&bowler.BowlerID,
 		&bowler.Ball,
 		&bowler.Runs,
 		&bowler.Wickets,

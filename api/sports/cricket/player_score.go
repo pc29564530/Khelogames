@@ -637,29 +637,31 @@ func (s *CricketServer) UpdateRunsScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	bowlerStats, err := s.store.UpdateBowlerStats(ctx, req.RunsScored, req.MatchID, req.BowlerID)
+	_, err = s.store.UpdateBowlerStats(ctx, req.RunsScored, req.MatchID, req.BowlerID)
 	if err != nil {
 		s.logger.Error("Failed to update bowler scored: ", err)
 		return
 	}
 
-	if bowlerStats.Ball%6 == 0 && req.RunsScored%2 == 0 {
-		err = s.store.ToggleCricketStricker(ctx, req.MatchID)
-		if err != nil {
-			s.logger.Error("Failed to update stricker: ", err)
-		}
-	} else if bowlerStats.Ball%6 != 0 && req.RunsScored%2 != 0 {
-		err = s.store.ToggleCricketStricker(ctx, req.MatchID)
-		if err != nil {
-			s.logger.Error("Failed to update stricker: ", err)
-		}
-	}
+	// if bowlerStats.Ball%6 == 0 && req.RunsScored%2 == 0 {
+	// 	err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+	// 	if err != nil {
+	// 		s.logger.Error("Failed to update stricker: ", err)
+	// 	}
+	// } else if bowlerStats.Ball%6 != 0 && req.RunsScored%2 != 0 {
+	// 	err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+	// 	if err != nil {
+	// 		s.logger.Error("Failed to update stricker: ", err)
+	// 	}
+	// }
 }
 
 type updateWideRunsRequest struct {
 	MatchID       int64 `json:"match_id"`
+	BatsmanID     int64 `json:"batsman_id"`
 	BowlerID      int64 `json:"bowler_id"`
 	BattingTeamID int64 `json:"batting_team_id"`
+	RunsScored    int32 `json:"runs_scored"`
 }
 
 func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
@@ -676,13 +678,50 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 		return
 	}
 
+	fmt.Println("Team ID: ", req.BattingTeamID)
+
 	defer tx.Rollback()
 
-	err = s.store.UpdateWideRuns(ctx, req.MatchID, req.BowlerID, req.BattingTeamID)
+	batsman, bowler, inningScore, err := s.store.UpdateWideRuns(ctx, req.MatchID, req.BowlerID, req.BattingTeamID, req.RunsScored)
 	if err != nil {
 		s.logger.Error("Failed to update wide: ", err)
 		return
 	}
+
+	var currentBatsman []models.Bat
+	//var striker models.Bat
+	var nonStriker models.Bat
+	if bowler.Ball%6 == 0 && req.RunsScored%2 == 0 {
+		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		if err != nil {
+			s.logger.Error("Failed to update stricker: ", err)
+		}
+	} else if bowler.Ball%6 != 0 && req.RunsScored%2 != 0 {
+		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		if err != nil {
+			s.logger.Error("Failed to update stricker: ", err)
+		}
+	}
+	fmt.Println("Curr Batsman: ", currentBatsman)
+	for _, curBatsman := range currentBatsman {
+		if curBatsman.BatsmanID == req.BatsmanID && curBatsman.IsStriker {
+			batsman.IsStriker = curBatsman.IsStriker
+		} else if curBatsman.BatsmanID != req.BatsmanID && curBatsman.IsStriker {
+			nonStriker = curBatsman
+		} else if curBatsman.BatsmanID == req.BatsmanID && !curBatsman.IsStriker {
+			batsman.IsStriker = curBatsman.IsStriker
+		} else if curBatsman.BatsmanID != req.BatsmanID && !curBatsman.IsStriker {
+			nonStriker = curBatsman
+		}
+	}
+	fmt.Println(" New Curr: ", batsman)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"striker_batsman":     batsman,
+		"non_striker_batsman": nonStriker,
+		"bowler":              bowler,
+		"inning_score":        inningScore,
+	})
 
 	err = tx.Commit()
 	if err != nil {
@@ -824,21 +863,40 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		return
 	}
 
+	fmt.Println("Batting: ", batsman)
+
+	var currentBatsman []models.Bat
+	//var striker models.Bat
+	var nonStriker models.Bat
 	if bowler.Ball%6 == 0 && req.RunsScored%2 == 0 {
-		err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
 			s.logger.Error("Failed to update stricker: ", err)
 		}
 	} else if bowler.Ball%6 != 0 && req.RunsScored%2 != 0 {
-		err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
 			s.logger.Error("Failed to update stricker: ", err)
 		}
 	}
+	fmt.Println("Curr Batsman: ", currentBatsman)
+	for _, curBatsman := range currentBatsman {
+		if curBatsman.BatsmanID == req.BatsmanID && curBatsman.IsStriker {
+			batsman.IsStriker = curBatsman.IsStriker
+		} else if curBatsman.BatsmanID != req.BatsmanID && curBatsman.IsStriker {
+			nonStriker = curBatsman
+		} else if curBatsman.BatsmanID == req.BatsmanID && !curBatsman.IsStriker {
+			batsman.IsStriker = curBatsman.IsStriker
+		} else if curBatsman.BatsmanID != req.BatsmanID && !curBatsman.IsStriker {
+			nonStriker = curBatsman
+		}
+	}
+	fmt.Println(" New Curr: ", batsman)
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"batsman":      batsman,
-		"bowler":       bowler,
-		"inning_score": inningScore,
+		"striker_batsman":     batsman,
+		"non_striker_batsman": nonStriker,
+		"bowler":              bowler,
+		"inning_score":        inningScore,
 	})
 }
