@@ -827,39 +827,81 @@ func (q *Queries) UpdateWideRuns(ctx context.Context, matchID, bowlerID, batting
 }
 
 const updateNoBallRun = `
-	WITH update_bowler AS (
-		UPDATE balls
-		SET no_ball = no_ball + 1,
-			runs = runs + $1
-		WHERE match_id=$2 AND bowler_id=$3 AND is_current_bowler = true
-		RETURNING *
-	),
-	update_team_score AS (
-		UPDATE cricket_score
-		SET score = score + 1 + $1
-		WHERE match_id=$1 AND team_id=$4
-		RETURNING *
-	),
-	update_batsman_runs AS (
-		UPDATE bats
-		SET runs_scored = runs_scored + $1,
-			fours = fours + CASE WHEN $1 = 4 THEN 1 ELSE 0 END,
-			sixes = sixes + CASE WHEN $1 = 6 THEN 1 ELSE 0 END
-		WHERE match_id = $2 AND is_currently_batting = true AND is_striker = true
-		RETURNING *
-	)
-	SELECT *
-	FROM update_bowler b
-	JOIN update_team_score t ON b.team_id = t.team_id
-	JOIN matches m ON m.id=$2
+WITH update_bowler AS (
+	UPDATE balls
+	SET no_ball = no_ball + 1, 
+		runs = runs + 1 + $4
+	WHERE match_id = $1 AND bowler_id = $2 AND is_current_bowler = true
+	RETURNING *
+),
+update_inning_score AS (
+	UPDATE cricket_score
+	SET score = score + 1
+	WHERE match_id = $1 AND team_id = $3
+	RETURNING *
+),
+update_batsman AS (
+	UPDATE bats
+	SET runs_scored = runs_scored + $4
+	WHERE match_id = $1 AND is_striker = true
+	RETURNING *
+)
+SELECT 
+	ub.*, 
+	ubl.*, 
+	uis.*
+FROM update_batsman ub
+JOIN update_bowler ubl ON ub.match_id = ubl.match_id
+JOIN update_inning_score uis ON ub.match_id = uis.match_id
 `
 
-func (q *Queries) UpdateNoBallsRuns(ctx *gin.Context, runsScored int32, matchID, bowlerID, battingTeamID int64) error {
-	_, err := q.db.ExecContext(ctx, updateNoBallRun, runsScored, matchID, bowlerID, battingTeamID)
+func (q *Queries) UpdateNoBallsRuns(ctx *gin.Context, matchID, bowlerID, battingTeamID int64, runsScored int32) (*models.Bat, *models.Ball, *models.CricketScore, error) {
+	var bowler models.Ball
+	var batsman models.Bat
+	var inningScore models.CricketScore
+	row := q.db.QueryRowContext(ctx, updateNoBallRun, matchID, bowlerID, battingTeamID, runsScored)
+	err := row.Scan(
+		&batsman.ID,
+		&batsman.BatsmanID,
+		&batsman.TeamID,
+		&batsman.MatchID,
+		&batsman.Position,
+		&batsman.RunsScored,
+		&batsman.BallsFaced,
+		&batsman.Fours,
+		&batsman.Sixes,
+		&batsman.BattingStatus,
+		&batsman.IsStriker,
+		&batsman.IsCurrentlyBatting,
+		&bowler.ID,
+		&bowler.BowlerID,
+		&bowler.TeamID,
+		&bowler.MatchID,
+		&bowler.Ball,
+		&bowler.Runs,
+		&bowler.Wickets,
+		&bowler.Wide,
+		&bowler.NoBall,
+		&bowler.BowlingStatus,
+		&bowler.IsCurrentBowler,
+		&inningScore.ID,
+		&inningScore.MatchID,
+		&inningScore.TeamID,
+		&inningScore.Inning,
+		&inningScore.Score,
+		&inningScore.Wickets,
+		&inningScore.Overs,
+		&inningScore.RunRate,
+		&inningScore.TargetRunRate,
+		&inningScore.FollowOn,
+		&inningScore.IsInningCompleted,
+		&inningScore.Declared,
+	)
 	if err != nil {
-		return fmt.Errorf("Failed to execute wide query: ", err)
+		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
 	}
-	return nil
+
+	return &batsman, &bowler, &inningScore, nil
 }
 
 const addCricketWicket = `
