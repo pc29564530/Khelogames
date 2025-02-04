@@ -1,11 +1,9 @@
 package cricket
 
 import (
-	"fmt"
 	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
-	"reflect"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -402,7 +400,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	fmt.Println("Match ID: ", req.MatchID)
+
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, req.MatchID)
 	if err != nil {
 		s.logger.Error("Failed to get player :", err)
@@ -679,8 +677,6 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("Team ID: ", req.BattingTeamID)
-
 	defer tx.Rollback()
 
 	batsman, bowler, inningScore, err := s.store.UpdateWideRuns(ctx, req.MatchID, req.BowlerID, req.BattingTeamID, req.RunsScored)
@@ -690,7 +686,6 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 	}
 
 	var currentBatsman []models.Bat
-	//var striker models.Bat
 	var nonStriker models.Bat
 	if bowler.Ball%6 == 0 && req.RunsScored%2 == 0 {
 		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
@@ -703,7 +698,7 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to update stricker: ", err)
 		}
 	}
-	fmt.Println("Curr Batsman: ", currentBatsman)
+
 	for _, curBatsman := range currentBatsman {
 		if curBatsman.BatsmanID == req.BatsmanID && curBatsman.IsStriker {
 			batsman.IsStriker = curBatsman.IsStriker
@@ -715,7 +710,6 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 			nonStriker = curBatsman
 		}
 	}
-	fmt.Println(" New Curr: ", batsman)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"striker_batsman":     batsman,
@@ -755,8 +749,6 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	fmt.Println("Type: ", reflect.TypeOf(req.RunsScored))
-
 	batsman, bowler, inningScore, err := s.store.UpdateNoBallsRuns(ctx, req.MatchID, req.BowlerID, req.BattingTeamID, req.RunsScored)
 	if err != nil {
 		s.logger.Error("Failed to update no_ball: ", err)
@@ -764,7 +756,6 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 	}
 
 	var currentBatsman []models.Bat
-	//var striker models.Bat
 	var nonStriker models.Bat
 	if bowler.Ball%6 == 0 && req.RunsScored%2 == 0 {
 		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
@@ -777,7 +768,7 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to update stricker: ", err)
 		}
 	}
-	fmt.Println("Curr Batsman: ", currentBatsman)
+
 	for _, curBatsman := range currentBatsman {
 		if curBatsman.BatsmanID == req.BatsmanID && curBatsman.IsStriker {
 			batsman.IsStriker = curBatsman.IsStriker
@@ -789,7 +780,6 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 			nonStriker = curBatsman
 		}
 	}
-	fmt.Println(" New Curr: ", batsman)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"striker_batsman":     batsman,
@@ -871,8 +861,6 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("failed to update cricket overs: ", err)
 	}
 
-	// _, err := s.store.Update(ctx, arg)
-
 	err = tx.Commit()
 	if err != nil {
 		s.logger.Error("failed to commit transcation: ", err)
@@ -902,10 +890,7 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("Batting: ", batsman)
-
 	var currentBatsman []models.Bat
-	//var striker models.Bat
 	var nonStriker models.Bat
 	if bowler.Ball%6 == 0 && req.RunsScored%2 == 0 {
 		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
@@ -918,7 +903,7 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to update stricker: ", err)
 		}
 	}
-	fmt.Println("Curr Batsman: ", currentBatsman)
+
 	for _, curBatsman := range currentBatsman {
 		if curBatsman.BatsmanID == req.BatsmanID && curBatsman.IsStriker {
 			batsman.IsStriker = curBatsman.IsStriker
@@ -930,7 +915,6 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 			nonStriker = curBatsman
 		}
 	}
-	fmt.Println(" New Curr: ", batsman)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"striker_batsman":     batsman,
