@@ -51,7 +51,6 @@ func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) 
 		arg.BowlingStatus,
 		arg.IsCurrentBowler,
 	)
-	fmt.Println("row: ", row)
 	var i models.Ball
 	err := row.Scan(
 		&i.ID,
@@ -66,7 +65,6 @@ func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) 
 		&i.BowlingStatus,
 		&i.IsCurrentBowler,
 	)
-	fmt.Println("Err: ", err)
 	return i, err
 }
 
@@ -336,7 +334,6 @@ type GetCricketPlayersScoreParams struct {
 func (q *Queries) GetCricketPlayersScore(ctx context.Context, arg GetCricketPlayersScoreParams) ([]models.Bat, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketPlayersScore, arg.MatchID, arg.TeamID)
 	if err != nil {
-		fmt.Println("Rows: ", err)
 		return nil, err
 	}
 
