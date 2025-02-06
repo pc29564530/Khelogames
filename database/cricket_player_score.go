@@ -1014,7 +1014,7 @@ const updateInningScore = `
 		UPDATE balls
 		SET runs = runs + $5,
 			ball = ball + 1
-		WHERE match_id = $1 AND bowler_id = $4 AND is_current_bowler = true
+		WHERE match_id = $1 AND bowler_id = $4
 		RETURNING *
 	),
 	update_inning_score AS (
@@ -1054,9 +1054,9 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchID, batsmanTeamID,
 		&batsman.IsStriker,
 		&batsman.IsCurrentlyBatting,
 		&bowler.ID,
-		&bowler.BowlerID,
 		&bowler.TeamID,
 		&bowler.MatchID,
+		&bowler.BowlerID,
 		&bowler.Ball,
 		&bowler.Runs,
 		&bowler.Wickets,
@@ -1083,4 +1083,37 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchID, batsmanTeamID,
 	}
 
 	return &batsman, &bowler, &inningScore, nil
+}
+
+const updateSetBowlerStatus = `
+	UPDATE balls
+	SET is_current_bowler = NOT is_current_bowler
+	WHERE  match_id=$1 AND bowler_id=$2 AND bowling_status=true
+	RETURNING *
+`
+
+func (q *Queries) UpdateBowlingBowlerStatus(ctx context.Context, matchID, bowlerID int64) (*models.Ball, error) {
+	var bowler models.Ball
+
+	row := q.db.QueryRowContext(ctx, updateSetBowlerStatus, matchID, bowlerID)
+
+	err := row.Scan(
+		&bowler.ID,
+		&bowler.BowlerID,
+		&bowler.TeamID,
+		&bowler.MatchID,
+		&bowler.Ball,
+		&bowler.Runs,
+		&bowler.Wickets,
+		&bowler.Wide,
+		&bowler.NoBall,
+		&bowler.BowlingStatus,
+		&bowler.IsCurrentBowler,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to exec query: %w", err)
+	}
+
+	return &bowler, nil
 }

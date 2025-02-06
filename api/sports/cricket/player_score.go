@@ -104,6 +104,14 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin Transcation")
+	}
+
+	defer tx.Rollback()
+
 	arg := db.AddCricketBallParams{
 		MatchID:         req.MatchID,
 		TeamID:          req.TeamID,
@@ -115,6 +123,15 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		NoBall:          req.NoBall,
 		BowlingStatus:   req.BowlingStatus,
 		IsCurrentBowler: req.IsCurrentBowler,
+	}
+
+	_, err = tx.ExecContext(ctx, `
+		UPDATE balls 
+		SET is_current_bowler = false 
+		WHERE match_id = $1 AND is_current_bowler = true
+	`, arg.MatchID)
+	if err != nil {
+		s.logger.Error("Failed to update current bowler: ", err)
 	}
 
 	response, err := s.store.AddCricketBall(ctx, arg)
@@ -138,7 +155,10 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		"bowling_status":    response.BowlingStatus,
 		"is_current_bowler": response.IsCurrentBowler,
 	}
-
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+	}
 	ctx.JSON(http.StatusAccepted, bowler)
 }
 
@@ -922,4 +942,48 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		"bowler":              bowler,
 		"inning_score":        inningScore,
 	})
+}
+
+func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
+	var req struct {
+		MatchID  int64 `json:"match_id"`
+		BowlerID int64 `json:"bowler_id"`
+	}
+
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	tx, err := s.store.BeginTx(ctx)
+	if err != nil {
+		s.logger.Error("Failed to begin Transcation")
+	}
+
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `
+		UPDATE balls 
+		SET is_current_bowler = false 
+		WHERE match_id = $1 AND is_current_bowler = true
+	`, req.MatchID)
+	if err != nil {
+		s.logger.Error("Failed to update current bowler: ", err)
+	}
+
+	bowler, err := s.store.UpdateBowlingBowlerStatus(ctx, req.MatchID, req.BowlerID)
+	if err != nil {
+		s.logger.Error("Failed to update bowler status: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"bowler": bowler,
+	})
+
+	err = tx.Commit()
+	if err != nil {
+		s.logger.Error("Failed to commit transcation: ", err)
+	}
 }
