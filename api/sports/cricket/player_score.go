@@ -87,6 +87,7 @@ type addCricketBallScore struct {
 	MatchID         int64 `json:"match_id"`
 	TeamID          int64 `json:"team_id"`
 	BowlerID        int64 `json:"bowler_id"`
+	PrevBowlerID    int64 `json:"prev_bowler_id"`
 	Ball            int32 `json:"ball"`
 	Runs            int32 `json:"runs"`
 	Wickets         int32 `json:"wickets"`
@@ -112,6 +113,33 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
+	var preveBowlerID int64
+	var currentBowlerResponse *models.Ball
+	var prevBowler map[string]interface{}
+
+	if req.PrevBowlerID != preveBowlerID {
+		currentBowlerResponse, err = s.store.UpdateBowlingBowlerStatus(ctx, req.MatchID, req.PrevBowlerID)
+		if err != nil {
+			s.logger.Error("Failed to update current bowler status: ", err)
+			return
+		}
+
+		playerData, err := s.store.GetPlayer(ctx, currentBowlerResponse.BowlerID)
+		if err != nil {
+			s.logger.Error("Failed to get Player: ", err)
+		}
+		prevBowler = map[string]interface{}{
+			"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+			"runs":              currentBowlerResponse.Runs,
+			"ball":              currentBowlerResponse.Ball,
+			"wide":              currentBowlerResponse.Wide,
+			"no_ball":           currentBowlerResponse.NoBall,
+			"wickets":           currentBowlerResponse.Wickets,
+			"bowling_status":    currentBowlerResponse.BowlingStatus,
+			"is_current_bowler": currentBowlerResponse.IsCurrentBowler,
+		}
+	}
+
 	arg := db.AddCricketBallParams{
 		MatchID:         req.MatchID,
 		TeamID:          req.TeamID,
@@ -125,15 +153,6 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		IsCurrentBowler: req.IsCurrentBowler,
 	}
 
-	_, err = tx.ExecContext(ctx, `
-		UPDATE balls 
-		SET is_current_bowler = false 
-		WHERE match_id = $1 AND is_current_bowler = true
-	`, arg.MatchID)
-	if err != nil {
-		s.logger.Error("Failed to update current bowler: ", err)
-	}
-
 	response, err := s.store.AddCricketBall(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add the cricket bowler data: ", gin.H{"error": err.Error()})
@@ -145,7 +164,7 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get Player: ", err)
 	}
 
-	bowler := map[string]interface{}{
+	currentBowler := map[string]interface{}{
 		"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
 		"runs":              response.Runs,
 		"ball":              response.Ball,
@@ -155,11 +174,15 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		"bowling_status":    response.BowlingStatus,
 		"is_current_bowler": response.IsCurrentBowler,
 	}
+
 	err = tx.Commit()
 	if err != nil {
 		s.logger.Error("Failed to commit transcation: ", err)
 	}
-	ctx.JSON(http.StatusAccepted, bowler)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"current_bowler": prevBowler,
+		"next_bowler":    currentBowler,
+	})
 }
 
 type updateCricketBatRequest struct {
@@ -946,8 +969,9 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 
 func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 	var req struct {
-		MatchID  int64 `json:"match_id"`
-		BowlerID int64 `json:"bowler_id"`
+		MatchID         int64 `json:"match_id"`
+		CurrentBowlerID int64 `json:"current_bowler_id"`
+		NextBowlerID    int64 `json:"next_bowler_id"`
 	}
 
 	err := ctx.ShouldBindJSON(&req)
@@ -963,27 +987,59 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	_, err = tx.ExecContext(ctx, `
-		UPDATE balls 
-		SET is_current_bowler = false 
-		WHERE match_id = $1 AND is_current_bowler = true
-	`, req.MatchID)
+	currentBowlerResponse, err := s.store.UpdateBowlingBowlerStatus(ctx, req.MatchID, req.CurrentBowlerID)
 	if err != nil {
-		s.logger.Error("Failed to update current bowler: ", err)
-	}
-
-	bowler, err := s.store.UpdateBowlingBowlerStatus(ctx, req.MatchID, req.BowlerID)
-	if err != nil {
-		s.logger.Error("Failed to update bowler status: ", err)
+		s.logger.Error("Failed to update current bowler status: ", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"bowler": bowler,
-	})
-
+	nextBowlerResponse, err := s.store.UpdateBowlingBowlerStatus(ctx, req.MatchID, req.NextBowlerID)
+	if err != nil {
+		s.logger.Error("Failed to update next bowler status: ", err)
+		return
+	}
 	err = tx.Commit()
 	if err != nil {
 		s.logger.Error("Failed to commit transcation: ", err)
 	}
+
+	nextPlayerData, err := s.store.GetPlayer(ctx, req.NextBowlerID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	currentPlayerData, err := s.store.GetPlayer(ctx, req.CurrentBowlerID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	nextBowler := map[string]interface{}{
+		"player":            map[string]interface{}{"id": nextPlayerData.ID, "name": nextPlayerData.PlayerName, "slug": nextPlayerData.Slug, "shortName": nextPlayerData.ShortName, "position": nextPlayerData.Positions, "username": nextPlayerData.Username},
+		"ball":              nextBowlerResponse.Ball,
+		"runs":              nextBowlerResponse.Runs,
+		"wide":              nextBowlerResponse.Wide,
+		"no_ball":           nextBowlerResponse.NoBall,
+		"wickets":           nextBowlerResponse.Wickets,
+		"bowling_status":    nextBowlerResponse.BowlingStatus,
+		"is_current_bowler": nextBowlerResponse.IsCurrentBowler,
+	}
+
+	currentBowler := map[string]interface{}{
+		"player":            map[string]interface{}{"id": currentPlayerData.ID, "name": currentPlayerData.PlayerName, "slug": currentPlayerData.Slug, "shortName": currentPlayerData.ShortName, "position": currentPlayerData.Positions, "username": currentPlayerData.Username},
+		"ball":              currentBowlerResponse.Ball,
+		"runs":              currentBowlerResponse.Runs,
+		"wide":              currentBowlerResponse.Wide,
+		"no_ball":           currentBowlerResponse.NoBall,
+		"wickets":           currentBowlerResponse.Wickets,
+		"bowling_status":    currentBowlerResponse.BowlingStatus,
+		"is_current_bowler": currentBowlerResponse.IsCurrentBowler,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"next_bowler":    nextBowler,
+		"current_bowler": currentBowler,
+	})
+
 }

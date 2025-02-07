@@ -1088,32 +1088,32 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchID, batsmanTeamID,
 const updateSetBowlerStatus = `
 	UPDATE balls
 	SET is_current_bowler = NOT is_current_bowler
-	WHERE  match_id=$1 AND bowler_id=$2 AND bowling_status=true
+	WHERE match_id = $1 AND bowler_id = $2
 	RETURNING *
 `
 
 func (q *Queries) UpdateBowlingBowlerStatus(ctx context.Context, matchID, bowlerID int64) (*models.Ball, error) {
-	var bowler models.Ball
+	var currentBowler models.Ball
 
 	row := q.db.QueryRowContext(ctx, updateSetBowlerStatus, matchID, bowlerID)
 
 	err := row.Scan(
-		&bowler.ID,
-		&bowler.BowlerID,
-		&bowler.TeamID,
-		&bowler.MatchID,
-		&bowler.Ball,
-		&bowler.Runs,
-		&bowler.Wickets,
-		&bowler.Wide,
-		&bowler.NoBall,
-		&bowler.BowlingStatus,
-		&bowler.IsCurrentBowler,
+		&currentBowler.ID,
+		&currentBowler.TeamID,
+		&currentBowler.MatchID,
+		&currentBowler.BowlerID,
+		&currentBowler.Ball,
+		&currentBowler.Runs,
+		&currentBowler.Wickets,
+		&currentBowler.Wide,
+		&currentBowler.NoBall,
+		&currentBowler.BowlingStatus,
+		&currentBowler.IsCurrentBowler,
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to exec query: %w", err)
 	}
 
-	return &bowler, nil
+	return &currentBowler, nil
 }
