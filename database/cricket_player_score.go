@@ -702,26 +702,26 @@ func (q *Queries) ToggleCricketStricker(ctx context.Context, matchID int64) ([]m
 
 	var batsmen []models.Bat
 	for rows.Next() {
-		var batsman models.Bat
+		var bat models.Bat
 		err := rows.Scan(
-			&batsman.ID,
-			&batsman.BatsmanID,
-			&batsman.TeamID,
-			&batsman.MatchID,
-			&batsman.Position,
-			&batsman.RunsScored,
-			&batsman.BallsFaced,
-			&batsman.Fours,
-			&batsman.Sixes,
-			&batsman.BattingStatus,
-			&batsman.IsStriker,
-			&batsman.IsCurrentlyBatting,
+			&bat.ID,
+			&bat.BatsmanID,
+			&bat.TeamID,
+			&bat.MatchID,
+			&bat.Position,
+			&bat.RunsScored,
+			&bat.BallsFaced,
+			&bat.Fours,
+			&bat.Sixes,
+			&bat.BattingStatus,
+			&bat.IsStriker,
+			&bat.IsCurrentlyBatting,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		batsmen = append(batsmen, batsman)
+		batsmen = append(batsmen, bat)
 	}
 
 	if len(batsmen) != 2 {
@@ -1116,4 +1116,46 @@ func (q *Queries) UpdateBowlingBowlerStatus(ctx context.Context, matchID, bowler
 	}
 
 	return &currentBowler, nil
+}
+
+const getCurrentBattingBatsmanQuery = `
+	SELECT * FROM bats
+	WHERE match_id=$1 AND team_id=$2 AND is_currently_batting=true;
+`
+
+func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchID, batsmanID int64) ([]models.Bat, error) {
+	rows, err := q.db.QueryContext(ctx, getCurrentBattingBatsmanQuery, matchID, batsmanID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var batsmen []models.Bat
+	for rows.Next() {
+		var bat models.Bat
+		err := rows.Scan(
+			&bat.ID,
+			&bat.BatsmanID,
+			&bat.TeamID,
+			&bat.MatchID,
+			&bat.Position,
+			&bat.RunsScored,
+			&bat.BallsFaced,
+			&bat.Fours,
+			&bat.Sixes,
+			&bat.BattingStatus,
+			&bat.IsStriker,
+			&bat.IsCurrentlyBatting,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		batsmen = append(batsmen, bat)
+	}
+	if len(batsmen) != 2 {
+		return nil, fmt.Errorf("unexpected number of batsmen updated: expected 2, got %d", len(batsmen))
+	}
+
+	return batsmen, nil
 }

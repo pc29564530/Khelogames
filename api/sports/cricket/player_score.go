@@ -69,7 +69,8 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 	}
 
 	batsman := map[string]interface{}{
-		"player":               map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+		"player": map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+
 		"runsScored":           response.RunsScored,
 		"ballFaced":            response.BallsFaced,
 		"fours":                response.Fours,
@@ -130,6 +131,10 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		}
 		prevBowler = map[string]interface{}{
 			"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+			"id":                currentBowlerResponse.ID,
+			"match_id":          currentBowlerResponse.MatchID,
+			"team_id":           currentBowlerResponse.TeamID,
+			"bowler_id":         currentBowlerResponse.BowlerID,
 			"runs":              currentBowlerResponse.Runs,
 			"ball":              currentBowlerResponse.Ball,
 			"wide":              currentBowlerResponse.Wide,
@@ -166,6 +171,10 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 
 	currentBowler := map[string]interface{}{
 		"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+		"id":                response.ID,
+		"match_id":          response.MatchID,
+		"team_id":           response.TeamID,
+		"bowler_id":         response.BowlerID,
 		"runs":              response.Runs,
 		"ball":              response.Ball,
 		"wide":              response.Wide,
@@ -364,6 +373,10 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		}
 		playerDetails := map[string]interface{}{
 			"player":               map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+			"id":                   playerScore.ID,
+			"match_id":             playerScore.MatchID,
+			"team_id":              playerScore.TeamID,
+			"batsman_id":           playerScore.BatsmanID,
 			"runs_scored":          playerScore.RunsScored,
 			"balls_faced":          playerScore.BallsFaced,
 			"fours":                playerScore.Fours,
@@ -477,6 +490,10 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		}
 		bowlingDetails[i] = map[string]interface{}{
 			"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.PlayerName, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions, "username": playerData.Username},
+			"id":                playerScore.ID,
+			"match_id":          playerScore.MatchID,
+			"team_id":           playerScore.TeamID,
+			"bowler_id":         playerScore.BowlerID,
 			"ball":              playerScore.Ball,
 			"runs":              playerScore.Runs,
 			"wide":              playerScore.Wide,
@@ -926,7 +943,7 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	batsman, bowler, inningScore, err := s.store.UpdateInningScore(ctx, req.MatchID, req.BatsmanTeamID, req.BatsmanID, req.BowlerID, req.RunsScored)
+	batsmanResponse, bowlerResponse, inningScore, err := s.store.UpdateInningScore(ctx, req.MatchID, req.BatsmanTeamID, req.BatsmanID, req.BowlerID, req.RunsScored)
 	if err != nil {
 		s.logger.Error("Failed to update innings: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -934,14 +951,19 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	}
 
 	var currentBatsman []models.Bat
-	var nonStriker models.Bat
-	if bowler.Ball%6 == 0 && req.RunsScored%2 == 0 {
+	var nonStrikerResponse models.Bat
+	if bowlerResponse.Ball%6 == 0 && req.RunsScored%2 == 0 {
 		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
 			s.logger.Error("Failed to update stricker: ", err)
 		}
-	} else if bowler.Ball%6 != 0 && req.RunsScored%2 != 0 {
+	} else if bowlerResponse.Ball%6 != 0 && req.RunsScored%2 != 0 {
 		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		if err != nil {
+			s.logger.Error("Failed to update stricker: ", err)
+		}
+	} else {
+		currentBatsman, err = s.store.GetCurrentBattingBatsman(ctx, req.MatchID, req.BatsmanTeamID)
 		if err != nil {
 			s.logger.Error("Failed to update stricker: ", err)
 		}
@@ -949,14 +971,77 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 
 	for _, curBatsman := range currentBatsman {
 		if curBatsman.BatsmanID == req.BatsmanID && curBatsman.IsStriker {
-			batsman.IsStriker = curBatsman.IsStriker
+			batsmanResponse.IsStriker = curBatsman.IsStriker
 		} else if curBatsman.BatsmanID != req.BatsmanID && curBatsman.IsStriker {
-			nonStriker = curBatsman
+			nonStrikerResponse = curBatsman
 		} else if curBatsman.BatsmanID == req.BatsmanID && !curBatsman.IsStriker {
-			batsman.IsStriker = curBatsman.IsStriker
+			batsmanResponse.IsStriker = curBatsman.IsStriker
 		} else if curBatsman.BatsmanID != req.BatsmanID && !curBatsman.IsStriker {
-			nonStriker = curBatsman
+			nonStrikerResponse = curBatsman
 		}
+	}
+
+	batsmanPlayerData, err := s.store.GetPlayer(ctx, batsmanResponse.BatsmanID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	nonStrikerPlayerData, err := s.store.GetPlayer(ctx, nonStrikerResponse.BatsmanID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	bowlerPlayerData, err := s.store.GetPlayer(ctx, bowlerResponse.BowlerID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	batsman := map[string]interface{}{
+		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "name": batsmanPlayerData.PlayerName, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions, "username": batsmanPlayerData.Username},
+		"id":                   batsmanResponse.ID,
+		"match_id":             batsmanResponse.MatchID,
+		"team_id":              batsmanResponse.TeamID,
+		"batsman_id":           batsmanResponse.BatsmanID,
+		"runs_scored":          batsmanResponse.RunsScored,
+		"balls_faced":          batsmanResponse.BallsFaced,
+		"fours":                batsmanResponse.Fours,
+		"sixes":                batsmanResponse.Sixes,
+		"batting_status":       batsmanResponse.BattingStatus,
+		"is_striker":           batsmanResponse.IsStriker,
+		"is_currently_batting": batsmanResponse.IsCurrentlyBatting,
+	}
+
+	nonStriker := map[string]interface{}{
+		"player":               map[string]interface{}{"id": nonStrikerPlayerData.ID, "name": nonStrikerPlayerData.PlayerName, "slug": nonStrikerPlayerData.Slug, "shortName": nonStrikerPlayerData.ShortName, "position": nonStrikerPlayerData.Positions, "username": nonStrikerPlayerData.Username},
+		"id":                   nonStrikerResponse.ID,
+		"match_id":             nonStrikerResponse.MatchID,
+		"team_id":              nonStrikerResponse.TeamID,
+		"batsman_id":           nonStrikerResponse.BatsmanID,
+		"runs_scored":          nonStrikerResponse.RunsScored,
+		"balls_faced":          nonStrikerResponse.BallsFaced,
+		"fours":                nonStrikerResponse.Fours,
+		"sixes":                nonStrikerResponse.Sixes,
+		"batting_status":       nonStrikerResponse.BattingStatus,
+		"is_striker":           nonStrikerResponse.IsStriker,
+		"is_currently_batting": nonStrikerResponse.IsCurrentlyBatting,
+	}
+
+	bowler := map[string]interface{}{
+		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.PlayerName, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions, "username": bowlerPlayerData.Username},
+		"id":                bowlerResponse.ID,
+		"match_id":          bowlerResponse.MatchID,
+		"team_id":           bowlerResponse.TeamID,
+		"bowler_id":         bowlerResponse.BowlerID,
+		"ball":              bowlerResponse.Ball,
+		"runs":              bowlerResponse.Runs,
+		"wide":              bowlerResponse.Wide,
+		"no_ball":           bowlerResponse.NoBall,
+		"wickets":           bowlerResponse.Wickets,
+		"bowling_status":    bowlerResponse.BowlingStatus,
+		"is_current_bowler": bowlerResponse.IsCurrentBowler,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -1017,6 +1102,10 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 
 	nextBowler := map[string]interface{}{
 		"player":            map[string]interface{}{"id": nextPlayerData.ID, "name": nextPlayerData.PlayerName, "slug": nextPlayerData.Slug, "shortName": nextPlayerData.ShortName, "position": nextPlayerData.Positions, "username": nextPlayerData.Username},
+		"id":                nextBowlerResponse.ID,
+		"match_id":          nextBowlerResponse.MatchID,
+		"team_id":           nextBowlerResponse.TeamID,
+		"bowler_id":         nextBowlerResponse.BowlerID,
 		"ball":              nextBowlerResponse.Ball,
 		"runs":              nextBowlerResponse.Runs,
 		"wide":              nextBowlerResponse.Wide,
@@ -1028,6 +1117,10 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 
 	currentBowler := map[string]interface{}{
 		"player":            map[string]interface{}{"id": currentPlayerData.ID, "name": currentPlayerData.PlayerName, "slug": currentPlayerData.Slug, "shortName": currentPlayerData.ShortName, "position": currentPlayerData.Positions, "username": currentPlayerData.Username},
+		"id":                currentBowlerResponse.ID,
+		"match_id":          currentBowlerResponse.MatchID,
+		"team_id":           currentBowlerResponse.TeamID,
+		"bowler_id":         currentBowlerResponse.BowlerID,
 		"ball":              currentBowlerResponse.Ball,
 		"runs":              currentBowlerResponse.Runs,
 		"wide":              currentBowlerResponse.Wide,
