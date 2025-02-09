@@ -423,6 +423,7 @@ func (q *Queries) GetCricketWickets(ctx context.Context, arg GetCricketWicketsPa
 			&i.WicketType,
 			&i.BallNumber,
 			&i.FielderID,
+			&i.Score,
 		); err != nil {
 			return nil, err
 		}
@@ -901,61 +902,6 @@ func (q *Queries) UpdateNoBallsRuns(ctx *gin.Context, matchID, bowlerID, batting
 	return &batsman, &bowler, &inningScore, nil
 }
 
-const addCricketWicket = `
-WITH add_wicket AS (
-    INSERT INTO wickets (
-        match_id,
-        team_id,
-        batsman_id,
-        bowler_id,
-        wickets_number,
-        wicket_type,
-        ball_number,
-        fielder_id
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING *
-),
-update_bowler AS (
-    UPDATE balls
-    SET 
-        wickets = CASE
-				WHEN $6 != 'Run Out' THEN wickets + 1
-				ELSE wickets
-			END,
-        ball = ball + 1
-    WHERE match_id = $1 AND bowler_id = $4 AND is_current_bowler = true
-    RETURNING *
-),
-update_batsman AS (
-    UPDATE bats
-    SET 
-        balls_faced = balls_faced + 1,
-        runs_scored = runs_scored + CASE 
-            WHEN $9 > 0 THEN $9
-            ELSE 0
-        END,
-		is_currently_batting = NOT is_currently_batting,
-		is_striker = false
-    WHERE match_id = $1 AND batsman_id = $3 AND is_currently_batting = true AND is_striker = true
-    RETURNING *
-)
-SELECT 
-    w.*,
-    b.*,
-    ba.*
-FROM add_wicket w
-JOIN update_bowler b ON w.match_id = b.match_id
-JOIN update_batsman ba ON w.match_id = ba.match_id;
-`
-
-func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsmanID, bowlerID int64, wicketNumber int, wicketType string, ballNumber int, fielderID int64, runsScored int32) error {
-	_, err := q.db.ExecContext(ctx, addCricketWicket, matchID, teamID, batsmanID, bowlerID, wicketNumber, wicketType, ballNumber, fielderID, runsScored)
-	if err != nil {
-		return fmt.Errorf("Failed to exec querys: ", err)
-	}
-	return nil
-}
-
 type BattingScore struct {
 	ID                 int64  `json:"id"`
 	BatsmanID          int64  `json:"batsman_id"`
@@ -998,6 +944,129 @@ type InningScore struct {
 	FollowOn          bool   `json:"follow_on"`
 	IsInningCompleted bool   `json:"is_inning_completed"`
 	Declared          bool   `json:"declared"`
+}
+
+// Enhance about the no ball
+const addCricketWicket = `
+WITH add_wicket AS (
+    INSERT INTO wickets (
+        match_id,
+        team_id,
+        batsman_id,
+        bowler_id,
+        wickets_number,
+        wicket_type,
+        ball_number,
+        fielder_id,
+		score
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *
+),
+update_batsman AS (
+    UPDATE bats
+    SET 
+        balls_faced = balls_faced + 1,
+        runs_scored = runs_scored + CASE 
+            WHEN $9 > 0 THEN $9
+            ELSE 0
+        END,
+		is_currently_batting = NOT is_currently_batting,
+		is_striker = false
+    WHERE match_id = $1 AND batsman_id = $3 AND is_currently_batting = true
+    RETURNING *
+),
+update_bowler AS (
+    UPDATE balls
+    SET 
+        wickets = CASE
+				WHEN $6 != 'Run Out' THEN wickets + 1
+				ELSE wickets
+			END,
+		runs = runs + CASE WHEN $9 > 0 THEN $9 ELSE 0
+		END,
+        ball = ball + 1
+    WHERE match_id = $1 AND bowler_id = $4 AND is_current_bowler = true
+    RETURNING *
+),
+update_inning_score AS (
+		UPDATE cricket_score
+		SET overs = overs + 1,
+			wickets = wickets + 1
+		WHERE match_id = $1 AND team_id = $2
+		RETURNING *
+)
+SELECT 
+	ba.*,
+    b.*,
+	sc.*,
+	 w.*
+FROM add_wicket w
+JOIN update_bowler b ON w.match_id = b.match_id
+JOIN update_batsman ba ON w.match_id = ba.match_id
+JOIN update_inning_score sc ON w.match_id = sc.match_id;
+`
+
+func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsmanID, bowlerID int64, wicketNumber int, wicketType string, ballNumber int, fielderID int64, runsScored int32) (*models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
+	var batsman models.Bat
+	var bowler models.Ball
+	var inningScore models.CricketScore
+	var wickets models.Wicket
+
+	row := q.db.QueryRowContext(ctx, addCricketWicket, matchID, teamID, batsmanID, bowlerID, wicketNumber, wicketType, ballNumber, fielderID, runsScored)
+	err := row.Scan(
+		&batsman.ID,
+		&batsman.BatsmanID,
+		&batsman.TeamID,
+		&batsman.MatchID,
+		&batsman.Position,
+		&batsman.RunsScored,
+		&batsman.BallsFaced,
+		&batsman.Fours,
+		&batsman.Sixes,
+		&batsman.BattingStatus,
+		&batsman.IsStriker,
+		&batsman.IsCurrentlyBatting,
+		&bowler.ID,
+		&bowler.TeamID,
+		&bowler.MatchID,
+		&bowler.BowlerID,
+		&bowler.Ball,
+		&bowler.Runs,
+		&bowler.Wickets,
+		&bowler.Wide,
+		&bowler.NoBall,
+		&bowler.BowlingStatus,
+		&bowler.IsCurrentBowler,
+		&inningScore.ID,
+		&inningScore.MatchID,
+		&inningScore.TeamID,
+		&inningScore.Inning,
+		&inningScore.Score,
+		&inningScore.Wickets,
+		&inningScore.Overs,
+		&inningScore.RunRate,
+		&inningScore.TargetRunRate,
+		&inningScore.FollowOn,
+		&inningScore.IsInningCompleted,
+		&inningScore.Declared,
+		&wickets.ID,
+		&wickets.MatchID,
+		&wickets.TeamID,
+		&wickets.BatsmanID,
+		&wickets.BowlerID,
+		&wickets.WicketsNumber,
+		&wickets.WicketType,
+		&wickets.BallNumber,
+		&wickets.FielderID,
+		&wickets.Score,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil, nil, nil, nil
+		}
+		return nil, nil, nil, nil, fmt.Errorf("Failed to scan query: ", err)
+	}
+	return &batsman, &bowler, &inningScore, &wickets, nil
 }
 
 const updateInningScore = `
