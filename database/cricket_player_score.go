@@ -967,7 +967,7 @@ update_batsman AS (
     SET 
         balls_faced = balls_faced + 1,
         runs_scored = runs_scored + CASE 
-            WHEN $9 > 0 THEN $9
+            WHEN $10 > 0 THEN $10
             ELSE 0
         END,
 		is_currently_batting = NOT is_currently_batting,
@@ -982,7 +982,7 @@ update_bowler AS (
 				WHEN $6 != 'Run Out' THEN wickets + 1
 				ELSE wickets
 			END,
-		runs = runs + CASE WHEN $9 > 0 THEN $9 ELSE 0
+		runs = runs + CASE WHEN $10 > 0 THEN $10 ELSE 0
 		END,
         ball = ball + 1
     WHERE match_id = $1 AND bowler_id = $4 AND is_current_bowler = true
@@ -1006,13 +1006,13 @@ JOIN update_batsman ba ON w.match_id = ba.match_id
 JOIN update_inning_score sc ON w.match_id = sc.match_id;
 `
 
-func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsmanID, bowlerID int64, wicketNumber int, wicketType string, ballNumber int, fielderID int64, runsScored int32) (*models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
+func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsmanID, bowlerID int64, wicketNumber int, wicketType string, ballNumber int, fielderID int64, score int32, runsScored int32) (*models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
 	var batsman models.Bat
 	var bowler models.Ball
 	var inningScore models.CricketScore
 	var wickets models.Wicket
 
-	row := q.db.QueryRowContext(ctx, addCricketWicket, matchID, teamID, batsmanID, bowlerID, wicketNumber, wicketType, ballNumber, fielderID, runsScored)
+	row := q.db.QueryRowContext(ctx, addCricketWicket, matchID, teamID, batsmanID, bowlerID, wicketNumber, wicketType, ballNumber, fielderID, score, runsScored)
 	err := row.Scan(
 		&batsman.ID,
 		&batsman.BatsmanID,
