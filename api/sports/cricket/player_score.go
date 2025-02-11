@@ -873,11 +873,12 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	}
 
 	if req.ToggleStriker {
-		_, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		notOut, err := s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
 			s.logger.Error("failed to toggle batsman: ", err)
 			return
 		}
+		notOutBatsmanResponse = &notOut[0]
 	}
 
 	var currentBatsman *models.Bat
