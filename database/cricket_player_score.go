@@ -725,9 +725,9 @@ func (q *Queries) ToggleCricketStricker(ctx context.Context, matchID int64) ([]m
 		batsmen = append(batsmen, bat)
 	}
 
-	if len(batsmen) != 2 {
-		return nil, fmt.Errorf("unexpected number of batsmen updated: expected 2, got %d", len(batsmen))
-	}
+	// if len(batsmen) != 2 {
+	// 	return nil, fmt.Errorf("unexpected number of batsmen updated: expected 2, got %d", len(batsmen))
+	// }
 
 	return batsmen, nil
 }
@@ -958,74 +958,99 @@ WITH add_wicket AS (
         wicket_type,
         ball_number,
         fielder_id,
-		score
+        score
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *
 ),
-update_batsman AS (
+update_out_batsman AS (
     UPDATE bats
-    SET 
-        balls_faced = balls_faced + 1,
-        runs_scored = runs_scored + CASE 
-            WHEN $10 > 0 THEN $10
-            ELSE 0
-        END,
-		is_currently_batting = NOT is_currently_batting,
-		is_striker = false
-    WHERE match_id = $1 AND batsman_id = $3 AND is_currently_batting = true
+    SET balls_faced = balls_faced + 1,
+        runs_scored = runs_scored + (CASE WHEN is_striker THEN (CASE WHEN $10 > 0 THEN $10 ELSE 0 END) ELSE 0 END),
+        is_currently_batting = false,
+        is_striker = false
+    WHERE match_id = $1 
+      AND batsman_id = $3 
+      AND team_id = $2
+    RETURNING *
+),
+update_not_out_batsman AS (
+    UPDATE bats
+    SET balls_faced = balls_faced + 1,
+        runs_scored = runs_scored + (CASE WHEN is_striker THEN (CASE WHEN $10 > 0 THEN $10 ELSE 0 END) ELSE 0 END)
+    WHERE match_id = $1 
+      AND team_id = $2 
+      AND batsman_id <> $3 
+      AND is_currently_batting = true
     RETURNING *
 ),
 update_bowler AS (
     UPDATE balls
-    SET 
-        wickets = CASE
-				WHEN $6 != 'Run Out' THEN wickets + 1
-				ELSE wickets
-			END,
-		runs = runs + CASE WHEN $10 > 0 THEN $10 ELSE 0
-		END,
+    SET wickets = CASE
+                    WHEN $6 != 'Run Out' THEN wickets + 1
+                    ELSE wickets
+                  END,
+        runs = runs + (CASE WHEN $10 > 0 THEN $10 ELSE 0 END),
         ball = ball + 1
-    WHERE match_id = $1 AND bowler_id = $4 AND is_current_bowler = true
+    WHERE match_id = $1 
+      AND bowler_id = $4 
+      AND is_current_bowler = true
     RETURNING *
 ),
 update_inning_score AS (
-		UPDATE cricket_score
-		SET overs = overs + 1,
-			wickets = wickets + 1
-		WHERE match_id = $1 AND team_id = $2
-		RETURNING *
+    UPDATE cricket_score
+    SET overs = overs + 1,
+        wickets = wickets + 1,
+        score = score + (CASE WHEN $10 > 0 THEN $10 ELSE 0 END)
+    WHERE match_id = $1 
+      AND team_id = $2
+    RETURNING *
 )
 SELECT 
-	ba.*,
-    b.*,
+	o.*,
+	n.*,
+	b.*,
 	sc.*,
-	 w.*
+    w.*
 FROM add_wicket w
+JOIN update_out_batsman o ON w.match_id = o.match_id
+JOIN update_not_out_batsman n ON w.match_id = n.match_id
 JOIN update_bowler b ON w.match_id = b.match_id
-JOIN update_batsman ba ON w.match_id = ba.match_id
 JOIN update_inning_score sc ON w.match_id = sc.match_id;
 `
 
-func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsmanID, bowlerID int64, wicketNumber int, wicketType string, ballNumber int, fielderID int64, score int32, runsScored int32) (*models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
-	var batsman models.Bat
+func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsmanID, bowlerID int64, wicketNumber int, wicketType string, ballNumber int, fielderID int64, score int32, runsScored int32) (*models.Bat, *models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
+	var outBatsman models.Bat
+	var notOutBatsman models.Bat
 	var bowler models.Ball
 	var inningScore models.CricketScore
 	var wickets models.Wicket
 
 	row := q.db.QueryRowContext(ctx, addCricketWicket, matchID, teamID, batsmanID, bowlerID, wicketNumber, wicketType, ballNumber, fielderID, score, runsScored)
 	err := row.Scan(
-		&batsman.ID,
-		&batsman.BatsmanID,
-		&batsman.TeamID,
-		&batsman.MatchID,
-		&batsman.Position,
-		&batsman.RunsScored,
-		&batsman.BallsFaced,
-		&batsman.Fours,
-		&batsman.Sixes,
-		&batsman.BattingStatus,
-		&batsman.IsStriker,
-		&batsman.IsCurrentlyBatting,
+		&outBatsman.ID,
+		&outBatsman.BatsmanID,
+		&outBatsman.TeamID,
+		&outBatsman.MatchID,
+		&outBatsman.Position,
+		&outBatsman.RunsScored,
+		&outBatsman.BallsFaced,
+		&outBatsman.Fours,
+		&outBatsman.Sixes,
+		&outBatsman.BattingStatus,
+		&outBatsman.IsStriker,
+		&outBatsman.IsCurrentlyBatting,
+		&notOutBatsman.ID,
+		&notOutBatsman.BatsmanID,
+		&notOutBatsman.TeamID,
+		&notOutBatsman.MatchID,
+		&notOutBatsman.Position,
+		&notOutBatsman.RunsScored,
+		&notOutBatsman.BallsFaced,
+		&notOutBatsman.Fours,
+		&notOutBatsman.Sixes,
+		&notOutBatsman.BattingStatus,
+		&notOutBatsman.IsStriker,
+		&notOutBatsman.IsCurrentlyBatting,
 		&bowler.ID,
 		&bowler.TeamID,
 		&bowler.MatchID,
@@ -1062,11 +1087,11 @@ func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsman
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil, nil, nil, nil
+			return nil, nil, nil, nil, nil, nil
 		}
-		return nil, nil, nil, nil, fmt.Errorf("Failed to scan query: ", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to scan query: ", err)
 	}
-	return &batsman, &bowler, &inningScore, &wickets, nil
+	return &outBatsman, &notOutBatsman, &bowler, &inningScore, &wickets, nil
 }
 
 const updateInningScore = `

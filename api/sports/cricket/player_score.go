@@ -837,6 +837,7 @@ type addCricketWicketReq struct {
 	BallNumber    int    `json:"ball_number"`
 	FielderID     int64  `json:"fielder_id"`
 	RunsScored    int32  `json:"runs_scored"`
+	ToggleStriker bool   `json:"toggle_striker"`
 }
 
 func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
@@ -865,13 +866,36 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get cricket score: ", err)
 	}
 
-	batsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err := s.store.AddCricketWicket(ctx, req.MatchID, req.BattingTeamID, req.BatsmanID, req.BowlerID, int(cricketScore.Wickets), req.WicketType, int(cricketScore.Overs), req.FielderID, cricketScore.Score)
+	outBatsmanResponse, notOutBatsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err := s.store.AddCricketWicket(ctx, req.MatchID, req.BattingTeamID, req.BatsmanID, req.BowlerID, int(cricketScore.Wickets), req.WicketType, int(cricketScore.Overs), req.FielderID, cricketScore.Score, req.RunsScored)
 	if err != nil {
 		s.logger.Error("failed to add cricket wicket: ", err)
 		return
 	}
 
-	batsmanPlayerData, err := s.store.GetPlayer(ctx, batsmanResponse.BatsmanID)
+	if req.ToggleStriker {
+		_, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
+		if err != nil {
+			s.logger.Error("failed to toggle batsman: ", err)
+			return
+		}
+	}
+
+	var currentBatsman *models.Bat
+	currentBatsman = notOutBatsmanResponse
+	if bowlerResponse.Ball%6 == 0 {
+		currentBatsmanResponse, err := s.store.ToggleCricketStricker(ctx, req.MatchID)
+		if err != nil {
+			s.logger.Error("Failed to update stricker: ", err)
+		}
+		currentBatsman = &currentBatsmanResponse[0]
+	}
+
+	outBatsmanPlayerData, err := s.store.GetPlayer(ctx, outBatsmanResponse.BatsmanID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+	}
+
+	notOutBatsmanPlayerData, err := s.store.GetPlayer(ctx, currentBatsman.BatsmanID)
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
 	}
@@ -890,19 +914,34 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		}
 	}
 
-	batsman := map[string]interface{}{
-		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "name": batsmanPlayerData.PlayerName, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions, "username": batsmanPlayerData.Username},
-		"id":                   batsmanResponse.ID,
-		"match_id":             batsmanResponse.MatchID,
-		"team_id":              batsmanResponse.TeamID,
-		"batsman_id":           batsmanResponse.BatsmanID,
-		"runs_scored":          batsmanResponse.RunsScored,
-		"balls_faced":          batsmanResponse.BallsFaced,
-		"fours":                batsmanResponse.Fours,
-		"sixes":                batsmanResponse.Sixes,
-		"batting_status":       batsmanResponse.BattingStatus,
-		"is_striker":           batsmanResponse.IsStriker,
-		"is_currently_batting": batsmanResponse.IsCurrentlyBatting,
+	outBatsmanScore := map[string]interface{}{
+		"player":               map[string]interface{}{"id": outBatsmanPlayerData.ID, "name": outBatsmanPlayerData.PlayerName, "slug": outBatsmanPlayerData.Slug, "shortName": outBatsmanPlayerData.ShortName, "position": outBatsmanPlayerData.Positions, "username": outBatsmanPlayerData.Username},
+		"id":                   outBatsmanResponse.ID,
+		"match_id":             outBatsmanResponse.MatchID,
+		"team_id":              outBatsmanResponse.TeamID,
+		"batsman_id":           outBatsmanResponse.BatsmanID,
+		"runs_scored":          outBatsmanResponse.RunsScored,
+		"balls_faced":          outBatsmanResponse.BallsFaced,
+		"fours":                outBatsmanResponse.Fours,
+		"sixes":                outBatsmanResponse.Sixes,
+		"batting_status":       outBatsmanResponse.BattingStatus,
+		"is_striker":           outBatsmanResponse.IsStriker,
+		"is_currently_batting": outBatsmanResponse.IsCurrentlyBatting,
+	}
+
+	notOutBatsmanScore := map[string]interface{}{
+		"player":               map[string]interface{}{"id": notOutBatsmanPlayerData.ID, "name": notOutBatsmanPlayerData.PlayerName, "slug": notOutBatsmanPlayerData.Slug, "shortName": notOutBatsmanPlayerData.ShortName, "position": notOutBatsmanPlayerData.Positions, "username": notOutBatsmanPlayerData.Username},
+		"id":                   notOutBatsmanResponse.ID,
+		"match_id":             notOutBatsmanResponse.MatchID,
+		"team_id":              notOutBatsmanResponse.TeamID,
+		"batsman_id":           notOutBatsmanResponse.BatsmanID,
+		"runs_scored":          notOutBatsmanResponse.RunsScored,
+		"balls_faced":          notOutBatsmanResponse.BallsFaced,
+		"fours":                notOutBatsmanResponse.Fours,
+		"sixes":                notOutBatsmanResponse.Sixes,
+		"batting_status":       notOutBatsmanResponse.BattingStatus,
+		"is_striker":           notOutBatsmanResponse.IsStriker,
+		"is_currently_batting": notOutBatsmanResponse.IsCurrentlyBatting,
 	}
 
 	bowler := map[string]interface{}{
@@ -921,7 +960,7 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	}
 
 	wickets := map[string]interface{}{
-		"batsman_player": map[string]interface{}{"id": batsmanPlayerData.ID, "name": batsmanPlayerData.PlayerName, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions, "username": batsmanPlayerData.Username},
+		"batsman_player": map[string]interface{}{"id": outBatsmanPlayerData.ID, "name": outBatsmanPlayerData.PlayerName, "slug": outBatsmanPlayerData.Slug, "shortName": outBatsmanPlayerData.ShortName, "position": outBatsmanPlayerData.Positions, "username": outBatsmanPlayerData.Username},
 		"bowler_player":  map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.PlayerName, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions, "username": bowlerPlayerData.Username},
 		"fielder_player": fielderPlayerData,
 		"id":             wicketResponse.ID,
@@ -943,10 +982,11 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, gin.H{
-		"batsman":      batsman,
-		"bowler":       bowler,
-		"inning_score": inningScoreResponse,
-		"wickets":      wickets,
+		"out_batsman":     outBatsmanScore,
+		"not_out_batsman": notOutBatsmanScore,
+		"bowler":          bowler,
+		"inning_score":    inningScoreResponse,
+		"wickets":         wickets,
 	})
 }
 
