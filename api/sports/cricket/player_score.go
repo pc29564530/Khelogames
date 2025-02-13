@@ -873,13 +873,29 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	}
 
 	matchData, err := s.store.GetMatchByMatchID(ctx, req.MatchID, 2)
+	if err != nil {
+		s.logger.Error("failed to get match: ", err)
+		return
+	}
 
 	if inningScoreResponse.Wickets == 10 {
-		inningScoreResponse, notOutBatsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+		inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+		if err != nil {
+			s.logger.Error("failed to update inning score: ", err)
+			return
+		}
 	} else if matchData["match_format"] == "T20" && inningScoreResponse.Overs/6 == 20 {
-		inningScoreResponse, notOutBatsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+		inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+		if err != nil {
+			s.logger.Error("failed to update inning score: ", err)
+			return
+		}
 	} else if matchData["match_format"] == "ODI" && inningScoreResponse.Overs/6 == 50 {
-		inningScoreResponse, notOutBatsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+		inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+		if err != nil {
+			s.logger.Error("failed to update inning score: ", err)
+			return
+		}
 	}
 
 	if req.ToggleStriker {
@@ -1055,13 +1071,29 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	}
 
 	matchData, err := s.store.GetMatchByMatchID(ctx, req.MatchID, 2)
+	if err != nil {
+		s.logger.Error("failed to get match by match id: ", err)
+		return
+	}
 
 	if inningScore.Wickets == 10 {
-		inningScore, batsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
+		inningScore, batsmanResponse, bowlerResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
+		if err != nil {
+			s.logger.Error("failed to update inning score: ", err)
+			return
+		}
 	} else if matchData["match_format"] == "T20" && inningScore.Overs/6 == 20 {
-		inningScore, batsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
+		inningScore, batsmanResponse, bowlerResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
+		if err != nil {
+			s.logger.Error("failed to update inning score: ", err)
+			return
+		}
 	} else if matchData["match_format"] == "ODI" && inningScore.Overs/6 == 50 {
-		inningScore, batsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
+		inningScore, batsmanResponse, bowlerResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
+		if err != nil {
+			s.logger.Error("failed to update inning score: ", err)
+			return
+		}
 	}
 
 	batsmanPlayerData, err := s.store.GetPlayer(ctx, batsmanResponse.BatsmanID)
