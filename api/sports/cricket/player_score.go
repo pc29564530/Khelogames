@@ -872,6 +872,16 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		return
 	}
 
+	matchData, err := s.store.GetMatchByMatchID(ctx, req.MatchID, 2)
+
+	if inningScoreResponse.Wickets == 10 {
+		inningScoreResponse, notOutBatsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+	} else if matchData["match_format"] == "T20" && inningScoreResponse.Overs/6 == 20 {
+		inningScoreResponse, notOutBatsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+	} else if matchData["match_format"] == "ODI" && inningScoreResponse.Overs/6 == 50 {
+		inningScoreResponse, notOutBatsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BattingTeamID)
+	}
+
 	if req.ToggleStriker {
 		notOut, err := s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
@@ -1042,6 +1052,16 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		} else if curBatsman.BatsmanID != req.BatsmanID && !curBatsman.IsStriker {
 			nonStrikerResponse = curBatsman
 		}
+	}
+
+	matchData, err := s.store.GetMatchByMatchID(ctx, req.MatchID, 2)
+
+	if inningScore.Wickets == 10 {
+		inningScore, batsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
+	} else if matchData["match_format"] == "T20" && inningScore.Overs/6 == 20 {
+		inningScore, batsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
+	} else if matchData["match_format"] == "ODI" && inningScore.Overs/6 == 50 {
+		inningScore, batsmanResponse, err = s.store.UpdateInningEndStatus(ctx, req.MatchID, req.BatsmanTeamID)
 	}
 
 	batsmanPlayerData, err := s.store.GetPlayer(ctx, batsmanResponse.BatsmanID)

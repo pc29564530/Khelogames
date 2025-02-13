@@ -203,7 +203,10 @@ const getCricketMatchByMatchID = `
                 'wickets', cs_home.wickets,
                 'overs', cs_home.overs,
                 'run_rate', cs_home.run_rate,
-                'target_run_rate', cs_home.target_run_rate
+                'target_run_rate', cs_home.target_run_rate,
+                'follow_on', cs_home.follow_on,
+                'is_inning_completed', cs_home.is_inning_completed,
+                'declared', cs_home.declared
             )
             ELSE NULL
         END,
@@ -239,7 +242,10 @@ const getCricketMatchByMatchID = `
                 'wickets', cs_away.wickets,
                 'overs', cs_away.overs,
                 'run_rate', cs_away.run_rate,
-                'target_run_rate', cs_away.target_run_rate
+                'target_run_rate', cs_away.target_run_rate,
+                'follow_on', cs_home.follow_on,
+                'is_inning_completed', cs_home.is_inning_completed,
+                'declared', cs_home.declared
             )
             ELSE NULL
         END,

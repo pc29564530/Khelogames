@@ -1094,6 +1094,67 @@ func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsman
 	return &outBatsman, &notOutBatsman, &bowler, &inningScore, &wickets, nil
 }
 
+const updateInningEndStatus = `
+WITH update_inning AS (
+	UPDATE cricket_score
+	SET is_inning_completed = true
+	WHERE match_id = $1 AND team_id = $3
+	RETURNING *
+),
+update_batsman AS (
+	UPDATE bats
+	SET is_striker = false
+	WHERE match_id = $1 AND is_striker = true
+	RETURNING *
+)
+SELECT 
+	uis.*,
+	ub.*
+FROM update_batsman ub
+JOIN update_bowler ubl ON ub.match_id = ubl.match_id
+JOIN update_inning_score uis ON ub.match_id = uis.match_id
+`
+
+func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTeamID int64) (*models.CricketScore, *models.Bat, error) {
+	var inningScore models.CricketScore
+	var batsmanScore models.Bat
+
+	row := q.db.QueryRowContext(ctx, updateInningScore, matchID, batsmanTeamID)
+
+	err := row.Scan(
+		&inningScore.ID,
+		&inningScore.MatchID,
+		&inningScore.TeamID,
+		&inningScore.Inning,
+		&inningScore.Score,
+		&inningScore.Wickets,
+		&inningScore.Overs,
+		&inningScore.RunRate,
+		&inningScore.TargetRunRate,
+		&inningScore.FollowOn,
+		&inningScore.IsInningCompleted,
+		&inningScore.Declared,
+		&batsmanScore.ID,
+		&batsmanScore.BatsmanID,
+		&batsmanScore.TeamID,
+		&batsmanScore.MatchID,
+		&batsmanScore.Position,
+		&batsmanScore.RunsScored,
+		&batsmanScore.BallsFaced,
+		&batsmanScore.Fours,
+		&batsmanScore.Sixes,
+		&batsmanScore.BattingStatus,
+		&batsmanScore.IsStriker,
+		&batsmanScore.IsCurrentlyBatting,
+	)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to exec query: %w", err)
+	}
+
+	return &inningScore, &batsmanScore, nil
+}
+
 const updateInningScore = `
 	WITH update_batsman AS (
 		UPDATE bats
