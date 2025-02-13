@@ -1106,18 +1106,26 @@ update_batsman AS (
 	SET is_striker = false
 	WHERE match_id = $1 AND is_striker = true
 	RETURNING *
+),
+update_bolwer AS (
+	UPDATE balls
+	SET is_current_bowler = false
+	WHERE match_id = $1 AND is_current_bowler = true
+	RETURNING *
 )
 SELECT 
 	uis.*,
 	ub.*
+	ubl.*
 FROM update_batsman ub
 JOIN update_bowler ubl ON ub.match_id = ubl.match_id
 JOIN update_inning_score uis ON ub.match_id = uis.match_id
 `
 
-func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTeamID int64) (*models.CricketScore, *models.Bat, error) {
+func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTeamID int64) (*models.CricketScore, *models.Bat, *models.Ball, error) {
 	var inningScore models.CricketScore
 	var batsmanScore models.Bat
+	var bowler models.Ball
 
 	row := q.db.QueryRowContext(ctx, updateInningScore, matchID, batsmanTeamID)
 
@@ -1146,13 +1154,24 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 		&batsmanScore.BattingStatus,
 		&batsmanScore.IsStriker,
 		&batsmanScore.IsCurrentlyBatting,
+		&bowler.ID,
+		&bowler.TeamID,
+		&bowler.MatchID,
+		&bowler.BowlerID,
+		&bowler.Ball,
+		&bowler.Runs,
+		&bowler.Wickets,
+		&bowler.Wide,
+		&bowler.NoBall,
+		&bowler.BowlingStatus,
+		&bowler.IsCurrentBowler,
 	)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to exec query: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
 	}
 
-	return &inningScore, &batsmanScore, nil
+	return &inningScore, &batsmanScore, nil, nil
 }
 
 const updateInningScore = `
