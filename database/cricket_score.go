@@ -172,7 +172,7 @@ SET score = (
         SELECT SUM(bt.runs_scored) + SUM(bl.wide + bl.no_ball)
         FROM bats bt
 		LEFT JOIN balls AS bl ON bt.match_id=bl.match_id AND bl.team_id =  $3 AND bl.bowling_status=true
-        WHERE bt.match_id=cs.match_id
+        WHERE bt.match_id=cs.match_id AND bt.team_id=cs.team_id
         GROUP BY (bt.match_id, bt.team_id)
     )
 WHERE cs.match_id=$1 AND cs.team_id=$2
