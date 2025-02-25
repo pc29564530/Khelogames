@@ -710,20 +710,20 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	batsman, bowler, inningScore, err := s.store.UpdateWideRuns(ctx, req.MatchID, req.BowlerID, req.BattingTeamID, req.RunsScored)
+	batsmanResponse, bowlerResponse, inningScore, err := s.store.UpdateWideRuns(ctx, req.MatchID, req.BowlerID, req.BattingTeamID, req.RunsScored)
 	if err != nil {
 		s.logger.Error("Failed to update wide: ", err)
 		return
 	}
 
 	var currentBatsman []models.Bat
-	var nonStriker models.Bat
-	if bowler.Ball%6 == 0 && req.RunsScored%2 == 0 {
+	var nonStrikerResponse models.Bat
+	if bowlerResponse.Ball%6 == 0 && req.RunsScored%2 == 0 {
 		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
 			s.logger.Error("Failed to update stricker: ", err)
 		}
-	} else if bowler.Ball%6 != 0 && req.RunsScored%2 != 0 {
+	} else if bowlerResponse.Ball%6 != 0 && req.RunsScored%2 != 0 {
 		currentBatsman, err = s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
 			s.logger.Error("Failed to update stricker: ", err)
@@ -732,14 +732,82 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 
 	for _, curBatsman := range currentBatsman {
 		if curBatsman.BatsmanID == req.BatsmanID && curBatsman.IsStriker {
-			batsman.IsStriker = curBatsman.IsStriker
+			batsmanResponse.IsStriker = curBatsman.IsStriker
 		} else if curBatsman.BatsmanID != req.BatsmanID && curBatsman.IsStriker {
-			nonStriker = curBatsman
+			nonStrikerResponse = curBatsman
 		} else if curBatsman.BatsmanID == req.BatsmanID && !curBatsman.IsStriker {
-			batsman.IsStriker = curBatsman.IsStriker
+			batsmanResponse.IsStriker = curBatsman.IsStriker
 		} else if curBatsman.BatsmanID != req.BatsmanID && !curBatsman.IsStriker {
-			nonStriker = curBatsman
+			nonStrikerResponse = curBatsman
 		}
+	}
+
+	batsmanPlayerData, err := s.store.GetPlayer(ctx, batsmanResponse.BatsmanID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	nonStrikerPlayerData, err := s.store.GetPlayer(ctx, nonStrikerResponse.BatsmanID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	bowlerPlayerData, err := s.store.GetPlayer(ctx, bowlerResponse.BowlerID)
+	if err != nil {
+		s.logger.Error("Failed to get Player: ", err)
+		return
+	}
+
+	batsman := map[string]interface{}{
+		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "name": batsmanPlayerData.PlayerName, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions, "username": batsmanPlayerData.Username},
+		"id":                   batsmanResponse.ID,
+		"match_id":             batsmanResponse.MatchID,
+		"team_id":              batsmanResponse.TeamID,
+		"batsman_id":           batsmanResponse.BatsmanID,
+		"runs_scored":          batsmanResponse.RunsScored,
+		"balls_faced":          batsmanResponse.BallsFaced,
+		"fours":                batsmanResponse.Fours,
+		"sixes":                batsmanResponse.Sixes,
+		"batting_status":       batsmanResponse.BattingStatus,
+		"is_striker":           batsmanResponse.IsStriker,
+		"is_currently_batting": batsmanResponse.IsCurrentlyBatting,
+	}
+
+	var emptyBatsman models.Bat
+	var nonStriker map[string]interface{}
+
+	if nonStrikerResponse != emptyBatsman {
+		nonStriker = map[string]interface{}{
+			"player":               map[string]interface{}{"id": nonStrikerPlayerData.ID, "name": nonStrikerPlayerData.PlayerName, "slug": nonStrikerPlayerData.Slug, "shortName": nonStrikerPlayerData.ShortName, "position": nonStrikerPlayerData.Positions, "username": nonStrikerPlayerData.Username},
+			"id":                   nonStrikerResponse.ID,
+			"match_id":             nonStrikerResponse.MatchID,
+			"team_id":              nonStrikerResponse.TeamID,
+			"batsman_id":           nonStrikerResponse.BatsmanID,
+			"runs_scored":          nonStrikerResponse.RunsScored,
+			"balls_faced":          nonStrikerResponse.BallsFaced,
+			"fours":                nonStrikerResponse.Fours,
+			"sixes":                nonStrikerResponse.Sixes,
+			"batting_status":       nonStrikerResponse.BattingStatus,
+			"is_striker":           nonStrikerResponse.IsStriker,
+			"is_currently_batting": nonStrikerResponse.IsCurrentlyBatting,
+		}
+	}
+
+	bowler := map[string]interface{}{
+		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.PlayerName, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions, "username": bowlerPlayerData.Username},
+		"id":                bowlerResponse.ID,
+		"match_id":          bowlerResponse.MatchID,
+		"team_id":           bowlerResponse.TeamID,
+		"bowler_id":         bowlerResponse.BowlerID,
+		"ball":              bowlerResponse.Ball,
+		"runs":              bowlerResponse.Runs,
+		"wide":              bowlerResponse.Wide,
+		"no_ball":           bowlerResponse.NoBall,
+		"wickets":           bowlerResponse.Wickets,
+		"bowling_status":    bowlerResponse.BowlingStatus,
+		"is_current_bowler": bowlerResponse.IsCurrentBowler,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
