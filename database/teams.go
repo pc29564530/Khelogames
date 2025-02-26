@@ -70,6 +70,7 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 			&i.AwayTeamID,
 			&i.HomeTeamName,
 			&i.AwayTeamName,
+			&i.StartTimestamp,
 			&i.StatusCode,
 			&i.Type,
 		); err != nil {
@@ -396,7 +397,7 @@ type NewTeamsParams struct {
 	Country     string `json:"country"`
 	Type        string `json:"type"`
 	PlayerCount int32  `json:"player_count"`
-	GameID      int64  `json:"game_id"`
+	GameID      int32  `json:"game_id"`
 }
 
 func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team, error) {
