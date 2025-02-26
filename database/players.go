@@ -112,6 +112,45 @@ func (q *Queries) GetPlayersCountry(ctx context.Context, country string) ([]mode
 	return items, nil
 }
 
+const getPlayerBySport = `
+	SELECT * FROM players
+	WHERE game_id=$1;
+`
+
+func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int64) ([]models.Player, error) {
+	rows, err := q.db.QueryContext(ctx, getPlayerBySport, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []models.Player
+	for rows.Next() {
+		var i models.Player
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Slug,
+			&i.ShortName,
+			&i.MediaUrl,
+			&i.Positions,
+			&i.Sports,
+			&i.Country,
+			&i.PlayerName,
+			&i.GameID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const newPlayer = `
 INSERT INTO players (
     username,

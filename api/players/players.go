@@ -127,6 +127,25 @@ func (s *PlayerServer) GetPlayerByCountry(ctx *gin.Context) {
 	return
 }
 
+func (s *PlayerServer) GetPlayersBySportFunc(ctx *gin.Context) {
+	gameIDString := ctx.Query("game_id")
+	gameID, err := strconv.ParseInt(gameIDString, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse game id: ", err)
+		return
+	}
+
+	response, err := s.store.GetPlayersBySport(ctx, gameID)
+	if err != nil {
+		s.logger.Error("Failed to get player profile: ", err)
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+	s.logger.Debug("Successfully get all player profile: ", response)
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
 func (s *PlayerServer) UpdatePlayerMediaFunc(ctx *gin.Context) {
 	playerIdStr := ctx.Query("id")
 	playerID, err := strconv.ParseInt(playerIdStr, 10, 64)
