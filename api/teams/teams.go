@@ -39,7 +39,7 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 		return
 	}
 
-	tx.Rollback()
+	defer tx.Rollback()
 
 	saveImageStruct := util.NewSaveImageStruct(s.logger)
 	var path string
@@ -54,7 +54,6 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 
 		path, err = saveImageStruct.SaveImageToFile(data, "image")
 		if err != nil {
-			tx.Rollback()
 			s.logger.Error("Failed to create file: ", err)
 			return
 		}
@@ -78,7 +77,6 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 
 	response, err := s.store.NewTeams(ctx, arg)
 	if err != nil {
-		tx.Rollback()
 		s.logger.Error("Failed to create club: ", err)
 		return
 	}
