@@ -117,7 +117,7 @@ const getPlayerBySport = `
 	WHERE game_id=$1;
 `
 
-func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int64) ([]models.Player, error) {
+func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) ([]models.Player, error) {
 	rows, err := q.db.QueryContext(ctx, getPlayerBySport, gameID)
 	if err != nil {
 		return nil, err

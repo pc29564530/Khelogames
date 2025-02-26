@@ -135,7 +135,7 @@ func (s *PlayerServer) GetPlayersBySportFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetPlayersBySport(ctx, gameID)
+	response, err := s.store.GetPlayersBySport(ctx, int32(gameID))
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
 		ctx.JSON(http.StatusNoContent, err)
