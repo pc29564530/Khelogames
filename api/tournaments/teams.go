@@ -28,15 +28,28 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		TeamID:       req.TeamID,
 	}
 
-	response, err := s.store.NewTournamentTeam(ctx, arg)
+	newTeam, err := s.store.NewTournamentTeam(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add team: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Info("Successfully added team: ", response)
 
-	ctx.JSON(http.StatusAccepted, response)
+	teamByTournament, err := s.store.GetTournamentTeam(ctx, newTeam.TeamID, newTeam.TournamentID)
+	if err != nil {
+		s.logger.Error("Failed to get Tournament Team: ", err)
+		return
+	}
+
+	s.logger.Info("Successfully added team: ", teamByTournament.TeamData)
+	var teamData map[string]interface{}
+	err = json.Unmarshal([]byte(teamByTournament.TeamData), &teamData)
+	if err != nil {
+		s.logger.Error("Failed to unmarshal team data: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, teamData)
 	return
 }
 

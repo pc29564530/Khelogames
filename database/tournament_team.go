@@ -7,14 +7,21 @@ import (
 )
 
 const getTournamentTeam = `
-SELECT tournament_id, team_id FROM tournament_team
-WHERE team_id=$1
+SELECT tt.tournament_id, JSON_BUILD_OBJECT('id', tm.id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id) AS team_data
+FROM tournament_team tt
+JOIN teams AS tm ON tm.id = tt.team_id
+WHERE team_id=$1 AND tournament_id=$2
 `
 
-func (q *Queries) GetTournamentTeam(ctx context.Context, teamID int64) (models.TournamentTeam, error) {
-	row := q.db.QueryRowContext(ctx, getTournamentTeam, teamID)
-	var i models.TournamentTeam
-	err := row.Scan(&i.TournamentID, &i.TeamID)
+type GetTournamentTeamInterface struct {
+	TournamentID int64  `json:"tournament_id"`
+	TeamData     string `json:"team_data"`
+}
+
+func (q *Queries) GetTournamentTeam(ctx context.Context, teamID, tournamentID int64) (GetTournamentTeamInterface, error) {
+	row := q.db.QueryRowContext(ctx, getTournamentTeam, teamID, tournamentID)
+	var i GetTournamentTeamInterface
+	err := row.Scan(&i.TournamentID, &i.TeamData)
 	return i, err
 }
 
