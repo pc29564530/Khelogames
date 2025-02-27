@@ -260,7 +260,8 @@ const getCricketMatchByMatchID = `
             'game_id', t.game_id,
             'group_count', t.group_count,
             'max_group_team', t.max_group_team,
-            'stage', t.stage
+            'stage', t.stage,
+            'has_knockout', t.has_knockout
         )
     ) AS response
     FROM matches m

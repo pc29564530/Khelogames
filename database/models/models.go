@@ -319,6 +319,7 @@ type Tournament struct {
 	GroupCount     *int32 `json:"group_count"`
 	MaxGroupTeam   *int32 `json:"max_group_team"`
 	Stage          string `json:"stage"`
+	HasKnockout    bool   `json:"has_knockout"`
 }
 
 type FootballStanding struct {
