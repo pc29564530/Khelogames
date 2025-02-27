@@ -156,9 +156,9 @@ func (q *Queries) GetTeam(ctx context.Context, id int64) (models.Team, error) {
 }
 
 const getTeamByPlayer = `
-SELECT team_id, player_id, current_team, id, name, slug, shortname, admin, media_url, gender, national, country, type, player_count, game_id FROM team_players
-JOIN teams ON team_players.team_id=teams.id
-WHERE player_id=$1 AND current_team='t'
+SELECT tm.* FROM team_players
+JOIN teams AS tm ON team_players.team_id=tm.id
+WHERE player_id=$1
 `
 
 func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models.GetTeamByPlayer, error) {
@@ -171,9 +171,6 @@ func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models
 	for rows.Next() {
 		var i models.GetTeamByPlayer
 		if err := rows.Scan(
-			&i.TeamID,
-			&i.PlayerID,
-			&i.CurrentTeam,
 			&i.ID,
 			&i.Name,
 			&i.Slug,
