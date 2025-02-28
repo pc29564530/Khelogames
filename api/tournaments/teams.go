@@ -23,6 +23,27 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		return
 	}
 
+	gameName := ctx.Param("sport")
+
+	game, err := s.store.GetGamebyName(ctx, gameName)
+	if err != nil {
+		s.logger.Error("Failed to get game by name: ", err)
+		return
+	}
+
+	teamPlayer, err := s.store.GetTeamByPlayer(ctx, req.TeamID)
+	if err != nil {
+		s.logger.Error("Failed to get team player: ", err)
+		return
+	}
+
+	teamPlayerCount := len(teamPlayer)
+
+	if game.MinPlayers > int32(teamPlayerCount) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Team strength does not satisfied"})
+		return
+	}
+
 	arg := db.NewTournamentTeamParams{
 		TournamentID: req.TournamentID,
 		TeamID:       req.TeamID,

@@ -76,32 +76,6 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
 	gameName := ctx.Param("sport")
 
-	game, err := s.store.GetGamebyName(ctx, gameName)
-	if err != nil {
-		s.logger.Error("Failed to get game by name: ", err)
-		return
-	}
-
-	homePlayer, err := s.store.GetTeamByPlayer(ctx, req.HomeTeamID)
-	if err != nil {
-		s.logger.Error("Failed to get team player: ", err)
-		return
-	}
-
-	awayPlayer, err := s.store.GetTeamByPlayer(ctx, req.AwayTeamID)
-	if err != nil {
-		s.logger.Error("Failed to get team player: ", err)
-		return
-	}
-
-	homePlayerCount := len(homePlayer)
-	awayPlayerCount := len(awayPlayer)
-
-	if game.MinPlayers > int32(homePlayerCount) || game.MinPlayers > int32(awayPlayerCount) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Team strength does not satisfied"})
-		return
-	}
-
 	startTimeStamp, err := util.ConvertTimeStamp(req.StartTimestamp)
 	if err != nil {
 		s.logger.Error("unable to convert time to second: ", err)
