@@ -2,11 +2,12 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"khelogames/database/models"
 )
 
 const createCricketStanding = `
-INSERT INTO football_standing (
+INSERT INTO cricket_standing (
     tournament_id,
     group_id,
     team_id,
@@ -14,21 +15,15 @@ INSERT INTO football_standing (
     wins,
     loss,
     draw,
-    goal_for,
-    goal_against,
-    goal_difference,
     points
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 ) RETURNING id, tournament_id, group_id, team_id, matches, wins, loss, draw, goal_for, goal_against, goal_difference, points
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8 ) RETURNING id, tournament_id, group_id, team_id, matches, wins, loss, draw, points
 `
 
-func (q *Queries) CreateCricketStanding(ctx context.Context, tournamentID, groupID, teamID int64) (models.CricketStanding, error) {
+func (q *Queries) CreateCricketStanding(ctx context.Context, tournamentID, groupID, teamID int64) (*models.CricketStanding, error) {
 	row := q.db.QueryRowContext(ctx, createCricketStanding,
 		tournamentID,
 		groupID,
 		teamID,
-		nil,
-		nil,
-		nil,
 		nil,
 		nil,
 		nil,
@@ -47,27 +42,19 @@ func (q *Queries) CreateCricketStanding(ctx context.Context, tournamentID, group
 		&i.Draw,
 		&i.Points,
 	)
-	return i, err
+	return &i, err
 }
 
 const getCricketStanding = `
 	SELECT
-		CASE
-			WHEN EXISTS (
-				SELECT 1 FROM cricket_standing cs
-				WHERE cs.tournament_id=$1
-			) THEN
-				JSON_AGG(
-					JSON_BUILD_OBJECT(
-						cs.id, cs.tournament_id, cs.group_id, cs.team_id, cs.matches, cs.wins, cs.loss, cs.draw, cs.points,
-						JSON_BUILD_OBJECT(
-							'tournament', JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id),
-							'group', CASE WHEN g.id IS NOT NULL THEN JSON_BUILD_OBJECT('id', g.id, 'name', g.name) ELSE NULL END,
-							'teams', JSON_BUILD_OBJECT('id', tm.id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id)
-						)
-					)
-				) ELSE NULL
-		END AS standing_data
+		JSON_BUILD_OBJECT(
+			'id', cs.id, 'tournament_id', cs.tournament_id, 'group_id', cs.group_id, 'team_id', cs.team_id, 'matches', COALESCE(cs.matches,0), 'wins', COALESCE(cs.wins,0), 'loss', COALESCE(cs.loss,0), 'draw', COALESCE(cs.draw,0), 'point', COALESCE(cs.points,0),
+			'details', JSON_BUILD_OBJECT(
+				'tournament', JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_team, 'stage', t.stage, 'has_knockout', t.has_knockout),
+				'group', CASE WHEN g.id IS NOT NULL THEN JSON_BUILD_OBJECT('id', g.id, 'name', g.name) ELSE NULL END,
+				'teams', JSON_BUILD_OBJECT('id', tm.id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id)
+			)
+		) AS standing_data
 	FROM cricket_standing cs
 	LEFT JOIN groups g ON cs.group_id = g.id
 	JOIN tournaments t ON t.id = cs.tournament_id
@@ -79,32 +66,27 @@ type GetCricketStandingR struct {
 	StandingData interface{} `json:"standing_data"`
 }
 
-func (q *Queries) GetCricketStanding(ctx context.Context, tournamentId int64) (*GetCricketStandingR, error) {
+func (q *Queries) GetCricketStanding(ctx context.Context, tournamentId int64) (*[]GetCricketStandingR, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketStanding, tournamentId)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var standings GetCricketStandingR
-
+	var standings []GetCricketStandingR
 	if rows.Next() {
-		if err := rows.Scan(&standings.StandingData); err != nil {
+		var standing GetCricketStandingR
+		var jsonData []byte
+		if err := rows.Scan(
+			&jsonData,
+		); err != nil {
 			return nil, err
 		}
-	}
 
-	// for rows.Next() {
-	// 	var i GetCricketStandingR
-	// 	if err := rows.Scan(&i.StandingData); err != nil {
-	// 		return nil, err
-	// 	}
-	// 	standings = append(standings, i)
-	// }
-	// if err := rows.Close(); err != nil {
-	// 	return nil, err
-	// }
-	if err := rows.Err(); err != nil {
-		return nil, err
+		err = json.Unmarshal(jsonData, &standing.StandingData)
+		if err != nil {
+			return nil, err
+		}
+		standings = append(standings, standing)
 	}
 	return &standings, nil
 }

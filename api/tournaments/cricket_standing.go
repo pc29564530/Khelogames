@@ -1,7 +1,6 @@
 package tournaments
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -21,96 +20,70 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 
 	rows, err := s.store.GetCricketStanding(ctx, tournamentID)
 	if err != nil {
-		s.logger.Error("Failed to get tournament standing: ", err)
+		s.logger.Error("Failed to get cricket standing: ", err)
 		ctx.JSON(http.StatusNotFound, err)
-		return
-	}
-
-	// Check if rows or rows.StandingData is nil
-	if rows == nil || rows.StandingData == nil {
-		s.logger.Warn("No standings data available")
-		ctx.JSON(http.StatusNoContent, gin.H{"message": "No standings data available"})
 		return
 	}
 
 	var standings []map[string]interface{}
 	var standingsData []map[string]interface{}
-	var standingData []interface{}
 
-	err = json.Unmarshal(rows.StandingData.([]byte), &standingData)
-	if err != nil {
-		s.logger.Error("Failed to unmarshal ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal standings data"})
-		return
-	}
-	for _, data := range standingData {
+	for _, row := range *rows {
 
-		// Ensure data is of type map[string]interface{}
-		dataMap, ok := data.(map[string]interface{})
-		if !ok {
-			s.logger.Error("Invalid data format")
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid data format"})
+		if row.StandingData == nil {
+			s.logger.Warn("No standings data available")
+			ctx.JSON(http.StatusNoContent, gin.H{"message": "No standings data available"})
 			return
 		}
 
-		// Safely extract and convert numeric fields
-		tournamentID, _ := dataMap["tournament_id"].(float64)
-		groupID, _ := dataMap["group_id"].(float64)
-		id, _ := dataMap["id"].(float64)
-		matches, _ := dataMap["matches"].(float64)
-		wins, _ := dataMap["wins"].(float64)
-		loss, _ := dataMap["loss"].(float64)
-		draw, _ := dataMap["draw"].(float64)
-		goalFor, _ := dataMap["goal_for"].(float64)
-		goalAgainst, _ := dataMap["goal_against"].(float64)
-		goalDifference, _ := dataMap["goal_difference"].(float64)
-		points, _ := dataMap["points"].(float64)
+		dataMap := row.StandingData
 
+		// Safely extract values with type assertions
+		tournamentID, _ := dataMap.(map[string]interface{})["tournament_id"].(float64)
+		groupID := dataMap.(map[string]interface{})["group_id"].(float64)
+		id := dataMap.(map[string]interface{})["id"].(float64)
+		matches := dataMap.(map[string]interface{})["matches"].(float64)
+		wins := dataMap.(map[string]interface{})["wins"].(float64)
+		loss := dataMap.(map[string]interface{})["loss"].(float64)
+		draw := dataMap.(map[string]interface{})["draw"].(float64)
+		points := dataMap.(map[string]interface{})["point"].(float64)
 		standing := map[string]interface{}{
-			"tournament":      dataMap["tournament"],
-			"group":           dataMap["group"],
-			"teams":           dataMap["teams"],
-			"tournament_id":   int64(tournamentID),
-			"group_id":        int64(groupID),
-			"id":              int64(id),
-			"matches":         int64(matches),
-			"wins":            int64(wins),
-			"loss":            int64(loss),
-			"draw":            int64(draw),
-			"goal_for":        int64(goalFor),
-			"goal_against":    int64(goalAgainst),
-			"goal_difference": int64(goalDifference),
-			"points":          int64(points),
+			"tournament":    dataMap.(map[string]interface{})["details"].(map[string]interface{})["tournament"],
+			"group":         dataMap.(map[string]interface{})["details"].(map[string]interface{})["group"],
+			"teams":         dataMap.(map[string]interface{})["details"].(map[string]interface{})["teams"],
+			"tournament_id": int64(tournamentID),
+			"group_id":      int64(groupID),
+			"id":            int64(id),
+			"matches":       int32(matches),
+			"wins":          int32(wins),
+			"loss":          int32(loss),
+			"draw":          int32(draw),
+			"points":        int32(points),
 		}
 		standingsData = append(standingsData, standing)
 	}
 
 	groupData := make(map[int64][]map[string]interface{})
-	visited := make(map[int]string) // Initialize the visited map to prevent nil map errors
+	visited := make(map[int]string)
 
 	for _, standing := range standingsData {
 		groupID := standing["group_id"]
-		grpID := groupID
-
-		// Append standings data to groupData by groupID
-		groupData[grpID.(int64)] = append(groupData[grpID.(int64)], map[string]interface{}{
-			"teams":           standing["teams"],
-			"id":              standing["id"],
-			"matches":         standing["matches"],
-			"wins":            standing["wins"],
-			"loss":            standing["loss"],
-			"draw":            standing["draw"],
-			"goal_for":        standing["goal_for"],
-			"goal_against":    standing["goal_against"],
-			"goal_difference": standing["goal_difference"],
-			"points":          standing["points"],
+		grpID := groupID.(int64)
+		groupData[grpID] = append(groupData[grpID], map[string]interface{}{
+			"teams":   standing["teams"],
+			"id":      standing["id"],
+			"matches": standing["matches"],
+			"wins":    standing["wins"],
+			"loss":    standing["loss"],
+			"draw":    standing["draw"],
+			"points":  standing["points"],
 		})
 
 		// Set the group name if not already visited
-		if _, ok := visited[int(grpID.(int64))]; !ok {
+		if _, ok := visited[int(grpID)]; !ok {
 			vis, ok := standing["group"].(map[string]interface{})["name"].(string)
 			if ok {
-				visited[int(grpID.(int64))] = vis
+				visited[int(grpID)] = vis
 			}
 		}
 	}
