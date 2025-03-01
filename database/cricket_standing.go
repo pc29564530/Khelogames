@@ -48,7 +48,18 @@ func (q *Queries) CreateCricketStanding(ctx context.Context, tournamentID, group
 const getCricketStanding = `
 	SELECT
 		JSON_BUILD_OBJECT(
-			'id', cs.id, 'tournament_id', cs.tournament_id, 'group_id', cs.group_id, 'team_id', cs.team_id, 'matches', COALESCE(cs.matches,0), 'wins', COALESCE(cs.wins,0), 'loss', COALESCE(cs.loss,0), 'draw', COALESCE(cs.draw,0), 'point', COALESCE(cs.points,0),
+			'id', cs.id,
+			'tournament_id', cs.tournament_id, 
+			'group_id', CASE
+                        WHEN fs.group_id IS NOT NULL THEN fs.group_id
+                        ELSE NULL
+                    END, 
+			'team_id', cs.team_id, 
+			'matches', COALESCE(cs.matches,0), 
+			'wins', COALESCE(cs.wins,0), 
+			'loss', COALESCE(cs.loss,0), 
+			'draw', COALESCE(cs.draw,0), 
+			'point', COALESCE(cs.points,0),
 			'details', JSON_BUILD_OBJECT(
 				'tournament', JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_team, 'stage', t.stage, 'has_knockout', t.has_knockout),
 				'group', CASE WHEN g.id IS NOT NULL THEN JSON_BUILD_OBJECT('id', g.id, 'name', g.name) ELSE NULL END,
