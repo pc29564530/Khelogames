@@ -51,7 +51,7 @@ const getCricketStanding = `
 			'id', cs.id,
 			'tournament_id', cs.tournament_id, 
 			'group_id', CASE
-                        WHEN fs.group_id IS NOT NULL THEN fs.group_id
+                        WHEN cs.group_id IS NOT NULL THEN cs.group_id
                         ELSE NULL
                     END, 
 			'team_id', cs.team_id, 
