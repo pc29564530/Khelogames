@@ -112,7 +112,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"awayScore":       awayScoreMap,
 			"startTimeStamp":  match.StartTimestamp,
 			"endTimestamp":    match.EndTimestamp,
-			"status":          match.StatusCode,
+			"status_code":     match.StatusCode,
 			"game":            game,
 			"result":          match.Result,
 			"stage":           match.Stage,
