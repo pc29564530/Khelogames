@@ -326,8 +326,8 @@ type FootballStanding struct {
 	ID             int64  `json:"id"`
 	TournamentID   int64  `json:"tournament_id"`
 	GroupID        *int64 `json:"group_id"`
-	TeamID         *int64 `json:"team_id"`
-	Matches        *int64 `json:"json:"matches"`
+	TeamID         int64  `json:"team_id"`
+	Matches        *int64 `json:"matches"`
 	Wins           *int64 `json:"wins"`
 	Loss           *int64 `json:"loss"`
 	Draw           *int64 `json:"draw"`
@@ -342,7 +342,7 @@ type CricketStanding struct {
 	TournamentID int64  `json:"tournament_id"`
 	GroupID      *int64 `json:"group_id"`
 	TeamID       int64  `json:"team_id"`
-	Matches      int64  `json:"json:"matches"`
+	Matches      *int64 `json:"matches"`
 	Wins         *int64 `json:"wins"`
 	Loss         *int64 `json:"loss"`
 	Draw         *int64 `json:"draw"`
