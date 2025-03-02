@@ -119,7 +119,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			"awayScore":       aScore,
 			"startTimeStamp":  match.StartTimestamp,
 			"endTimestamp":    match.EndTimestamp,
-			"status":          match.StatusCode,
+			"status_code":     match.StatusCode,
 			"game":            game,
 			"result":          match.Result,
 			"stage":           match.Stage,
