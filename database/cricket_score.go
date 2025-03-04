@@ -77,6 +77,9 @@ func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams
 		arg.Overs,
 		arg.RunRate,
 		arg.TargetRunRate,
+		arg.FollowOn,
+		arg.IsInningCompleted,
+		arg.Declared,
 	)
 	var i models.CricketScore
 	err := row.Scan(
