@@ -963,17 +963,18 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 }
 
 type addCricketWicketReq struct {
-	MatchID       int64  `json:"match_id"`
-	BattingTeamID int64  `json:"batting_team_id"`
-	BowlingTeamID int64  `json:"bowling_team_id"`
-	BatsmanID     int64  `json:"batsman_id"`
-	BowlerID      int64  `json:"bowler_id"`
-	WicketNumber  int    `json:"wicket_number"`
-	WicketType    string `json:"wicket_type"`
-	BallNumber    int    `json:"ball_number"`
-	FielderID     int64  `json:"fielder_id"`
-	RunsScored    int32  `json:"runs_scored"`
-	ToggleStriker bool   `json:"toggle_striker"`
+	MatchID       int64   `json:"match_id"`
+	BattingTeamID int64   `json:"batting_team_id"`
+	BowlingTeamID int64   `json:"bowling_team_id"`
+	BatsmanID     int64   `json:"batsman_id"`
+	BowlerID      int64   `json:"bowler_id"`
+	WicketNumber  int     `json:"wicket_number"`
+	WicketType    string  `json:"wicket_type"`
+	BallNumber    int     `json:"ball_number"`
+	FielderID     int64   `json:"fielder_id"`
+	RunsScored    int32   `json:"runs_scored"`
+	BowlType      *string `json:"bowl_type"`
+	ToggleStriker bool    `json:"toggle_striker"`
 }
 
 func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
@@ -1002,10 +1003,23 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get cricket score: ", err)
 	}
 
-	outBatsmanResponse, notOutBatsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err := s.store.AddCricketWicket(ctx, req.MatchID, req.BattingTeamID, req.BatsmanID, req.BowlerID, int(cricketScore.Wickets), req.WicketType, int(cricketScore.Overs), req.FielderID, cricketScore.Score, req.RunsScored)
-	if err != nil {
-		s.logger.Error("failed to add cricket wicket: ", err)
-		return
+	var outBatsmanResponse *models.Bat
+	var notOutBatsmanResponse *models.Bat
+	var bowlerResponse *models.Ball
+	var inningScoreResponse *models.CricketScore
+	var wicketResponse *models.Wicket
+	if req.BowlType != nil {
+		outBatsmanResponse, notOutBatsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err = s.store.AddCricketWicketWithBowlType(ctx, req.MatchID, req.BattingTeamID, req.BatsmanID, req.BowlerID, int(cricketScore.Wickets), req.WicketType, int(cricketScore.Overs), req.FielderID, cricketScore.Score, req.RunsScored, *req.BowlType)
+		if err != nil {
+			s.logger.Error("failed to add cricket wicket with bowl type: ", err)
+			return
+		}
+	} else {
+		outBatsmanResponse, notOutBatsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err = s.store.AddCricketWicket(ctx, req.MatchID, req.BattingTeamID, req.BatsmanID, req.BowlerID, int(cricketScore.Wickets), req.WicketType, int(cricketScore.Overs), req.FielderID, cricketScore.Score, req.RunsScored)
+		if err != nil {
+			s.logger.Error("failed to add cricket wicket: ", err)
+			return
+		}
 	}
 
 	matchData, err := s.store.GetMatchByMatchID(ctx, req.MatchID, 2)

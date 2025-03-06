@@ -1094,6 +1094,155 @@ func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsman
 	return &outBatsman, &notOutBatsman, &bowler, &inningScore, &wickets, nil
 }
 
+const addCricketWicketWithBowlType = `
+WITH add_wicket AS (
+    INSERT INTO wickets (
+        match_id,
+        team_id,
+        batsman_id,
+        bowler_id,
+        wickets_number,
+        wicket_type,
+        ball_number,
+        fielder_id,
+        score
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *
+),
+update_out_batsman AS (
+    UPDATE bats
+    SET balls_faced = balls_faced + 1,
+        runs_scored = runs_scored + (CASE WHEN is_striker THEN (CASE WHEN $10 > 0 THEN $10 ELSE 0 END) ELSE 0 END),
+        is_currently_batting = false,
+        is_striker = false
+    WHERE match_id = $1 
+      AND batsman_id = $3 
+      AND team_id = $2
+    RETURNING *
+),
+update_not_out_batsman AS (
+    UPDATE bats
+    SET balls_faced = balls_faced + 1,
+        runs_scored = runs_scored + (CASE WHEN is_striker THEN (CASE WHEN $10 > 0 THEN $10 ELSE 0 END) ELSE 0 END)
+    WHERE match_id = $1 
+      AND team_id = $2 
+      AND batsman_id <> $3 
+      AND is_currently_batting = true
+    RETURNING *
+),
+update_bowler AS (
+    UPDATE balls
+    SET wickets = CASE
+                    WHEN $6 != 'Run Out' THEN wickets + 1
+                    ELSE wickets
+                  END,
+        runs = runs + (CASE WHEN $10 > 0 THEN $10 ELSE 0 END),
+        ball = ball,
+		wide = wide + (CASE WHEN $11 = 'wide' THEN 1 ELSE 0 END),
+        no_ball = no_ball + (CASE WHEN $11 = 'no_ball' THEN 1 ELSE 0 END)
+    WHERE match_id = $1 
+      AND bowler_id = $4 
+      AND is_current_bowler = true
+    RETURNING *
+),
+update_inning_score AS (
+    UPDATE cricket_score
+    SET overs = overs,
+        wickets = wickets + 1,
+        score = score + (CASE WHEN $10 > 0 THEN $10 ELSE 0 END)
+    WHERE match_id = $1 
+      AND team_id = $2
+    RETURNING *
+)
+SELECT 
+	o.*,
+	n.*,
+	b.*,
+	sc.*,
+    w.*
+FROM add_wicket w
+LEFT JOIN update_out_batsman o ON w.match_id = o.match_id
+LEFT JOIN update_not_out_batsman n ON w.match_id = n.match_id
+LEFT JOIN update_bowler b ON w.match_id = b.match_id
+LEFT JOIN update_inning_score sc ON w.match_id = sc.match_id;
+`
+
+func (q *Queries) AddCricketWicketWithBowlType(ctx context.Context, matchID, teamID, batsmanID, bowlerID int64, wicketNumber int, wicketType string, ballNumber int, fielderID int64, score int32, runsScored int32, bowlType string) (*models.Bat, *models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
+	var outBatsman models.Bat
+	var notOutBatsman models.Bat
+	var bowler models.Ball
+	var inningScore models.CricketScore
+	var wickets models.Wicket
+
+	row := q.db.QueryRowContext(ctx, addCricketWicketWithBowlType, matchID, teamID, batsmanID, bowlerID, wicketNumber, wicketType, ballNumber, fielderID, score, runsScored, bowlType)
+	err := row.Scan(
+		&outBatsman.ID,
+		&outBatsman.BatsmanID,
+		&outBatsman.TeamID,
+		&outBatsman.MatchID,
+		&outBatsman.Position,
+		&outBatsman.RunsScored,
+		&outBatsman.BallsFaced,
+		&outBatsman.Fours,
+		&outBatsman.Sixes,
+		&outBatsman.BattingStatus,
+		&outBatsman.IsStriker,
+		&outBatsman.IsCurrentlyBatting,
+		&notOutBatsman.ID,
+		&notOutBatsman.BatsmanID,
+		&notOutBatsman.TeamID,
+		&notOutBatsman.MatchID,
+		&notOutBatsman.Position,
+		&notOutBatsman.RunsScored,
+		&notOutBatsman.BallsFaced,
+		&notOutBatsman.Fours,
+		&notOutBatsman.Sixes,
+		&notOutBatsman.BattingStatus,
+		&notOutBatsman.IsStriker,
+		&notOutBatsman.IsCurrentlyBatting,
+		&bowler.ID,
+		&bowler.TeamID,
+		&bowler.MatchID,
+		&bowler.BowlerID,
+		&bowler.Ball,
+		&bowler.Runs,
+		&bowler.Wickets,
+		&bowler.Wide,
+		&bowler.NoBall,
+		&bowler.BowlingStatus,
+		&bowler.IsCurrentBowler,
+		&inningScore.ID,
+		&inningScore.MatchID,
+		&inningScore.TeamID,
+		&inningScore.Inning,
+		&inningScore.Score,
+		&inningScore.Wickets,
+		&inningScore.Overs,
+		&inningScore.RunRate,
+		&inningScore.TargetRunRate,
+		&inningScore.FollowOn,
+		&inningScore.IsInningCompleted,
+		&inningScore.Declared,
+		&wickets.ID,
+		&wickets.MatchID,
+		&wickets.TeamID,
+		&wickets.BatsmanID,
+		&wickets.BowlerID,
+		&wickets.WicketsNumber,
+		&wickets.WicketType,
+		&wickets.BallNumber,
+		&wickets.FielderID,
+		&wickets.Score,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil, nil, nil, nil, nil
+		}
+		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to scan query: ", err)
+	}
+	return &outBatsman, &notOutBatsman, &bowler, &inningScore, &wickets, nil
+}
+
 const updateInningEndStatus = `
 WITH update_inning AS (
 	UPDATE cricket_score
