@@ -336,6 +336,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	// match := matchResponse.(map[string]interface{})["match"]
 
 	argCricketWickets := db.GetCricketWicketsParams{
 		MatchID: matchID,
@@ -642,48 +643,6 @@ type updateCricketPlayerStatsRequest struct {
 	BowlerBalls int32  `json:"bowler_balls"`
 	Fours       int32  `json:"fours"`
 	Sixes       int32  `json:"sixes"`
-}
-
-func (s *CricketServer) UpdateRunsScoreFunc(ctx *gin.Context) {
-	var req updateCricketPlayerStatsRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind udpate cricket bat score: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin transcation: ", err)
-		return
-	}
-
-	defer tx.Rollback()
-
-	_, err = s.store.UpdateCricketBatsmanScore(ctx, req.RunsScored, req.MatchID, req.BatsmanID)
-	if err != nil {
-		s.logger.Error("Failed to update batsman scored: ", err)
-		return
-	}
-
-	_, err = s.store.UpdateBowlerStats(ctx, req.RunsScored, req.MatchID, req.BowlerID)
-	if err != nil {
-		s.logger.Error("Failed to update bowler scored: ", err)
-		return
-	}
-
-	// if bowlerStats.Ball%6 == 0 && req.RunsScored%2 == 0 {
-	// 	err = s.store.ToggleCricketStricker(ctx, req.MatchID)
-	// 	if err != nil {
-	// 		s.logger.Error("Failed to update stricker: ", err)
-	// 	}
-	// } else if bowlerStats.Ball%6 != 0 && req.RunsScored%2 != 0 {
-	// 	err = s.store.ToggleCricketStricker(ctx, req.MatchID)
-	// 	if err != nil {
-	// 		s.logger.Error("Failed to update stricker: ", err)
-	// 	}
-	// }
 }
 
 type updateWideRunsRequest struct {
@@ -1048,6 +1007,12 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		}
 	}
 
+	err = s.UpdateMatchStatusAndResult(ctx, inningScoreResponse, matchData, req.MatchID)
+	if err != nil {
+		s.logger.Error("Failed to update match status and result: ", err)
+		return
+	}
+
 	if req.ToggleStriker {
 		notOut, err := s.store.ToggleCricketStricker(ctx, req.MatchID)
 		if err != nil {
@@ -1164,6 +1129,7 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		"bowler":          bowler,
 		"inning_score":    inningScoreResponse,
 		"wickets":         wickets,
+		"match":           matchData,
 	})
 }
 
@@ -1246,6 +1212,12 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		}
 	}
 
+	err = s.UpdateMatchStatusAndResult(ctx, inningScore, matchData, req.MatchID)
+	if err != nil {
+		s.logger.Error("Failed to update match status and result: ", err)
+		return
+	}
+
 	batsmanPlayerData, err := s.store.GetPlayer(ctx, batsmanResponse.BatsmanID)
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
@@ -1314,6 +1286,7 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		"non_striker_batsman": nonStriker,
 		"bowler":              bowler,
 		"inning_score":        inningScore,
+		"match":               matchData,
 	})
 }
 

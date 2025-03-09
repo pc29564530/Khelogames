@@ -1247,28 +1247,28 @@ const updateInningEndStatus = `
 WITH update_inning AS (
 	UPDATE cricket_score
 	SET is_inning_completed = true
-	WHERE match_id = $1 AND team_id = $3
+	WHERE match_id = $1 AND team_id = $2
 	RETURNING *
 ),
 update_batsman AS (
 	UPDATE bats
 	SET is_striker = false
-	WHERE match_id = $1 AND is_striker = true
+	WHERE match_id = $1 AND team_id = $2 AND is_striker = true
 	RETURNING *
 ),
-update_bolwer AS (
+update_bowler AS (
 	UPDATE balls
 	SET is_current_bowler = false
 	WHERE match_id = $1 AND is_current_bowler = true
 	RETURNING *
 )
 SELECT 
-	uis.*,
-	ub.*
+	ui.*,
+	ub.*,
 	ubl.*
 FROM update_batsman ub
-JOIN update_bowler ubl ON ub.match_id = ubl.match_id
-JOIN update_inning_score uis ON ub.match_id = uis.match_id
+JOIN update_bowler AS ubl ON ub.match_id = ubl.match_id
+JOIN update_inning AS ui ON ub.match_id = ui.match_id
 `
 
 func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTeamID int64) (*models.CricketScore, *models.Bat, *models.Ball, error) {
@@ -1276,7 +1276,7 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 	var batsmanScore models.Bat
 	var bowler models.Ball
 
-	row := q.db.QueryRowContext(ctx, updateInningScore, matchID, batsmanTeamID)
+	row := q.db.QueryRowContext(ctx, updateInningEndStatus, matchID, batsmanTeamID)
 
 	err := row.Scan(
 		&inningScore.ID,
@@ -1317,6 +1317,9 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 	)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil, nil, nil
+		}
 		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
 	}
 
