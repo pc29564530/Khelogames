@@ -188,3 +188,27 @@ func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, response)
 }
+
+type updateCricketEndInningRequest struct {
+	MatchID int64  `json:"match_id"`
+	TeamID  int64  `json:"team_id"`
+	Inning  string `json:"inning"`
+}
+
+func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
+
+	var req updateCricketEndInningRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("unable to bind the json: ", err)
+		return
+	}
+
+	response, err := s.store.UpdateCricketEndInnings(ctx, req.MatchID, req.TeamID, req.Inning)
+	if err != nil {
+		s.logger.Error("unable to update the end inning: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+}

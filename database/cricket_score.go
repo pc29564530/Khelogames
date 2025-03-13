@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 )
 
@@ -33,6 +35,43 @@ func (q *Queries) GetCricketScore(ctx context.Context, arg GetCricketScoreParams
 		&i.Declared,
 	)
 	return i, err
+}
+
+const getCricketScores = `
+SELECT * FROM cricket_score
+WHERE match_id=$1;
+`
+
+func (q *Queries) GetCricketScores(ctx context.Context, matchID int64) ([]models.CricketScore, error) {
+	row, err := q.db.QueryContext(ctx, getCricketScore, matchID)
+	var cricketScores []models.CricketScore
+
+	if row.Next() {
+		var i models.CricketScore
+		err := row.Scan(
+			&i.ID,
+			&i.MatchID,
+			&i.TeamID,
+			&i.Inning,
+			&i.Score,
+			&i.Wickets,
+			&i.Overs,
+			&i.RunRate,
+			&i.TargetRunRate,
+			&i.FollowOn,
+			&i.IsInningCompleted,
+			&i.Declared,
+		)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("Not Able to scan rows: ", err)
+		}
+		cricketScores = append(cricketScores, i)
+
+	}
+	return cricketScores, err
 }
 
 const newCricketScore = `
@@ -223,6 +262,33 @@ type UpdateCricketWicketsParams struct {
 
 func (q *Queries) UpdateCricketWickets(ctx context.Context, arg UpdateCricketWicketsParams) (models.CricketScore, error) {
 	row := q.db.QueryRowContext(ctx, updateCricketWickets, arg.MatchID, arg.TeamID)
+	var i models.CricketScore
+	err := row.Scan(
+		&i.ID,
+		&i.MatchID,
+		&i.TeamID,
+		&i.Inning,
+		&i.Score,
+		&i.Wickets,
+		&i.Overs,
+		&i.RunRate,
+		&i.TargetRunRate,
+		&i.FollowOn,
+		&i.IsInningCompleted,
+		&i.Declared,
+	)
+	return i, err
+}
+
+const updateCricketEndInnings = `
+UPDATE cricket_score
+SET is_inning_completed=true
+WHERE match_id=$1 AND team_id=$2 AND inning=$3
+RETURNING *
+`
+
+func (q *Queries) UpdateCricketEndInnings(ctx context.Context, matchID, teamID int64, inning string) (models.CricketScore, error) {
+	row := q.db.QueryRowContext(ctx, updateCricketEndInnings, matchID, teamID, inning)
 	var i models.CricketScore
 	err := row.Scan(
 		&i.ID,

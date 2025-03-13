@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
 
@@ -1449,8 +1450,8 @@ const getCurrentBattingBatsmanQuery = `
 	WHERE match_id=$1 AND team_id=$2 AND is_currently_batting=true;
 `
 
-func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchID, batsmanID int64) ([]models.Bat, error) {
-	rows, err := q.db.QueryContext(ctx, getCurrentBattingBatsmanQuery, matchID, batsmanID)
+func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchID, teamID int64) ([]models.Bat, error) {
+	rows, err := q.db.QueryContext(ctx, getCurrentBattingBatsmanQuery, matchID, teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -1484,4 +1485,139 @@ func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchID, batsman
 	}
 
 	return batsmen, nil
+}
+
+const getCurrentBatsmanQuery = `
+	SELECT 
+    	JSON_BUILD_OBJECT(
+			'team', JSON_BUILD_OBJECT(
+				'id', tm.id, 
+				'name', tm.name, 
+				'slug', tm.slug, 
+				'short_name', tm.shortname, 
+				'admin', tm.admin, 
+				'media_url', tm.media_url, 
+				'gender', tm.gender, 
+				'national', tm.national, 
+				'country', tm.country, 
+				'type', tm.type, 
+				'player_count', tm.player_count, 
+				'game_id', tm.game_id
+			),
+        	'batsman', JSON_AGG(
+				JSON_BUILD_OBJECT(
+					'id', bt.id, 
+					'batsman_id', bt.batsman_id,
+					'player', JSON_BUILD_OBJECT('id',pl.id,'username',pl.username, 'name', pl.player_name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
+					'position', bt.position, 
+					'runs_scored', bt.runs_scored, 
+					'balls_faced', bt.balls_faced, 
+					'fours', bt.fours, 
+					'sixes', bt.sixes, 
+					'batting_status', bt.batting_status, 
+					'is_striker', bt.is_striker, 
+					'is_currently_batting', bt.is_currently_batting
+				)
+        	)
+    	) AS team_data
+	FROM bats bt
+	JOIN players AS pl ON pl.id = bt.batsman_id
+	JOIN teams AS tm ON tm.id = bt.team_id
+	WHERE bt.match_id = $1 AND bt.team_id = $2 AND bt.is_currently_batting = true
+	GROUP BY tm.id;
+`
+
+type getCurrentBatsmanStruct struct {
+	CurrentBatsman interface{} `json:"current_batsman`
+}
+
+func (q *Queries) GetCurrentBatsman(ctx context.Context, matchID, teamID int64) (interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getCurrentBatsmanQuery, matchID, teamID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var jsonBytes []byte
+	if rows.Next() {
+		if err := rows.Scan(&jsonBytes); err != nil {
+			return nil, fmt.Errorf("failed to scan json data: %w", err)
+		}
+	}
+
+	var currentBatsman interface{}
+
+	err = json.Unmarshal(jsonBytes, &currentBatsman)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal batsman: ", err)
+	}
+
+	return currentBatsman, nil
+}
+
+const getCurrentBowlerQuery = `
+	SELECT 
+    	JSON_BUILD_OBJECT(
+			'team', JSON_BUILD_OBJECT(
+				'id', tm.id, 
+				'name', tm.name, 
+				'slug', tm.slug, 
+				'short_name', tm.shortname, 
+				'admin', tm.admin, 
+				'media_url', tm.media_url, 
+				'gender', tm.gender, 
+				'national', tm.national, 
+				'country', tm.country, 
+				'type', tm.type, 
+				'player_count', tm.player_count, 
+				'game_id', tm.game_id
+			),
+        	'bowler',
+				JSON_BUILD_OBJECT(
+					'id', bl.id, 
+					'team_id', bl.team_id,
+					'match_id', bl.match_id,
+					'bowler_id', bl.bowler_id,
+					'player', JSON_BUILD_OBJECT('id',pl.id,'username',pl.username, 'name', pl.player_name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
+					'runs', bl.runs, 
+					'ball', bl.ball, 
+					'wickets', bl.wickets, 
+					'wide', bl.wide, 
+					'no_ball', bl.no_ball,
+					'bowling_status', bl.bowling_status,
+					'is_current_bowler', bl.is_current_bowler
+				)
+    	) AS team_data
+	FROM balls bl
+	JOIN players AS pl ON pl.id = bl.bowler_id
+	JOIN teams AS tm ON tm.id = bl.team_id
+	WHERE bl.match_id = 31 AND bl.team_id = 6 AND bl.is_current_bowler = true
+`
+
+type getCurrentBowlerStruct struct {
+	CurrentBowler interface{} `json:"current_bowler`
+}
+
+func (q *Queries) GetCurrentBowler(ctx context.Context, matchID, teamID int64) (interface{}, error) {
+	var jsonBytes []byte
+	row := q.db.QueryRowContext(ctx, getCurrentBowlerQuery, matchID, teamID)
+	if err := row.Scan(&jsonBytes); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to scan json: %w", err)
+	}
+
+	var currentBowler interface{}
+
+	err := json.Unmarshal(jsonBytes, &currentBowler)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal bowler: ", err)
+	}
+
+	return currentBowler, nil
 }
