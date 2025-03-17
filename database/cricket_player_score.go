@@ -1595,7 +1595,7 @@ const getCurrentBowlerQuery = `
 	FROM balls bl
 	JOIN players AS pl ON pl.id = bl.bowler_id
 	JOIN teams AS tm ON tm.id = bl.team_id
-	WHERE bl.match_id = 31 AND bl.team_id = 6 AND bl.is_current_bowler = true
+	WHERE bl.match_id = $1 AND bl.team_id = $2 AND bl.is_current_bowler = true
 `
 
 type getCurrentBowlerStruct struct {
