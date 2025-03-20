@@ -103,6 +103,49 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			s.logger.Error("Failed to get the game: ", err)
 		}
 
+		var inningsMap []map[string]interface{}
+		matchToss, err := s.store.GetCricketToss(ctx, match.ID)
+		if err != nil {
+			s.logger.Error("Failed to get toss: ", err)
+		}
+
+		if matchToss.TossWin == match.HomeTeamID && matchToss.TossDecision == "Batting" {
+			inningsMap = append(inningsMap, map[string]interface{}{
+				"inning":              homeScore.Inning,
+				"team_id":             match.HomeTeamID,
+				"score":               homeScoreMap,
+				"is_inning_completed": homeScoreMap["is_inning_completed"],
+				"follow_on":           homeScoreMap["follow_on"],
+			})
+		}
+		if matchToss.TossWin == match.AwayTeamID && matchToss.TossDecision == "Batting" {
+			inningsMap = append(inningsMap, map[string]interface{}{
+				"inning":              awayScore.Inning,
+				"team_id":             match.AwayTeamID,
+				"score":               awayScoreMap,
+				"is_inning_completed": awayScoreMap["is_inning_completed"],
+				"follow_on":           awayScoreMap["follow_on"],
+			})
+		}
+		if matchToss.TossWin == match.HomeTeamID && matchToss.TossDecision == "Bowling" {
+			inningsMap = append(inningsMap, map[string]interface{}{
+				"inning":              homeScore.Inning,
+				"team_id":             match.HomeTeamID,
+				"score":               homeScoreMap,
+				"is_inning_completed": homeScoreMap["is_inning_completed"],
+				"follow_on":           homeScoreMap["follow_on"],
+			})
+		}
+		if matchToss.TossWin == match.AwayTeamID && matchToss.TossDecision == "Bowling" {
+			inningsMap = append(inningsMap, map[string]interface{}{
+				"inning":              awayScore.Inning,
+				"team_id":             match.AwayTeamID,
+				"score":               awayScoreMap,
+				"is_inning_completed": awayScoreMap["is_inning_completed"],
+				"follow_on":           awayScoreMap["follow_on"],
+			})
+		}
+
 		matchMap := map[string]interface{}{
 			"matchId":         match.ID,
 			"tournament":      map[string]interface{}{"id": tournament.ID, "name": tournament.Name, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
@@ -117,6 +160,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"result":          match.Result,
 			"stage":           match.Stage,
 			"knockoutLevelId": match.KnockoutLevelID,
+			"innings":         inningsMap,
 		}
 
 		if *match.Stage == "Group" {
@@ -183,6 +227,30 @@ func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
 	response, err := s.store.UpdateCricketInnings(ctx, arg)
 	if err != nil {
 		s.logger.Error("unable to update the innings: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
+}
+
+type updateCricketEndInningRequest struct {
+	MatchID int64  `json:"match_id"`
+	TeamID  int64  `json:"team_id"`
+	Inning  string `json:"inning"`
+}
+
+func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
+
+	var req updateCricketEndInningRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("unable to bind the json: ", err)
+		return
+	}
+
+	response, err := s.store.UpdateCricketEndInnings(ctx, req.MatchID, req.TeamID, req.Inning)
+	if err != nil {
+		s.logger.Error("unable to update the end inning: ", err)
 		return
 	}
 

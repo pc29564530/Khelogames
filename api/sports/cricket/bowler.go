@@ -1,0 +1,37 @@
+package cricket
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+)
+
+func (s *CricketServer) GetCurrentBowlerFunc(ctx *gin.Context) {
+	matchIDString := ctx.Query("match_id")
+	teamIDString := ctx.Query("team_id")
+	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse match id ", err)
+		return
+	}
+
+	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse team id ", err)
+		return
+	}
+
+	currentBowlerResponse, err := s.store.GetCurrentBowler(ctx, matchID, teamID)
+	if err != nil {
+		s.logger.Error("Failed to get current bowler score : ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if currentBowlerResponse == nil {
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"team": currentBowlerResponse.(map[string]interface{})["team"], "bowling": currentBowlerResponse.(map[string]interface{})["bowler"]})
+}

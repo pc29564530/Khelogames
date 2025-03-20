@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
 
@@ -1094,32 +1095,181 @@ func (q *Queries) AddCricketWicket(ctx context.Context, matchID, teamID, batsman
 	return &outBatsman, &notOutBatsman, &bowler, &inningScore, &wickets, nil
 }
 
+const addCricketWicketWithBowlType = `
+WITH add_wicket AS (
+    INSERT INTO wickets (
+        match_id,
+        team_id,
+        batsman_id,
+        bowler_id,
+        wickets_number,
+        wicket_type,
+        ball_number,
+        fielder_id,
+        score
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    RETURNING *
+),
+update_out_batsman AS (
+    UPDATE bats
+    SET balls_faced = balls_faced + 1,
+        runs_scored = runs_scored + (CASE WHEN is_striker THEN (CASE WHEN $10 > 0 THEN $10 ELSE 0 END) ELSE 0 END),
+        is_currently_batting = false,
+        is_striker = false
+    WHERE match_id = $1 
+      AND batsman_id = $3 
+      AND team_id = $2
+    RETURNING *
+),
+update_not_out_batsman AS (
+    UPDATE bats
+    SET balls_faced = balls_faced + 1,
+        runs_scored = runs_scored + (CASE WHEN is_striker THEN (CASE WHEN $10 > 0 THEN $10 ELSE 0 END) ELSE 0 END)
+    WHERE match_id = $1 
+      AND team_id = $2 
+      AND batsman_id <> $3 
+      AND is_currently_batting = true
+    RETURNING *
+),
+update_bowler AS (
+    UPDATE balls
+    SET wickets = CASE
+                    WHEN $6 != 'Run Out' THEN wickets + 1
+                    ELSE wickets
+                  END,
+        runs = runs + (CASE WHEN $10 > 0 THEN $10 ELSE 0 END),
+        ball = ball,
+		wide = wide + (CASE WHEN $11 = 'wide' THEN 1 ELSE 0 END),
+        no_ball = no_ball + (CASE WHEN $11 = 'no_ball' THEN 1 ELSE 0 END)
+    WHERE match_id = $1 
+      AND bowler_id = $4 
+      AND is_current_bowler = true
+    RETURNING *
+),
+update_inning_score AS (
+    UPDATE cricket_score
+    SET overs = overs,
+        wickets = wickets + 1,
+        score = score + (CASE WHEN $10 > 0 THEN $10 ELSE 0 END)
+    WHERE match_id = $1 
+      AND team_id = $2
+    RETURNING *
+)
+SELECT 
+	o.*,
+	n.*,
+	b.*,
+	sc.*,
+    w.*
+FROM add_wicket w
+LEFT JOIN update_out_batsman o ON w.match_id = o.match_id
+LEFT JOIN update_not_out_batsman n ON w.match_id = n.match_id
+LEFT JOIN update_bowler b ON w.match_id = b.match_id
+LEFT JOIN update_inning_score sc ON w.match_id = sc.match_id;
+`
+
+func (q *Queries) AddCricketWicketWithBowlType(ctx context.Context, matchID, teamID, batsmanID, bowlerID int64, wicketNumber int, wicketType string, ballNumber int, fielderID int64, score int32, runsScored int32, bowlType string) (*models.Bat, *models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
+	var outBatsman models.Bat
+	var notOutBatsman models.Bat
+	var bowler models.Ball
+	var inningScore models.CricketScore
+	var wickets models.Wicket
+
+	row := q.db.QueryRowContext(ctx, addCricketWicketWithBowlType, matchID, teamID, batsmanID, bowlerID, wicketNumber, wicketType, ballNumber, fielderID, score, runsScored, bowlType)
+	err := row.Scan(
+		&outBatsman.ID,
+		&outBatsman.BatsmanID,
+		&outBatsman.TeamID,
+		&outBatsman.MatchID,
+		&outBatsman.Position,
+		&outBatsman.RunsScored,
+		&outBatsman.BallsFaced,
+		&outBatsman.Fours,
+		&outBatsman.Sixes,
+		&outBatsman.BattingStatus,
+		&outBatsman.IsStriker,
+		&outBatsman.IsCurrentlyBatting,
+		&notOutBatsman.ID,
+		&notOutBatsman.BatsmanID,
+		&notOutBatsman.TeamID,
+		&notOutBatsman.MatchID,
+		&notOutBatsman.Position,
+		&notOutBatsman.RunsScored,
+		&notOutBatsman.BallsFaced,
+		&notOutBatsman.Fours,
+		&notOutBatsman.Sixes,
+		&notOutBatsman.BattingStatus,
+		&notOutBatsman.IsStriker,
+		&notOutBatsman.IsCurrentlyBatting,
+		&bowler.ID,
+		&bowler.TeamID,
+		&bowler.MatchID,
+		&bowler.BowlerID,
+		&bowler.Ball,
+		&bowler.Runs,
+		&bowler.Wickets,
+		&bowler.Wide,
+		&bowler.NoBall,
+		&bowler.BowlingStatus,
+		&bowler.IsCurrentBowler,
+		&inningScore.ID,
+		&inningScore.MatchID,
+		&inningScore.TeamID,
+		&inningScore.Inning,
+		&inningScore.Score,
+		&inningScore.Wickets,
+		&inningScore.Overs,
+		&inningScore.RunRate,
+		&inningScore.TargetRunRate,
+		&inningScore.FollowOn,
+		&inningScore.IsInningCompleted,
+		&inningScore.Declared,
+		&wickets.ID,
+		&wickets.MatchID,
+		&wickets.TeamID,
+		&wickets.BatsmanID,
+		&wickets.BowlerID,
+		&wickets.WicketsNumber,
+		&wickets.WicketType,
+		&wickets.BallNumber,
+		&wickets.FielderID,
+		&wickets.Score,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil, nil, nil, nil, nil
+		}
+		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to scan query: ", err)
+	}
+	return &outBatsman, &notOutBatsman, &bowler, &inningScore, &wickets, nil
+}
+
 const updateInningEndStatus = `
 WITH update_inning AS (
 	UPDATE cricket_score
 	SET is_inning_completed = true
-	WHERE match_id = $1 AND team_id = $3
+	WHERE match_id = $1 AND team_id = $2
 	RETURNING *
 ),
 update_batsman AS (
 	UPDATE bats
 	SET is_striker = false
-	WHERE match_id = $1 AND is_striker = true
+	WHERE match_id = $1 AND team_id = $2 AND is_striker = true
 	RETURNING *
 ),
-update_bolwer AS (
+update_bowler AS (
 	UPDATE balls
 	SET is_current_bowler = false
 	WHERE match_id = $1 AND is_current_bowler = true
 	RETURNING *
 )
 SELECT 
-	uis.*,
-	ub.*
+	ui.*,
+	ub.*,
 	ubl.*
 FROM update_batsman ub
-JOIN update_bowler ubl ON ub.match_id = ubl.match_id
-JOIN update_inning_score uis ON ub.match_id = uis.match_id
+JOIN update_bowler AS ubl ON ub.match_id = ubl.match_id
+JOIN update_inning AS ui ON ub.match_id = ui.match_id
 `
 
 func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTeamID int64) (*models.CricketScore, *models.Bat, *models.Ball, error) {
@@ -1127,7 +1277,7 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 	var batsmanScore models.Bat
 	var bowler models.Ball
 
-	row := q.db.QueryRowContext(ctx, updateInningScore, matchID, batsmanTeamID)
+	row := q.db.QueryRowContext(ctx, updateInningEndStatus, matchID, batsmanTeamID)
 
 	err := row.Scan(
 		&inningScore.ID,
@@ -1168,6 +1318,9 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 	)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil, nil, nil
+		}
 		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
 	}
 
@@ -1297,8 +1450,8 @@ const getCurrentBattingBatsmanQuery = `
 	WHERE match_id=$1 AND team_id=$2 AND is_currently_batting=true;
 `
 
-func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchID, batsmanID int64) ([]models.Bat, error) {
-	rows, err := q.db.QueryContext(ctx, getCurrentBattingBatsmanQuery, matchID, batsmanID)
+func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchID, teamID int64) ([]models.Bat, error) {
+	rows, err := q.db.QueryContext(ctx, getCurrentBattingBatsmanQuery, matchID, teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -1332,4 +1485,139 @@ func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchID, batsman
 	}
 
 	return batsmen, nil
+}
+
+const getCurrentBatsmanQuery = `
+	SELECT 
+    	JSON_BUILD_OBJECT(
+			'team', JSON_BUILD_OBJECT(
+				'id', tm.id, 
+				'name', tm.name, 
+				'slug', tm.slug, 
+				'short_name', tm.shortname, 
+				'admin', tm.admin, 
+				'media_url', tm.media_url, 
+				'gender', tm.gender, 
+				'national', tm.national, 
+				'country', tm.country, 
+				'type', tm.type, 
+				'player_count', tm.player_count, 
+				'game_id', tm.game_id
+			),
+        	'batsman', JSON_AGG(
+				JSON_BUILD_OBJECT(
+					'id', bt.id, 
+					'batsman_id', bt.batsman_id,
+					'player', JSON_BUILD_OBJECT('id',pl.id,'username',pl.username, 'name', pl.player_name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
+					'position', bt.position, 
+					'runs_scored', bt.runs_scored, 
+					'balls_faced', bt.balls_faced, 
+					'fours', bt.fours, 
+					'sixes', bt.sixes, 
+					'batting_status', bt.batting_status, 
+					'is_striker', bt.is_striker, 
+					'is_currently_batting', bt.is_currently_batting
+				)
+        	)
+    	) AS team_data
+	FROM bats bt
+	JOIN players AS pl ON pl.id = bt.batsman_id
+	JOIN teams AS tm ON tm.id = bt.team_id
+	WHERE bt.match_id = $1 AND bt.team_id = $2 AND bt.is_currently_batting = true
+	GROUP BY tm.id;
+`
+
+type getCurrentBatsmanStruct struct {
+	CurrentBatsman interface{} `json:"current_batsman`
+}
+
+func (q *Queries) GetCurrentBatsman(ctx context.Context, matchID, teamID int64) (interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getCurrentBatsmanQuery, matchID, teamID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var jsonBytes []byte
+	if rows.Next() {
+		if err := rows.Scan(&jsonBytes); err != nil {
+			return nil, fmt.Errorf("failed to scan json data: %w", err)
+		}
+	}
+
+	var currentBatsman interface{}
+
+	err = json.Unmarshal(jsonBytes, &currentBatsman)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal batsman: ", err)
+	}
+
+	return currentBatsman, nil
+}
+
+const getCurrentBowlerQuery = `
+	SELECT 
+    	JSON_BUILD_OBJECT(
+			'team', JSON_BUILD_OBJECT(
+				'id', tm.id, 
+				'name', tm.name, 
+				'slug', tm.slug, 
+				'short_name', tm.shortname, 
+				'admin', tm.admin, 
+				'media_url', tm.media_url, 
+				'gender', tm.gender, 
+				'national', tm.national, 
+				'country', tm.country, 
+				'type', tm.type, 
+				'player_count', tm.player_count, 
+				'game_id', tm.game_id
+			),
+        	'bowler',
+				JSON_BUILD_OBJECT(
+					'id', bl.id, 
+					'team_id', bl.team_id,
+					'match_id', bl.match_id,
+					'bowler_id', bl.bowler_id,
+					'player', JSON_BUILD_OBJECT('id',pl.id,'username',pl.username, 'name', pl.player_name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
+					'runs', bl.runs, 
+					'ball', bl.ball, 
+					'wickets', bl.wickets, 
+					'wide', bl.wide, 
+					'no_ball', bl.no_ball,
+					'bowling_status', bl.bowling_status,
+					'is_current_bowler', bl.is_current_bowler
+				)
+    	) AS team_data
+	FROM balls bl
+	JOIN players AS pl ON pl.id = bl.bowler_id
+	JOIN teams AS tm ON tm.id = bl.team_id
+	WHERE bl.match_id = $1 AND bl.team_id = $2 AND bl.is_current_bowler = true
+`
+
+type getCurrentBowlerStruct struct {
+	CurrentBowler interface{} `json:"current_bowler`
+}
+
+func (q *Queries) GetCurrentBowler(ctx context.Context, matchID, teamID int64) (interface{}, error) {
+	var jsonBytes []byte
+	row := q.db.QueryRowContext(ctx, getCurrentBowlerQuery, matchID, teamID)
+	if err := row.Scan(&jsonBytes); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to scan json: %w", err)
+	}
+
+	var currentBowler interface{}
+
+	err := json.Unmarshal(jsonBytes, &currentBowler)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal bowler: ", err)
+	}
+
+	return currentBowler, nil
 }
