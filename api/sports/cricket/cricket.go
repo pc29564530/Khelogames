@@ -248,11 +248,54 @@ func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.UpdateCricketEndInnings(ctx, req.MatchID, req.TeamID, req.Inning)
+	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatus(ctx, req.MatchID, req.TeamID)
 	if err != nil {
-		s.logger.Error("unable to update the end inning: ", err)
-		return
+		s.logger.Error("Failed to update inning end: ", err)
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	batsmanPlayer, err := s.store.GetPlayer(ctx, batsmanResponse.BatsmanID)
+	if err != nil {
+		s.logger.Error("Failed to get player: ", err)
+	}
+
+	bowlerPlayer, err := s.store.GetPlayer(ctx, bowlerResponse.BowlerID)
+	if err != nil {
+		s.logger.Error("Failed to get player: ", err)
+	}
+
+	batsman := map[string]interface{}{
+		"player":               map[string]interface{}{"id": batsmanPlayer.ID, "name": batsmanPlayer.PlayerName, "slug": batsmanPlayer.Slug, "shortName": batsmanPlayer.ShortName, "position": batsmanPlayer.Positions, "username": batsmanPlayer.Username},
+		"id":                   batsmanResponse.ID,
+		"match_id":             batsmanResponse.MatchID,
+		"team_id":              batsmanResponse.TeamID,
+		"batsman_id":           batsmanResponse.BatsmanID,
+		"runs_scored":          batsmanResponse.RunsScored,
+		"balls_faced":          batsmanResponse.BallsFaced,
+		"fours":                batsmanResponse.Fours,
+		"sixes":                batsmanResponse.Sixes,
+		"batting_status":       batsmanResponse.BattingStatus,
+		"is_striker":           batsmanResponse.IsStriker,
+		"is_currently_batting": batsmanResponse.IsCurrentlyBatting,
+	}
+
+	bowler := map[string]interface{}{
+		"player":            map[string]interface{}{"id": bowlerPlayer.ID, "name": bowlerPlayer.PlayerName, "slug": bowlerPlayer.Slug, "shortName": bowlerPlayer.ShortName, "position": bowlerPlayer.Positions, "username": bowlerPlayer.Username},
+		"id":                bowlerResponse.ID,
+		"match_id":          bowlerResponse.MatchID,
+		"team_id":           bowlerResponse.TeamID,
+		"bowler_id":         bowlerResponse.BowlerID,
+		"ball":              bowlerResponse.Ball,
+		"runs":              bowlerResponse.Runs,
+		"wide":              bowlerResponse.Wide,
+		"no_ball":           bowlerResponse.NoBall,
+		"wickets":           bowlerResponse.Wickets,
+		"bowling_status":    bowlerResponse.BowlingStatus,
+		"is_current_bowler": bowlerResponse.IsCurrentBowler,
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"inning":  inningResponse,
+		"batsman": batsman,
+		"bowler":  bowler,
+	})
 }
