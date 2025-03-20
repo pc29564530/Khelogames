@@ -1324,7 +1324,7 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
 	}
 
-	return &inningScore, &batsmanScore, nil, nil
+	return &inningScore, &batsmanScore, &bowler, nil
 }
 
 const updateInningScore = `
