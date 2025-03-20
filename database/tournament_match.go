@@ -15,8 +15,8 @@ type GetMatchParams struct {
 	TournamentID int64 `json:"tournament_id"`
 }
 
-func (q *Queries) GetMatch(ctx context.Context, arg GetMatchParams) (models.Match, error) {
-	row := q.db.QueryRowContext(ctx, getMatch, arg.ID, arg.TournamentID)
+func (q *Queries) GetMatch(ctx context.Context, id, tournamentID int64) (models.Match, error) {
+	row := q.db.QueryRowContext(ctx, getMatch, id, tournamentID)
 	var i models.Match
 	err := row.Scan(
 		&i.ID,
@@ -445,13 +445,14 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, arg UpdateMatchStatusPa
 
 const updateMatchResult = `
 UPDATE matches
-SET result=$1
-WHERE id=$2
+SET result=$2,
+	status_code='finished'
+WHERE id=$1
 RETURNING *
 `
 
 func (q *Queries) UpdateMatchResult(ctx context.Context, id, result int64) (models.Match, error) {
-	row := q.db.QueryRowContext(ctx, updateMatchResult, result, id)
+	row := q.db.QueryRowContext(ctx, updateMatchResult, id, result)
 	var i models.Match
 	err := row.Scan(
 		&i.ID,
@@ -464,6 +465,8 @@ func (q *Queries) UpdateMatchResult(ctx context.Context, id, result int64) (mode
 		&i.StatusCode,
 		&i.Result,
 		&i.Stage,
+		&i.KnockoutLevelID,
+		&i.MatchFormat,
 	)
 	return i, err
 }
