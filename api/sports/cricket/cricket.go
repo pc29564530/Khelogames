@@ -5,20 +5,14 @@ import (
 	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type addCricketScoreRequest struct {
-	MatchID       int64   `json:"match_id"`
-	TeamID        int64   `json:"team_id"`
-	Inning        string  `json:"inning"`
-	Score         int32   `json:"score"`
-	Wickets       int32   `json:"wickets"`
-	Overs         int32   `json:"overs"`
-	RunRate       float64 `json:"run_rate"`
-	TargetRunRate float64 `json:"target_run_rate"`
+	MatchID int64  `json:"match_id"`
+	TeamID  int64  `json:"team_id"`
+	Inning  string `json:"inning"`
 }
 
 func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
@@ -30,18 +24,18 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	runRate := strconv.FormatFloat(req.RunRate, 'f', 2, 64)
-	targetRunRate := strconv.FormatFloat(req.TargetRunRate, 'f', 2, 64)
-
 	arg := db.NewCricketScoreParams{
-		MatchID:       req.MatchID,
-		TeamID:        req.TeamID,
-		Inning:        req.Inning,
-		Score:         req.Score,
-		Wickets:       req.Wickets,
-		Overs:         req.Overs,
-		RunRate:       runRate,
-		TargetRunRate: targetRunRate,
+		MatchID:           req.MatchID,
+		TeamID:            req.TeamID,
+		Inning:            req.Inning,
+		Score:             0,
+		Wickets:           0,
+		Overs:             0,
+		RunRate:           "0.00",
+		TargetRunRate:     "0.00",
+		FollowOn:          false,
+		IsInningCompleted: false,
+		Declared:          false,
 	}
 
 	response, err := s.store.NewCricketScore(ctx, arg)
