@@ -421,3 +421,23 @@ type SearchTeam struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
+
+type FootballSquad struct {
+	ID          int64     `json:"id"`
+	MatchID     int64     `json:"match_id"`
+	TeamID      int64     `json:"team_id"`
+	PlayerID    int64     `json:"player_id"`
+	Position    string    `json:"position"`
+	IsSubstitue bool      `json:"is_substitue"`
+	CreatedAT   time.Time `json:"created_at"`
+}
+
+type CricketSquad struct {
+	ID        int64     `json:"id"`
+	MatchID   int64     `json:"match_id"`
+	TeamID    int64     `json:"team_id"`
+	PlayerID  int64     `json:"player_id"`
+	Role      string    `json:"role"`
+	OnBench   bool      `json:"on_bench"`
+	CreatedAT time.Time `json:"created_at"`
+}
