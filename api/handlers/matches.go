@@ -81,8 +81,8 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 			"inning":              match["awayScore"].(map[string]interface{})["inning"],
 			"team_id":             int64(match["away_team_id"].(float64)),
 			"score":               match["awayScore"],
-			"is_inning_completed": match["awayScore"].(map[string]bool)["is_inning_completed"],
-			"follow_on":           match["awayScore"].(map[string]bool)["follow_on"],
+			"is_inning_completed": match["awayScore"].(map[string]interface{})["is_inning_completed"],
+			"follow_on":           match["awayScore"].(map[string]interface{})["follow_on"],
 		})
 	}
 	if matchToss.TossWin != int64(match["home_team_id"].(float64)) && matchToss.TossDecision == "Bowling" {

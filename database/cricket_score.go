@@ -87,8 +87,8 @@ INSERT INTO cricket_score (
 	follow_on,
 	is_inning_completed,
 	declared
-) VALUES ( $1, $2, $3, $4, $5, $6, CAST($7 AS numeric(5,2)), CAST($8 AS numeric(5,2)), follow_on,
-is_inning_completed, declared)
+) VALUES ( $1, $2, $3, $4, $5, $6, CAST($7 AS numeric(5,2)), CAST($8 AS numeric(5,2)), $9,
+$10, $11)
 RETURNING *
 `
 
@@ -188,7 +188,7 @@ type UpdateCricketOversParams struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (q *Queries) UpdateCricketOvers(ctx context.Context, arg UpdateCricketOversParams) (models.CricketScore, error) {
+func (q *Queries) UpdateCricketOvers(ctx context.Context, arg UpdateCricketOversParams) (*models.CricketScore, error) {
 	row := q.db.QueryRowContext(ctx, updateCricketOvers, arg.MatchID, arg.TeamID)
 	var i models.CricketScore
 	err := row.Scan(
@@ -205,7 +205,13 @@ func (q *Queries) UpdateCricketOvers(ctx context.Context, arg UpdateCricketOvers
 		&i.IsInningCompleted,
 		&i.Declared,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &i, nil
 }
 
 const updateCricketScore = `
@@ -284,6 +290,8 @@ func (q *Queries) UpdateCricketWickets(ctx context.Context, arg UpdateCricketWic
 }
 
 const updateCricketEndInnings = `
+
+
 UPDATE cricket_score
 SET is_inning_completed=true
 WHERE match_id=$1 AND team_id=$2 AND inning=$3
