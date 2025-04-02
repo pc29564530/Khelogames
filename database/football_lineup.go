@@ -152,3 +152,29 @@ func (q *Queries) UpdateFootballSubsAndLineUp(ctx context.Context, arg UpdateFoo
 	)
 	return i, err
 }
+
+const addFootballSquad = `
+INSERT INTO football_squad (
+    match_id,
+    team_id,
+    player_id,
+    position,
+	is_substitue
+) VALUES ( $1, $2, $3, $4, $5 )
+RETURNING id, team_id, player_id, match_id, position, is_substitue, created_at
+`
+
+func (q *Queries) AddFootballSquad(ctx context.Context, matchID, teamID, playerID int64, position string, IsSubstitue bool) (models.FootballSquad, error) {
+	row := q.db.QueryRowContext(ctx, addFootballSquad, matchID, teamID, playerID, position, IsSubstitue)
+	var i models.FootballSquad
+	err := row.Scan(
+		&i.ID,
+		&i.MatchID,
+		&i.TeamID,
+		&i.PlayerID,
+		&i.Position,
+		&i.IsSubstitue,
+		&i.CreatedAT,
+	)
+	return i, err
+}
