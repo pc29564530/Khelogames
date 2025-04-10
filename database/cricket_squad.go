@@ -37,11 +37,11 @@ const getCricketMatchSquad = `
 	SELECT 
 		JSON_BUILD_OBJECT(
 			'id', cs.id, 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'role', cs.role, 
-			'on_bench', cs.on_bench, 'created_id', cs.created_id,
+			'on_bench', cs.on_bench, 'created_at', cs.created_at,
 			'player', JSON_BUILD_OBJECT('id',pl.id,'username',pl.username, 'name', pl.player_name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url)
 		) AS teamSquad
 	FROM cricket_squad as cs
-	LEFT JOIN players AS p ON p.team_id = cs.team_id
+	LEFT JOIN players AS pl ON pl.id = cs.player_id
 	WHERE match_id=$1 AND team_id=$2;
 `
 
