@@ -1,7 +1,7 @@
 package cricket
 
 import (
-	"fmt"
+	"khelogames/database/models"
 	"net/http"
 	"strconv"
 
@@ -23,8 +23,7 @@ type MatchSquadRequest struct {
 	MatchID *int64   `json:"match_id"`
 	TeamID  int64    `json:"team_id"`
 	Player  []Player `json:"player"`
-	Role    string   `json:"role"`
-	OnBench bool     `json:"on_bench"`
+	OnBench []int64  `json:"on_bench"`
 }
 
 func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
@@ -36,12 +35,17 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 		return
 	}
 	var cricketSquad []map[string]interface{}
-	fmt.Println("Player: ", req.Player)
 	for _, player := range req.Player {
-		squad, err := s.store.AddCricketSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, req.OnBench)
-		if err != nil {
-			s.logger.Error("Failed to add football squad: ", err)
-			return
+		var squad models.CricketSquad
+		var err error
+		for _, onBenchID := range req.OnBench {
+			if player.ID == onBenchID {
+				squad, err = s.store.AddCricketSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, true)
+				if err != nil {
+					s.logger.Error("Failed to add football squad: ", err)
+					return
+				}
+			}
 		}
 
 		cricketSquad = append(cricketSquad, map[string]interface{}{
