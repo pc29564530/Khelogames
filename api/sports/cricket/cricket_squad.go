@@ -61,16 +61,6 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 }
 
 func (s *CricketServer) GetCricketMatchSquadFunc(ctx *gin.Context) {
-	// var req struct {
-	// 	MatchID *int64 `json:"match_id"`
-	// 	TeamID  int64  `json:"team_id"`
-	// }
-
-	// err := ctx.ShouldBindJSON(&req)
-	// if err != nil {
-	// 	s.logger.Error("failed to bind: ", err)
-	// 	return
-	// }
 
 	teamIDString := ctx.Query("team_id")
 	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
@@ -91,5 +81,6 @@ func (s *CricketServer) GetCricketMatchSquadFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get cricket squad: ", err)
 		return
 	}
+
 	ctx.JSON(http.StatusAccepted, cricketSquad)
 }
