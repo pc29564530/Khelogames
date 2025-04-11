@@ -39,22 +39,26 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 		var squad models.CricketSquad
 		var err error
 		for _, onBenchID := range req.OnBench {
+			var isBench bool
+			isBench = false
 			if player.ID == onBenchID {
-				squad, err = s.store.AddCricketSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, true)
-				if err != nil {
-					s.logger.Error("Failed to add football squad: ", err)
-					return
-				}
+				isBench = true
+			}
+			squad, err = s.store.AddCricketSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, isBench, false)
+			if err != nil {
+				s.logger.Error("Failed to add football squad: ", err)
+				return
 			}
 		}
 
 		cricketSquad = append(cricketSquad, map[string]interface{}{
-			"id":       squad.ID,
-			"match_id": squad.MatchID,
-			"team_id":  squad.TeamID,
-			"player":   player,
-			"role":     squad.Role,
-			"on_bench": squad.OnBench,
+			"id":         squad.ID,
+			"match_id":   squad.MatchID,
+			"team_id":    squad.TeamID,
+			"player":     player,
+			"role":       squad.Role,
+			"on_bench":   squad.OnBench,
+			"is_captain": squad.IsCaptain,
 		})
 	}
 
