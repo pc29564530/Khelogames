@@ -187,7 +187,7 @@ const getFootballMatchSquad = `
 	SELECT 
 		JSON_AGG(
 			JSON_BUILD_OBJECT(
-				'id', cs.id, 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'positions', cs.positions, 'is_substitute', cs.is_substitute,  'role', cs.role, 'created_at', cs.created_at,
+				'id', cs.id, 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'position', cs.position, 'is_substitute', cs.is_substitute,  'role', cs.role, 'created_at', cs.created_at,
 				'player', JSON_BUILD_OBJECT(
 					'id',pl.id,
 					'username',pl.username,
