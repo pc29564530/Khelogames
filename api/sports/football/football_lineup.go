@@ -4,6 +4,7 @@ import (
 	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -230,7 +231,21 @@ func (s *FootballServer) GetFootballMatchSquadFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetFootballMatchSquad(ctx, req.MatchID, req.TeamID)
+	matchIDString := ctx.Query("match_id")
+	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse int: ", err)
+		return
+	}
+
+	teamIDString := ctx.Query("team_id")
+	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse int: ", err)
+		return
+	}
+
+	response, err := s.store.GetFootballMatchSquad(ctx, matchID, teamID)
 	if err != nil {
 		s.logger.Error("Failed to get football match squad: ", err)
 		return
