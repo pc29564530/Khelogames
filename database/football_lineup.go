@@ -164,7 +164,7 @@ INSERT INTO football_squad (
 	is_substitute,
 	role
 ) VALUES ( $1, $2, $3, $4, $5, $6 )
-RETURNING id, team_id, player_id, match_id, position, is_substitute, role, created_at
+RETURNING id, match_id, team_id, player_id, position, is_substitute, role, created_at
 `
 
 func (q *Queries) AddFootballSquad(ctx context.Context, matchID int64, teamID, playerID int64, position string, IsSubstitute bool, Role string) (models.FootballSquad, error) {
@@ -177,6 +177,7 @@ func (q *Queries) AddFootballSquad(ctx context.Context, matchID int64, teamID, p
 		&i.PlayerID,
 		&i.Position,
 		&i.IsSubstitute,
+		&i.Role,
 		&i.CreatedAT,
 	)
 	return i, err

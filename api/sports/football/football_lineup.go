@@ -181,22 +181,24 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 		return
 	}
 
+	substitutedMap := make(map[int64]bool)
+
+	for _, substitutedID := range req.IsSubstituted {
+		substitutedMap[substitutedID] = true
+	}
+
 	var footballSquad []map[string]interface{}
 	for _, player := range req.Player {
 		var squad models.FootballSquad
 		var err error
-		for _, isSubstituteID := range req.IsSubstituted {
-			var substitute bool
-			substitute = false
-			if player.ID == isSubstituteID {
-				substitute = true
-			}
-			var role string
-			squad, err = s.store.AddFootballSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, substitute, role)
-			if err != nil {
-				s.logger.Error("Failed to add football squad: ", err)
-				return
-			}
+
+		substitute := substitutedMap[player.ID]
+
+		var role string
+		squad, err = s.store.AddFootballSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, substitute, role)
+		if err != nil {
+			s.logger.Error("Failed to add football squad: ", err)
+			return
 		}
 
 		footballSquad = append(footballSquad, map[string]interface{}{
