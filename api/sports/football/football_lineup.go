@@ -2,6 +2,7 @@ package football
 
 import (
 	db "khelogames/database"
+	"khelogames/database/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -53,12 +54,7 @@ func (s *FootballServer) GetFootballLineUpFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.GetFootballLineUpParams{
-		TeamID:  req.TeamID,
-		MatchID: req.MatchID,
-	}
-
-	response, err := s.store.GetFootballLineUp(ctx, arg)
+	response, err := s.store.GetFootballMatchSquad(ctx, req.MatchID, req.TeamID)
 	if err != nil {
 		s.logger.Error("Failed to get the player in lineup: ", err)
 		return
@@ -156,14 +152,27 @@ func (s *FootballServer) GetFootballSubstitutionFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 }
 
+type Player struct {
+	ID         int64  `json:"id"`
+	PlayerName string `json:"player_name"`
+	ShortName  string `json:"short_name"`
+	Slug       string `json:"slug"`
+	Country    string `json:"country"`
+	Position   string `json:"position"`
+	MediaURL   string `json:"media_url"`
+	Sports     string `json:"sports"`
+}
+
+type MatchSquadRequest struct {
+	MatchID       *int64   `json:"match_id"`
+	TeamID        int64    `json:"team_id"`
+	Player        []Player `json:"player"`
+	IsSubstituted []int64  `json:"is_substituted"`
+}
+
 func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
-	var req struct {
-		MatchID     int64  `json:"match_id"`
-		TeamID      int64  `json:"team_id"`
-		PlayerID    int64  `json:"player_id"`
-		Position    string `json:"position"`
-		IsSubstitue bool   `json:"is_substitue"`
-	}
+
+	var req MatchSquadRequest
 
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -171,10 +180,61 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 		return
 	}
 
-	footballSquad, err := s.store.AddFootballSquad(ctx, req.MatchID, req.TeamID, req.PlayerID, req.Position, req.IsSubstitue)
+	var footballSquad []map[string]interface{}
+	for _, player := range req.Player {
+		var squad models.FootballSquad
+		var err error
+		for _, isSubstituteID := range req.IsSubstituted {
+			var substitute bool
+			substitute = false
+			if player.ID == isSubstituteID {
+				substitute = true
+			}
+			var role string
+			squad, err = s.store.AddFootballSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, substitute, role)
+			if err != nil {
+				s.logger.Error("Failed to add football squad: ", err)
+				return
+			}
+		}
+
+		footballSquad = append(footballSquad, map[string]interface{}{
+			"id":            squad.ID,
+			"match_id":      squad.MatchID,
+			"team_id":       squad.TeamID,
+			"player":        player,
+			"positions":     squad.Position,
+			"is_substitute": squad.IsSubstitute,
+			"role":          squad.Role,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Football squad added successfully",
+		"squad":   footballSquad,
+	})
+}
+
+type GetMatchSquadRequest struct {
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
+}
+
+func (s *FootballServer) GetFootballMatchSquadFunc(ctx *gin.Context) {
+
+	var req GetMatchSquadRequest
+
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to add football squad: ", err)
+		s.logger.Error("Failed to bind: ", err)
 		return
 	}
-	ctx.JSON(http.StatusAccepted, footballSquad)
+
+	response, err := s.store.GetFootballMatchSquad(ctx, req.MatchID, req.TeamID)
+	if err != nil {
+		s.logger.Error("Failed to get football match squad: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, response)
 }

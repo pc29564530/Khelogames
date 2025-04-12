@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"khelogames/database/models"
 )
 
@@ -159,13 +161,14 @@ INSERT INTO football_squad (
     team_id,
     player_id,
     position,
-	is_substitue
-) VALUES ( $1, $2, $3, $4, $5 )
-RETURNING id, team_id, player_id, match_id, position, is_substitue, created_at
+	is_substitute,
+	role
+) VALUES ( $1, $2, $3, $4, $5, $6 )
+RETURNING id, team_id, player_id, match_id, position, is_substitute, role, created_at
 `
 
-func (q *Queries) AddFootballSquad(ctx context.Context, matchID, teamID, playerID int64, position string, IsSubstitue bool) (models.FootballSquad, error) {
-	row := q.db.QueryRowContext(ctx, addFootballSquad, matchID, teamID, playerID, position, IsSubstitue)
+func (q *Queries) AddFootballSquad(ctx context.Context, matchID int64, teamID, playerID int64, position string, IsSubstitute bool, Role string) (models.FootballSquad, error) {
+	row := q.db.QueryRowContext(ctx, addFootballSquad, matchID, teamID, playerID, position, IsSubstitute, Role)
 	var i models.FootballSquad
 	err := row.Scan(
 		&i.ID,
@@ -173,8 +176,46 @@ func (q *Queries) AddFootballSquad(ctx context.Context, matchID, teamID, playerI
 		&i.TeamID,
 		&i.PlayerID,
 		&i.Position,
-		&i.IsSubstitue,
+		&i.IsSubstitute,
 		&i.CreatedAT,
 	)
 	return i, err
+}
+
+const getFootballMatchSquad = `
+	SELECT 
+		JSON_AGG(
+			JSON_BUILD_OBJECT(
+				'id', cs.id, 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'positions', cs.positions, 'is_substitute', cs.is_substitute,  'role', cs.role, 'created_at', cs.created_at,
+				'player', JSON_BUILD_OBJECT(
+					'id',pl.id,
+					'username',pl.username,
+					'name', pl.player_name, 
+					'slug', pl.slug, 
+					'short_name', pl.short_name, 
+					'country', pl.country, 
+					'positions', pl.positions, 
+					'media_url', pl.media_url
+				)
+			)
+		) AS teamSquad
+	FROM football_squad as cs
+	JOIN players AS pl ON pl.id = cs.player_id
+	WHERE match_id=$1 AND team_id=$2;
+`
+
+func (q *Queries) GetFootballMatchSquad(ctx context.Context, matchID, teamID int64) ([]interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getFootballMatchSquad, matchID, teamID)
+
+	var jsonData []byte
+	if err := row.Scan(&jsonData); err != nil {
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
+
+	var teamSquads []interface{}
+	if err := json.Unmarshal(jsonData, &teamSquads); err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal: %w", err)
+	}
+
+	return teamSquads, nil
 }
