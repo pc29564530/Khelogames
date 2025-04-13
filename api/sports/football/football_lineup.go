@@ -154,14 +154,15 @@ func (s *FootballServer) GetFootballSubstitutionFunc(ctx *gin.Context) {
 }
 
 type Player struct {
-	ID         int64  `json:"id"`
-	PlayerName string `json:"player_name"`
-	ShortName  string `json:"short_name"`
-	Slug       string `json:"slug"`
-	Country    string `json:"country"`
-	Position   string `json:"position"`
-	MediaURL   string `json:"media_url"`
-	Sports     string `json:"sports"`
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	ShortName string `json:"short_name"`
+	Slug      string `json:"slug"`
+	Country   string `json:"country"`
+	Position  string `json:"position"`
+	MediaURL  string `json:"media_url"`
+	Sports    string `json:"sports"`
+	GameID    int64  `json:"game_id"`
 }
 
 type MatchSquadRequest struct {
