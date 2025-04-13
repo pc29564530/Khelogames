@@ -225,14 +225,6 @@ type GetMatchSquadRequest struct {
 
 func (s *FootballServer) GetFootballMatchSquadFunc(ctx *gin.Context) {
 
-	var req GetMatchSquadRequest
-
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		return
-	}
-
 	matchIDString := ctx.Query("match_id")
 	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
 	if err != nil {
