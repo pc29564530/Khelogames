@@ -141,6 +141,8 @@ func NewServer(config util.Config,
 		authRouter.DELETE("/deleteAdmin", handlersServer.DeleteAdminFunc)
 		authRouter.PUT("/updateCommunityByDescription", handlersServer.UpdateCommunityByDescriptionFunc)
 		authRouter.PUT("/updateCommunityByCommunityName", handlersServer.UpdateCommunityByCommunityNameFunc)
+		authRouter.GET("/getRoles", handlersServer.GetRolesFunc)
+		authRouter.POST("/addUserRole", handlersServer.AddUserRoleFunc)
 
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))

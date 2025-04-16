@@ -281,3 +281,33 @@ func (s *HandlersServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, profileAvatarUrl)
 	return
 }
+
+func (s *HandlersServer) GetRolesFunc(ctx *gin.Context) {
+	roles, err := s.store.GetRoles(ctx)
+	if err != nil {
+		s.logger.Error("Failed to get roles: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, roles)
+}
+
+func (s *HandlersServer) AddUserRoleFunc(ctx *gin.Context) {
+	var req struct {
+		ProfileID int64 `json:"profile_id"`
+		RoleID    int64 `json:"role_id"`
+	}
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	roles, err := s.store.AddRole(ctx, req.ProfileID, req.RoleID)
+	if err != nil {
+		s.logger.Error("Failed to get roles: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, roles)
+}
