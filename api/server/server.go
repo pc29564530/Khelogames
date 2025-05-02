@@ -143,6 +143,7 @@ func NewServer(config util.Config,
 		authRouter.PUT("/updateCommunityByCommunityName", handlersServer.UpdateCommunityByCommunityNameFunc)
 		authRouter.GET("/getRoles", handlersServer.GetRolesFunc)
 		authRouter.POST("/addUserRole", handlersServer.AddUserRoleFunc)
+		authRouter.POST("/applyForVerification", handlersServer.AddUserVerificationFunc)
 
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))

@@ -311,3 +311,52 @@ func (s *HandlersServer) AddUserRoleFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, roles)
 }
+
+func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
+	var req struct {
+		ProfileID        int64  `json:"profile_id"`
+		OrganizationName string `json:"organization_name"`
+		Email            string `json:"email"`
+		PhoneNumber      int16  `json:"phone_number"`
+		DocumentType     string `json:"document_type"`
+		DocumentURL      string `json:"document_url"`
+	}
+
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	//AddUserVerificationDocuments:
+	organizerDetails, err := s.store.AddOrganizerVerificationDetails(ctx, req.ProfileID, req.OrganizationName, req.Email, req.PhoneNumber)
+	if err != nil {
+		s.logger.Error("Failed to Verify the organizer details: ", err)
+		return
+	}
+
+	//Upload the documents:
+	documentVerification, err := s.store.AddDocumentVerificationDetails(ctx, organizerDetails.ID, req.DocumentType, req.DocumentURL)
+	if err != nil {
+		s.logger.Error("Failed to verify document: ", err)
+		return
+	}
+
+	status := "pending"
+	if organizerDetails.IsVerified {
+		status = "verified"
+	} else if organizerDetails.VerifiedAT != nil {
+		status = "rejected"
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"organizer_id":      organizerDetails.ID,
+		"organization_name": organizerDetails.OrganizationName,
+		"email":             organizerDetails.Email,
+		"phone":             organizerDetails.PhoneNumber,
+		"profile_id":        organizerDetails.ProfileID,
+		"status":            status,
+		"file_path":         documentVerification.FilePath,
+	})
+
+}

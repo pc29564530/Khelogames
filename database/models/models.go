@@ -443,3 +443,34 @@ type CricketSquad struct {
 	IsCaptain bool      `json:"is_captain"`
 	CreatedAT time.Time `json:"created_at"`
 }
+
+type Roles struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+type UserRole struct {
+	ID        int64     `json:"id"`
+	ProfileID int64     `json:"profile_id"`
+	RoleID    int64     `json:"role_id"`
+	CreatedAT time.Time `json:"created_at"`
+}
+
+type Organizations struct {
+	ID               int64      `json:"id"`
+	ProfileID        int64      `json:"profile_id"`
+	OrganizationName string     `json:"organization_name"`
+	Email            string     `json:"email"`
+	PhoneNumber      int        `json:"phone_number"`
+	IsVerified       bool       `json:"is_verified"`
+	VerifiedAT       *time.Time `json:"vereified_at"`
+}
+
+type Document struct {
+	ID           int64     `json:"id"`
+	OrganizerID  int32     `json:"organizer_id"`
+	DocumentType string    `json:"document_type"`
+	FilePath     string    `json:"file_path"`
+	SubmittedAT  time.Time `json:"submitted_at"`
+	Status       string    `json:"status"`
+}
