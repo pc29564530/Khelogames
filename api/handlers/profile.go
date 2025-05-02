@@ -334,9 +334,15 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to Verify the organizer details: ", err)
 		return
 	}
+	saveImageStruct := util.NewSaveImageStruct(s.logger)
+	documentPath, err := saveImageStruct.SaveImageToFile([]byte(req.DocumentURL), "image")
+	if err != nil {
+		s.logger.Error("Failed to save avatar image: ", err)
+		return
+	}
 
 	//Upload the documents:
-	documentVerification, err := s.store.AddDocumentVerificationDetails(ctx, organizerDetails.ID, req.DocumentType, req.DocumentURL)
+	documentVerification, err := s.store.AddDocumentVerificationDetails(ctx, organizerDetails.ID, req.DocumentType, documentPath)
 	if err != nil {
 		s.logger.Error("Failed to verify document: ", err)
 		return
@@ -360,3 +366,5 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 	})
 
 }
+
+//Add the update status functionality
