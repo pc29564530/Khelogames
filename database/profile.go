@@ -228,10 +228,13 @@ const addOrganizerVerificationDetails = `
 		organization_name,
 		email,
 		phone_number,
-	) VALUES ($1, $2, $3, $4, $5, false, null ) RETURNING *;
+		is_verified,
+		verified_at,
+		created_at
+	) VALUES ($1, $2, $3, $4, false, null, CURRENT_TIMESTAMP ) RETURNING *;
 `
 
-func (q *Queries) AddOrganizerVerificationDetails(ctx context.Context, profileID int64, organizationName string, email string, phoneNumber int16) (*models.Organizations, error) {
+func (q *Queries) AddOrganizerVerificationDetails(ctx context.Context, profileID int64, organizationName string, email string, phoneNumber string) (*models.Organizations, error) {
 	row := q.db.QueryRowContext(ctx, addOrganizerVerificationDetails, profileID, organizationName, email, phoneNumber)
 	var organizationDetails models.Organizations
 	err := row.Scan(
@@ -242,6 +245,7 @@ func (q *Queries) AddOrganizerVerificationDetails(ctx context.Context, profileID
 		&organizationDetails.PhoneNumber,
 		&organizationDetails.IsVerified,
 		&organizationDetails.VerifiedAT,
+		&organizationDetails.CreatedAT,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to scan the row: ", err)

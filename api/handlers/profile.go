@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/base64"
 	db "khelogames/database"
+	"khelogames/database/models"
 	"khelogames/pkg"
 	"khelogames/token"
 	"khelogames/util"
@@ -317,7 +318,7 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 		ProfileID        int64  `json:"profile_id"`
 		OrganizationName string `json:"organization_name"`
 		Email            string `json:"email"`
-		PhoneNumber      int16  `json:"phone_number"`
+		PhoneNumber      string `json:"phone_number"`
 		DocumentType     string `json:"document_type"`
 		DocumentURL      string `json:"document_url"`
 	}
@@ -334,18 +335,23 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to Verify the organizer details: ", err)
 		return
 	}
-	saveImageStruct := util.NewSaveImageStruct(s.logger)
-	documentPath, err := saveImageStruct.SaveImageToFile([]byte(req.DocumentURL), "image")
-	if err != nil {
-		s.logger.Error("Failed to save avatar image: ", err)
-		return
-	}
 
-	//Upload the documents:
-	documentVerification, err := s.store.AddDocumentVerificationDetails(ctx, organizerDetails.ID, req.DocumentType, documentPath)
-	if err != nil {
-		s.logger.Error("Failed to verify document: ", err)
-		return
+	saveImageStruct := util.NewSaveImageStruct(s.logger)
+	var emptyString string
+	var documentVerification *models.Document
+	if req.DocumentURL != emptyString {
+		documentPath, err := saveImageStruct.SaveImageToFile([]byte(req.DocumentURL), "image")
+		if err != nil {
+			s.logger.Error("Failed to save avatar image: ", err)
+			return
+		}
+
+		//Upload the documents:
+		documentVerification, err = s.store.AddDocumentVerificationDetails(ctx, organizerDetails.ID, req.DocumentType, documentPath)
+		if err != nil {
+			s.logger.Error("Failed to verify document: ", err)
+			return
+		}
 	}
 
 	status := "pending"

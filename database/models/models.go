@@ -461,9 +461,10 @@ type Organizations struct {
 	ProfileID        int64      `json:"profile_id"`
 	OrganizationName string     `json:"organization_name"`
 	Email            string     `json:"email"`
-	PhoneNumber      int        `json:"phone_number"`
+	PhoneNumber      string     `json:"phone_number"`
 	IsVerified       bool       `json:"is_verified"`
 	VerifiedAT       *time.Time `json:"vereified_at"`
+	CreatedAT        time.Time  `json:"created_at"`
 }
 
 type Document struct {
