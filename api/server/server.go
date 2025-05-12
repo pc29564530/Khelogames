@@ -73,6 +73,7 @@ func NewServer(config util.Config,
 		public.GET("/getUserByMobileNumber", handlersServer.GetUserByMobileNumber)
 		public.GET("/getUserByGmail", handlersServer.GetUserByGmail)
 	}
+
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
 		authRouter.GET("/getGroups", tournamentServer.GetGroupsFunc)
@@ -221,6 +222,9 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getCurrentBowler", cricketServer.GetCurrentBowlerFunc)
 	sportRouter.POST("/addCricketSquad", cricketServer.AddCricketSquadFunc)
 	sportRouter.GET("/getCricketMatchSquad", cricketServer.GetCricketMatchSquadFunc)
+	sportRouter.GET("/getCricketTournamentMostRuns/:id", tournamentServer.GetCricketTournamentMostRunsFunc)
+	sportRouter.GET("/getCricketTournamentHighestRuns/:id", tournamentServer.GetCricketTournamentHighestRunsFunc)
+	sportRouter.GET("getCricketTournamentMostSixes/:id", tournamentServer.GetCricketTournamentMostSixesFunc)
 	//cricket->player
 	sportRouter.POST("/addCricketBatScore", cricketServer.AddCricketBatScoreFunc)
 	sportRouter.POST("/addCricketBall", cricketServer.AddCricketBallFunc)
