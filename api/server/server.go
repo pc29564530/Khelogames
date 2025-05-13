@@ -233,6 +233,8 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getCricketTournamentBowlingAverage/:id", tournamentServer.GetCricketTournamentBowlingAverageFunc)
 	sportRouter.GET("/getCricketTournamentMostWickets/:id", tournamentServer.GetCricketTournamentMostWicketsFunc)
 	sportRouter.GET("/getCricketTournamentFiveWicketsHaul/:id", tournamentServer.GetCricketTournamentBowlingFiveWicketHaulFunc)
+	sportRouter.GET("/getCricketTournamentBattingAverage/:id", tournamentServer.GetCricketTournamentBattingAverageFunc)
+	sportRouter.GET("/getCricketTournamentBattingStrike/:id", tournamentServer.GetCricketTournamentBattingStrikeFunc)
 	//cricket->player
 	sportRouter.POST("/addCricketBatScore", cricketServer.AddCricketBatScoreFunc)
 	sportRouter.POST("/addCricketBall", cricketServer.AddCricketBallFunc)

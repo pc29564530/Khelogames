@@ -265,3 +265,56 @@ const getCricketTournamentBowlingFiveWicketHaul = `
 func (q *Queries) GetCricketTournamentBowlingFiveWicketHaul(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
 	return q.getPlayerStat(ctx, getCricketTournamentBowlingFiveWicketHaul, tournamentID)
 }
+
+// batting average
+const getCricketTournamentBattingAverage = `
+	SELECT 
+		p.id AS player_id,
+		p.player_name,
+		tm.name AS team_name,
+		ROUND(
+			SUM(b.runs_scored)::numeric / NULLIF(
+				COUNT(*) FILTER (
+					WHERE cs.is_inning_completed = true AND b.is_currently_batting = false
+				), 0
+			), 2
+		) AS batting_average
+	FROM bats b
+	LEFT JOIN matches m ON m.id = b.match_id
+	LEFT JOIN players p ON p.id = b.batsman_id
+	LEFT JOIN teams tm ON tm.id = b.team_id
+	JOIN cricket_score cs ON cs.match_id = m.id AND cs.team_id = b.team_id
+	WHERE m.tournament_id = $1
+	GROUP BY p.id, p.player_name, tm.name
+	HAVING
+		SUM(b.runs_scored)::numeric / NULLIF(
+			COUNT(*) FILTER (
+				WHERE cs.is_inning_completed = true AND b.is_currently_batting = false
+			), 0
+		) > 0
+	ORDER BY batting_average DESC;
+`
+
+func (q *Queries) GetCricketTournamentBattingAverage(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
+	return q.getPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentID)
+}
+
+// Batting Strike Rate
+const getCricketTournamentBattingStrikeRate = `
+	SELECT 
+		p.id AS player_id,
+		p.player_name,
+		tm.name AS team_name,
+		ROUND(sum(b.runs_scored)::numeric / sum(balls_faced), 2) AS batting_strike_rate
+	FROM bats b
+	LEFT JOIN matches m ON m.id = b.match_id
+	LEFT JOIN players p ON p.id = b.batsman_id
+	LEFT JOIN teams tm ON tm.id = b.team_id
+	WHERE m.tournament_id = $1
+	GROUP BY p.id, p.player_name, tm.name
+	ORDER BY batting_strike_rate DESC;
+`
+
+func (q *Queries) GetCricketTournamentBattingStrikeRate(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
+	return q.getPlayerStat(ctx, getCricketTournamentBattingStrikeRate, tournamentID)
+}

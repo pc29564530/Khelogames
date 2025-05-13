@@ -246,3 +246,47 @@ func (s *TournamentServer) GetCricketTournamentBowlingFiveWicketHaulFunc(ctx *gi
 	ctx.JSON(http.StatusAccepted, stats)
 	return
 }
+
+// GetCricketTournamentBattingAverage
+func (s *TournamentServer) GetCricketTournamentBattingAverageFunc(ctx *gin.Context) {
+	var req struct {
+		TournamentID int64 `uri:"id"`
+	}
+
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	stats, err := s.store.GetCricketTournamentBattingAverage(ctx, req.TournamentID)
+	if err != nil {
+		s.logger.Error("failed to get cricket batting average: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, stats)
+	return
+}
+
+// GetCricketTournamentBattingAverage
+func (s *TournamentServer) GetCricketTournamentBattingStrikeFunc(ctx *gin.Context) {
+	var req struct {
+		TournamentID int64 `uri:"id"`
+	}
+
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	stats, err := s.store.GetCricketTournamentBattingStrikeRate(ctx, req.TournamentID)
+	if err != nil {
+		s.logger.Error("failed to get cricket batting strike: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, stats)
+	return
+}
