@@ -252,14 +252,13 @@ const getCricketTournamentBowlingFiveWicketHaul = `
 		p.id AS player_id,
 		p.player_name,
 		tm.name AS team_name,
-		SUM(b.wickets) AS five_wickets_haul
+		COUNT(*) FILTER(WHERE b.wickets >= 0) AS five_wickets_haul
 	FROM balls b
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.bowler_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
 	WHERE m.tournament_id = $1
 	GROUP BY p.id, p.player_name, tm.name
-	HAVING SUM(b.wickets) >= 5
 	ORDER BY five_wickets_haul DESC;
 `
 

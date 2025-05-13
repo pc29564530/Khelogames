@@ -19,7 +19,7 @@ func (s *TournamentServer) GetCricketTournamentMostRunsFunc(ctx *gin.Context) {
 
 	stats, err := s.store.GetCricketTournamentMostRuns(ctx, req.TournamentID)
 	if err != nil {
-		s.logger.Error("failed to get cricket stats: ", err)
+		s.logger.Error("failed to get cricket most runs: ", err)
 		return
 	}
 
@@ -128,7 +128,7 @@ func (s *TournamentServer) GetCricketTournamentMostHundredsFunc(ctx *gin.Context
 
 	stats, err := s.store.GetCricketTournamentMostHundreds(ctx, req.TournamentID)
 	if err != nil {
-		s.logger.Error("failed to get cricket most fours: ", err)
+		s.logger.Error("failed to get cricket most hundreds: ", err)
 		return
 	}
 
@@ -173,7 +173,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingEconomyRateFunc(ctx *gin.C
 
 	stats, err := s.store.GetCricketTournamentBowlingEconomyRate(ctx, req.TournamentID)
 	if err != nil {
-		s.logger.Error("failed to get cricket most wickets: ", err)
+		s.logger.Error("failed to get cricket bowling economy rate: ", err)
 		return
 	}
 
@@ -239,7 +239,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingFiveWicketHaulFunc(ctx *gi
 
 	stats, err := s.store.GetCricketTournamentBowlingFiveWicketHaul(ctx, req.TournamentID)
 	if err != nil {
-		s.logger.Error("failed to get cricket bowling strike rate: ", err)
+		s.logger.Error("failed to get cricket  five wicket haul: ", err)
 		return
 	}
 
