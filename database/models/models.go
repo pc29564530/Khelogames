@@ -105,6 +105,7 @@ type FootballIncident struct {
 	Description           string `json:"description"`
 	CreatedAt             int64  `json:"created_at"`
 	PenaltyShootoutScored bool   `json:"penalty_shootout_scored"`
+	TournamentID          int32  `json:"tournament_id"`
 }
 
 type FootballIncidentPlayer struct {
@@ -239,6 +240,7 @@ type Player struct {
 	Country    string `json:"country"`
 	PlayerName string `json:"player_name"`
 	GameID     int64  `json:"game_id"`
+	PlayerID   int32  `json:"player_id"`
 }
 
 type Profile struct {

@@ -241,10 +241,11 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 			"country":     player.Country,
 			"sports":      player.Sports,
 			"media_url":   player.MediaUrl,
+			"game_id":     player.GameID,
+			"player_id":   player.PlayerID,
 		}
 		teamDetails = append(teamDetails, teamDetail)
 
 	}
-
 	ctx.JSON(http.StatusAccepted, teamDetails)
 }

@@ -18,6 +18,7 @@ type Player struct {
 	MediaURL   string `json:"media_url"`
 	Sports     string `json:"sports"`
 	GameID     int64  `json:"game_id"`
+	PlayerID   int32  `json:"player_id"`
 }
 
 type MatchSquadRequest struct {

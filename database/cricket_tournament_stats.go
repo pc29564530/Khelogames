@@ -13,7 +13,7 @@ type PlayerStat struct {
 	StatValue  string `json:"stat_value"`
 }
 
-func (q *Queries) getPlayerStat(ctx context.Context, query string, tournamentID int64) ([]map[string]interface{}, error) {
+func (q *Queries) GetPlayerStat(ctx context.Context, query string, tournamentID int64) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, query, tournamentID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to query : ", err)
@@ -59,7 +59,7 @@ const cricketTournamentsMostRuns = `
 `
 
 func (q *Queries) GetCricketTournamentMostRuns(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, cricketTournamentsMostRuns, tournamentID)
+	return q.GetPlayerStat(ctx, cricketTournamentsMostRuns, tournamentID)
 }
 
 const getCricketTournamentHighestRuns = `
@@ -79,7 +79,7 @@ const getCricketTournamentHighestRuns = `
 `
 
 func (q *Queries) GetCricketTournamentHighestRuns(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentHighestRuns, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentHighestRuns, tournamentID)
 }
 
 const getCricketTournamentMostSixes = `
@@ -99,7 +99,7 @@ const getCricketTournamentMostSixes = `
 `
 
 func (q *Queries) GetCricketTournamentMostSixes(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentMostSixes, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentMostSixes, tournamentID)
 }
 
 const getCricketTournamentMostFours = `
@@ -119,7 +119,7 @@ const getCricketTournamentMostFours = `
 `
 
 func (q *Queries) GetCricketTournamentMostFours(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentMostFours, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentMostFours, tournamentID)
 }
 
 const getCricketTournamentMostFifties = `
@@ -139,7 +139,7 @@ const getCricketTournamentMostFifties = `
 `
 
 func (q *Queries) GetCricketTournamentMostFifties(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentMostFifties, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentMostFifties, tournamentID)
 }
 
 const getCricketTournamentMostHundreds = `
@@ -159,7 +159,7 @@ const getCricketTournamentMostHundreds = `
 `
 
 func (q *Queries) GetCricketTournamentMostHundreds(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentMostHundreds, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentMostHundreds, tournamentID)
 }
 
 //Bowling Parts
@@ -182,7 +182,7 @@ const getCricketTournamentMostWickets = `
 `
 
 func (q *Queries) GetCricketTournamentMostWickets(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentMostWickets, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentMostWickets, tournamentID)
 }
 
 // EconomyRate
@@ -202,7 +202,7 @@ const getCricketTournamentEconomyRate = `
 `
 
 func (q *Queries) GetCricketTournamentBowlingEconomyRate(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentEconomyRate, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentEconomyRate, tournamentID)
 }
 
 // Bowling Average
@@ -223,7 +223,7 @@ const getCricketTournamentBowlingAverage = `
 `
 
 func (q *Queries) GetCricketTournamentBowlingAverage(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentID)
 }
 
 // Bowling Strike Rate
@@ -243,7 +243,7 @@ const getCricketTournamentBowlingStrikeRate = `
 `
 
 func (q *Queries) GetCricketTournamentBowlingStrikeRate(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentBowlingStrikeRate, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentBowlingStrikeRate, tournamentID)
 }
 
 // Bowling Strike Rate
@@ -263,7 +263,7 @@ const getCricketTournamentBowlingFiveWicketHaul = `
 `
 
 func (q *Queries) GetCricketTournamentBowlingFiveWicketHaul(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentBowlingFiveWicketHaul, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentBowlingFiveWicketHaul, tournamentID)
 }
 
 // batting average
@@ -296,7 +296,7 @@ const getCricketTournamentBattingAverage = `
 `
 
 func (q *Queries) GetCricketTournamentBattingAverage(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentID)
 }
 
 // Batting Strike Rate
@@ -316,5 +316,5 @@ const getCricketTournamentBattingStrikeRate = `
 `
 
 func (q *Queries) GetCricketTournamentBattingStrikeRate(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.getPlayerStat(ctx, getCricketTournamentBattingStrikeRate, tournamentID)
+	return q.GetPlayerStat(ctx, getCricketTournamentBattingStrikeRate, tournamentID)
 }

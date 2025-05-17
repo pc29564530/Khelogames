@@ -60,9 +60,10 @@ INSERT INTO football_incidents (
     incident_type,
     incident_time,
     description,
-    penalty_shootout_scored
-) VALUES ($1, $2, $3, $4, $5, $6, $7
-) RETURNING id, match_id, team_id, periods, incident_type, incident_time, description, created_at, penalty_shootout_scored
+    penalty_shootout_scored,
+	tournament_id
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8
+) RETURNING id, match_id, team_id, periods, incident_type, incident_time, description, created_at, penalty_shootout_scored, tournament_id
 `
 
 type CreateFootballIncidentsParams struct {
@@ -73,6 +74,7 @@ type CreateFootballIncidentsParams struct {
 	IncidentTime          int64  `json:"incident_time"`
 	Description           string `json:"description"`
 	PenaltyShootoutScored bool   `json:"penalty_shootout_scored"`
+	TournamentID          int32  `json:"tournament_id"`
 }
 
 func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootballIncidentsParams) (models.FootballIncident, error) {
@@ -84,6 +86,7 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		arg.IncidentTime,
 		arg.Description,
 		arg.PenaltyShootoutScored,
+		arg.TournamentID,
 	)
 	var i models.FootballIncident
 	err := row.Scan(
@@ -96,6 +99,7 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		&i.Description,
 		&i.CreatedAt,
 		&i.PenaltyShootoutScored,
+		&i.TournamentID,
 	)
 	return i, err
 }
@@ -197,6 +201,7 @@ SELECT
     fi.incident_time, 
     fi.description, 
     fi.penalty_shootout_scored,
+	fi.tournament_id
     NULL AS players
 FROM 
     football_incidents fi
@@ -213,6 +218,7 @@ SELECT
     fi.incident_time, 
     fi.description, 
     fi.penalty_shootout_scored,
+	fi.tournament_id,
     CASE
         WHEN fi.incident_type = 'substitutions' THEN 
             JSON_BUILD_OBJECT(
@@ -252,6 +258,7 @@ type GetFootballIncidentWithPlayerRow struct {
 	IncidentTime          int64       `json:"incident_time"`
 	Description           string      `json:"description"`
 	PenaltyShootoutScored bool        `json:"penalty_shootout_scored"`
+	TournamentID          int64       `json:"tournament_id"`
 	Players               interface{} `json:"players"`
 }
 
@@ -273,6 +280,7 @@ func (q *Queries) GetFootballIncidentWithPlayer(ctx context.Context, matchID int
 			&i.IncidentTime,
 			&i.Description,
 			&i.PenaltyShootoutScored,
+			&i.TournamentID,
 			&i.Players,
 		); err != nil {
 			return nil, err
@@ -313,6 +321,7 @@ func (q *Queries) GetFootballIncidents(ctx context.Context, matchID int64) ([]mo
 			&i.Description,
 			&i.CreatedAt,
 			&i.PenaltyShootoutScored,
+			&i.TournamentID,
 		); err != nil {
 			return nil, err
 		}

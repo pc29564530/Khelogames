@@ -17,6 +17,7 @@ type addFootballIncidentsRequest struct {
 	PlayerID             int64  `json:"player_id"`
 	Description          string `json:"description"`
 	PenaltShootoutScored bool   `json:"penalty_shootout_scored"`
+	TournamentID         int32  `json:"tournament_id"`
 }
 
 func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
@@ -35,6 +36,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		IncidentTime:          req.IncidentTime,
 		Description:           req.Description,
 		PenaltyShootoutScored: req.PenaltShootoutScored,
+		TournamentID:          req.TournamentID,
 	}
 	s.logger.Debugf("Creating incident with params: %+v", arg)
 
