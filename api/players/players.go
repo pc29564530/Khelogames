@@ -14,9 +14,9 @@ import (
 
 type newPlayerRequest struct {
 	Positions string `json:"positions"`
-	Sports    string `json:"sports"`
 	Country   string `json:"country"`
 	GameID    int64  `json:"game_id"`
+	PlayerID  int32  `json:"player_id"`
 }
 
 func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
@@ -43,10 +43,10 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 		ShortName:  shortName,
 		MediaUrl:   userProfile.AvatarUrl,
 		Positions:  req.Positions,
-		Sports:     req.Sports,
 		Country:    req.Country,
 		PlayerName: userProfile.FullName,
 		GameID:     req.GameID,
+		PlayerID:   int32(userProfile.ID),
 	}
 
 	response, err := s.store.NewPlayer(ctx, arg)
@@ -92,6 +92,28 @@ func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
 	}
 
 	s.logger.Debug("Successfully get the player profile: ", response)
+
+	ctx.JSON(http.StatusAccepted, response)
+}
+
+func (s *PlayerServer) GetPlayerByPlayerIDFunc(ctx *gin.Context) {
+
+	playerIDStr := ctx.Query("player_id")
+	playerID, err := strconv.ParseInt(playerIDStr, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse player id: ", err)
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+
+	response, err := s.store.GetPlayerByPlayerID(ctx, playerID)
+	if err != nil {
+		s.logger.Error("Failed to get player profile by player id: ", err)
+		ctx.JSON(http.StatusNoContent, err)
+		return
+	}
+
+	s.logger.Debug("Successfully get the player profile by player id: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 }
