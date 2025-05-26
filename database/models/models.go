@@ -477,3 +477,38 @@ type Document struct {
 	SubmittedAT  time.Time `json:"submitted_at"`
 	Status       string    `json:"status"`
 }
+
+type PlayerBattingStats struct {
+	ID           int64     `json:"id"`
+	PlayerID     int32     `json:"player_id"`
+	MatchType    string    `json:"match_type"`
+	TotalMatches int       `json:"total_matches"`
+	TotalInnings int       `json:"total_innings"`
+	Runs         int       `json:"runs"`
+	Sixes        int       `json:"sixes"`
+	Fours        int       `json:"fours"`
+	Fifties      int       `json:"fifties"`
+	Hundreds     int       `json:"hundreds"`
+	BestScore    int       `json:"best_score"`
+	Average      string    `json:"average"`
+	StrikeRate   string    `json:"strike_rate"`
+	CreatedAT    time.Time `json:"created_at"`
+	UpdatedAT    time.Time `json:"updated_at"`
+}
+
+type PlayerBowlingStats struct {
+	ID          int64     `json:"id"`
+	PlayerID    int32     `json:"player_id"`
+	MatchType   string    `json:"match_type"`
+	Matches     int       `json:"total_matches"`
+	Innings     int       `json:"total_innings"`
+	Wickets     int       `json:"wickets"`
+	Average     string    `json:"average"`
+	StrikeRate  string    `json:"strike_rate"`
+	EconomyRate string    `json:"economy_rate"`
+	FourWickets int       `json:"four_wickets"`
+	FiveWickets int       `json:"five_wickets"`
+	Runs        int       `json:"runs"`
+	CreatedAT   time.Time `json:"created_at"`
+	UpdatedAT   time.Time `json:"updated_at"`
+}

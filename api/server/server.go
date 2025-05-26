@@ -146,7 +146,10 @@ func NewServer(config util.Config,
 		authRouter.GET("/getRoles", handlersServer.GetRolesFunc)
 		authRouter.POST("/addUserRole", handlersServer.AddUserRoleFunc)
 		authRouter.POST("/applyForVerification", handlersServer.AddUserVerificationFunc)
-
+		authRouter.POST("/addPlayerBattingStats", playersServer.AddCricketPlayerBattingStatsFunc)
+		authRouter.GET("/getPlayerBattingStats", playersServer.GetCricketPlayerBattingStatsFunc)
+		authRouter.POST("/addPlayerBowlingStats", playersServer.AddCricketPlayerBattingStatsFunc)
+		authRouter.GET("/getPlayerBowlingStats", playersServer.GetCricketPlayerBattingStatsFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)
