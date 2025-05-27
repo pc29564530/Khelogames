@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"khelogames/database/models"
 	"log"
 )
 
@@ -300,4 +301,37 @@ func (q *Queries) GetMatchByMatchID(ctx context.Context, matchID, gameID int64) 
 	}
 
 	return match, nil
+}
+
+const getMatchByIDQuery = `
+    SELECT * FROM matches
+    WHERE id = $1;
+`
+
+func (q *Queries) GetMatchByID(ctx context.Context, id int64) (*models.Match, error) {
+	var i models.Match
+
+	row := q.db.QueryRowContext(ctx, getMatchByIDQuery, id)
+
+	if err := row.Scan(
+		&i.ID,
+		&i.TournamentID,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
+		&i.Result,
+		&i.Stage,
+		&i.KnockoutLevelID,
+		&i.MatchFormat,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &i, nil
 }

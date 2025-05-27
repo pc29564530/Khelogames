@@ -485,6 +485,7 @@ type PlayerBattingStats struct {
 	TotalMatches int       `json:"total_matches"`
 	TotalInnings int       `json:"total_innings"`
 	Runs         int       `json:"runs"`
+	Balls        int       `json:"balls"`
 	Sixes        int       `json:"sixes"`
 	Fours        int       `json:"fours"`
 	Fifties      int       `json:"fifties"`
@@ -503,12 +504,13 @@ type PlayerBowlingStats struct {
 	Matches     int       `json:"total_matches"`
 	Innings     int       `json:"total_innings"`
 	Wickets     int       `json:"wickets"`
+	Runs        int       `json:"runs"`
+	Balls       int       `json:"balls"`
 	Average     string    `json:"average"`
 	StrikeRate  string    `json:"strike_rate"`
 	EconomyRate string    `json:"economy_rate"`
 	FourWickets int       `json:"four_wickets"`
 	FiveWickets int       `json:"five_wickets"`
-	Runs        int       `json:"runs"`
 	CreatedAT   time.Time `json:"created_at"`
 	UpdatedAT   time.Time `json:"updated_at"`
 }

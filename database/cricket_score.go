@@ -7,6 +7,81 @@ import (
 	"khelogames/database/models"
 )
 
+const getCricketBatsmanScoreByTeamID = `
+	SELECT * FROM bats
+	WHERE team_id=$1
+`
+
+func (q *Queries) GetCricketBatsmanScoreByTeamID(ctx context.Context, teamID int64) (*[]models.Bat, error) {
+	rows, err := q.db.QueryContext(ctx, getCricketBatsmanScoreByTeamID, teamID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to query: ", err)
+	}
+	var batsmanScore []models.Bat
+
+	for rows.Next() {
+		var i models.Bat
+		err := rows.Scan(
+			&i.ID,
+			&i.BatsmanID,
+			&i.TeamID,
+			&i.MatchID,
+			&i.Position,
+			&i.RunsScored,
+			&i.BallsFaced,
+			&i.Fours,
+			&i.Sixes,
+			&i.BattingStatus,
+			&i.IsStriker,
+			&i.IsCurrentlyBatting,
+		)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("Failed to scan the query: ", err)
+		}
+	}
+
+	return &batsmanScore, nil
+}
+
+const getCricketBowlerScoreByTeamID = `
+	SELECT * FROM balls
+	WHERE team_id=$1
+`
+
+func (q *Queries) GetCricketBowlerScoreByTeamID(ctx context.Context, teamID int64) (*[]models.Ball, error) {
+	rows, err := q.db.QueryContext(ctx, getCricketBowlerScoreByTeamID, teamID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to query: ", err)
+	}
+	var bowlerScore []models.Ball
+
+	for rows.Next() {
+		var i models.Ball
+		err := rows.Scan(
+			&i.ID,
+			&i.TeamID,
+			&i.MatchID,
+			&i.BowlerID,
+			&i.Ball,
+			&i.Runs,
+			&i.Wickets,
+			&i.Wide,
+			&i.NoBall,
+		)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("Failed to scan the query: ", err)
+		}
+	}
+
+	return &bowlerScore, nil
+}
+
 const getCricketScore = `
 SELECT * FROM cricket_score
 WHERE match_id=$1 AND team_id=$2
