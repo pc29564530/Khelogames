@@ -32,7 +32,7 @@ func (q *Queries) GetMatch(ctx context.Context, id, tournamentID int64) (models.
 	return i, err
 }
 
-const getMatchByID = `
+const getMatchByTournamentID = `
 WITH cricket_groups AS (
     SELECT team_id, group_id
     FROM cricket_standing
