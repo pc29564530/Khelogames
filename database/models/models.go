@@ -514,3 +514,20 @@ type PlayerBowlingStats struct {
 	CreatedAT   time.Time `json:"created_at"`
 	UpdatedAT   time.Time `json:"updated_at"`
 }
+
+type FootballPlayerStats struct {
+	ID             int64     `json:"id"`
+	PlayerID       int32     `json:"player_id"`
+	PlayerPosition string    `json:"player_position"`
+	Matches        int       `json"matches"`
+	MinutesPlayed  int       `json:"minutes_played"`
+	GoalsScored    int       `json:"goals_scored"`
+	GoalsConceded  int       `json:"goals_conceded"`
+	CleanSheet     int       `json:"CleanSheet"`
+	Assists        int       `json:"assists"`
+	YellowCards    int       `json:"yellow_cards"`
+	RedCards       int       `json:"red_cards"`
+	Average        string    `json:"average"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}

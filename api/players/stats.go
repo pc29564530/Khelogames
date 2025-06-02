@@ -14,6 +14,7 @@ func (s *PlayerServer) AddCricketPlayerBattingStatsFunc(ctx *gin.Context) {
 		TotalMatches int    `json:"total_matches"`
 		TotalInnings int    `json:"total_innings"`
 		Runs         int    `json:"runs"`
+		Balls        int    `json:"balls"`
 		Sixes        int    `json:"sixes"`
 		Fours        int    `json:"fours"`
 		Fifties      int    `json:"fifties"`
@@ -27,7 +28,7 @@ func (s *PlayerServer) AddCricketPlayerBattingStatsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind: ", err)
 		return
 	}
-	playerStats, err := s.store.AddPlayerBattingStats(ctx, req.PlayerID, req.MatchType, req.TotalMatches, req.TotalInnings, req.Runs, req.Sixes, req.Fours, req.Fifties, req.Hundreds, req.BestScore, req.Average, req.StrikeRate)
+	playerStats, err := s.store.AddPlayerBattingStats(ctx, req.PlayerID, req.MatchType, req.TotalMatches, req.TotalInnings, req.Runs, req.Balls, req.Fours, req.Sixes, req.Fifties, req.Hundreds, req.BestScore, req.Average, req.StrikeRate)
 	if err != nil {
 		s.logger.Error("Failed to get the player batting stats: ", err)
 		return
@@ -75,22 +76,23 @@ func (s *PlayerServer) AddCricketPlayerBowlingStatsFunc(ctx *gin.Context) {
 	var req struct {
 		PlayerID    int32  `json:"player_id"`
 		MatchType   string `json:"match_type"`
-		Matches     int    `json:"total_matches"`
-		Innings     int    `json:"total_innings"`
+		Matches     int    `json:"matches"`
+		Innings     int    `json:"innings"`
 		Wickets     int    `json:"wickets"`
+		Runs        int    `json:"runs"`
+		Ball        int    `json:"balls"`
 		Average     string `json:"average"`
 		StrikeRate  string `json:"strike_rate"`
 		EconomyRate string `json:"economy_rate"`
 		FourWickets int    `json:"four_wickets"`
 		FiveWickets int    `json:"five_wickets"`
-		Runs        int    `json:"runs"`
 	}
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		return
 	}
-	playerStats, err := s.store.AddPlayerBowlingStats(ctx, req.PlayerID, req.MatchType, req.Matches, req.Innings, req.Wickets, req.Average, req.StrikeRate, req.EconomyRate, req.FourWickets, req.FiveWickets, req.Runs)
+	playerStats, err := s.store.AddPlayerBowlingStats(ctx, req.PlayerID, req.MatchType, req.Matches, req.Innings, req.Wickets, req.Runs, req.Ball, req.Average, req.StrikeRate, req.EconomyRate, req.FourWickets, req.FiveWickets)
 	if err != nil {
 		s.logger.Error("Failed to get the player bowling stats: ", err)
 		return
@@ -132,4 +134,44 @@ func (s *PlayerServer) GetCricketPlayerBowlingStatsFunc(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, playerStatsByType)
+}
+
+func (s *PlayerServer) AddOrUpdateFootballPlayerStatsFunc(ctx *gin.Context) {
+	var req struct {
+		MatchID int64 `uri:"match_id"`
+	}
+
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	playersStats, err := s.store.AddORUpdateFootballPlayerStats(ctx, req.MatchID)
+	if err != nil {
+		s.logger.Error("Failed to add or update football player stats: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, playersStats)
+}
+
+func (s *PlayerServer) GetFootballPlayerStatsFunc(ctx *gin.Context) {
+	var req struct {
+		MatchID int64 `uri:"match_id"`
+	}
+
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	playersStats, err := s.store.GetFootballPlayerStats(ctx, req.MatchID)
+	if err != nil {
+		s.logger.Error("Failed to get football player stats: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, playersStats)
 }

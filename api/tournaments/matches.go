@@ -26,7 +26,7 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", tournamentID, sports))
 	s.logger.Debug("Tournament match params: ", tournamentID)
 
-	matches, err := s.store.GetMatchByID(ctx, tournamentID)
+	matches, err := s.store.GetMatchByTournamentID(ctx, tournamentID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament match: ", err)
 		return
@@ -348,6 +348,23 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		tx.Rollback()
 		s.logger.Error("unable to update the match status: ", err)
 		return
+	}
+
+	if updatedMatchData.StatusCode == "finished" {
+		//get match by match id
+		match, err := s.store.GetMatchByID(ctx, req.ID)
+		if err != nil {
+			s.logger.Error("Failed to get match by match id: ", err)
+			return
+		}
+
+		addOrUpdatePlayerStats, err := s.store.AddORUpdateFootballPlayerStats(ctx, match.ID)
+		if err != nil {
+			s.logger.Error("Failed to add or update player stats: ", err)
+			return
+		}
+
+		fmt.Println("Player Stats: ", addOrUpdatePlayerStats)
 	}
 
 	s.logger.Info("successfully updated the match status")
