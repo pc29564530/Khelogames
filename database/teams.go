@@ -88,9 +88,23 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 }
 
 const getPlayerByTeam = `
-SELECT team_id, player_id, join_date, leave_date, id, username, slug, short_name, media_url, positions, country, player_name, game_id, player_id FROM team_players
-JOIN players ON team_players.player_id=players.id
-WHERE team_id=$1 AND leave_date IS NULL;
+SELECT 
+  tp.team_id, 
+  tp.player_id, 
+  tp.join_date, 
+  tp.leave_date, 
+  p.id AS player_id,
+  p.username, 
+  p.slug, 
+  p.short_name, 
+  p.media_url, 
+  p.positions, 
+  p.country, 
+  p.player_name, 
+  p.game_id
+FROM team_players tp
+JOIN players p ON tp.player_id = p.id
+WHERE tp.team_id = $1 AND tp.leave_date IS NULL;
 `
 
 func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.GetPlayerByTeam, error) {
