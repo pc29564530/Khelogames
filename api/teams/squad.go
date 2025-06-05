@@ -109,7 +109,6 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 			"sports":      player.Sports,
 			"media_url":   player.MediaUrl,
 			"game_id":     player.GameID,
-			"player_id":   player.PlayerID,
 		}
 		playerList = append(playerList, playerData)
 	}

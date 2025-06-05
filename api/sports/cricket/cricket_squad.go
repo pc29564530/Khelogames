@@ -47,10 +47,9 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 		isBench := benchMap[player.ID]
 		squad, err = s.store.AddCricketSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, isBench, false)
 		if err != nil {
-			s.logger.Error("Failed to add football squad: ", err)
+			s.logger.Error("Failed to add cricket squad: ", err)
 			return
 		}
-		// }
 
 		cricketSquad = append(cricketSquad, map[string]interface{}{
 			"id":         squad.ID,
