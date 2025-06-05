@@ -133,8 +133,8 @@ type GetMatchByIDRow struct {
 	AwayGameID          int64   `json:"away_game_id"`
 }
 
-func (q *Queries) GetMatchByID(ctx context.Context, tournamentID int64) ([]GetMatchByIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, getMatchByID, tournamentID)
+func (q *Queries) GetMatchByTournamentID(ctx context.Context, tournamentID int64) ([]GetMatchByIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMatchByTournamentID, tournamentID)
 	if err != nil {
 		return nil, err
 	}

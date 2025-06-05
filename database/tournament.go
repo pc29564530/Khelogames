@@ -6,7 +6,7 @@ import (
 )
 
 const getTournament = `
-SELECT id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_team, stage, has_knockout FROM tournaments
+SELECT * FROM tournaments
 WHERE id=$1
 `
 
@@ -26,6 +26,7 @@ func (q *Queries) GetTournament(ctx context.Context, id int64) (models.Tournamen
 		&i.GroupCount,
 		&i.MaxGroupTeam,
 		&i.Stage,
+		&i.HasKnockout,
 	)
 	return i, err
 }
