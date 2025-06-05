@@ -322,7 +322,7 @@ func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 		return
 	}
 
-	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatus(ctx, req.MatchID, req.TeamID)
+	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatus(ctx, req.MatchID, req.TeamID, req.Inning)
 	if err != nil {
 		s.logger.Error("Failed to update inning end: ", err)
 	}

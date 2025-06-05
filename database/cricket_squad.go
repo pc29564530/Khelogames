@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -13,10 +14,11 @@ INSERT INTO cricket_squad (
     team_id,
     player_id,
     role,
-	on_bench
+	on_bench,
+	created_at,
 	is_captain
-) VALUES ( $1, $2, $3, $4, $5, $6 )
-RETURNING id, team_id, player_id, match_id, role, on_bench, iscaptain created_at
+) VALUES ( $1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6 )
+RETURNING *;
 `
 
 func (q *Queries) AddCricketSquad(ctx context.Context, matchID, teamID, playerID int64, role string, OnBench, isCaptain bool) (models.CricketSquad, error) {
@@ -29,8 +31,8 @@ func (q *Queries) AddCricketSquad(ctx context.Context, matchID, teamID, playerID
 		&i.PlayerID,
 		&i.Role,
 		&i.OnBench,
-		&i.IsCaptain,
 		&i.CreatedAT,
+		&i.IsCaptain,
 	)
 	return i, err
 }
@@ -60,10 +62,17 @@ const getCricketMatchSquad = `
 
 func (q *Queries) GetCricketMatchSquad(ctx context.Context, matchID, teamID int64) ([]interface{}, error) {
 	row := q.db.QueryRowContext(ctx, getCricketMatchSquad, matchID, teamID)
-
 	var jsonData []byte
-	if err := row.Scan(&jsonData); err != nil {
+	err := row.Scan(&jsonData)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
+
+	if len(jsonData) == 0 {
+		return nil, nil
 	}
 
 	var teamSquads []interface{}

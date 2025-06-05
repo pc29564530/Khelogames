@@ -10,6 +10,7 @@ import (
 func (s *CricketServer) GetCurrentBowlerFunc(ctx *gin.Context) {
 	matchIDString := ctx.Query("match_id")
 	teamIDString := ctx.Query("team_id")
+	inning := ctx.Query("inning")
 	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse match id ", err)
@@ -21,8 +22,7 @@ func (s *CricketServer) GetCurrentBowlerFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to parse team id ", err)
 		return
 	}
-
-	currentBowlerResponse, err := s.store.GetCurrentBowler(ctx, matchID, teamID)
+	currentBowlerResponse, err := s.store.GetCurrentBowler(ctx, matchID, teamID, inning)
 	if err != nil {
 		s.logger.Error("Failed to get current bowler score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
