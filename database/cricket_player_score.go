@@ -266,18 +266,17 @@ func (q *Queries) GetCricketBall(ctx context.Context, arg GetCricketBallParams) 
 
 const getCricketBalls = `
 SELECT * FROM balls
-WHERE match_id=$1 AND team_id = $2 AND inning=$3
-ORDER BY id
+WHERE match_id=$1 AND team_id = $2
+ORDER BY id, inning
 `
 
 type GetCricketBallsParams struct {
-	MatchID int64  `json:"match_id"`
-	TeamID  int64  `json:"team_id"`
-	Inning  string `json:"inning"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
 }
 
 func (q *Queries) GetCricketBalls(ctx context.Context, arg GetCricketBallsParams) ([]models.Ball, error) {
-	rows, err := q.db.QueryContext(ctx, getCricketBalls, arg.MatchID, arg.TeamID, arg.Inning)
+	rows, err := q.db.QueryContext(ctx, getCricketBalls, arg.MatchID, arg.TeamID)
 	if err != nil {
 		return nil, err
 	}
@@ -346,18 +345,17 @@ func (q *Queries) GetCricketPlayerScore(ctx context.Context, arg GetCricketPlaye
 
 const getCricketPlayersScore = `
 SELECT * FROM bats
-WHERE match_id = $1 AND team_id = $2 AND inning = $3
-ORDER BY id
+WHERE match_id = $1 AND team_id = $2
+ORDER BY id, inning
 `
 
 type GetCricketPlayersScoreParams struct {
-	MatchID int64  `json:"match_id"`
-	TeamID  int64  `json:"team_id"`
-	Inning  string `json:"inning"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
 }
 
 func (q *Queries) GetCricketPlayersScore(ctx context.Context, arg GetCricketPlayersScoreParams) ([]models.Bat, error) {
-	rows, err := q.db.QueryContext(ctx, getCricketPlayersScore, arg.MatchID, arg.TeamID, arg.Inning)
+	rows, err := q.db.QueryContext(ctx, getCricketPlayersScore, arg.MatchID, arg.TeamID)
 	if err != nil {
 		return nil, err
 	}
@@ -426,17 +424,17 @@ func (q *Queries) GetCricketWicket(ctx context.Context, arg GetCricketWicketPara
 
 const getCricketWickets = `
 SELECT * FROM wickets
-WHERE match_id=$1 AND team_id=$2 AND inning = $3
+WHERE match_id=$1 AND team_id=$2
+ORDER BY id, inning
 `
 
 type GetCricketWicketsParams struct {
-	MatchID int64  `json:"match_id"`
-	TeamID  int64  `json:"team_id"`
-	Inning  string `json:"inning"`
+	MatchID int64 `json:"match_id"`
+	TeamID  int64 `json:"team_id"`
 }
 
 func (q *Queries) GetCricketWickets(ctx context.Context, arg GetCricketWicketsParams) ([]models.Wicket, error) {
-	rows, err := q.db.QueryContext(ctx, getCricketWickets, arg.MatchID, arg.TeamID, arg.Inning)
+	rows, err := q.db.QueryContext(ctx, getCricketWickets, arg.MatchID, arg.TeamID)
 	if err != nil {
 		return nil, err
 	}
