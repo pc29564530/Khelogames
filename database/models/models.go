@@ -7,18 +7,18 @@ import (
 )
 
 type Ball struct {
-	ID              int64  `json:"id"`
-	TeamID          int64  `json:"team_id"`
-	MatchID         int64  `json:"match_id"`
-	BowlerID        int64  `json:"bowler_id"`
-	Ball            int32  `json:"ball"`
-	Runs            int32  `json:"runs"`
-	Wickets         int32  `json:"wickets"`
-	Wide            int32  `json:"wide"`
-	NoBall          int32  `json:"no_ball"`
-	BowlingStatus   bool   `json:"bowling_status"`
-	IsCurrentBowler bool   `json:"is_current_bowler"`
-	Inning          string `json:"inning"`
+	ID              int64 `json:"id"`
+	TeamID          int64 `json:"team_id"`
+	MatchID         int64 `json:"match_id"`
+	BowlerID        int64 `json:"bowler_id"`
+	Ball            int32 `json:"ball"`
+	Runs            int32 `json:"runs"`
+	Wickets         int32 `json:"wickets"`
+	Wide            int32 `json:"wide"`
+	NoBall          int32 `json:"no_ball"`
+	BowlingStatus   bool  `json:"bowling_status"`
+	IsCurrentBowler bool  `json:"is_current_bowler"`
+	InningNumber    int   `json:"inning_number"`
 }
 
 type Bat struct {
@@ -34,7 +34,7 @@ type Bat struct {
 	BattingStatus      bool   `json:"batting_status"`
 	IsStriker          bool   `json:"is_striker"`
 	IsCurrentlyBatting bool   `json:"is_currently_batting"`
-	Inning             string `json:"inning"`
+	InningNumber       int    `json:"inning_number"`
 }
 
 type Comment struct {
@@ -72,7 +72,7 @@ type CricketScore struct {
 	ID                int64  `json:"id"`
 	MatchID           int64  `json:"match_id"`
 	TeamID            int64  `json:"team_id"`
-	Inning            string `json:"inning"`
+	InningNumber      int    `json:"inning_number"`
 	Score             int32  `json:"score"`
 	Wickets           int32  `json:"wickets"`
 	Overs             int32  `json:"overs"`
@@ -383,7 +383,7 @@ type Wicket struct {
 	BallNumber    int32  `json:"ball_number"`
 	FielderID     *int64 `json:"fielder_id"`
 	Score         *int32 `json:"score"`
-	Inning        string `json:"inning"`
+	InningNumber  int    `json:"inning_number"`
 }
 
 type GetPlayerByTeam struct {

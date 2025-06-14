@@ -51,7 +51,7 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 	inningR := db.NewCricketScoreParams{
 		MatchID:           response.ID,
 		TeamID:            teamID,
-		Inning:            "inning1",
+		InningNumber:      1,
 		Score:             0,
 		Wickets:           0,
 		Overs:             0,

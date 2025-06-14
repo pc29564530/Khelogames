@@ -10,7 +10,7 @@ import (
 func (s *CricketServer) GetCurrentBatsmanFunc(ctx *gin.Context) {
 	matchIDString := ctx.Query("match_id")
 	teamIDString := ctx.Query("team_id")
-	inning := ctx.Query("inning")
+	inningStr := ctx.Query("inning_number")
 	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse match id ", err)
@@ -20,6 +20,12 @@ func (s *CricketServer) GetCurrentBatsmanFunc(ctx *gin.Context) {
 	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse team id ", err)
+		return
+	}
+
+	inning, err := strconv.Atoi(inningStr)
+	if err != nil {
+		s.logger.Error("Failed to parse inning ", err)
 		return
 	}
 

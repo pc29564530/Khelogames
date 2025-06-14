@@ -11,9 +11,10 @@ import (
 )
 
 type addCricketScoreRequest struct {
-	MatchID int64  `json:"match_id"`
-	TeamID  int64  `json:"team_id"`
-	Inning  string `json:"inning"`
+	MatchID      int64 `json:"match_id"`
+	TeamID       int64 `json:"team_id"`
+	InningNumber int   `json:"inning_number"`
+	FollowOn     bool  `json:"follow_on"`
 }
 
 func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
@@ -28,13 +29,13 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 	arg := db.NewCricketScoreParams{
 		MatchID:           req.MatchID,
 		TeamID:            req.TeamID,
-		Inning:            req.Inning,
+		InningNumber:      req.InningNumber,
 		Score:             0,
 		Wickets:           0,
 		Overs:             0,
 		RunRate:           "0.00",
 		TargetRunRate:     "0.00",
-		FollowOn:          false,
+		FollowOn:          req.FollowOn,
 		IsInningCompleted: false,
 		Declared:          false,
 	}
@@ -86,11 +87,11 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		var homeScoreMap map[string]interface{}
 		var emptyScore models.CricketScore
 		if awayScore != emptyScore {
-			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": awayScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.Inning, "runRate": awayScore.RunRate, "targetRunRate": awayScore.TargetRunRate}
+			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": awayScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.InningNumber, "runRate": awayScore.RunRate, "targetRunRate": awayScore.TargetRunRate}
 		}
 
 		if homeScore != emptyScore {
-			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.Inning, "runRate": homeScore.RunRate, "targetRunRate": homeScore.TargetRunRate}
+			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.InningNumber, "runRate": homeScore.RunRate, "targetRunRate": homeScore.TargetRunRate}
 		}
 
 		game, err := s.store.GetGame(ctx, match.HomeGameID)
@@ -106,7 +107,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 
 		if matchToss.TossWin == match.HomeTeamID && matchToss.TossDecision == "Batting" {
 			inningsMap = append(inningsMap, map[string]interface{}{
-				"inning":              homeScore.Inning,
+				"inning":              homeScore.InningNumber,
 				"team_id":             match.HomeTeamID,
 				"score":               homeScoreMap,
 				"is_inning_completed": homeScoreMap["is_inning_completed"],
@@ -115,7 +116,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		}
 		if matchToss.TossWin == match.AwayTeamID && matchToss.TossDecision == "Batting" {
 			inningsMap = append(inningsMap, map[string]interface{}{
-				"inning":              awayScore.Inning,
+				"inning":              awayScore.InningNumber,
 				"team_id":             match.AwayTeamID,
 				"score":               awayScoreMap,
 				"is_inning_completed": awayScoreMap["is_inning_completed"],
@@ -124,7 +125,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		}
 		if matchToss.TossWin == match.HomeTeamID && matchToss.TossDecision == "Bowling" {
 			inningsMap = append(inningsMap, map[string]interface{}{
-				"inning":              homeScore.Inning,
+				"inning_numbers":      homeScore.InningNumber,
 				"team_id":             match.HomeTeamID,
 				"score":               homeScoreMap,
 				"is_inning_completed": homeScoreMap["is_inning_completed"],
@@ -133,7 +134,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		}
 		if matchToss.TossWin == match.AwayTeamID && matchToss.TossDecision == "Bowling" {
 			inningsMap = append(inningsMap, map[string]interface{}{
-				"inning":              awayScore.Inning,
+				"inning_number":       awayScore.InningNumber,
 				"team_id":             match.AwayTeamID,
 				"score":               awayScoreMap,
 				"is_inning_completed": awayScoreMap["is_inning_completed"],
@@ -200,9 +201,9 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 }
 
 type updateInningRequest struct {
-	Inning  string `json:"inning"`
-	MatchID int64  `json:"match_id"`
-	TeamID  int64  `json:"team_id"`
+	InningNumber int   `json:"inning_number"`
+	MatchID      int64 `json:"match_id"`
+	TeamID       int64 `json:"team_id"`
 }
 
 func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
@@ -221,9 +222,9 @@ func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
 	}
 
 	arg := db.UpdateCricketInningsParams{
-		Inning:  req.Inning,
-		MatchID: req.MatchID,
-		TeamID:  req.TeamID,
+		InningNumber: req.InningNumber,
+		MatchID:      req.MatchID,
+		TeamID:       req.TeamID,
 	}
 
 	response, err := s.store.UpdateCricketInnings(ctx, arg)
@@ -308,9 +309,9 @@ func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
 }
 
 type updateCricketEndInningRequest struct {
-	MatchID int64  `json:"match_id"`
-	TeamID  int64  `json:"team_id"`
-	Inning  string `json:"inning"`
+	MatchID      int64 `json:"match_id"`
+	TeamID       int64 `json:"team_id"`
+	InningNumber int   `json:"inning_number"`
 }
 
 func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
@@ -322,7 +323,7 @@ func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 		return
 	}
 
-	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatus(ctx, req.MatchID, req.TeamID, req.Inning)
+	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatus(ctx, req.MatchID, req.TeamID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update inning end: ", err)
 	}

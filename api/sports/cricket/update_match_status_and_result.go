@@ -9,7 +9,7 @@ func (s *CricketServer) UpdateMatchStatusAndResult(ctx context.Context, inningSc
 	if inningScore.IsInningCompleted {
 		matchInningScore, err := s.store.GetCricketScores(ctx, matchID)
 		if err != nil {
-			s.logger.Error("Failed to both Inning score: ", err)
+			s.logger.Error("Failed to both inning score: ", err)
 			return err
 		}
 		if len(matchInningScore) == 2 {

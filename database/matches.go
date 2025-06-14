@@ -48,7 +48,7 @@ SELECT
                 'id', cs.id,
                 'match_id', cs.match_id,
                 'team_id', cs.team_id,
-                'inning', cs.inning,
+                'inning_number', cs.inning_number,
                 'score', cs.score,
                 'wickets', cs.wickets,
                 'overs', cs.overs,
@@ -84,7 +84,7 @@ SELECT
                 'id', cs.id,
                 'match_id', cs.match_id,
                 'team_id', cs.team_id,
-                'inning', cs.inning,
+                'inning_number', cs.inning_number,
                 'score', cs.score,
                 'wickets', cs.wickets,
                 'overs', cs.overs,
@@ -158,7 +158,7 @@ func (q *Queries) GetAllMatches(ctx context.Context, date int32, gameID int64) (
 }
 
 const getCricketMatchByMatchID = `
-    SELECT 
+SELECT 
     json_build_object(
         'id', m.id,
         'tournament_id', m.tournament_id,
@@ -172,6 +172,7 @@ const getCricketMatchByMatchID = `
         'stage', m.stage,
         'knockout_level_id', m.knockout_level_id,
         'match_format', m.match_format,
+
         'homeTeam', json_build_object(
             'id', ht.id,
             'name', ht.name,
@@ -186,31 +187,21 @@ const getCricketMatchByMatchID = `
             'player_count', ht.player_count,
             'game_id', ht.game_id
         ),
+
         'homeScore', CASE 
-            WHEN g.name = 'football' AND fs_home.id IS NOT NULL AND fs_home.team_id=m.home_team_id THEN json_build_object(
-                'id', fs_home.id,
-                'match_id', fs_home.match_id,
-                'team_id', fs_home.team_id,
-                'first_half', fs_home.first_half,
-                'second_half', fs_home.second_half,
-                'goals', fs_home.goals
-            )
-            WHEN g.name = 'cricket' AND cs_home.id IS NOT NULL AND cs_home.team_id=m.home_team_id THEN json_build_object(
-                'id', cs_home.id,
-                'match_id', cs_home.match_id,
-                'team_id', cs_home.team_id,
-                'inning', cs_home.inning,
-                'score', cs_home.score,
-                'wickets', cs_home.wickets,
-                'overs', cs_home.overs,
-                'run_rate', cs_home.run_rate,
-                'target_run_rate', cs_home.target_run_rate,
-                'follow_on', cs_home.follow_on,
-                'is_inning_completed', cs_home.is_inning_completed,
-                'declared', cs_home.declared
-            )
+            WHEN g.name = 'football' THEN 
+                json_build_object(
+                    'id', fs_home.id,
+                    'match_id', fs_home.match_id,
+                    'team_id', fs_home.team_id,
+                    'first_half', fs_home.first_half,
+                    'second_half', fs_home.second_half,
+                    'goals', fs_home.goals
+                )
+            WHEN g.name = 'cricket' THEN cricket_home_scores.scores
             ELSE NULL
         END,
+
         'awayTeam', json_build_object(
             'id', at.id,
             'name', at.name,
@@ -225,31 +216,21 @@ const getCricketMatchByMatchID = `
             'player_count', at.player_count,
             'game_id', at.game_id
         ),
+
         'awayScore', CASE 
-            WHEN g.name = 'football' AND fs_away.id IS NOT NULL AND fs_away.team_id=m.away_team_id THEN json_build_object(
-                'id', fs_away.id,
-                'match_id', fs_away.match_id,
-                'team_id', fs_away.team_id,
-                'first_half', fs_away.first_half,
-                'second_half', fs_away.second_half,
-                'goals', fs_away.goals
-            )
-            WHEN g.name = 'cricket' AND cs_away.id IS NOT NULL AND cs_away.team_id=m.away_team_id THEN json_build_object(
-                'id', cs_away.id,
-                'match_id', cs_away.match_id,
-                'team_id', cs_away.team_id,
-                'inning', cs_away.inning,
-                'score', cs_away.score,
-                'wickets', cs_away.wickets,
-                'overs', cs_away.overs,
-                'run_rate', cs_away.run_rate,
-                'target_run_rate', cs_away.target_run_rate,
-                'follow_on', cs_home.follow_on,
-                'is_inning_completed', cs_home.is_inning_completed,
-                'declared', cs_home.declared
-            )
+            WHEN g.name = 'football' THEN 
+                json_build_object(
+                    'id', fs_away.id,
+                    'match_id', fs_away.match_id,
+                    'team_id', fs_away.team_id,
+                    'first_half', fs_away.first_half,
+                    'second_half', fs_away.second_half,
+                    'goals', fs_away.goals
+                )
+            WHEN g.name = 'cricket' THEN cricket_away_scores.scores
             ELSE NULL
         END,
+
         'tournament', json_build_object(
             'id', t.id,
             'name', t.name,
@@ -265,16 +246,63 @@ const getCricketMatchByMatchID = `
             'has_knockout', t.has_knockout
         )
     ) AS response
-    FROM matches m
-    JOIN teams ht ON m.home_team_id = ht.id
-    JOIN teams at ON m.away_team_id = at.id
-    LEFT JOIN tournaments AS t ON m.tournament_id = t.id
-    JOIN games g ON t.game_id = g.id
-    LEFT JOIN football_score AS fs_home ON m.id = fs_home.match_id AND fs_home.team_id = ht.id AND g.name = 'football'
-    LEFT JOIN football_score AS fs_away ON m.id = fs_away.match_id AND fs_away.team_id = at.id AND g.name = 'football'
-    LEFT JOIN cricket_score AS cs_home ON m.id = cs_home.match_id AND cs_home.team_id = ht.id AND g.name = 'cricket'
-    LEFT JOIN cricket_score AS cs_away ON m.id = cs_away.match_id AND cs_away.team_id = at.id AND g.name = 'cricket'
-    WHERE m.id = $1 AND t.game_id = $2;
+
+FROM matches m
+
+JOIN teams ht ON m.home_team_id = ht.id
+JOIN teams at ON m.away_team_id = at.id
+LEFT JOIN tournaments t ON m.tournament_id = t.id
+JOIN games g ON t.game_id = g.id
+
+-- Football scores
+LEFT JOIN football_score fs_home ON fs_home.match_id = m.id AND fs_home.team_id = ht.id AND g.name = 'football'
+LEFT JOIN football_score fs_away ON fs_away.match_id = m.id AND fs_away.team_id = at.id AND g.name = 'football'
+
+-- Cricket scores for home team
+LEFT JOIN LATERAL (
+    SELECT json_agg(
+        json_build_object(
+            'id', cs.id,
+            'match_id', cs.match_id,
+            'team_id', cs.team_id,
+            'inning_number', cs.inning_number,
+            'score', cs.score,
+            'wickets', cs.wickets,
+            'overs', cs.overs,
+            'run_rate', cs.run_rate,
+            'target_run_rate', cs.target_run_rate,
+            'follow_on', cs.follow_on,
+            'is_inning_completed', cs.is_inning_completed,
+            'declared', cs.declared
+        ) ORDER BY cs.inning_number
+    ) AS scores
+    FROM cricket_score cs
+    WHERE cs.match_id = m.id AND cs.team_id = ht.id
+) AS cricket_home_scores ON true
+
+-- Cricket scores for away team
+LEFT JOIN LATERAL (
+    SELECT json_agg(
+        json_build_object(
+            'id', cs.id,
+            'match_id', cs.match_id,
+            'team_id', cs.team_id,
+            'inning_number', cs.InningNumber,
+            'score', cs.score,
+            'wickets', cs.wickets,
+            'overs', cs.overs,
+            'run_rate', cs.run_rate,
+            'target_run_rate', cs.target_run_rate,
+            'follow_on', cs.follow_on,
+            'is_inning_completed', cs.is_inning_completed,
+            'declared', cs.declared
+        ) ORDER BY cs.inning_number
+    ) AS scores
+    FROM cricket_score cs
+    WHERE cs.match_id = m.id AND cs.team_id = at.id
+) AS cricket_away_scores ON true
+
+WHERE m.id = $1 AND t.game_id = $2;
 `
 
 type MatchResponse struct {
