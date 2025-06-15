@@ -117,13 +117,18 @@ func (q *Queries) GetCricketScore(ctx context.Context, arg GetCricketScoreParams
 const getCricketScores = `
 SELECT * FROM cricket_score
 WHERE match_id = $1
-ORDER BY team_id, inning_number;
+ORDER BY inning_number;
 `
 
 func (q *Queries) GetCricketScores(ctx context.Context, matchID int64) ([]models.CricketScore, error) {
 	row, err := q.db.QueryContext(ctx, getCricketScores, matchID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get all cricket scores inning: %w", err)
+	}
+	defer row.Close()
+
 	var cricketScores []models.CricketScore
-	if row.Next() {
+	for row.Next() {
 		var i models.CricketScore
 		err := row.Scan(
 			&i.ID,
@@ -140,15 +145,17 @@ func (q *Queries) GetCricketScores(ctx context.Context, matchID int64) ([]models
 			&i.Declared,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-			return nil, fmt.Errorf("Not Able to scan rows: ", err)
+			return nil, fmt.Errorf("Not able to scan row: %w", err)
 		}
 		cricketScores = append(cricketScores, i)
-
 	}
-	return cricketScores, err
+
+	// Check for row iteration errors
+	if err = row.Err(); err != nil {
+		return nil, fmt.Errorf("Row iteration error: %w", err)
+	}
+
+	return cricketScores, nil
 }
 
 const newCricketScore = `

@@ -60,126 +60,97 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 	}
 
 	var matchDetail []map[string]interface{}
-	knockoutMatches := map[string][]map[string]interface{}{
-		"final":       {},
-		"semifinal":   {},
-		"quaterfinal": {},
-		"round_16":    {},
-		"round_32":    {},
-		"round_64":    {},
-		"round_128":   {},
-	}
 	var groupMatches []map[string]interface{}
+	var knockoutRounds []map[string]interface{}
+
 	for _, match := range matches {
-
-		homeTeamArg := db.GetCricketScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
-		awayTeamArg := db.GetCricketScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
-		homeScore, err := s.store.GetCricketScore(ctx, homeTeamArg)
+		matchScore, err := s.store.GetCricketScores(ctx, match.ID)
 		if err != nil {
-			s.logger.Error("Failed to get cricket match score for home team:", err)
+			s.logger.Error("Failed to get cricket scores: ", err)
 		}
-		awayScore, err := s.store.GetCricketScore(ctx, awayTeamArg)
-		if err != nil {
-			s.logger.Error("Failed to get cricket match score for away team:", err)
-		}
-
-		var awayScoreMap map[string]interface{}
-		var homeScoreMap map[string]interface{}
-		var emptyScore models.CricketScore
-		if awayScore != emptyScore {
-			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": awayScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.InningNumber, "runRate": awayScore.RunRate, "targetRunRate": awayScore.TargetRunRate}
-		}
-
-		if homeScore != emptyScore {
-			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.InningNumber, "runRate": homeScore.RunRate, "targetRunRate": homeScore.TargetRunRate}
-		}
-
-		game, err := s.store.GetGame(ctx, match.HomeGameID)
-		if err != nil {
-			s.logger.Error("Failed to get the game: ", err)
-		}
-
-		var inningsMap []map[string]interface{}
-		matchToss, err := s.store.GetCricketToss(ctx, match.ID)
-		if err != nil {
-			s.logger.Error("Failed to get toss: ", err)
-		}
-
-		if matchToss.TossWin == match.HomeTeamID && matchToss.TossDecision == "Batting" {
-			inningsMap = append(inningsMap, map[string]interface{}{
-				"inning":              homeScore.InningNumber,
-				"team_id":             match.HomeTeamID,
-				"score":               homeScoreMap,
-				"is_inning_completed": homeScoreMap["is_inning_completed"],
-				"follow_on":           homeScoreMap["follow_on"],
-			})
-		}
-		if matchToss.TossWin == match.AwayTeamID && matchToss.TossDecision == "Batting" {
-			inningsMap = append(inningsMap, map[string]interface{}{
-				"inning":              awayScore.InningNumber,
-				"team_id":             match.AwayTeamID,
-				"score":               awayScoreMap,
-				"is_inning_completed": awayScoreMap["is_inning_completed"],
-				"follow_on":           awayScoreMap["follow_on"],
-			})
-		}
-		if matchToss.TossWin == match.HomeTeamID && matchToss.TossDecision == "Bowling" {
-			inningsMap = append(inningsMap, map[string]interface{}{
-				"inning_numbers":      homeScore.InningNumber,
-				"team_id":             match.HomeTeamID,
-				"score":               homeScoreMap,
-				"is_inning_completed": homeScoreMap["is_inning_completed"],
-				"follow_on":           homeScoreMap["follow_on"],
-			})
-		}
-		if matchToss.TossWin == match.AwayTeamID && matchToss.TossDecision == "Bowling" {
-			inningsMap = append(inningsMap, map[string]interface{}{
-				"inning_number":       awayScore.InningNumber,
-				"team_id":             match.AwayTeamID,
-				"score":               awayScoreMap,
-				"is_inning_completed": awayScoreMap["is_inning_completed"],
-				"follow_on":           awayScoreMap["follow_on"],
-			})
+		var homeScore []models.CricketScore
+		var awayScore []models.CricketScore
+		for _, score := range matchScore {
+			if match.HomeTeamID == score.TeamID {
+				homeScore = append(homeScore, score)
+			} else {
+				awayScore = append(awayScore, score)
+			}
 		}
 
 		matchMap := map[string]interface{}{
-			"matchId":         match.ID,
-			"tournament":      map[string]interface{}{"id": tournament.ID, "name": tournament.Name, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
-			"homeTeam":        map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount},
-			"homeScore":       homeScoreMap,
-			"awayTeam":        map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount},
-			"awayScore":       awayScoreMap,
-			"startTimeStamp":  match.StartTimestamp,
-			"endTimestamp":    match.EndTimestamp,
+			"id":              match.ID,
+			"start_timestamp": match.StartTimestamp,
+			"end_timestamp":   match.EndTimestamp,
 			"status_code":     match.StatusCode,
-			"game":            game,
 			"result":          match.Result,
 			"stage":           match.Stage,
-			"knockoutLevelId": match.KnockoutLevelID,
-			"innings":         inningsMap,
+			"teams": map[string]interface{}{
+				"home_team": map[string]interface{}{
+					"id":         match.HomeTeamID,
+					"name":       match.HomeTeamName,
+					"slug":       match.HomeTeamSlug,
+					"short_name": match.HomeTeamShortname,
+					"gender":     match.HomeTeamGender,
+					"national":   match.HomeTeamNational,
+					"country":    match.HomeTeamCountry,
+					"type":       match.HomeTeamType,
+				},
+				"away_team": map[string]interface{}{
+					"id":         match.AwayTeamID,
+					"name":       match.AwayTeamName,
+					"slug":       match.AwayTeamSlug,
+					"short_name": match.AwayTeamShortname,
+					"gender":     match.AwayTeamGender,
+					"national":   match.AwayTeamNational,
+					"country":    match.AwayTeamCountry,
+					"type":       match.AwayTeamType,
+				},
+			},
+			"scores": map[string]interface{}{
+				"home_score": homeScore,
+				"away_score": awayScore,
+			},
 		}
 
 		if *match.Stage == "Group" {
 			groupMatches = append(groupMatches, matchMap)
 		} else if match.Stage != nil && *match.Stage == "Knockout" {
+			var roundName string
 			switch *match.KnockoutLevelID {
 			case 1:
-				knockoutMatches["final"] = append(knockoutMatches["final"], matchMap)
+				roundName = "final"
 			case 2:
-				knockoutMatches["semifinal"] = append(knockoutMatches["semifinal"], matchMap)
+				roundName = "semifinal"
 			case 3:
-				knockoutMatches["quaterfinal"] = append(knockoutMatches["quaterfinal"], matchMap)
+				roundName = "quaterfinal"
 			case 4:
-				knockoutMatches["round_16"] = append(knockoutMatches["round_16"], matchMap)
+				roundName = "round_16"
 			case 5:
-				knockoutMatches["round_32"] = append(knockoutMatches["round_32"], matchMap)
+				roundName = "round_32"
 			case 6:
-				knockoutMatches["round_64"] = append(knockoutMatches["round_64"], matchMap)
+				roundName = "round_64"
 			case 7:
-				knockoutMatches["round_128"] = append(knockoutMatches["round_128"], matchMap)
+				roundName = "round_128"
+			}
+			found := false
+			for i, round := range knockoutRounds {
+				if round["round"] == roundName {
+					round["matches"] = append(round["matches"].([]map[string]interface{}), matchMap)
+					knockoutRounds[i] = round
+					found = true
+					break
+				}
+			}
+			if !found {
+				knockoutRounds = append(knockoutRounds, map[string]interface{}{
+					"round":   roundName,
+					"matches": []map[string]interface{}{matchMap},
+				})
 			}
 		}
 	}
+
 	matchDetail = append(matchDetail, map[string]interface{}{
 		"tournament": map[string]interface{}{
 			"id":              tournament.ID,
@@ -195,7 +166,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"max_group_team":  tournament.MaxGroupTeam,
 		},
 		"group_stage":    groupMatches,
-		"knockout_stage": knockoutMatches,
+		"knockout_stage": knockoutRounds,
 	})
 	return matchDetail
 }
