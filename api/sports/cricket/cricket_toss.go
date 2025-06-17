@@ -46,10 +46,12 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 	} else {
 		if match.HomeTeamID != arg.TossWin {
 			teamID = match.AwayTeamID
+		} else {
+			teamID = match.HomeTeamID
 		}
 	}
 	inningR := db.NewCricketScoreParams{
-		MatchID:           response.ID,
+		MatchID:           response.MatchID,
 		TeamID:            teamID,
 		InningNumber:      1,
 		Score:             0,
