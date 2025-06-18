@@ -157,7 +157,6 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"name":            tournament.Name,
 			"slug":            tournament.Slug,
 			"country":         tournament.Country,
-			"sports":          tournament.Sports,
 			"status_code":     tournament.StatusCode,
 			"level":           tournament.Level,
 			"start_timestamp": tournament.StartTimestamp,
@@ -264,7 +263,7 @@ func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
 				}
 				fmt.Println("Player Stats: ", playerStats)
 			} else {
-				//Update the player batting stats:
+				//Update the player bowling stats:
 				playerStats, err := s.store.UpdatePlayerBowlingStats(ctx, int32(item.BowlerID), *match.MatchFormat, playerBowlerData.Matches, playerBowlerData.Innings, playerBowlerData.Wickets, playerBowlerData.Runs, playerBowlerData.Balls, playerBowlerData.Average, playerBowlerData.StrikeRate, playerBowlerData.EconomyRate, playerBowlerData.FourWickets, playerBowlerData.FiveWickets)
 				if err != nil {
 					s.logger.Error("Failed to get the player batting stats: ", err)
