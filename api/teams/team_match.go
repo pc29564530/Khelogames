@@ -94,16 +94,28 @@ func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMat
 		var homeScoreMap map[string]interface{}
 		var emptyScore models.CricketScore
 		if awayScore != emptyScore {
-			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning": awayScore.InningNumber}
+			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning_number": awayScore.InningNumber}
 		}
 
 		if homeScore != emptyScore {
-			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning": homeScore.InningNumber}
+			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning_number": homeScore.InningNumber}
 		}
 
 		matchDetail := map[string]interface{}{
-			"matchId":        match.MatchID,
-			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.Name, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"matchId": match.MatchID,
+			"tournament": map[string]interface{}{
+				"id":              tournament.ID,
+				"name":            tournament.Name,
+				"slug":            tournament.Slug,
+				"country":         tournament.Country,
+				"sports":          tournament.Sports,
+				"status_code":     tournament.StatusCode,
+				"level":           tournament.Level,
+				"start_timestamp": tournament.StartTimestamp,
+				"game_id":         tournament.GameID,
+				"group_count":     tournament.GroupCount,
+				"max_group_team":  tournament.MaxGroupTeam,
+			},
 			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
 			"homeScore":      homeScoreMap,
 			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
@@ -174,8 +186,20 @@ func (s *TeamsServer) getFootballMatchScore(ctx *gin.Context, matches []db.GetMa
 		}
 
 		matchDetail := map[string]interface{}{
-			"matchId":        match.MatchID,
-			"tournament":     map[string]interface{}{"id": tournament.ID, "name": tournament.Name, "slug": tournament.Slug, "country": tournament.Country, "sports": tournament.Sports},
+			"matchId": match.MatchID,
+			"tournament": map[string]interface{}{
+				"id":              tournament.ID,
+				"name":            tournament.Name,
+				"slug":            tournament.Slug,
+				"country":         tournament.Country,
+				"sports":          tournament.Sports,
+				"status_code":     tournament.StatusCode,
+				"level":           tournament.Level,
+				"start_timestamp": tournament.StartTimestamp,
+				"game_id":         tournament.GameID,
+				"group_count":     tournament.GroupCount,
+				"max_group_team":  tournament.MaxGroupTeam,
+			},
 			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
 			"homeScore":      homeScoreMap,
 			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
