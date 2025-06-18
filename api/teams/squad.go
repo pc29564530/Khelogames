@@ -55,7 +55,6 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			"short_name":  player.ShortName,
 			"position":    player.Positions,
 			"country":     player.Country,
-			"sports":      player.Sports,
 			"media_url":   player.MediaUrl,
 			"game_id":     player.GameID,
 			"player_id":   player.PlayerID,
@@ -106,7 +105,6 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 			"short_name":  player.ShortName,
 			"position":    player.Positions,
 			"country":     player.Country,
-			"sports":      player.Sports,
 			"media_url":   player.MediaUrl,
 			"game_id":     player.GameID,
 		}

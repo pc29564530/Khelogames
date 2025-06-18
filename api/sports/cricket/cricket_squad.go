@@ -16,7 +16,6 @@ type Player struct {
 	Country    string `json:"country"`
 	Position   string `json:"position"`
 	MediaURL   string `json:"media_url"`
-	Sports     string `json:"sports"`
 	GameID     int64  `json:"game_id"`
 	PlayerID   int32  `json:"player_id"`
 }

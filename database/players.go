@@ -8,7 +8,7 @@ import (
 )
 
 const getAllPlayer = `
-SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id, player_id FROM players
+SELECT id, username, slug, short_name, media_url, positions, country, player_name, game_id, player_id FROM players
 `
 
 func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
@@ -27,7 +27,6 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 			&i.ShortName,
 			&i.MediaUrl,
 			&i.Positions,
-			&i.Sports,
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
@@ -47,7 +46,7 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 }
 
 const getPlayer = `
-SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id, player_id FROM players
+SELECT id, username, slug, short_name, media_url, positions, country, player_name, game_id, player_id FROM players
 WHERE id=$1
 `
 
@@ -61,7 +60,6 @@ func (q *Queries) GetPlayer(ctx context.Context, id int64) (*models.Player, erro
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
-		&i.Sports,
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
@@ -91,7 +89,6 @@ func (q *Queries) GetPlayerByPlayerID(ctx context.Context, playerID int64) (*mod
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
-		&i.Sports,
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
@@ -108,7 +105,7 @@ func (q *Queries) GetPlayerByPlayerID(ctx context.Context, playerID int64) (*mod
 }
 
 const getPlayersCountry = `
-SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id, player_id FROM players
+SELECT id, username, slug, short_name, media_url, positions, country, player_name, game_id, player_id FROM players
 WHERE country=$1
 `
 
@@ -128,7 +125,6 @@ func (q *Queries) GetPlayersCountry(ctx context.Context, country string) ([]mode
 			&i.ShortName,
 			&i.MediaUrl,
 			&i.Positions,
-			&i.Sports,
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
@@ -167,7 +163,6 @@ func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) ([]models
 			&i.ShortName,
 			&i.MediaUrl,
 			&i.Positions,
-			&i.Sports,
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
@@ -193,14 +188,13 @@ INSERT INTO players (
     short_name,
     media_url,
     positions,
-    sports,
     country,
     player_name,
     game_id,
 	player_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id, player_id
+) RETURNING id, username, slug, short_name, media_url, positions, country, player_name, game_id, player_id
 `
 
 type NewPlayerParams struct {
@@ -209,7 +203,6 @@ type NewPlayerParams struct {
 	ShortName  string `json:"short_name"`
 	MediaUrl   string `json:"media_url"`
 	Positions  string `json:"positions"`
-	Sports     string `json:"sports"`
 	Country    string `json:"country"`
 	PlayerName string `json:"player_name"`
 	GameID     int64  `json:"game_id"`
@@ -223,7 +216,6 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Pl
 		arg.ShortName,
 		arg.MediaUrl,
 		arg.Positions,
-		arg.Sports,
 		arg.Country,
 		arg.PlayerName,
 		arg.GameID,
@@ -237,7 +229,7 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Pl
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
-		&i.Sports,
+
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
@@ -247,7 +239,7 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Pl
 }
 
 const searchPlayer = `
-SELECT id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id, player_id FROM players
+SELECT id, username, slug, short_name, media_url, positions, country, player_name, game_id, player_id FROM players
 WHERE player_name LIKE $1
 `
 
@@ -267,7 +259,6 @@ func (q *Queries) SearchPlayer(ctx context.Context, playerName string) ([]models
 			&i.ShortName,
 			&i.MediaUrl,
 			&i.Positions,
-			&i.Sports,
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
@@ -290,7 +281,7 @@ const updatePlayerMedia = `
 UPDATE players
 SET media_url=$1
 WHERE id=$2
-RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id, player_id
+RETURNING id, username, slug, short_name, media_url, positions, country, player_name, game_id, player_id
 `
 
 type UpdatePlayerMediaParams struct {
@@ -308,7 +299,6 @@ func (q *Queries) UpdatePlayerMedia(ctx context.Context, arg UpdatePlayerMediaPa
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
-		&i.Sports,
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
@@ -321,7 +311,7 @@ const updatePlayerPosition = `
 UPDATE players
 SET positions=$1
 WHERE id=$2
-RETURNING id, username, slug, short_name, media_url, positions, sports, country, player_name, game_id, player_id
+RETURNING id, username, slug, short_name, media_url, positions, country, player_name, game_id, player_id
 `
 
 type UpdatePlayerPositionParams struct {
@@ -339,7 +329,6 @@ func (q *Queries) UpdatePlayerPosition(ctx context.Context, arg UpdatePlayerPosi
 		&i.ShortName,
 		&i.MediaUrl,
 		&i.Positions,
-		&i.Sports,
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,

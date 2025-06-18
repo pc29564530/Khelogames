@@ -55,7 +55,6 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 	arg := db.NewTournamentParams{
 		Name:           req.Name,
 		Slug:           slug,
-		Sports:         req.Sports,
 		Country:        req.Country,
 		StatusCode:     req.StatusCode,
 		Level:          req.Level,
@@ -204,14 +203,13 @@ func (s *TournamentServer) GetTournamentByLevelFunc(ctx *gin.Context) {
 	level := ctx.Query("category")
 	s.logger.Debug("Category: %v", level)
 
-	arg := db.GetTournamentsByLevelParams{
-		Sports: sports,
-		Level:  level,
+	game, err := s.store.GetGamebyName(ctx, sports)
+	if err != nil {
+		s.logger.Error("Failed to get game by name: ", err)
+		return
 	}
 
-	s.logger.Debug("GetTournamentByLevelParams: ", arg)
-
-	response, err := s.store.GetTournamentsByLevel(ctx, arg)
+	response, err := s.store.GetTournamentsByLevel(ctx, game.ID, level)
 	if err != nil {
 		s.logger.Error("Failed to get tournaments by level: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)

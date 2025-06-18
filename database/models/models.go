@@ -238,7 +238,6 @@ type Player struct {
 	ShortName  string `json:"short_name"`
 	MediaUrl   string `json:"media_url"`
 	Positions  string `json:"positions"`
-	Sports     string `json:"sports"`
 	Country    string `json:"country"`
 	PlayerName string `json:"player_name"`
 	GameID     int64  `json:"game_id"`
@@ -396,7 +395,6 @@ type GetPlayerByTeam struct {
 	ShortName  string `json:"short_name"`
 	MediaUrl   string `json:"media_url"`
 	Positions  string `json:"positions"`
-	Sports     string `json:"sports"`
 	Country    string `json:"country"`
 	PlayerName string `json:"player_name"`
 	GameID     int64  `json:"game_id"`
@@ -416,7 +414,6 @@ type GetTeamByPlayer struct {
 	National    bool   `json:"national"`
 	Country     string `json:"country"`
 	Type        string `json:"type"`
-	Sports      string `json:"sports"`
 	PlayerCount int32  `json:"player_count"`
 	GameID      int64  `json:"game_id"`
 }

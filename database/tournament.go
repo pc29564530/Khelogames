@@ -75,13 +75,8 @@ SELECT * FROM tournaments
 WHERE game_id=$1 AND level=$2
 `
 
-type GetTournamentsByLevelParams struct {
-	GameID string `json:"game_id"`
-	Level  string `json:"level"`
-}
-
-func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsByLevelParams) ([]models.Tournament, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentsByLevel, arg.gameID, arg.Level)
+func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level string) ([]models.Tournament, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentsByLevel, gameID, level)
 	if err != nil {
 		return nil, err
 	}
