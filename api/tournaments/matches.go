@@ -363,14 +363,12 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to add or update player stats: ", err)
 			return
 		}
-
-		fmt.Println("Player Stats: ", addOrUpdatePlayerStats)
 	}
 
 	s.logger.Info("successfully updated the match status")
 
-	var awayScore map[string]interface{}
-	var homeScore map[string]interface{}
+	// var awayScore map[string]interface{}
+	// var homeScore map[string]interface{}
 
 	if game == "football" {
 
@@ -406,33 +404,15 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		updateCricketStatusCode(ctx, updatedMatchData, game, s, tx)
 	}
 
-	var awayTeam map[string]interface{}
-	var homeTeam map[string]interface{}
-
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, updatedMatchData.ID)
+	gameID, err := s.store.GetGamebyName(ctx, game)
 	if err != nil {
-		s.logger.Error("Failed to get match: ", err)
+		s.logger.Error("Failed to get game by name: ", err)
+		return
 	}
 
-	awayTeam = map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount}
-	homeTeam = map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount}
-
-	updateData := map[string]interface{}{
-		"id":             match.ID,
-		"tournamentID":   match.TournamentID,
-		"tournament":     map[string]interface{}{},
-		"awayTeamId":     match.AwayTeamID,
-		"homeTeamId":     match.HomeTeamID,
-		"startTimestamp": match.StartTimestamp,
-		"endTimestamp":   match.EndTimestamp,
-		"type":           match.Type,
-		"status":         match.StatusCode,
-		"result":         match.Result,
-		"stage":          match.Stage,
-		"awayTeam":       awayTeam,
-		"homeTeam":       homeTeam,
-		"awayScore":      awayScore,
-		"homeScore":      homeScore,
+	match, err := s.store.GetMatchByMatchID(ctx, updatedMatchData.ID, gameID.ID)
+	if err != nil {
+		s.logger.Error("Failed to get match: ", err)
 	}
 
 	err = tx.Commit()
@@ -441,7 +421,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, updateData)
+	ctx.JSON(http.StatusAccepted, match)
 }
 
 type updateMatchResultRequest struct {

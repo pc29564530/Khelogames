@@ -13,7 +13,6 @@ import (
 type addTournamentRequest struct {
 	Name           string `json:"name"`
 	Slug           string `json:"slug"`
-	Sports         string `json:"sports"`
 	Country        string `json:"country"`
 	StatusCode     string `json:"status_code"`
 	Level          string `json:"level"`

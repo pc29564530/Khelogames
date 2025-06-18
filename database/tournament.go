@@ -17,7 +17,6 @@ func (q *Queries) GetTournament(ctx context.Context, id int64) (models.Tournamen
 		&i.ID,
 		&i.Name,
 		&i.Slug,
-		&i.Sports,
 		&i.Country,
 		&i.StatusCode,
 		&i.Level,
@@ -48,7 +47,6 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 			&i.ID,
 			&i.Name,
 			&i.Slug,
-			&i.Sports,
 			&i.Country,
 			&i.StatusCode,
 			&i.Level,
@@ -78,12 +76,12 @@ WHERE game_id=$1 AND level=$2
 `
 
 type GetTournamentsByLevelParams struct {
-	Sports string `json:"sports"`
+	GameID string `json:"game_id"`
 	Level  string `json:"level"`
 }
 
 func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsByLevelParams) ([]models.Tournament, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentsByLevel, arg.Sports, arg.Level)
+	rows, err := q.db.QueryContext(ctx, getTournamentsByLevel, arg.gameID, arg.Level)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +93,6 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, arg GetTournamentsB
 			&i.ID,
 			&i.Name,
 			&i.Slug,
-			&i.Sports,
 			&i.Country,
 			&i.StatusCode,
 			&i.Level,
@@ -166,7 +163,6 @@ const newTournament = `
 INSERT INTO tournaments (
     name,
     slug,
-    sports,
     country,
     status_code,
     level,
@@ -176,14 +172,13 @@ INSERT INTO tournaments (
 	max_group_team,
 	stage,
 	has_knockout
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, name, slug, sports, country, status_code, level, start_timestamp, game_id, group_count, max_group_team, stage, has_knockout
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING id, name, slug, country, status_code, level, start_timestamp, game_id, group_count, max_group_team, stage, has_knockout
 `
 
 type NewTournamentParams struct {
 	Name           string `json:"name"`
 	Slug           string `json:"slug"`
-	Sports         string `json:"sports"`
 	Country        string `json:"country"`
 	StatusCode     string `json:"status_code"`
 	Level          string `json:"level"`
@@ -199,7 +194,6 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 	row := q.db.QueryRowContext(ctx, newTournament,
 		arg.Name,
 		arg.Slug,
-		arg.Sports,
 		arg.Country,
 		arg.StatusCode,
 		arg.Level,
@@ -215,7 +209,6 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		&i.ID,
 		&i.Name,
 		&i.Slug,
-		&i.Sports,
 		&i.Country,
 		&i.StatusCode,
 		&i.Level,
@@ -248,7 +241,6 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		&i.ID,
 		&i.Name,
 		&i.Slug,
-		&i.Sports,
 		&i.Country,
 		&i.StatusCode,
 		&i.Level,
@@ -281,7 +273,6 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 		&i.ID,
 		&i.Name,
 		&i.Slug,
-		&i.Sports,
 		&i.Country,
 		&i.StatusCode,
 		&i.Level,
