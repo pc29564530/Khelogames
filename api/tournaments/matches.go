@@ -275,7 +275,7 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 	}
 }
 
-func updateCricketStatusCode(ctx *gin.Context, updatedMatchData models.Match, game string, s *TournamentServer, tx *sql.Tx) {
+func updateCricketStatusCode(ctx *gin.Context, updatedMatchData models.Match, gameID int64, s *TournamentServer, tx *sql.Tx) {
 	if updatedMatchData.StatusCode == "finished" {
 		argAway := db.GetCricketScoreParams{
 			MatchID: updatedMatchData.ID,
@@ -366,6 +366,8 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 		if gameID.Name == "football" {
 			updateFootballStatusCode(ctx, updatedMatchData, gameID.ID, s, tx)
+		} else if gameID.Name == "cricket" {
+			updateCricketStatusCode(ctx, updatedMatchData, gameID.ID, s, tx)
 		}
 	}
 
