@@ -148,8 +148,8 @@ func NewServer(config util.Config,
 		authRouter.POST("/applyForVerification", handlersServer.AddUserVerificationFunc)
 		authRouter.POST("/addPlayerBattingStats/:playerID", playersServer.AddCricketPlayerBattingStatsFunc)
 		authRouter.GET("/getPlayerBattingStats/:playerID", playersServer.GetCricketPlayerBattingStatsFunc)
-		authRouter.POST("/addPlayerBowlingStats/:playerID", playersServer.AddCricketPlayerBattingStatsFunc)
-		authRouter.GET("/getPlayerBowlingStats/:playerID", playersServer.GetCricketPlayerBattingStatsFunc)
+		authRouter.POST("/addPlayerBowlingStats/:playerID", playersServer.AddCricketPlayerBowlingStatsFunc)
+		authRouter.GET("/getPlayerBowlingStats/:playerID", playersServer.GetCricketPlayerBowlingStatsFunc)
 		authRouter.POST("/addOrUpdateFootballPlayerStats/:matchID", playersServer.AddOrUpdateFootballPlayerStatsFunc)
 		authRouter.GET("/getFootballPlayerStats/:playerID", playersServer.GetFootballPlayerStatsFunc)
 	}
