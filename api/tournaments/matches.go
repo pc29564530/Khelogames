@@ -169,7 +169,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 }
 
-func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, game string, s *TournamentServer, tx *sql.Tx) {
+func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, gameID int64, s *TournamentServer, tx *sql.Tx) {
 	if updatedMatchData.StatusCode == "not_started" {
 		argAway := db.NewFootballScoreParams{
 			MatchID:    updatedMatchData.ID,
@@ -332,6 +332,12 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	game := ctx.Param("sport")
 
+	gameID, err := s.store.GetGamebyName(ctx, game)
+	if err != nil {
+		s.logger.Error("Failed to get game by name: ", err)
+		return
+	}
+
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
 		s.logger.Error("unable to begin tx: ", err)
@@ -351,64 +357,19 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 	}
 
 	if updatedMatchData.StatusCode == "finished" {
-		//get match by match id
-		match, err := s.store.GetMatchByID(ctx, req.ID)
-		if err != nil {
-			s.logger.Error("Failed to get match by match id: ", err)
-			return
-		}
 
-		addOrUpdatePlayerStats, err := s.store.AddORUpdateFootballPlayerStats(ctx, match.ID)
+		_, err := s.store.AddORUpdateFootballPlayerStats(ctx, req.ID)
 		if err != nil {
 			s.logger.Error("Failed to add or update player stats: ", err)
 			return
 		}
+
+		if gameID.Name == "football" {
+			updateFootballStatusCode(ctx, updatedMatchData, gameID.ID, s, tx)
+		}
 	}
 
 	s.logger.Info("successfully updated the match status")
-
-	// var awayScore map[string]interface{}
-	// var homeScore map[string]interface{}
-
-	if game == "football" {
-
-		score, err := s.store.GetFootballScoreByMatchID(ctx, updatedMatchData.ID)
-		if err != nil {
-			s.logger.Error("Failed to get score: ", err)
-		}
-
-		for _, scr := range score {
-			if updatedMatchData.HomeTeamID == scr.TeamID {
-				homeScore = map[string]interface{}{
-					"id":          scr.ID,
-					"match_id":    scr.MatchID,
-					"team_id":     scr.TeamID,
-					"first_half":  scr.FirstHalf,
-					"second_half": scr.SecondHalf,
-					"score":       scr.Goals,
-				}
-			} else {
-				awayScore = map[string]interface{}{
-					"id":          scr.ID,
-					"match_id":    scr.MatchID,
-					"team_id":     scr.TeamID,
-					"first_half":  scr.FirstHalf,
-					"second_half": scr.SecondHalf,
-					"score":       scr.Goals,
-				}
-			}
-		}
-
-		updateFootballStatusCode(ctx, updatedMatchData, game, s, tx)
-	} else if game == "cricket" {
-		updateCricketStatusCode(ctx, updatedMatchData, game, s, tx)
-	}
-
-	gameID, err := s.store.GetGamebyName(ctx, game)
-	if err != nil {
-		s.logger.Error("Failed to get game by name: ", err)
-		return
-	}
 
 	match, err := s.store.GetMatchByMatchID(ctx, updatedMatchData.ID, gameID.ID)
 	if err != nil {
