@@ -308,6 +308,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 
 	matchIDString := ctx.Query("match_id")
 	teamIDString := ctx.Query("team_id")
+	gameName := ctx.Param("sport")
 	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse match id ", err)
@@ -317,6 +318,12 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse team id ", err)
+		return
+	}
+
+	game, err := s.store.GetGamebyName(ctx, gameName)
+	if err != nil {
+		s.logger.Error("Failed to get the game: ", gin.H{"error": err.Error()})
 		return
 	}
 
@@ -332,7 +339,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchID)
+	match, err := s.store.GetMatchByMatchID(ctx, matchID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get match:", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -352,12 +359,12 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 
 	var battingTeamId int64
 	var bowlingTeamId int64
-	if teamID == match.HomeTeamID {
+	if teamID == int64(match["home_team_id"].(float64)) {
 		battingTeamId = teamID
-		bowlingTeamId = match.AwayTeamID
+		bowlingTeamId = int64(match["away_team_id"].(float64))
 	} else {
 		battingTeamId = teamID
-		bowlingTeamId = match.HomeTeamID
+		bowlingTeamId = int64(match["home_team_id"].(float64))
 	}
 	fmt.Println("Bowling Team ID: ", bowlingTeamId)
 
@@ -440,10 +447,19 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		return
 	}
 
+	gameName := ctx.Param("sport")
+
 	arg := db.GetCricketBallsParams{
 		MatchID: req.MatchID,
 		TeamID:  req.TeamID,
 	}
+
+	game, err := s.store.GetGamebyName(ctx, gameName)
+	if err != nil {
+		s.logger.Error("Failed to get the game: ", gin.H{"error": err.Error()})
+		return
+	}
+
 	playerScore, err := s.store.GetCricketBalls(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to get cricket bowler data : ", err)
@@ -451,7 +467,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, req.MatchID)
+	match, err := s.store.GetMatchByMatchID(ctx, req.MatchID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get player :", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -459,11 +475,12 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 	}
 	var battingTeamId int64
 	var bowlingTeamId int64
-	if req.TeamID == match.HomeTeamID {
-		battingTeamId = match.AwayTeamID
+
+	if req.TeamID == int64(match["home_team_id"].(float64)) {
+		battingTeamId = int64(match["away_team_id"].(float64))
 		bowlingTeamId = req.TeamID
 	} else {
-		battingTeamId = match.HomeTeamID
+		battingTeamId = int64(match["home_team_id"].(float64))
 		bowlingTeamId = req.TeamID
 	}
 
