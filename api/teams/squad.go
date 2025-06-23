@@ -57,7 +57,7 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			"country":     player.Country,
 			"media_url":   player.MediaUrl,
 			"game_id":     player.GameID,
-			"player_id":   player.PlayerID,
+			"profile_id":  player.ProfileID,
 		}
 		ctx.JSON(http.StatusAccepted, playerData)
 		return
@@ -107,6 +107,7 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 			"country":     player.Country,
 			"media_url":   player.MediaUrl,
 			"game_id":     player.GameID,
+			"profile_id":  player.ProfileID,
 		}
 		playerList = append(playerList, playerData)
 	}

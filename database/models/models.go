@@ -241,7 +241,7 @@ type Player struct {
 	Country    string `json:"country"`
 	PlayerName string `json:"player_name"`
 	GameID     int64  `json:"game_id"`
-	PlayerID   int32  `json:"player_id"`
+	ProfileID  *int32 `json:"profile_id"`
 }
 
 type Profile struct {
@@ -398,6 +398,7 @@ type GetPlayerByTeam struct {
 	Country    string `json:"country"`
 	PlayerName string `json:"player_name"`
 	GameID     int64  `json:"game_id"`
+	ProfileID  *int64 `json:"profile_id"`
 }
 
 type GetTeamByPlayer struct {
@@ -529,4 +530,27 @@ type FootballPlayerStats struct {
 	Average        string    `json:"average"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+type PlayerCricketStats struct {
+	ID             int64     `json:"id"`
+	PlayerID       int32     `json:"player_id"`
+	MatchType      string    `json:"match_type"`
+	Matches        int32     `json:"matches"`
+	BattingInnings int32     `json:"batting_innings"`
+	Runs           int       `json:"runs"`
+	Balls          int       `json:"balls"`
+	Sixes          int       `json:"sixes"`
+	Fours          int       `json:"fours"`
+	Fifties        int       `json:"fifties"`
+	Hundreds       int       `json:"hundreds"`
+	BestScore      int       `json:"best_score"`
+	BowlingInnings int32     `json:"bowling_innings"`
+	Wickets        int       `json:"wickets"`
+	RunsConceded   int       `json:"runs_conceded"`
+	BallsBowled    int       `json:"balls_bowled"`
+	FourWickets    int       `json:"four_wickets"`
+	FiveWickets    int       `json:"five_wickets"`
+	CreatedAT      time.Time `json:"created_at"`
+	UpdatedAT      time.Time `json:"updated_at"`
 }

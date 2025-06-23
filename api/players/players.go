@@ -16,7 +16,7 @@ type newPlayerRequest struct {
 	Positions string `json:"positions"`
 	Country   string `json:"country"`
 	GameID    int64  `json:"game_id"`
-	PlayerID  int32  `json:"player_id"`
+	ProfileID int32  `json:"profile_id"`
 }
 
 func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
@@ -46,7 +46,7 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 		Country:    req.Country,
 		PlayerName: userProfile.FullName,
 		GameID:     req.GameID,
-		PlayerID:   int32(userProfile.ID),
+		ProfileID:  int32(userProfile.ID),
 	}
 
 	response, err := s.store.NewPlayer(ctx, arg)
@@ -96,17 +96,20 @@ func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 }
 
-func (s *PlayerServer) GetPlayerByPlayerIDFunc(ctx *gin.Context) {
+func (s *PlayerServer) GetPlayerByProfileIDFunc(ctx *gin.Context) {
 
-	playerIDStr := ctx.Query("player_id")
-	playerID, err := strconv.ParseInt(playerIDStr, 10, 64)
+	profileIDStr := ctx.Query("profile_id")
+
+	id, err := strconv.ParseInt(profileIDStr, 10, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse player id: ", err)
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
 
-	response, err := s.store.GetPlayerByPlayerID(ctx, playerID)
+	fmt.Println("Profile ID: ", id)
+
+	response, err := s.store.GetPlayerByProfileID(ctx, id)
 	if err != nil {
 		s.logger.Error("Failed to get player profile by player id: ", err)
 		ctx.JSON(http.StatusNoContent, err)
