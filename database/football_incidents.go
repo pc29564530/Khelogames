@@ -201,7 +201,7 @@ SELECT
     fi.incident_time, 
     fi.description, 
     fi.penalty_shootout_scored,
-	fi.tournament_id
+	fi.tournament_id,
     NULL AS players
 FROM 
     football_incidents fi

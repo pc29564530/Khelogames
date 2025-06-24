@@ -184,39 +184,47 @@ func (q *Queries) AddFootballSquad(ctx context.Context, matchID int64, teamID, p
 }
 
 const getFootballMatchSquad = `
-	SELECT 
-		JSON_AGG(
-			JSON_BUILD_OBJECT(
-				'id', cs.id, 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'position', cs.position, 'is_substitute', cs.is_substitute,  'role', cs.role, 'created_at', cs.created_at,
-				'player', JSON_BUILD_OBJECT(
-					'id',pl.id,
-					'username',pl.username,
-					'name', pl.player_name, 
-					'slug', pl.slug, 
-					'short_name', pl.short_name, 
-					'country', pl.country, 
-					'positions', pl.positions, 
-					'media_url', pl.media_url
-				)
+	SELECT
+		JSON_BUILD_OBJECT(
+			'id', cs.id, 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'position', cs.position, 'is_substitute', cs.is_substitute,  'role', cs.role, 'created_at', cs.created_at,
+			'player', JSON_BUILD_OBJECT(
+				'id',pl.id,
+				'username',pl.username,
+				'name', pl.player_name, 
+				'slug', pl.slug, 
+				'short_name', pl.short_name, 
+				'country', pl.country, 
+				'positions', pl.positions, 
+				'media_url', pl.media_url
 			)
-		) AS teamSquad
+		)
 	FROM football_squad as cs
 	JOIN players AS pl ON pl.id = cs.player_id
 	WHERE match_id=$1 AND team_id=$2;
 `
 
-func (q *Queries) GetFootballMatchSquad(ctx context.Context, matchID, teamID int64) ([]interface{}, error) {
-	row := q.db.QueryRowContext(ctx, getFootballMatchSquad, matchID, teamID)
-
-	var jsonData []byte
-	if err := row.Scan(&jsonData); err != nil {
-		return nil, fmt.Errorf("Failed to scan: %w", err)
+func (q *Queries) GetFootballMatchSquad(ctx context.Context, matchID, teamID int64) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballMatchSquad, matchID, teamID)
+	if err != nil {
+		return nil, err
 	}
 
-	var teamSquads []interface{}
-	if err := json.Unmarshal(jsonData, &teamSquads); err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal: %w", err)
+	defer rows.Close()
+
+	var squads []map[string]interface{}
+
+	for rows.Next() {
+		var jsonData []byte
+		if err := rows.Scan(&jsonData); err != nil {
+			return nil, fmt.Errorf("Failed to scan: %w", err)
+		}
+		var squad map[string]interface{}
+		if err := json.Unmarshal(jsonData, &squad); err != nil {
+			return nil, fmt.Errorf("Failed to unmarshal: %w", err)
+		}
+
+		squads = append(squads, squad)
 	}
 
-	return teamSquads, nil
+	return squads, nil
 }
