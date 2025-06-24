@@ -125,12 +125,13 @@ type FootballLineup struct {
 }
 
 type FootballScore struct {
-	ID         int64 `json:"id"`
-	MatchID    int64 `json:"match_id"`
-	TeamID     int64 `json:"team_id"`
-	FirstHalf  int32 `json:"first_half"`
-	SecondHalf int32 `json:"second_half"`
-	Goals      int64 `json:"goals"`
+	ID              int64 `json:"id"`
+	MatchID         int64 `json:"match_id"`
+	TeamID          int64 `json:"team_id"`
+	FirstHalf       int32 `json:"first_half"`
+	SecondHalf      int32 `json:"second_half"`
+	Goals           int64 `json:"goals"`
+	PenaltyShootOut int   `json:"penalty_shootout"`
 }
 
 type FootballStatistic struct {

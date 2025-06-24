@@ -93,7 +93,9 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		}
 	}
 
-	if incidents.IncidentType == "goal" || incidents.IncidentType == "penalty" {
+	//Handle goals, penalty_shootout and penalty
+	switch incidents.IncidentType {
+	case "goal", "penalty":
 		if incidents.Periods == "first_half" {
 			argGoalScore := db.UpdateFirstHalfScoreParams{
 				FirstHalf: 1,
@@ -107,7 +109,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 				s.logger.Error("Failed to update football score: ", err)
 				return
 			}
-		} else {
+		} else if incidents.Periods == "second_half" {
 			argGoalScore := db.UpdateSecondHalfScoreParams{
 				SecondHalf: 1,
 				MatchID:    incidents.MatchID,
@@ -121,7 +123,15 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 				return
 			}
 		}
-
+	case "penalty_shootout":
+		if incidents.PenaltyShootoutScored {
+			_, err := s.store.UpdatePenaltyShootoutScore(ctx, incidents.MatchID, *incidents.TeamID)
+			if err != nil {
+				tx.Rollback()
+				s.logger.Error("Failed to update penalty shootout score: ", err)
+				return
+			}
+		}
 	}
 
 	//commit the transcation if all operation are successfull
