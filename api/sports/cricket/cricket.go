@@ -2,7 +2,6 @@ package cricket
 
 import (
 	"context"
-	"fmt"
 	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
@@ -219,26 +218,59 @@ func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
 		}
 
 		for _, item := range *playerBatsScore {
-			playerBatsmanData, err := s.store.GetCricketPlayerBattingStatsByMatchType(ctx, item.BatsmanID, *match.MatchFormat)
+			playerBatsmanData, err := s.store.GetPlayerCricketStatsByMatchType(ctx, item.BatsmanID)
 			if err != nil {
 				s.logger.Error("Failed to get the player batting stats: ", err)
 				return
 			}
+
 			if playerBatsmanData == nil {
-				playerStats, err := s.store.AddPlayerBattingStats(ctx, int32(item.BatsmanID), *match.MatchFormat, playerBatsmanData.TotalMatches, playerBatsmanData.TotalInnings, playerBatsmanData.Runs, playerBatsmanData.Balls, playerBatsmanData.Fours, playerBatsmanData.Sixes, playerBatsmanData.Fifties, playerBatsmanData.Hundreds, playerBatsmanData.BestScore, playerBatsmanData.Average, playerBatsmanData.StrikeRate)
-				if err != nil {
-					s.logger.Error("Failed to get the player batting stats: ", err)
-					return
+				for _, item := range *playerBatsmanData {
+					if item.MatchType == *match.MatchFormat {
+						_, err := s.store.AddPlayerCricketStats(ctx,
+							int32(item.PlayerID),
+							*&item.MatchType,
+							item.Matches,
+							item.BattingInnings,
+							item.Runs,
+							item.Balls,
+							item.Fours,
+							item.Sixes,
+							item.Fifties,
+							item.Hundreds,
+							item.BestScore,
+							item.BowlingInnings,
+							item.Wickets,
+							item.RunsConceded,
+							item.BallsBowled,
+							item.FourWickets,
+							item.FiveWickets)
+						if err != nil {
+							s.logger.Error("Failed to get the player batting stats: ", err)
+							return
+						}
+					}
 				}
-				fmt.Println("Player Stats: ", playerStats)
 			} else {
 				//Update the player batting stats:
-				playerStats, err := s.store.UpdatePlayerBattingStats(ctx, int32(item.BatsmanID), *match.MatchFormat, playerBatsmanData.TotalMatches, playerBatsmanData.TotalInnings, playerBatsmanData.Runs, playerBatsmanData.Balls, playerBatsmanData.Fours, playerBatsmanData.Sixes, playerBatsmanData.Fifties, playerBatsmanData.Hundreds, playerBatsmanData.BestScore, playerBatsmanData.Average, playerBatsmanData.StrikeRate)
-				if err != nil {
-					s.logger.Error("Failed to get the player batting stats: ", err)
-					return
+				for _, item := range *playerBatsmanData {
+					if item.MatchType == *match.MatchFormat {
+						_, err := s.store.UpdatePlayerBattingStats(ctx,
+							int32(item.PlayerID),
+							*&item.MatchType,
+							item.Runs,
+							item.Balls,
+							item.Fours,
+							item.Sixes,
+							item.Fifties,
+							item.Hundreds,
+							item.BestScore)
+						if err != nil {
+							s.logger.Error("Failed to get the player batting stats: ", err)
+							return
+						}
+					}
 				}
-				fmt.Println("Player Stats: ", playerStats)
 			}
 		}
 
@@ -250,26 +282,56 @@ func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
 		}
 
 		for _, item := range *playerBallScore {
-			playerBowlerData, err := s.store.GetCricketPlayerBowlingStatsByMatchType(ctx, item.BowlerID, *match.MatchFormat)
+			playerBowlerData, err := s.store.GetPlayerCricketStatsByMatchType(ctx, item.BowlerID)
 			if err != nil {
 				s.logger.Error("Failed to get the player batting stats: ", err)
 				return
 			}
 			if playerBowlerData == nil {
-				playerStats, err := s.store.AddPlayerBowlingStats(ctx, int32(item.BowlerID), *match.MatchFormat, playerBowlerData.Matches, playerBowlerData.Innings, playerBowlerData.Wickets, playerBowlerData.Runs, playerBowlerData.Balls, playerBowlerData.Average, playerBowlerData.StrikeRate, playerBowlerData.EconomyRate, playerBowlerData.FourWickets, playerBowlerData.FiveWickets)
-				if err != nil {
-					s.logger.Error("Failed to get the player batting stats: ", err)
-					return
+				for _, item := range *playerBowlerData {
+					if item.MatchType == *match.MatchFormat {
+						_, err := s.store.AddPlayerCricketStats(ctx,
+							int32(item.PlayerID),
+							*&item.MatchType,
+							item.Matches,
+							item.BattingInnings,
+							item.Runs,
+							item.Balls,
+							item.Fours,
+							item.Sixes,
+							item.Fifties,
+							item.Hundreds,
+							item.BestScore,
+							item.BowlingInnings,
+							item.Wickets,
+							item.RunsConceded,
+							item.BallsBowled,
+							item.FourWickets,
+							item.FiveWickets)
+						if err != nil {
+							s.logger.Error("Failed to get the player bowling stats: ", err)
+							return
+						}
+					}
 				}
-				fmt.Println("Player Stats: ", playerStats)
 			} else {
 				//Update the player bowling stats:
-				playerStats, err := s.store.UpdatePlayerBowlingStats(ctx, int32(item.BowlerID), *match.MatchFormat, playerBowlerData.Matches, playerBowlerData.Innings, playerBowlerData.Wickets, playerBowlerData.Runs, playerBowlerData.Balls, playerBowlerData.Average, playerBowlerData.StrikeRate, playerBowlerData.EconomyRate, playerBowlerData.FourWickets, playerBowlerData.FiveWickets)
-				if err != nil {
-					s.logger.Error("Failed to get the player batting stats: ", err)
-					return
+				for _, item := range *playerBowlerData {
+					if item.MatchType == *match.MatchFormat {
+						_, err := s.store.UpdatePlayerBowlingStats(ctx,
+							int32(item.PlayerID),
+							*&item.MatchType,
+							item.Wickets,
+							item.RunsConceded,
+							item.BallsBowled,
+							item.FourWickets,
+							item.FiveWickets)
+						if err != nil {
+							s.logger.Error("Failed to get the player bowling stats: ", err)
+							return
+						}
+					}
 				}
-				fmt.Println("Player Stats: ", playerStats)
 			}
 		}
 

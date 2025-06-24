@@ -76,6 +76,7 @@ func NewServer(config util.Config,
 
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
+		// added the funcitonality for the matches by player
 		authRouter.GET("/getGroups", tournamentServer.GetGroupsFunc)
 		authRouter.GET("/isFollowing", handlersServer.IsFollowingFunc)
 		authRouter.GET("/checkConnection", handlersServer.CheckConnectionFunc)
@@ -130,7 +131,7 @@ func NewServer(config util.Config,
 		authRouter.GET("/getPlayerByCountry", playersServer.GetPlayerByCountry)
 		authRouter.GET("/getPlayersBySport", playersServer.GetPlayersBySportFunc)
 		authRouter.GET("/getPlayerByID", playersServer.GetPlayerFunc)
-		authRouter.GET("/getPlayerByPlayerID", playersServer.GetPlayerByPlayerIDFunc)
+		authRouter.GET("/getPlayerByProfileID", playersServer.GetPlayerByProfileIDFunc)
 		authRouter.GET("/getAllPlayers", playersServer.GetAllPlayerFunc)
 		authRouter.GET("/getPlayerSearch", playersServer.GetPlayerSearchFunc)
 		authRouter.GET("/updatePlayerMedia", playersServer.UpdatePlayerMediaFunc)
@@ -146,11 +147,7 @@ func NewServer(config util.Config,
 		authRouter.GET("/getRoles", handlersServer.GetRolesFunc)
 		authRouter.POST("/addUserRole", handlersServer.AddUserRoleFunc)
 		authRouter.POST("/applyForVerification", handlersServer.AddUserVerificationFunc)
-		authRouter.POST("/addPlayerBattingStats/:playerID", playersServer.AddCricketPlayerBattingStatsFunc)
-		authRouter.GET("/getPlayerBattingStats/:playerID", playersServer.GetCricketPlayerBattingStatsFunc)
-		authRouter.POST("/addPlayerBowlingStats/:playerID", playersServer.AddCricketPlayerBowlingStatsFunc)
-		authRouter.GET("/getPlayerBowlingStats/:playerID", playersServer.GetCricketPlayerBowlingStatsFunc)
-		authRouter.POST("/addOrUpdateFootballPlayerStats/:matchID", playersServer.AddOrUpdateFootballPlayerStatsFunc)
+		authRouter.GET("/getPlayerCricketStats", playersServer.GetPlayerCricketStatsByMatchTypeFunc)
 		authRouter.GET("/getFootballPlayerStats/:playerID", playersServer.GetFootballPlayerStatsFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
@@ -188,6 +185,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTeamsMemberFunc", teamsServer.GetTeamsMemberFunc)
 	sportRouter.GET("/getTeamsBySport/:game_id", teamsServer.GetTeamsBySportFunc)
 	sportRouter.GET("/getMatchByTeamFunc", teamsServer.GetMatchByTeamFunc)
+	sportRouter.GET("/getMatchesByTeam", teamsServer.GetMatchesByTeamFunc)
 	sportRouter.GET("/getTournamentByTeamFunc", teamsServer.GetTournamentbyTeamFunc)
 
 	sportRouter.GET("/getAllMatches", handlersServer.GetAllMatchesFunc)
