@@ -83,7 +83,8 @@ const getMatchesByTeam = `
 						'team_id', fs_home.team_id,
 						'first_half', fs_home.first_half,
 						'second_half', fs_home.second_half,
-						'goals', fs_home.goals
+						'goals', fs_home.goals,
+						'penalty_shootout', fs_home.penalty_shootout
 					)
 				WHEN g.name = 'cricket' THEN cricket_home_scores.scores
 				ELSE NULL
@@ -112,7 +113,8 @@ const getMatchesByTeam = `
 						'team_id', fs_away.team_id,
 						'first_half', fs_away.first_half,
 						'second_half', fs_away.second_half,
-						'goals', fs_away.goals
+						'goals', fs_away.goals,
+						'penalty_shootout', fs_away.penalty_shootout
 					)
 				WHEN g.name = 'cricket' THEN cricket_away_scores.scores
 				ELSE NULL
