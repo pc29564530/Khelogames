@@ -44,6 +44,31 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 	return
 }
 
+func (s *TeamsServer) GetMatchesByTeamFunc(ctx *gin.Context) {
+	teamIDString := ctx.Query("id")
+	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse team id: ", err)
+		return
+	}
+
+	sport := ctx.Param("sport")
+
+	game, err := s.store.GetGamebyName(ctx, sport)
+	if err != nil {
+		s.logger.Error("Failed to get the game: ", err)
+		return
+	}
+
+	matches, err := s.store.GetMatchesByTeam(ctx, teamID, game.ID)
+	if err != nil {
+		s.logger.Error("Failed to get matches by team: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, matches)
+}
+
 func (s *TeamsServer) getMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, sport string, matchesDetails []map[string]interface{}) []map[string]interface{} {
 	switch sport {
 	case "cricket":

@@ -193,7 +193,7 @@ INSERT INTO players (
     game_id,
 	profile_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING id, username, slug, short_name, media_url, positions, country, player_name, game_id, profile_id
 `
 

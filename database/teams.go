@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"khelogames/database/models"
+	"log"
 )
 
 const addTeamPlayers = `
@@ -41,6 +42,188 @@ type GetMatchByTeamRow struct {
 	StartTimestamp int64  `json:"start_timestamp"`
 	StatusCode     string `json:"status_code"`
 	Type           string `json:"type"`
+}
+
+const getMatchesByTeam = `
+	SELECT 
+		json_build_object(
+			'id', m.id,
+			'tournament_id', m.tournament_id,
+			'away_team_id', m.away_team_id,
+			'home_team_id', m.home_team_id,
+			'start_timestamp', m.start_timestamp,
+			'end_timestamp', m.end_timestamp,
+			'type', m.type,
+			'status_code', m.status_code,
+			'result', m.result,
+			'stage', m.stage,
+			'knockout_level_id', m.knockout_level_id,
+			'match_format', m.match_format,
+
+			'homeTeam', json_build_object(
+				'id', ht.id,
+				'name', ht.name,
+				'slug', ht.slug,
+				'short_name', ht.shortname,
+				'admin', ht.admin,
+				'media_url', ht.media_url,
+				'gender', ht.gender,
+				'national', ht.national,
+				'country', ht.country,
+				'type', ht.type,
+				'player_count', ht.player_count,
+				'game_id', ht.game_id
+			),
+
+			'homeScore', CASE 
+				WHEN g.name = 'football' THEN 
+					json_build_object(
+						'id', fs_home.id,
+						'match_id', fs_home.match_id,
+						'team_id', fs_home.team_id,
+						'first_half', fs_home.first_half,
+						'second_half', fs_home.second_half,
+						'goals', fs_home.goals
+					)
+				WHEN g.name = 'cricket' THEN cricket_home_scores.scores
+				ELSE NULL
+			END,
+
+			'awayTeam', json_build_object(
+				'id', at.id,
+				'name', at.name,
+				'slug', at.slug,
+				'short_name', at.shortname,
+				'admin', at.admin,
+				'media_url', at.media_url,
+				'gender', at.gender,
+				'national', at.national,
+				'country', at.country,
+				'type', at.type,
+				'player_count', at.player_count,
+				'game_id', at.game_id
+			),
+
+			'awayScore', CASE 
+				WHEN g.name = 'football' THEN 
+					json_build_object(
+						'id', fs_away.id,
+						'match_id', fs_away.match_id,
+						'team_id', fs_away.team_id,
+						'first_half', fs_away.first_half,
+						'second_half', fs_away.second_half,
+						'goals', fs_away.goals
+					)
+				WHEN g.name = 'cricket' THEN cricket_away_scores.scores
+				ELSE NULL
+			END,
+
+			'tournament', json_build_object(
+				'id', t.id,
+				'name', t.name,
+				'slug', t.slug,
+				'country', t.country,
+				'status_code', t.status_code,
+				'level', t.level,
+				'start_timestamp', t.start_timestamp,
+				'game_id', t.game_id,
+				'group_count', t.group_count,
+				'max_group_team', t.max_group_team,
+				'stage', t.stage,
+				'has_knockout', t.has_knockout
+			)
+		) AS response
+
+	FROM matches m
+
+	JOIN teams ht ON m.home_team_id = ht.id
+	JOIN teams at ON m.away_team_id = at.id
+	LEFT JOIN tournaments t ON m.tournament_id = t.id
+	JOIN games g ON t.game_id = g.id
+
+	-- Football scores
+	LEFT JOIN football_score fs_home ON fs_home.match_id = m.id AND fs_home.team_id = ht.id AND g.name = 'football'
+	LEFT JOIN football_score fs_away ON fs_away.match_id = m.id AND fs_away.team_id = at.id AND g.name = 'football'
+
+	-- Cricket scores for home team
+	LEFT JOIN LATERAL (
+		SELECT json_agg(
+			json_build_object(
+				'id', cs.id,
+				'match_id', cs.match_id,
+				'team_id', cs.team_id,
+				'inning_number', cs.inning_number,
+				'score', cs.score,
+				'wickets', cs.wickets,
+				'overs', cs.overs,
+				'run_rate', cs.run_rate,
+				'target_run_rate', cs.target_run_rate,
+				'follow_on', cs.follow_on,
+				'is_inning_completed', cs.is_inning_completed,
+				'declared', cs.declared
+			) ORDER BY cs.inning_number
+		) AS scores
+		FROM cricket_score cs
+		WHERE cs.match_id = m.id AND cs.team_id = ht.id
+	) AS cricket_home_scores ON true
+
+	-- Cricket scores for away team
+	LEFT JOIN LATERAL (
+		SELECT json_agg(
+			json_build_object(
+				'id', cs.id,
+				'match_id', cs.match_id,
+				'team_id', cs.team_id,
+				'inning_number', cs.inning_number,
+				'score', cs.score,
+				'wickets', cs.wickets,
+				'overs', cs.overs,
+				'run_rate', cs.run_rate,
+				'target_run_rate', cs.target_run_rate,
+				'follow_on', cs.follow_on,
+				'is_inning_completed', cs.is_inning_completed,
+				'declared', cs.declared
+			) ORDER BY cs.inning_number
+		) AS scores
+		FROM cricket_score cs
+		WHERE cs.match_id = m.id AND cs.team_id = at.id
+	) AS cricket_away_scores ON true
+
+	WHERE (ht.id = $1 OR at.id = $1) AND t.game_id = $2;
+`
+
+func (q *Queries) GetMatchesByTeam(ctx context.Context, teamID, gameID int64) ([]map[string]interface{}, error) {
+
+	rows, err := q.db.QueryContext(ctx, getMatchesByTeam, teamID, gameID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var matches []map[string]interface{}
+
+	for rows.Next() {
+		var jsonBytes []byte
+		if err := rows.Scan(&jsonBytes); err != nil {
+			log.Printf("Error scanning row: %v", err)
+			return nil, err
+		}
+
+		var match map[string]interface{}
+		if err := json.Unmarshal(jsonBytes, &match); err != nil {
+			log.Printf("Error unmarshaling row JSON: %v", err)
+			return nil, err
+		}
+
+		matches = append(matches, match)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return matches, nil
 }
 
 const getMatchByTeam = `
@@ -101,7 +284,8 @@ SELECT
   p.positions, 
   p.country, 
   p.player_name, 
-  p.game_id
+  p.game_id,
+  p.profile_id
 FROM team_players tp
 JOIN players p ON tp.player_id = p.id
 WHERE tp.team_id = $1 AND tp.leave_date IS NULL;
@@ -130,6 +314,7 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.G
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
+			&i.ProfileID,
 		); err != nil {
 			return nil, err
 		}
