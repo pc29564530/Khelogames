@@ -57,6 +57,8 @@ func NewServer(config util.Config,
 	router.Use(corsHandle())
 	router.StaticFS("/api/images", http.Dir("/Users/pawan/database/Khelogames/images"))
 	router.StaticFS("/api/videos", http.Dir("/Users/pawan/database/Khelogames/videos"))
+	router.StaticFS("/media", http.Dir("/tmp/khelogames_media_uploads"))
+
 	public := router.Group("/auth")
 	{
 		public.POST("/send_otp", authServer.Otp)
@@ -149,6 +151,8 @@ func NewServer(config util.Config,
 		authRouter.POST("/applyForVerification", handlersServer.AddUserVerificationFunc)
 		authRouter.GET("/getPlayerCricketStats", playersServer.GetPlayerCricketStatsByMatchTypeFunc)
 		authRouter.GET("/getFootballPlayerStats/:playerID", playersServer.GetFootballPlayerStatsFunc)
+		authRouter.POST("/createUploadChunks", handlersServer.CreateUploadMediaFunc)
+		authRouter.POST("/completedChunkUpload", handlersServer.CompletedChunkUploadFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)
