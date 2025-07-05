@@ -107,8 +107,6 @@ func (s *PlayerServer) GetPlayerByProfileIDFunc(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("Profile ID: ", id)
-
 	response, err := s.store.GetPlayerByProfileID(ctx, id)
 	if err != nil {
 		s.logger.Error("Failed to get player profile by player id: ", err)

@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"encoding/base64"
 	db "khelogames/database"
 
 	"khelogames/pkg"
 	"khelogames/token"
-	util "khelogames/util"
 	"net/http"
 	"strings"
 
@@ -37,26 +35,6 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 		return
 	}
 
-	saveImageStruct := util.NewSaveImageStruct(s.logger)
-
-	var path string
-	if req.MediaType != "" {
-		b64data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
-
-		data, err := base64.StdEncoding.DecodeString(b64data)
-		if err != nil {
-			s.logger.Error("Failed to decode string", err)
-			return
-		}
-
-		path, err = saveImageStruct.SaveImageToFile(data, req.MediaType)
-		if err != nil {
-			tx.Rollback()
-			s.logger.Error("Failed to save image to file ", err)
-			return
-		}
-	}
-
 	//function for uploading a image or video
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.CreateThreadParams{
@@ -65,7 +43,7 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 		Title:           req.Title,
 		Content:         req.Content,
 		MediaType:       req.MediaType,
-		MediaUrl:        path,
+		MediaUrl:        req.MediaURL,
 		LikeCount:       0,
 	}
 
