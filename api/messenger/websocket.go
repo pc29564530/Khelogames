@@ -1,7 +1,6 @@
 package messenger
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	db "khelogames/database"
@@ -129,29 +128,29 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 		defer tx.Rollback()
 
 		authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-		b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
-		data, err := base64.StdEncoding.DecodeString(b64data)
-		if err != nil {
-			h.logger.Error("unable to decode string: ", err)
-			return
-		}
-		saveImageStruct := util.NewSaveImageStruct(h.logger)
-		mediaType := "image"
-		path, err := saveImageStruct.SaveImageToFile(data, mediaType)
-		if err != nil {
-			h.logger.Error("unable to create a file")
-			return
-		}
+		// b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
+		// data, err := base64.StdEncoding.DecodeString(b64data)
+		// if err != nil {
+		// 	h.logger.Error("unable to decode string: ", err)
+		// 	return
+		// }
+		// saveImageStruct := util.NewSaveImageStruct(h.logger)
+		// mediaType := "image"
+		// path, err := saveImageStruct.SaveImageToFile(data, mediaType)
+		// if err != nil {
+		// 	h.logger.Error("unable to create a file")
+		// 	return
+		// }
 
-		h.logger.Debug("image path successfully created: ", path)
-		h.logger.Info("successfully created image path")
+		// h.logger.Debug("image path successfully created: ", path)
+		// h.logger.Info("successfully created image path")
 
 		arg := db.CreateNewMessageParams{
 			Content:          message["content"],
 			IsSeen:           false,
 			SenderUsername:   authToken.Username,
 			ReceiverUsername: message["receiver_username"],
-			MediaUrl:         path,
+			MediaUrl:         message["media_url"],
 			MediaType:        message["media_type"],
 		}
 
