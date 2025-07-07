@@ -48,3 +48,63 @@ func (q *Queries) GetSignup(ctx context.Context, mobileNumber string) (models.Si
 	err := row.Scan(&Signup.MobileNumber, &Signup.Otp)
 	return Signup, err
 }
+
+const createGoogleSignUp = `
+	INSERT INTO modify_user (
+		full_name, username, email, hash_password, is_verified, is_banned, google_id, role, created_at, updated_at
+	) VALUES (
+	 $1, $2, $3, $4, false, false, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP 
+	) RETURNING *;
+`
+
+func (q *Queries) CreateGoogleSignUp(ctx context.Context, username, email, fullName, googleId string) (models.ModifyUser, error) {
+	var users models.ModifyUser
+	row := q.db.QueryRowContext(ctx, createGoogleSignUp, username, email, fullName, googleId)
+	err := row.Scan(
+		&users.ID,
+		&users.FullName,
+		&users.Username,
+		&users.Email,
+		&users.HashPassword,
+		&users.IsVerified,
+		&users.IsBanned,
+		&users.GoogleID,
+		&users.Role,
+		&users.CreatedAt,
+		&users.UpdatedAt,
+	)
+	if err != nil {
+		log.Printf("Failed to create google signup: %v", err)
+	}
+	return users, nil
+}
+
+const createEmailSignUp = `
+	INSERT INTO modify_user (
+		full_name, username, email, hash_password, is_verified, is_banned, google_id, role, created_at, updated_at
+	) VALUES (
+	 $1, $2, $3, $4, false, false, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP 
+	) RETURNING *;
+`
+
+func (q *Queries) CreateEmailSignUp(ctx context.Context, username, email, fullName, googleId string) (models.ModifyUser, error) {
+	var users models.ModifyUser
+	row := q.db.QueryRowContext(ctx, createGoogleSignUp, username, email, fullName, googleId)
+	err := row.Scan(
+		&users.ID,
+		&users.FullName,
+		&users.Username,
+		&users.Email,
+		&users.HashPassword,
+		&users.IsVerified,
+		&users.IsBanned,
+		&users.GoogleID,
+		&users.Role,
+		&users.CreatedAt,
+		&users.UpdatedAt,
+	)
+	if err != nil {
+		log.Printf("Failed to create gmail signup: %v", err)
+	}
+	return users, nil
+}

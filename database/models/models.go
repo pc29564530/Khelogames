@@ -555,3 +555,17 @@ type PlayerCricketStats struct {
 	CreatedAT      time.Time `json:"created_at"`
 	UpdatedAT      time.Time `json:"updated_at"`
 }
+
+type ModifyUser struct {
+	ID           int64     `json:"id"`
+	FullName     string    `json:"full_name"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	HashPassword string    `json:"hash_password"`
+	IsVerified   bool      `json:"is_verified"`
+	IsBanned     bool      `json:"is_banned"`
+	GoogleID     string    `json:"google_id"`
+	Role         string    `json:"role"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}

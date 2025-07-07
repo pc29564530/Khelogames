@@ -117,3 +117,27 @@ func (q *Queries) GetUserByGmail(ctx context.Context, gmail string) (models.User
 	)
 	return users, err
 }
+
+const getModifyUserByGmail = `
+SELECT * FROM users
+WHERE gmail = $1
+`
+
+func (q *Queries) GetModifyUserByGmail(ctx context.Context, gmail string) (*models.ModifyUser, error) {
+	row := q.db.QueryRowContext(ctx, getModifyUserByGmail, gmail)
+	var users models.ModifyUser
+	err := row.Scan(
+		&users.ID,
+		&users.FullName,
+		&users.Username,
+		&users.Email,
+		&users.HashPassword,
+		&users.IsVerified,
+		&users.IsBanned,
+		&users.GoogleID,
+		&users.Role,
+		&users.CreatedAt,
+		&users.UpdatedAt,
+	)
+	return &users, err
+}
