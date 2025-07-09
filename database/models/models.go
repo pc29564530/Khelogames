@@ -373,13 +373,6 @@ type Uploadmedium struct {
 	SentAt    time.Time `json:"sent_at"`
 }
 
-type User struct {
-	Username     string  `json:"username"`
-	MobileNumber *string `json:"mobile_number"`
-	Role         string  `json:"role"`
-	Gmail        *string `json:"gmail"`
-}
-
 type Wicket struct {
 	ID            int64  `json:"id"`
 	MatchID       int64  `json:"match_id"`
@@ -565,7 +558,7 @@ type PlayerCricketStats struct {
 	UpdatedAT      time.Time `json:"updated_at"`
 }
 
-type ModifyUser struct {
+type Users struct {
 	ID           int64     `json:"id"`
 	FullName     string    `json:"full_name"`
 	Username     string    `json:"username"`

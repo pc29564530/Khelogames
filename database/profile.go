@@ -7,40 +7,43 @@ import (
 	"khelogames/database/models"
 )
 
+// change the name of users_profile to users_profile
 const createProfile = `
-INSERT INTO profile (
-    owner,
+INSERT INTO users_profile (
+    user_id,
+    username,
     full_name,
     bio,
-    avatar_url,
-    created_at
+    avatar_url
 ) VALUES (
-    $1, $2, $3, $4, CURRENT_TIMESTAMP
-) RETURNING id, owner, full_name, bio, avatar_url, created_at
+    $1, $2, $3, $4, $5
+) RETURNING id, user_id, username, full_name, bio, avatar_url
 `
 
 type CreateProfileParams struct {
-	Owner     string `json:"owner"`
+	UserID    int32  `json:"user_id"`
+	Username  string `json:"username"`
 	FullName  string `json:"full_name"`
-	AvatarUrl string `json:"avatar_url"`
 	Bio       string `json:"bio"`
+	AvatarUrl string `json:"avatar_url"`
 }
 
-func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (models.Profile, error) {
+func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (models.UsersProfile, error) {
 	row := q.db.QueryRowContext(ctx, createProfile,
-		arg.Owner,
+		arg.UserID,
+		arg.Username,
 		arg.FullName,
 		arg.Bio,
 		arg.AvatarUrl,
 	)
-	var profile models.Profile
+	var profile models.UsersProfile
 	err := row.Scan(
 		&profile.ID,
-		&profile.Owner,
+		&profile.UserID,
+		&profile.Username,
 		&profile.FullName,
 		&profile.Bio,
 		&profile.AvatarUrl,
-		&profile.CreatedAt,
 	)
 	return profile, err
 }
@@ -49,7 +52,7 @@ const editProfile = `
 UPDATE profile
 SET full_name=$1, avatar_url=$2, bio=$3
 WHERE id=$4
-RETURNING id, owner, full_name, bio, avatar_url, created_at
+RETURNING *
 `
 
 type EditProfileParams struct {
@@ -59,66 +62,72 @@ type EditProfileParams struct {
 	ID        int64  `json:"id"`
 }
 
-func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (models.Profile, error) {
+func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (models.UsersProfile, error) {
 	row := q.db.QueryRowContext(ctx, editProfile,
 		arg.FullName,
 		arg.AvatarUrl,
 		arg.Bio,
 		arg.ID,
 	)
-	var profile models.Profile
+	var profile models.UsersProfile
 	err := row.Scan(
 		&profile.ID,
-		&profile.Owner,
+		&profile.UserID,
+		&profile.Username,
 		&profile.FullName,
 		&profile.Bio,
 		&profile.AvatarUrl,
-		&profile.CreatedAt,
 	)
 	return profile, err
 }
 
 const getProfile = `
-SELECT id, owner, full_name, bio, avatar_url, created_at FROM profile
-WHERE owner=$1
+SELECT * FROM users_profile
+WHERE username=$1
 `
 
-func (q *Queries) GetProfile(ctx context.Context, owner string) (models.Profile, error) {
-	row := q.db.QueryRowContext(ctx, getProfile, owner)
-	var profile models.Profile
+func (q *Queries) GetProfile(ctx context.Context, username string) (*models.UsersProfile, error) {
+	row := q.db.QueryRowContext(ctx, getProfile, username)
+	var profile models.UsersProfile
 	err := row.Scan(
 		&profile.ID,
-		&profile.Owner,
+		&profile.UserID,
+		&profile.Username,
 		&profile.FullName,
 		&profile.Bio,
 		&profile.AvatarUrl,
-		&profile.CreatedAt,
 	)
-	return profile, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &profile, err
 }
 
 const updateAvatar = `
-UPDATE profile
+UPDATE users_profile
 SET avatar_url=$1
-WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, created_at
+WHERE username=$2
+RETURNING *
 `
 
 type UpdateAvatarParams struct {
 	AvatarUrl string `json:"avatar_url"`
-	Owner     string `json:"owner"`
+	Username  string `json:"username"`
 }
 
-func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) (models.Profile, error) {
-	row := q.db.QueryRowContext(ctx, updateAvatar, arg.AvatarUrl, arg.Owner)
-	var profile models.Profile
+func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) (models.UsersProfile, error) {
+	row := q.db.QueryRowContext(ctx, updateAvatar, arg.AvatarUrl, arg.Username)
+	var profile models.UsersProfile
 	err := row.Scan(
 		&profile.ID,
-		&profile.Owner,
+		&profile.UserID,
+		&profile.Username,
 		&profile.FullName,
 		&profile.Bio,
 		&profile.AvatarUrl,
-		&profile.CreatedAt,
 	)
 	return profile, err
 }
@@ -126,25 +135,25 @@ func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) (mod
 const updateBio = `
 UPDATE profile
 SET bio=$1
-WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, created_at
+WHERE username=$2
+RETURNING id, username, full_name, bio, avatar_url, created_at
 `
 
 type UpdateBioParams struct {
-	Bio   string `json:"bio"`
-	Owner string `json:"owner"`
+	Bio      string `json:"bio"`
+	Username string `json:"username"`
 }
 
-func (q *Queries) UpdateBio(ctx context.Context, arg UpdateBioParams) (models.Profile, error) {
-	row := q.db.QueryRowContext(ctx, updateBio, arg.Bio, arg.Owner)
-	var profile models.Profile
+func (q *Queries) UpdateBio(ctx context.Context, arg UpdateBioParams) (models.UsersProfile, error) {
+	row := q.db.QueryRowContext(ctx, updateBio, arg.Bio, arg.Username)
+	var profile models.UsersProfile
 	err := row.Scan(
 		&profile.ID,
-		&profile.Owner,
+		&profile.UserID,
+		&profile.Username,
 		&profile.FullName,
 		&profile.Bio,
 		&profile.AvatarUrl,
-		&profile.CreatedAt,
 	)
 	return profile, err
 }
@@ -152,20 +161,20 @@ func (q *Queries) UpdateBio(ctx context.Context, arg UpdateBioParams) (models.Pr
 const updateFullName = `
 UPDATE profile
 SET full_name=$1
-WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, created_at
+WHERE username=$2
+RETURNING *
 `
 
-func (q *Queries) UpdateFullName(ctx context.Context, owner string, fullName string) (models.Profile, error) {
-	row := q.db.QueryRowContext(ctx, updateFullName, fullName, owner)
-	var profile models.Profile
+func (q *Queries) UpdateFullName(ctx context.Context, username string, fullName string) (models.UsersProfile, error) {
+	row := q.db.QueryRowContext(ctx, updateFullName, fullName, username)
+	var profile models.UsersProfile
 	err := row.Scan(
 		&profile.ID,
-		&profile.Owner,
+		&profile.UserID,
+		&profile.Username,
 		&profile.FullName,
 		&profile.Bio,
 		&profile.AvatarUrl,
-		&profile.CreatedAt,
 	)
 	return profile, err
 }
