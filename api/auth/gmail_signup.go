@@ -132,18 +132,9 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		return
 	}
 
-	hashPassword, err := utils.HashPassword(req.Password)
-	if err != nil {
-		s.logger.Error("Failed to convert password to hash: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to convert password to hash",
-		})
-		return
-	}
-
-	err = utils.CheckPassword(*existingUser.HashPassword, hashPassword)
+	err = utils.CheckPassword(req.Password, *existingUser.HashPassword)
 	s.logger.Info("Existing User Password: ", *existingUser.HashPassword)
-	s.logger.Info("New Sign In : ", hashPassword)
+	s.logger.Info("New Sign In : ", req.Password)
 	if err != nil {
 		s.logger.Info("Email and password does not match: ")
 		ctx.JSON(http.StatusConflict, gin.H{
@@ -171,6 +162,7 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, gin.H{
+		"Success":               true,
 		"SessionID":             session.ID,
 		"AccessToken":           accessToken,
 		"AccessTokenExpiresAt":  accessPayload.ExpiredAt,
