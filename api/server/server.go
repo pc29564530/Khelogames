@@ -72,7 +72,8 @@ func NewServer(config util.Config,
 		public.GET("/google/handleGoogleRedirect", authServer.HandleGoogleRedirect)
 		public.POST("/google/createEmailSignUp", authServer.CreateEmailSignUpFunc)
 		public.POST("/createMobileSignup", authServer.CreateMobileSignUp)
-		public.POST("/createMobileSignin", authServer.CreateMobileSignIn)
+		public.POST("/google/createEmailSignIn", authServer.CreateEmailSignInFunc)
+		// public.POST("/createMobileSignin", authServer.CreateMobileSignIn)
 		public.GET("/getUserByMobileNumber", handlersServer.GetUserByMobileNumber)
 		public.GET("/getUserByGmail", handlersServer.GetUserByGmail)
 	}

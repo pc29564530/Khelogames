@@ -254,6 +254,15 @@ type Profile struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type UsersProfile struct {
+	ID        int64  `json:"id"`
+	UserID    int32  `json:"user_id"`
+	Username  string `json:"username"`
+	FullName  string `json:"full_name"`
+	Bio       string `json:"bio"`
+	AvatarUrl string `json:"avatar_url"`
+}
+
 type Session struct {
 	ID           uuid.UUID `json:"id"`
 	Username     string    `json:"username"`
@@ -561,10 +570,10 @@ type ModifyUser struct {
 	FullName     string    `json:"full_name"`
 	Username     string    `json:"username"`
 	Email        string    `json:"email"`
-	HashPassword string    `json:"hash_password"`
+	HashPassword *string   `json:"hash_password"`
 	IsVerified   bool      `json:"is_verified"`
 	IsBanned     bool      `json:"is_banned"`
-	GoogleID     string    `json:"google_id"`
+	GoogleID     *string   `json:"google_id"`
 	Role         string    `json:"role"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`

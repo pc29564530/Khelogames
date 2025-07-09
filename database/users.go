@@ -119,8 +119,8 @@ func (q *Queries) GetUserByGmail(ctx context.Context, gmail string) (models.User
 }
 
 const getModifyUserByGmail = `
-SELECT * FROM users
-WHERE gmail = $1
+SELECT * FROM modify_user
+WHERE email = $1;
 `
 
 func (q *Queries) GetModifyUserByGmail(ctx context.Context, gmail string) (*models.ModifyUser, error) {
