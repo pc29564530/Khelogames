@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"database/sql"
 	"fmt"
 	"khelogames/database/models"
 	"khelogames/token"
@@ -9,10 +8,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
+
+	db "khelogames/database"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/idtoken"
@@ -30,38 +30,6 @@ func getGoogleOauthConfig() *oauth2.Config {
 
 type getGoogleLoginRequest struct {
 	Code string `json"code"`
-}
-
-type loginUserResponse struct {
-	SessionID             uuid.UUID    `json:"session_id"`
-	AccessToken           string       `json:"access_token"`
-	AccessTokenExpiresAt  time.Time    `json:"access_token_expires_at"`
-	RefreshToken          string       `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time    `json:"refresh_token_expires_at"`
-	User                  userResponse `json:"user"`
-}
-
-type userResponse struct {
-	Username     string `json:"username"`
-	MobileNumber string `json:"mobile_number"`
-	Role         string `json:"role"`
-	Gmail        string `json:"gmail"`
-}
-
-// Request struct for Google sign-up
-type GoogleSignUpRequest struct {
-	GoogleID  string `json:"google_id"`
-	Email     string `json:"email"`
-	FullName  string `json:"full_name"`
-	AvatarURL string `json:"avatar_url"`
-	IDToken   string `json:"id_token"`
-}
-
-// Response struct for successful sign-up
-type GoogleSignUpResponse struct {
-	Success bool        `json:"success"`
-	User    interface{} `json:"user"`
-	Message string      `json:"message"`
 }
 
 func (s *AuthServer) HandleGoogleRedirect(ctx *gin.Context) {
@@ -124,8 +92,8 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 		return
 	}
 
-	existingUser, err := s.store.GetModifyUserByGmail(ctx, email)
-	if err == nil && existingUser != nil {
+	_, err = s.store.GetModifyUserByGmail(ctx, email)
+	if err == nil {
 		s.logger.Info("User already exists with email: ", req.Email)
 		ctx.JSON(http.StatusConflict, gin.H{
 			"success": false,
@@ -173,7 +141,7 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	username := GenerateUsername(email)
 
 	// Create the user in database
-	userSignUp, err := s.store.CreateGoogleSignUp(ctx, username, email, name, googleID)
+	userSignUp, err := s.store.CreateGoogleSignUp(ctx, name, username, email, googleID)
 	if err != nil {
 		s.logger.Error("Failed to create google signup: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -182,6 +150,30 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 		})
 		return
 	}
+
+	tokens := CreateNewToken(ctx, userSignUp.Username, s, tx)
+	session := tokens["session"].(models.Session)
+	accessToken := tokens["accessToken"].(string)
+	accessPayload := tokens["accessPayload"].(*token.Payload)
+	refreshToken := tokens["refreshToken"].(string)
+	refreshPayload := tokens["refreshPayload"].(*token.Payload)
+
+	arg := db.CreateProfileParams{
+		UserID:    int32(userSignUp.ID),
+		Username:  userSignUp.Username,
+		FullName:  req.FullName,
+		Bio:       "",
+		AvatarUrl: "",
+	}
+
+	_, err = s.store.CreateProfile(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to create profile: ", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	s.logger.Info("Successfully created user_profile")
 
 	// Commit transaction
 	if err := tx.Commit(); err != nil {
@@ -194,10 +186,16 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	}
 
 	s.logger.Info("Successfully created Google sign-up for: ", email)
-
 	ctx.JSON(http.StatusCreated, gin.H{
 		"Success": true,
 		"User":    userSignUp,
+		"Session": gin.H{
+			"SessionID":             session.ID,
+			"AccessToken":           accessToken,
+			"AccessTokenExpiresAt":  accessPayload.ExpiredAt,
+			"RefreshToken":          refreshToken,
+			"RefreshTokenExpiresAt": refreshPayload.ExpiredAt,
+		},
 		"Message": "Account created successfully",
 	})
 }
@@ -243,24 +241,24 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 	}
 
 	// Extract user info from the verified token
-	gmail, ok := idToken.Claims["email"].(string)
+	email, ok := idToken.Claims["email"].(string)
 	if !ok {
 		s.logger.Error("Failed to get email from idToken")
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
 		return
 	}
 
-	user, err := s.store.GetUserByGmail(ctx, gmail)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			s.logger.Error("User does not exists: ", err)
-			return
-		}
-		s.logger.Error("Failed to get the user by gmail")
+	existingUser, err := s.store.GetModifyUserByGmail(ctx, email)
+	if err == nil && existingUser == nil {
+		s.logger.Info("User does not exits with email: ", email)
+		ctx.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"message": "Email does not registered. Please sign up instead.",
+		})
 		return
 	}
-
-	tokens := CreateNewToken(ctx, user.Username, s, tx)
+	//create a token using user id
+	tokens := CreateNewToken(ctx, existingUser.Username, s, tx)
 
 	session := tokens["session"].(models.Session)
 	accessToken := tokens["accessToken"].(string)
@@ -268,21 +266,14 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 	refreshToken := tokens["refreshToken"].(string)
 	refreshPayload := tokens["refreshPayload"].(*token.Payload)
 
-	rsp := loginUserResponse{
-		SessionID:             session.ID,
-		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
-		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
-		User: userResponse{
-			Username:     user.Username,
-			MobileNumber: *user.MobileNumber,
-			Role:         user.Role,
-			Gmail:        *user.Gmail,
-		},
-	}
-
 	s.logger.Info("Successfully Sign in using google ")
 
-	ctx.JSON(http.StatusAccepted, rsp)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"SessionID":             session.ID,
+		"AccessToken":           accessToken,
+		"AccessTokenExpiresAt":  accessPayload.ExpiredAt,
+		"RefreshToken":          refreshToken,
+		"RefreshTokenExpiresAt": refreshPayload.ExpiredAt,
+		"User":                  existingUser,
+	})
 }
