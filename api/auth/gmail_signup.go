@@ -1,6 +1,7 @@
 package auth
 
 import (
+	db "khelogames/database"
 	"khelogames/database/models"
 	"khelogames/token"
 	utils "khelogames/util"
@@ -26,7 +27,7 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 	}
 
 	// Check if user already exists with this email
-	existingUser, err := s.store.GetModifyUserByGmail(ctx, req.Email)
+	existingUser, err := s.store.GetUsersByGmail(ctx, req.Email)
 	if err == nil && existingUser != nil {
 		s.logger.Info("User already exists with email: ", req.Email)
 		ctx.JSON(http.StatusConflict, gin.H{
@@ -89,6 +90,21 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 
 	s.logger.Info("Successfully created email sign-up for: ", req.Email)
 
+	arg := db.CreateProfileParams{
+		UserID:    int32(userSignUp.ID),
+		Username:  userSignUp.Username,
+		FullName:  req.FullName,
+		Bio:       "",
+		AvatarUrl: "",
+	}
+
+	_, err = s.store.CreateProfile(ctx, arg)
+	if err != nil {
+		s.logger.Error("Failed to create profile: ", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
 	ctx.JSON(http.StatusCreated, gin.H{
 		"Success": true,
 		"User":    userSignUp,
@@ -122,7 +138,7 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	existingUser, err := s.store.GetModifyUserByGmail(ctx, req.Email)
+	existingUser, err := s.store.GetUsersByGmail(ctx, req.Email)
 	if err != nil && existingUser == nil {
 		s.logger.Info("User already does not exists with email: ", req.Email)
 		ctx.JSON(http.StatusConflict, gin.H{

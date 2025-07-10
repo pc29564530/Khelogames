@@ -6,26 +6,26 @@ import (
 )
 
 const searchProfile = `
-SELECT id, owner, full_name, bio, avatar_url, created_at from profile
+SELECT * from profile
 WHERE full_name LIKE $1
 `
 
-func (q *Queries) SearchProfile(ctx context.Context, fullName string) ([]models.Profile, error) {
+func (q *Queries) SearchProfile(ctx context.Context, fullName string) ([]models.UsersProfile, error) {
 	rows, err := q.db.QueryContext(ctx, searchProfile, fullName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.Profile
+	var items []models.UsersProfile
 	for rows.Next() {
-		var i models.Profile
+		var i models.UsersProfile
 		if err := rows.Scan(
 			&i.ID,
-			&i.Owner,
+			&i.UserID,
+			&i.Username,
 			&i.FullName,
 			&i.Bio,
 			&i.AvatarUrl,
-			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

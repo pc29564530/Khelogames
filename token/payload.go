@@ -2,8 +2,9 @@ package token
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // Different types of error returned by the VerifyToken function

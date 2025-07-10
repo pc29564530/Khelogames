@@ -49,7 +49,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (m
 }
 
 const editProfile = `
-UPDATE profile
+UPDATE users_profile
 SET full_name=$1, avatar_url=$2, bio=$3
 WHERE id=$4
 RETURNING *
@@ -133,10 +133,10 @@ func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) (mod
 }
 
 const updateBio = `
-UPDATE profile
+UPDATE users_profile
 SET bio=$1
 WHERE username=$2
-RETURNING id, username, full_name, bio, avatar_url, created_at
+RETURNING *;
 `
 
 type UpdateBioParams struct {

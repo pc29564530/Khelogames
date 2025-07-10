@@ -245,14 +245,14 @@ type Player struct {
 	ProfileID  *int32 `json:"profile_id"`
 }
 
-type Profile struct {
-	ID        int64     `json:"id"`
-	Owner     string    `json:"owner"`
-	FullName  string    `json:"full_name"`
-	Bio       string    `json:"bio"`
-	AvatarUrl string    `json:"avatar_url"`
-	CreatedAt time.Time `json:"created_at"`
-}
+// type Profile struct {
+// 	ID        int64     `json:"id"`
+// 	Owner     string    `json:"owner"`
+// 	FullName  string    `json:"full_name"`
+// 	Bio       string    `json:"bio"`
+// 	AvatarUrl string    `json:"avatar_url"`
+// 	CreatedAt time.Time `json:"created_at"`
+// }
 
 type UsersProfile struct {
 	ID        int64  `json:"id"`

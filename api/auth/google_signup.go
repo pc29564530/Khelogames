@@ -92,7 +92,7 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 		return
 	}
 
-	_, err = s.store.GetModifyUserByGmail(ctx, email)
+	_, err = s.store.GetUsersByGmail(ctx, email)
 	if err == nil {
 		s.logger.Info("User already exists with email: ", req.Email)
 		ctx.JSON(http.StatusConflict, gin.H{
@@ -248,7 +248,7 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 		return
 	}
 
-	existingUser, err := s.store.GetModifyUserByGmail(ctx, email)
+	existingUser, err := s.store.GetUsersByGmail(ctx, email)
 	if err == nil && existingUser == nil {
 		s.logger.Info("User does not exits with email: ", email)
 		ctx.JSON(http.StatusConflict, gin.H{

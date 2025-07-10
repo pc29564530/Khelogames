@@ -62,11 +62,11 @@ func NewServer(config util.Config,
 	public := router.Group("/auth")
 	{
 		public.POST("/send_otp", authServer.Otp)
-		public.POST("/users", handlersServer.CreateUserFunc)
+		// public.POST("/users", handlersServer.CreateUserFunc)
 		public.DELETE("/removeSession/:username", authServer.DeleteSessionFunc)
 		public.POST("/tokens/renew_access", authServer.RenewAccessTokenFunc)
 		public.GET("/user/:username", handlersServer.GetUsersFunc)
-		public.GET("/getProfile/:owner", handlersServer.GetProfileFunc)
+		public.GET("/getProfile/:username", handlersServer.GetProfileFunc)
 		public.POST("/google/createGoogleSignUp", authServer.CreateGoogleSignUpFunc)
 		public.POST("/google/createGoogleSignIn", authServer.CreateGoogleSignIn)
 		public.GET("/google/handleGoogleRedirect", authServer.HandleGoogleRedirect)
@@ -74,8 +74,8 @@ func NewServer(config util.Config,
 		public.POST("/createMobileSignup", authServer.CreateMobileSignUp)
 		public.POST("/google/createEmailSignIn", authServer.CreateEmailSignInFunc)
 		// public.POST("/createMobileSignin", authServer.CreateMobileSignIn)
-		public.GET("/getUserByMobileNumber", handlersServer.GetUserByMobileNumber)
-		public.GET("/getUserByGmail", handlersServer.GetUserByGmail)
+		// public.GET("/getUserByMobileNumber", handlersServer.GetUserByMobileNumber)
+		// public.GET("/getUserByGmail", handlersServer.GetUserByGmail)
 	}
 
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
