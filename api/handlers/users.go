@@ -123,10 +123,9 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
-	Limit := req.PageSize
 	Offset := (req.PageID - 1) * req.PageSize
 
-	userList, err := s.store.ListUser(ctx, username, req.PageSize, Offset)
+	userList, err := s.store.ListUser(ctx, req.PageSize, Offset)
 	if err != nil {
 		s.logger.Error("Failed to get list: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
