@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/base64"
+	"fmt"
 	db "khelogames/database"
 	"khelogames/database/models"
 	"khelogames/pkg"
@@ -14,6 +15,7 @@ import (
 )
 
 type createProfileRequest struct {
+	UserID    int32  `json:"user_id"`
 	FullName  string `json:"full_name,omitempty"`
 	Bio       string `json:"bio,omitempty"`
 	AvatarUrl string `json:"avatar_url,omitempty"`
@@ -33,7 +35,8 @@ func (s *HandlersServer) CreateProfileFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	arg := db.CreateProfileParams{
-		Owner:     authPayload.Username,
+		UserID:    req.UserID,
+		Username:  authPayload.Username,
 		FullName:  req.FullName,
 		Bio:       req.Bio,
 		AvatarUrl: req.AvatarUrl,
@@ -51,7 +54,7 @@ func (s *HandlersServer) CreateProfileFunc(ctx *gin.Context) {
 }
 
 type getProfileRequest struct {
-	Owner string `uri:"owner"`
+	Username string `uri:"username"`
 }
 
 func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
@@ -65,7 +68,9 @@ func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("Successfully bind: ", req)
 
-	profile, err := s.store.GetProfile(ctx, req.Owner)
+	fmt.Println("Username: ", req.Username)
+
+	profile, err := s.store.GetProfile(ctx, req.Username)
 	if err != nil {
 		s.logger.Error("Failed to get profile: ", err)
 		ctx.JSON(http.StatusNotFound, err)
@@ -202,8 +207,8 @@ func (s *HandlersServer) UpdateBioFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	arg := db.UpdateBioParams{
-		Owner: authPayload.Username,
-		Bio:   req.Bio,
+		Username: authPayload.Username,
+		Bio:      req.Bio,
 	}
 
 	profileBio, err := s.store.UpdateBio(ctx, arg)
@@ -261,7 +266,7 @@ func (s *HandlersServer) UpdateAvatarUrlFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	arg := db.UpdateAvatarParams{
-		Owner:     authPayload.Username,
+		Username:  authPayload.Username,
 		AvatarUrl: path,
 	}
 
