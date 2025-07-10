@@ -37,8 +37,8 @@ LIMIT $2
 OFFSET $3
 `
 
-func (q *Queries) ListUser(ctx context.Context, username string) ([]models.Users, error) {
-	rows, err := q.db.QueryContext(ctx, listUser, username)
+func (q *Queries) ListUser(ctx context.Context, pageSize, offSet int32) ([]models.Users, error) {
+	rows, err := q.db.QueryContext(ctx, listUser, pageSize, offSet)
 	if err != nil {
 		return nil, err
 	}
