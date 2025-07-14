@@ -4,21 +4,20 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-type deleteSessionRequest struct {
-	Username string `uri:"username"`
-}
-
 func (s *AuthServer) DeleteSessionFunc(ctx *gin.Context) {
-	var req deleteSessionRequest
+	var req struct {
+		PublicID uuid.UUID `uri:"public_id"`
+	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	err = s.store.DeleteSessions(ctx, req.Username)
+	err = s.store.DeleteSessions(ctx, req.PublicID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, (err))
 		return
