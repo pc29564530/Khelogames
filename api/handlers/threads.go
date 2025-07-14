@@ -3,21 +3,18 @@ package handlers
 import (
 	db "khelogames/database"
 
-	"khelogames/pkg"
-	"khelogames/token"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type createThreadRequest struct {
-	CommunitiesName string `json:"communities_name,omitempty"`
-	Title           string `json:"title"`
-	Content         string `json:"content"`
-	MediaType       string `json:"mediaType,omitempty"`
-	MediaURL        string `json:"mediaURL,omitempty"`
-	LikeCount       int64  `json:"likeCount"`
+	CommunityID int32  `json:"community_id,omitempty"`
+	Title       string `json:"title"`
+	Content     string `json:"content"`
+	MediaType   string `json:"mediaType,omitempty"`
+	MediaURL    string `json:"mediaURL,omitempty"`
 }
 
 func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
@@ -36,15 +33,12 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 	}
 
 	//function for uploading a image or video
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.CreateThreadParams{
-		Username:        authPayload.Username,
-		CommunitiesName: req.CommunitiesName,
-		Title:           req.Title,
-		Content:         req.Content,
-		MediaType:       req.MediaType,
-		MediaUrl:        req.MediaURL,
-		LikeCount:       0,
+		CommunityID: req.CommunityID,
+		Title:       req.Title,
+		Content:     req.Content,
+		MediaType:   req.MediaType,
+		MediaUrl:    req.MediaURL,
 	}
 
 	s.logger.Debug("received arg of create thread params: %s", arg)
@@ -69,7 +63,7 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 }
 
 type getThreadRequest struct {
-	ID int64 `uri:"id"`
+	PublicID uuid.UUID `uri:"public_id"`
 }
 
 func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
@@ -81,7 +75,7 @@ func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
 		return
 	}
 
-	thread, err := s.store.GetThread(ctx, req.ID)
+	thread, err := s.store.GetThread(ctx, req.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get thread: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -93,7 +87,7 @@ func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
 }
 
 type getThreadUserRequest struct {
-	Username string `uri:"username"`
+	PublicID uuid.UUID `uri:"public_id"`
 }
 
 // get thread by user
@@ -106,7 +100,7 @@ func (s *HandlersServer) GetThreadByUserFunc(ctx *gin.Context) {
 		return
 	}
 
-	thread, err := s.store.GetThreadUser(ctx, req.Username)
+	thread, err := s.store.GetThreadUser(ctx, req.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get thread by user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -121,39 +115,9 @@ func (s *HandlersServer) GetAllThreadDetailFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to find the all threads ", err)
 		ctx.JSON(http.StatusNotFound, (err))
-		return
 	}
 	s.logger.Debug("Received threads from database")
-	var threadsDetails []map[string]interface{}
-
-	for _, thread := range threads {
-		profile, err := s.store.GetProfile(ctx, thread.Username)
-		if err != nil {
-			s.logger.Error("Failed to find the profile ", err)
-			return
-		}
-		var displayText string
-		if profile.AvatarUrl == "" {
-			displayText = strings.ToUpper(string(profile.FullName[0]))
-		}
-
-		threadsDetail := map[string]interface{}{
-			"id":               thread.ID,
-			"username":         thread.Username,
-			"communities_name": thread.CommunitiesName,
-			"title":            thread.Title,
-			"content":          thread.Content,
-			"media_type":       thread.MediaType,
-			"media_url":        thread.MediaUrl,
-			"like_count":       thread.LikeCount,
-			"full_name":        profile.FullName,
-			"avatar_url":       profile.AvatarUrl,
-			"display_text":     displayText,
-			"created_at":       thread.CreatedAt,
-		}
-		threadsDetails = append(threadsDetails, threadsDetail)
-	}
-	ctx.JSON(http.StatusOK, threadsDetails)
+	ctx.JSON(http.StatusOK, threads)
 	return
 
 }
@@ -169,73 +133,17 @@ func (s *HandlersServer) GetAllThreadsFunc(ctx *gin.Context) {
 	return
 }
 
-type getThreadsByCommunitiesRequest struct {
-	CommunitiesName string `uri:"communities_name"`
-}
-
-func (s *HandlersServer) GetAllThreadsByCommunityDetailsFunc(ctx *gin.Context) {
-	var req getThreadsByCommunitiesRequest
-
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-	}
-
-	s.logger.Info("get community name: %s", req.CommunitiesName)
-
-	threads, err := s.store.GetAllThreadsByCommunities(ctx, req.CommunitiesName)
-	if err != nil {
-		s.logger.Error("Failed to get thread by communities: ", err)
-		ctx.JSON(http.StatusNotFound, (err))
-		return
-	}
-
-	s.logger.Info("Received threads from database", threads)
-	var threadsDetails []map[string]interface{}
-
-	for _, thread := range threads {
-		profile, err := s.store.GetProfile(ctx, thread.Username)
-		if err != nil {
-			s.logger.Error("Failed to find the profile ", err)
-			return
-		}
-
-		var displayText string
-		if profile.AvatarUrl == "" {
-			displayText = strings.ToUpper(string(profile.FullName[0]))
-		}
-
-		threadsDetail := map[string]interface{}{
-			"id":               thread.ID,
-			"username":         thread.Username,
-			"communities_name": thread.CommunitiesName,
-			"title":            thread.Title,
-			"content":          thread.Content,
-			"media_type":       thread.MediaType,
-			"media_url":        thread.MediaUrl,
-			"like_count":       thread.LikeCount,
-			"full_name":        profile.FullName,
-			"avatar_url":       profile.AvatarUrl,
-			"display_text":     displayText,
-			"created_at":       thread.CreatedAt,
-		}
-		threadsDetails = append(threadsDetails, threadsDetail)
-	}
-	ctx.JSON(http.StatusOK, threadsDetails)
-	return
-}
-
 func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
-	var req getThreadsByCommunitiesRequest
-
+	var req struct {
+		CommunityPublicID uuid.UUID `uri:"community_public_id"`
+	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 	}
 
-	threads, err := s.store.GetAllThreadsByCommunities(ctx, req.CommunitiesName)
+	threads, err := s.store.GetAllThreadsByCommunities(ctx, req.CommunityPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get thread by communities: ", err)
 		ctx.JSON(http.StatusNotFound, (err))
@@ -247,25 +155,19 @@ func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 }
 
 type updateThreadLikeRequest struct {
-	LikeCount int64 `json:"like_count"`
-	ID        int64 `json:"id"`
+	PublicID uuid.UUID `uri:"public_id"`
 }
 
 func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 	var req updateThreadLikeRequest
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	arg := db.UpdateThreadLikeParams{
-		LikeCount: req.LikeCount,
-		ID:        req.ID,
-	}
-
-	thread, err := s.store.UpdateThreadLike(ctx, arg)
+	thread, err := s.store.UpdateThreadLike(ctx, req.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to update like: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -277,25 +179,25 @@ func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 	return
 }
 
-type threadByThreadIdRequest struct {
-	ID int64 `uri:"id"`
-}
-
-func (s *HandlersServer) GetThreadByThreadIDFunc(ctx *gin.Context) {
-	var req threadByThreadIdRequest
+func (s *HandlersServer) UpdateThreadCommentCountFunc(ctx *gin.Context) {
+	var req struct {
+		PublicID uuid.UUID `uri:"public_id"`
+	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	thread, err := s.store.GetThreadByThreadID(ctx, req.ID)
+
+	thread, err := s.store.UpdateThreadCommentCount(ctx, req.PublicID)
 	if err != nil {
-		s.logger.Error("Failed to get thread by thread id ", err)
-		ctx.JSON(http.StatusNotFound, (err))
+		s.logger.Error("Failed to update like: ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Info("Successfully get thread by thread id ")
-	ctx.JSON(http.StatusAccepted, thread)
+
+	s.logger.Debug("Successfully update the thread ", thread)
+	ctx.JSON(http.StatusOK, thread)
 	return
 }
