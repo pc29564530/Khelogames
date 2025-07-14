@@ -95,3 +95,32 @@ func (q *Queries) GetUsersByGmail(ctx context.Context, gmail string) (*models.Us
 	)
 	return &users, err
 }
+
+const updateUsersFullName = `
+	UPDATE users
+	SET full_name = $2
+	WHERE id = $1
+	RETURNING *;
+`
+
+func (q *Queries) UpdateUser(ctx context.Context, userID int32, fullName string) (models.Users, error) {
+	row := q.db.QueryRowContext(ctx, updateUsersFullName,
+		userID,
+		fullName,
+	)
+	var users models.Users
+	err := row.Scan(
+		&users.ID,
+		&users.FullName,
+		&users.Username,
+		&users.Email,
+		&users.HashPassword,
+		&users.IsVerified,
+		&users.IsBanned,
+		&users.GoogleID,
+		&users.Role,
+		&users.CreatedAt,
+		&users.UpdatedAt,
+	)
+	return users, err
+}

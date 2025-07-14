@@ -10,75 +10,77 @@ import (
 
 const createSessions = `
 INSERT INTO sessions (
-    id,
-    username,
+    user_id,
     refresh_token,
     user_agent,
     client_ip,
-    expires_at,
-    created_at
+	created_at,
+    expires_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP
+    $1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 ) RETURNING *;
 `
 
 type CreateSessionsParams struct {
-	ID           uuid.UUID `json:"id"`
-	Username     string    `json:"username"`
+	UserID       int32     `json:"user_id"`
 	RefreshToken string    `json:"refresh_token"`
 	UserAgent    string    `json:"user_agent"`
 	ClientIp     string    `json:"client_ip"`
+	CreatedAt    time.Time `json:"created_at"`
 	ExpiresAt    time.Time `json:"expires_at"`
 }
 
 func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) (models.Session, error) {
 	row := q.db.QueryRowContext(ctx, createSessions,
-		arg.ID,
-		arg.Username,
+		arg.UserID,
 		arg.RefreshToken,
 		arg.UserAgent,
 		arg.ClientIp,
+		arg.CreatedAt,
 		arg.ExpiresAt,
 	)
 	var session models.Session
 	err := row.Scan(
 		&session.ID,
-		&session.Username,
+		&session.PublicID,
+		&session.UserID,
 		&session.RefreshToken,
 		&session.UserAgent,
 		&session.ClientIp,
-		&session.ExpiresAt,
 		&session.CreatedAt,
+		&session.ExpiresAt,
 	)
 	return session, err
 }
 
 const deleteSessions = `
-DELETE FROM sessions
-WHERE username = $1
+	DELETE FROM sessions s
+	JOIN users AS u ON u.id = s.user_id
+	WHERE u.public_id = $1
 `
 
-func (q *Queries) DeleteSessions(ctx context.Context, username string) error {
-	_, err := q.db.ExecContext(ctx, deleteSessions, username)
+func (q *Queries) DeleteSessions(ctx context.Context, publicID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteSessions, publicID)
 	return err
 }
 
 const getSessions = `
-SELECT id, username, refresh_token, user_agent, client_ip, expires_at, created_at FROM sessions
-WHERE username = $1
+	SELECT * FROM sessions
+	WHERE public_id = $1
 `
 
-func (q *Queries) GetSessions(ctx context.Context, username string) (models.Session, error) {
-	row := q.db.QueryRowContext(ctx, getSessions, username)
+func (q *Queries) GetSessions(ctx context.Context, publicID uuid.UUID) (models.Session, error) {
+	row := q.db.QueryRowContext(ctx, getSessions, publicID)
 	var session models.Session
 	err := row.Scan(
 		&session.ID,
-		&session.Username,
+		&session.PublicID,
+		&session.UserID,
 		&session.RefreshToken,
 		&session.UserAgent,
 		&session.ClientIp,
-		&session.ExpiresAt,
 		&session.CreatedAt,
+		&session.ExpiresAt,
 	)
 	return session, err
 }
