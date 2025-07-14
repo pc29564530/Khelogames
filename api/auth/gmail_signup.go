@@ -70,7 +70,7 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 		return
 	}
 	//create a token using user id
-	tokens := CreateNewToken(ctx, userSignUp.Username, s, tx)
+	tokens := CreateNewToken(ctx, userSignUp.PublicID, int32(userSignUp.ID), s, tx)
 
 	session := tokens["session"].(models.Session)
 	accessToken := tokens["accessToken"].(string)
@@ -92,7 +92,6 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 
 	arg := db.CreateProfileParams{
 		UserID:    int32(userSignUp.ID),
-		Username:  userSignUp.Username,
 		FullName:  req.FullName,
 		Bio:       "",
 		AvatarUrl: "",
@@ -116,74 +115,5 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 			"RefreshTokenExpiresAt": refreshPayload.ExpiredAt,
 		},
 		"Message": "Account created successfully! Please check your email to verify your account.",
-	})
-}
-
-func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind the login request : ", err)
-		return
-	}
-
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin the transcation: ", err)
-		return
-	}
-
-	defer tx.Rollback()
-
-	existingUser, err := s.store.GetUsersByGmail(ctx, req.Email)
-	if err != nil && existingUser == nil {
-		s.logger.Info("User already does not exists with email: ", req.Email)
-		ctx.JSON(http.StatusConflict, gin.H{
-			"success": false,
-			"message": "Email not registered. Please sign up instead.",
-		})
-		return
-	}
-
-	err = utils.CheckPassword(req.Password, *existingUser.HashPassword)
-	s.logger.Info("Existing User Password: ", *existingUser.HashPassword)
-	s.logger.Info("New Sign In : ", req.Password)
-	if err != nil {
-		s.logger.Info("Email and password does not match: ")
-		ctx.JSON(http.StatusConflict, gin.H{
-			"success": false,
-			"message": "Email and password does not match:",
-		})
-		return
-	}
-
-	//create a token using user id
-	tokens := CreateNewToken(ctx, existingUser.Username, s, tx)
-
-	session := tokens["session"].(models.Session)
-	accessToken := tokens["accessToken"].(string)
-	accessPayload := tokens["accessPayload"].(*token.Payload)
-	refreshToken := tokens["refreshToken"].(string)
-	refreshPayload := tokens["refreshPayload"].(*token.Payload)
-
-	s.logger.Info("Successfully Sign in using google ")
-
-	err = tx.Commit()
-	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, gin.H{
-		"Success":               true,
-		"SessionID":             session.ID,
-		"AccessToken":           accessToken,
-		"AccessTokenExpiresAt":  accessPayload.ExpiredAt,
-		"RefreshToken":          refreshToken,
-		"RefreshTokenExpiresAt": refreshPayload.ExpiredAt,
-		"User":                  existingUser,
 	})
 }
