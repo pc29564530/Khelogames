@@ -3,105 +3,117 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
-	"time"
+
+	"github.com/google/uuid"
 )
 
 const createNewMessage = `
+WITH senderID AS (
+	SELECT user_id FROM users
+	WHERE public_id = $1;
+),
+receiverID AS (
+	SELECT user_id FROM users
+	WHERE public_id = $2;
+)
 INSERT INTO message (
-    content,
-    is_seen,
-    sender_username,
-    receiver_username,
+    sender_id,
+    receiver_id,
+	content,
     media_url,
     media_type,
-    sent_at,
-    is_deleted,
-    deleted_at
-) VALUES (
-    $1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP, $7, $8
-) RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
+    CURRENT_TIMESTAMP,
+)
+SELECT 
+	senderID.id,
+    receiverID.id,
+	$3,
+    $4,
+    $5,
+    CURRENT_TIMESTAMP,
+FROM senderID, receiverID
+RETURNING *;
 `
 
 type CreateNewMessageParams struct {
-	Content          string    `json:"content"`
-	IsSeen           bool      `json:"is_seen"`
-	SenderUsername   string    `json:"sender_username"`
-	ReceiverUsername string    `json:"receiver_username"`
-	MediaUrl         string    `json:"media_url"`
-	MediaType        string    `json:"media_type"`
-	IsDeleted        bool      `json:"is_deleted"`
-	DeletedAt        time.Time `json:"deleted_at"`
+	SenderID   uuid.UUID `json:"sender_id"`
+	ReceiverID uuid.UUID `json:"receiver_id"`
+	Content    string    `json:"content"`
+	MediaUrl   string    `json:"media_url"`
+	MediaType  string    `json:"media_type"`
 }
 
 func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessageParams) (models.Message, error) {
 	row := q.db.QueryRowContext(ctx, createNewMessage,
+		arg.SenderID,
+		arg.ReceiverID,
 		arg.Content,
-		arg.IsSeen,
-		arg.SenderUsername,
-		arg.ReceiverUsername,
 		arg.MediaUrl,
 		arg.MediaType,
-		arg.IsDeleted,
-		arg.DeletedAt,
 	)
 	var i models.Message
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.SenderID,
+		&i.ReceiverID,
 		&i.Content,
-		&i.IsSeen,
-		&i.SenderUsername,
-		&i.ReceiverUsername,
-		&i.SentAt,
 		&i.MediaUrl,
 		&i.MediaType,
+		&i.IsSeen,
 		&i.IsDeleted,
-		&i.DeletedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const deleteMessage = `
 DELETE FROM message
-WHERE sender_username=$1 and id=$2
-RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
+WHERE sender_id=$1 and receiver_id=$2
+RETURNING *
 `
 
 type DeleteMessageParams struct {
-	SenderUsername string `json:"sender_username"`
-	ID             int64  `json:"id"`
+	SenderID string `json:"sender_id"`
+	ID       int64  `json:"id"`
 }
 
 func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (models.Message, error) {
-	row := q.db.QueryRowContext(ctx, deleteMessage, arg.SenderUsername, arg.ID)
+	row := q.db.QueryRowContext(ctx, deleteMessage, arg.SenderID, arg.ID)
 	var i models.Message
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.SenderID,
+		&i.ReceiverID,
 		&i.Content,
-		&i.IsSeen,
-		&i.SenderUsername,
-		&i.ReceiverUsername,
-		&i.SentAt,
 		&i.MediaUrl,
 		&i.MediaType,
+		&i.IsSeen,
 		&i.IsDeleted,
-		&i.DeletedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
+// fetch all the message by the receiver id
 const getMessageByReceiver = `
-SELECT id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at FROM message
-WHERE (sender_username=$1 AND receiver_username=$2) OR (receiver_username=$1 AND sender_username=$2)
-ORDER BY id ASC
+SELECT m.*
+FROM message m
+JOIN users sender ON sender.id = m.sender_id
+JOIN users receiver ON receiver.id = m.receiver_id
+WHERE (sender.public_id = $1 AND receiver.public_id = $2)
+   OR (sender.public_id = $2 AND receiver.public_id = $1)
+ORDER BY m.id ASC;
 `
 
 type GetMessageByReceiverParams struct {
-	SenderUsername   string `json:"sender_username"`
-	ReceiverUsername string `json:"receiver_username"`
+	ReceiverID uuid.UUID `json:"receiver_id"`
+	SenderID   uuid.UUID `json:"sender_id"`
 }
 
 func (q *Queries) GetMessageByReceiver(ctx context.Context, arg GetMessageByReceiverParams) ([]models.Message, error) {
-	rows, err := q.db.QueryContext(ctx, getMessageByReceiver, arg.SenderUsername, arg.ReceiverUsername)
+	rows, err := q.db.QueryContext(ctx, getMessageByReceiver, arg.SenderID, arg.ReceiverID)
 	if err != nil {
 		return nil, err
 	}
@@ -111,15 +123,15 @@ func (q *Queries) GetMessageByReceiver(ctx context.Context, arg GetMessageByRece
 		var i models.Message
 		if err := rows.Scan(
 			&i.ID,
+			&i.PublicID,
+			&i.SenderID,
+			&i.ReceiverID,
 			&i.Content,
-			&i.IsSeen,
-			&i.SenderUsername,
-			&i.ReceiverUsername,
-			&i.SentAt,
 			&i.MediaUrl,
 			&i.MediaType,
+			&i.IsSeen,
 			&i.IsDeleted,
-			&i.DeletedAt,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -134,25 +146,27 @@ func (q *Queries) GetMessageByReceiver(ctx context.Context, arg GetMessageByRece
 	return items, nil
 }
 
-const getUserByMessageSend = `
-SELECT DISTINCT receiver_username
-FROM message
-WHERE sender_username = $1
+// get users by message sender
+const getUserByMessageSender = `
+SELECT DISTINCT receiver_id
+FROM message m
+JOIN users AS u ON u.id = m.user_id
+WHERE u.public_id = $1
 `
 
-func (q *Queries) GetUserByMessageSend(ctx context.Context, senderUsername string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getUserByMessageSend, senderUsername)
+func (q *Queries) GetUserByMessageSend(ctx context.Context, senderID uuid.UUID) ([]int32, error) {
+	rows, err := q.db.QueryContext(ctx, getUserByMessageSender, senderID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []int32
 	for rows.Next() {
-		var receiver_username string
-		if err := rows.Scan(&receiver_username); err != nil {
+		var receiverID int32
+		if err := rows.Scan(&receiverID); err != nil {
 			return nil, err
 		}
-		items = append(items, receiver_username)
+		items = append(items, receiverID)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -163,10 +177,11 @@ func (q *Queries) GetUserByMessageSend(ctx context.Context, senderUsername strin
 	return items, nil
 }
 
+// schedule delete message
 const scheduledDeleteMessage = `
 DELETE FROM message
 WHERE is_deleted = TRUE AND deleted_at < NOW() - INTERVAL '30 days'
-RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
+RETURNING *
 `
 
 func (q *Queries) ScheduledDeleteMessage(ctx context.Context) ([]models.Message, error) {
@@ -180,15 +195,15 @@ func (q *Queries) ScheduledDeleteMessage(ctx context.Context) ([]models.Message,
 		var i models.Message
 		if err := rows.Scan(
 			&i.ID,
+			&i.PublicID,
+			&i.SenderID,
+			&i.ReceiverID,
 			&i.Content,
-			&i.IsSeen,
-			&i.SenderUsername,
-			&i.ReceiverUsername,
-			&i.SentAt,
 			&i.MediaUrl,
 			&i.MediaType,
+			&i.IsSeen,
 			&i.IsDeleted,
-			&i.DeletedAt,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -201,64 +216,4 @@ func (q *Queries) ScheduledDeleteMessage(ctx context.Context) ([]models.Message,
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateDeletedMessage = `
-UPDATE message
-SET is_deleted=true AND deleted_at=NOW()
-WHERE sender_username=$1 and id=$2
-RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
-`
-
-type UpdateDeletedMessageParams struct {
-	SenderUsername string `json:"sender_username"`
-	ID             int64  `json:"id"`
-}
-
-func (q *Queries) UpdateDeletedMessage(ctx context.Context, arg UpdateDeletedMessageParams) (models.Message, error) {
-	row := q.db.QueryRowContext(ctx, updateDeletedMessage, arg.SenderUsername, arg.ID)
-	var i models.Message
-	err := row.Scan(
-		&i.ID,
-		&i.Content,
-		&i.IsSeen,
-		&i.SenderUsername,
-		&i.ReceiverUsername,
-		&i.SentAt,
-		&i.MediaUrl,
-		&i.MediaType,
-		&i.IsDeleted,
-		&i.DeletedAt,
-	)
-	return i, err
-}
-
-const updateSoftDeleteMessage = `
-UPDATE message
-SET is_deleted = TRUE, deleted_at = NOW()
-WHERE id = $1 AND sender_username = $2
-RETURNING id, content, is_seen, sender_username, receiver_username, sent_at, media_url, media_type, is_deleted, deleted_at
-`
-
-type UpdateSoftDeleteMessageParams struct {
-	ID             int64  `json:"id"`
-	SenderUsername string `json:"sender_username"`
-}
-
-func (q *Queries) UpdateSoftDeleteMessage(ctx context.Context, arg UpdateSoftDeleteMessageParams) (models.Message, error) {
-	row := q.db.QueryRowContext(ctx, updateSoftDeleteMessage, arg.ID, arg.SenderUsername)
-	var i models.Message
-	err := row.Scan(
-		&i.ID,
-		&i.Content,
-		&i.IsSeen,
-		&i.SenderUsername,
-		&i.ReceiverUsername,
-		&i.SentAt,
-		&i.MediaUrl,
-		&i.MediaType,
-		&i.IsDeleted,
-		&i.DeletedAt,
-	)
-	return i, err
 }

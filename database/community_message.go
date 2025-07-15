@@ -4,77 +4,69 @@ import (
 	"context"
 	"khelogames/database/models"
 	"time"
+
+	"github.com/google/uuid"
 )
 
+type CommunityMessage struct {
+	ID          int64     `json:"id"`
+	PublicID    uuid.UUID `json:"public_id"`
+	CommunityID int32     `json:"community_ud"`
+	SenderID    int32     `json:"sender_id"`
+	Name        string    `json:"name"`
+	Content     string    `json:"content"`
+	MediaUrl    string    `json:"media_url"`
+	MediaType   string    `json:"media_type"`
+	SentAt      time.Time `json:"sent_at"`
+}
+
 const createCommunityMessage = `
-INSERT INTO communitymessage(
-    community_name,
-    sender_username,
+WITH senderID AS (
+	SELECT * FROM users WHERE public_id = $1
+),
+communityID AS (
+	SELECT * FROM communities WHERE public_id = $2
+)
+INSERT INTO community_message(
+    community_id,
+	sender_id,
+    name,
     content,
+	media_url,
+	media_type,
     sent_at
-) VALUES ($1,$2, $3, CURRENT_TIMESTAMP )
-RETURNING id, community_name, sender_username, content, sent_at
+) 
+SELECT 
+	$1,
+	$2,
+	$3,
+	$4,
+	$5,
+	$6,
+	CURRENT_TIMESTAMP
+FROM senderID, communityID
+RETURNING *;
 `
 
 type CreateCommunityMessageParams struct {
-	CommunityName  string `json:"community_name"`
-	SenderUsername string `json:"sender_username"`
-	Content        string `json:"content"`
+	CommuntiyPublicID uuid.UUID `json:"community_public_id"`
+	SenderPublicID    uuid.UUID `json:"sender_public_id"`
+	Name              string    `json:"name"`
+	Content           string    `json:"content"`
+	MediaUrl          string    `json:"media_url"`
+	MediaType         string    `json:"media_type"`
 }
 
-func (q *Queries) CreateCommunityMessage(ctx context.Context, arg CreateCommunityMessageParams) (models.Communitymessage, error) {
-	row := q.db.QueryRowContext(ctx, createCommunityMessage, arg.CommunityName, arg.SenderUsername, arg.Content)
-	var i models.Communitymessage
+func (q *Queries) CreateCommunityMessage(ctx context.Context, arg CreateCommunityMessageParams) (models.CommunityMessage, error) {
+	row := q.db.QueryRowContext(ctx, createCommunityMessage, arg.CommuntiyPublicID, arg.SenderPublicID, arg.Name, arg.Content, arg.MediaUrl, arg.MediaType)
+	var i models.CommunityMessage
 	err := row.Scan(
 		&i.ID,
-		&i.CommunityName,
-		&i.SenderUsername,
+		&i.PublicID,
+		&i.CommunityID,
+		&i.SenderID,
+		&i.Name,
 		&i.Content,
-		&i.SentAt,
-	)
-	return i, err
-}
-
-const createMessageMedia = `
-INSERT INTO messagemedia (
-    message_id,
-    media_id
-) VALUES (
-    $1, $2
-) RETURNING message_id, media_id
-`
-
-type CreateMessageMediaParams struct {
-	MessageID int64 `json:"message_id"`
-	MediaID   int64 `json:"media_id"`
-}
-
-func (q *Queries) CreateMessageMedia(ctx context.Context, arg CreateMessageMediaParams) (models.Messagemedium, error) {
-	row := q.db.QueryRowContext(ctx, createMessageMedia, arg.MessageID, arg.MediaID)
-	var i models.Messagemedium
-	err := row.Scan(&i.MessageID, &i.MediaID)
-	return i, err
-}
-
-const createUploadMedia = `
-INSERT INTO uploadmedia (
-    media_url,
-    media_type,
-    sent_at
-) VALUES ($1, $2, CURRENT_TIMESTAMP)
-RETURNING id, media_url, media_type, sent_at
-`
-
-type CreateUploadMediaParams struct {
-	MediaUrl  string `json:"media_url"`
-	MediaType string `json:"media_type"`
-}
-
-func (q *Queries) CreateUploadMedia(ctx context.Context, arg CreateUploadMediaParams) (models.Uploadmedium, error) {
-	row := q.db.QueryRowContext(ctx, createUploadMedia, arg.MediaUrl, arg.MediaType)
-	var i models.Uploadmedium
-	err := row.Scan(
-		&i.ID,
 		&i.MediaUrl,
 		&i.MediaType,
 		&i.SentAt,
@@ -83,22 +75,44 @@ func (q *Queries) CreateUploadMedia(ctx context.Context, arg CreateUploadMediaPa
 }
 
 const getCommunityByMessage = `
-SELECT DISTINCT community_name FROM communitymessage
+SELECT c.*
+FROM communities c
+WHERE c.id IN (
+    SELECT DISTINCT cm.community_id
+    FROM community_message cm
+    JOIN join_community jc ON jc.community_id = cm.community_id
+    JOIN users u ON u.id = jc.user_id
+    WHERE u.public_id = $1
+);
 `
 
-func (q *Queries) GetCommunityByMessage(ctx context.Context) ([]string, error) {
+func (q *Queries) GetCommunityByMessage(ctx context.Context, userPublicID uuid.UUID) ([]models.Communities, error) {
 	rows, err := q.db.QueryContext(ctx, getCommunityByMessage)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []models.Communities
 	for rows.Next() {
-		var community_name string
-		if err := rows.Scan(&community_name); err != nil {
+		var i models.Communities
+		if err := rows.Scan(
+			&i.ID,
+			&i.PublicID,
+			&i.UserID,
+			&i.Name,
+			&i.Slug,
+			&i.Description,
+			&i.CommunityType,
+			&i.IsActive,
+			&i.MemberCount,
+			&i.AvatarUrl,
+			&i.CoverImageUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
-		items = append(items, community_name)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -109,40 +123,32 @@ func (q *Queries) GetCommunityByMessage(ctx context.Context) ([]string, error) {
 	return items, nil
 }
 
-const getCommuntiyMessage = `
-SELECT cm.id, cm.community_name, cm.sender_username, cm.content, cm.sent_at, um.media_url, um.media_type 
-FROM communitymessage cm 
-JOIN messagemedia mm ON mm.message_id = cm.id 
-JOIN uploadmedia um ON mm.media_id = um.id
+const getCommuntiyMessages = `
+	SELECT * FROM community_message cm
+	JOIN communities AS c ON c.id = cm.community_id
+	JOIN users AS u ON u.id = cm.user_id
+	WHERE c.public_id = $1;
 `
 
-type GetCommuntiyMessageRow struct {
-	ID             int64     `json:"id"`
-	CommunityName  string    `json:"community_name"`
-	SenderUsername string    `json:"sender_username"`
-	Content        string    `json:"content"`
-	SentAt         time.Time `json:"sent_at"`
-	MediaUrl       string    `json:"media_url"`
-	MediaType      string    `json:"media_type"`
-}
-
-func (q *Queries) GetCommuntiyMessage(ctx context.Context) ([]GetCommuntiyMessageRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCommuntiyMessage)
+func (q *Queries) GetCommuntiyMessage(ctx context.Context, communityPublicID uuid.UUID) ([]models.CommunityMessage, error) {
+	rows, err := q.db.QueryContext(ctx, getCommuntiyMessages)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCommuntiyMessageRow
+	var items []models.CommunityMessage
 	for rows.Next() {
-		var i GetCommuntiyMessageRow
+		var i models.CommunityMessage
 		if err := rows.Scan(
 			&i.ID,
-			&i.CommunityName,
-			&i.SenderUsername,
+			&i.PublicID,
+			&i.CommunityID,
+			&i.SenderID,
+			&i.Name,
 			&i.Content,
-			&i.SentAt,
 			&i.MediaUrl,
 			&i.MediaType,
+			&i.SentAt,
 		); err != nil {
 			return nil, err
 		}

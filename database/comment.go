@@ -2,122 +2,116 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"khelogames/database/models"
+	"log"
+
+	"github.com/google/uuid"
 )
 
 const createComment = `
-INSERT INTO comment (
+WITH threadID AS (
+	SELECT * from threads 
+	WHERE public_id = $1
+),
+userID AS (
+	SELECT * from users
+	WHERE public_id = $2
+)
+INSERT INTO comments (
     thread_id,
-    owner,
+    user_id,
 	comment_text,
     created_at
-) VALUES (
-    $1, $2, $3, CURRENT_TIMESTAMP
-)
-RETURNING id, thread_id, owner, comment_text, created_at
+) 
+SELECT
+	threadID.id,
+	userID.id,
+	$3,
+	CURRENT_TIMESTAMP
+FROM threadID, userID
+RETURNING *;
 `
 
-type CreateCommentParams struct {
-	ThreadID    int64  `json:"thread_id"`
-	Owner       string `json:"owner"`
-	CommentText string `json:"comment_text"`
-}
-
-func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (models.Comment, error) {
-	row := q.db.QueryRowContext(ctx, createComment, arg.ThreadID, arg.Owner, arg.CommentText)
+func (q *Queries) CreateComment(ctx context.Context, threadPublicID, commentPublicID uuid.UUID, commentText string) (models.Comment, error) {
+	row := q.db.QueryRowContext(ctx, createComment, threadPublicID, commentPublicID, commentText)
 	var i models.Comment
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.ThreadID,
-		&i.Owner,
+		&i.UserID,
+		&i.ParentCommentID,
 		&i.CommentText,
+		&i.LikeCount,
+		&i.ReplyCount,
+		&i.IsDeleted,
+		&i.IsEdited,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const deleteComment = `
 DELETE FROM comment
-WHERE id=$1 AND owner=$2
-RETURNING id, thread_id, owner, comment_text, created_at
+JOIN users AS u ON u.id = c.user_id
+WHERE c.public_id=$1 AND u.public_id=$2
+RETURNING *
 `
 
-type DeleteCommentParams struct {
-	ID    int64  `json:"id"`
-	Owner string `json:"owner"`
-}
-
-func (q *Queries) DeleteComment(ctx context.Context, arg DeleteCommentParams) (models.Comment, error) {
-	row := q.db.QueryRowContext(ctx, deleteComment, arg.ID, arg.Owner)
+func (q *Queries) DeleteComment(ctx context.Context, commentPublicID, userPublicID uuid.UUID) (models.Comment, error) {
+	row := q.db.QueryRowContext(ctx, deleteComment, commentPublicID, userPublicID)
 	var i models.Comment
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.ThreadID,
-		&i.Owner,
+		&i.UserID,
+		&i.ParentCommentID,
 		&i.CommentText,
+		&i.LikeCount,
+		&i.ReplyCount,
+		&i.IsDeleted,
+		&i.IsEdited,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getAllComment = `
-SELECT id, thread_id, owner, comment_text, created_at FROM comment
-WHERE thread_id=$1
+SELECT 
+JSON_BUILD_OBJECT(
+	'id', c.id 'public_id' c.public_id, 'thread_id', c.thread_id,'user_id',c.user_id, 'parent_comment_id', c.parent_comment_id, 'comment_text', c.comment_text,'like_count', c.like_count,'reply_count',c.reply_count, 'is_deleted',c.is_deleted, 'is_edited',c.is_edited, 'created_at',c.created_at, 'updated_at'c.updated_at,,
+	'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_id',p.user_id,  'username',u.username,  'full_name',p.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
+) 
+FROM comment c
+JOIN threads AS t ON t.id = c.thread_id
+JOIN profile AS p ON p.user_id = c.user_id
+JOIN users AS u ON u.id = c.user_id
+WHERE t.public_id=$1
+ORDER BY c.id;
 `
 
-func (q *Queries) GetAllComment(ctx context.Context, threadID int64) ([]models.Comment, error) {
-	rows, err := q.db.QueryContext(ctx, getAllComment, threadID)
+func (q *Queries) GetAllComment(ctx context.Context, publicID uuid.UUID) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getAllComment, publicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.Comment
+	var items []map[string]interface{}
 	for rows.Next() {
-		var i models.Comment
-		if err := rows.Scan(
-			&i.ID,
-			&i.ThreadID,
-			&i.Owner,
-			&i.CommentText,
-			&i.CreatedAt,
-		); err != nil {
+		var jsonBytes []byte
+		var data map[string]interface{}
+		if err := rows.Scan(&jsonBytes); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getCommentByUser = `
-SELECT id, thread_id, owner, comment_text, created_at FROM comment
-WHERE owner=$1
-`
-
-func (q *Queries) GetCommentByUser(ctx context.Context, owner string) ([]models.Comment, error) {
-	rows, err := q.db.QueryContext(ctx, getCommentByUser, owner)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []models.Comment
-	for rows.Next() {
-		var i models.Comment
-		if err := rows.Scan(
-			&i.ID,
-			&i.ThreadID,
-			&i.Owner,
-			&i.CommentText,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
+		err := json.Unmarshal(jsonBytes, &data)
+		if err != nil {
+			log.Fatal("Failed to unmarshal the ")
 		}
-		items = append(items, i)
+		items = append(items, data)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

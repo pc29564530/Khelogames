@@ -1,17 +1,16 @@
 package handlers
 
 import (
-	db "khelogames/database"
-
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type createLikeRequest struct {
-	ThreadID int64 `uri:"thread_id"`
+	ThreadPublicID uuid.UUID `uri:"thread_public_id"`
 }
 
 func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
@@ -24,13 +23,8 @@ func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	arg := db.CreateLikeParams{
-		ThreadID: req.ThreadID,
-		Username: authPayload.Username,
-	}
-	s.logger.Debug("params arg: ", arg)
 
-	likeThread, err := s.store.CreateLike(ctx, arg)
+	likeThread, err := s.store.CreateLike(ctx, authPayload.PublicID, req.ThreadPublicID)
 	if err != nil {
 		s.logger.Error("Failed to create like : ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -43,7 +37,7 @@ func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 }
 
 type countLikeRequest struct {
-	ThreadID int64 `uri:"thread_id"`
+	ThreadPublicID uuid.UUID `uri:"thread_public_id"`
 }
 
 func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
@@ -56,7 +50,7 @@ func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
-	countLike, err := s.store.CountLikeUser(ctx, req.ThreadID)
+	countLike, err := s.store.CountLikeUser(ctx, req.ThreadPublicID)
 	if err != nil {
 		s.logger.Error("Failed to count like user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -68,7 +62,7 @@ func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
 }
 
 type checkUserRequest struct {
-	ThreadID int64 `uri:"thread_id"`
+	ThreadPublicID uuid.UUID `uri:"thread_public_id"`
 }
 
 func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
@@ -84,13 +78,7 @@ func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	arg := db.CheckUserCountParams{
-		ThreadID: req.ThreadID,
-		Username: authPayload.Username,
-	}
-	s.logger.Debug("params arg: ", arg)
-
-	userFound, err := s.store.CheckUserCount(ctx, arg)
+	userFound, err := s.store.CheckUserCount(ctx, authPayload.PublicID, req.ThreadPublicID)
 	if err != nil {
 		s.logger.Error("Failed to check user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))

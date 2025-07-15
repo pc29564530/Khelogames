@@ -8,10 +8,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type getMessageByReceiverRequest struct {
-	ReceiverUsername string `uri:"receiver_username"`
+	ReceiverPublicID uuid.UUID `uri:"receiver_public_id"`
 }
 
 func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
@@ -27,8 +28,8 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 
 	authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.GetMessageByReceiverParams{
-		SenderUsername:   authToken.Username,
-		ReceiverUsername: req.ReceiverUsername,
+		SenderID:   authToken.PublicID,
+		ReceiverID: req.ReceiverPublicID,
 	}
 
 	s.logger.Debug("message by receiver arg: ", arg)
@@ -42,7 +43,7 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 
 	s.logger.Debug("get message by receiver: ", messageContent)
 
-	broadcastMessage := fmt.Sprintf("User: %s retrieved messages from %s", authToken.Username, req.ReceiverUsername)
+	broadcastMessage := fmt.Sprintf("User: %s retrieved messages from %s", authToken.PublicID, req.ReceiverPublicID)
 	s.broadcast <- []byte(broadcastMessage)
 
 	ctx.JSON(http.StatusAccepted, messageContent)
@@ -51,7 +52,7 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 
 func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	messageUserName, err := s.store.GetUserByMessageSend(ctx, authPayload.Username)
+	messageUserName, err := s.store.GetUserByMessageSend(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get user by message send: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -62,33 +63,6 @@ func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusAccepted, messageUserName)
 	return
-}
-
-type updateDeleteMessageRequest struct {
-	SenderUsername string `json:"sender_username"`
-	ID             int64  `json:"id"`
-}
-
-func (s *MessageServer) UpdateDeleteMessageFunc(ctx *gin.Context) {
-	var req updateDeleteMessageRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		return
-	}
-
-	arg := db.UpdateDeletedMessageParams{
-		SenderUsername: req.SenderUsername,
-		ID:             req.ID,
-	}
-
-	response, err := s.store.UpdateDeletedMessage(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to delete message", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
 }
 
 func (s *MessageServer) DeleteScheduleMessageFunc(ctx *gin.Context) {
