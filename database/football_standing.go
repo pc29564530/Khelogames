@@ -3,15 +3,17 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
-type TournamentStandingParams struct {
-	TournamentID int64  `json:"tournament_id"`
-	GroupID      *int64 `json:"group_id"`
-	TeamID       int64  `json:"teamID"`
-}
-
 const createFootballStanding = `
+WITH tournamentID AS (
+    SELECT * FROM tournaments WHERE public_id = $1
+),
+teamID AS (
+    SELECT * FROM teams WHERE public_id = $3
+)
 INSERT INTO football_standing (
     tournament_id,
     group_id,
@@ -24,15 +26,29 @@ INSERT INTO football_standing (
     goal_against,
     goal_difference,
     points
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11 ) RETURNING id, tournament_id, group_id, team_id, matches, wins, loss, draw, goal_for, goal_against, goal_difference, points
+)
+SELECT 
+    tournamentID.tournament_id,
+    $2,
+    teamID.team_id,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10,
+    $11  
+FROM tournamentID, teamID
+RETURNING *;
 `
 
-func (q *Queries) CreateFootballStanding(ctx context.Context, tournamentID, groupID, teamID int64) (models.FootballStanding, error) {
+func (q *Queries) CreateFootballStanding(ctx context.Context, tournamentPublicID uuid.UUID, groupID int32, teamPublicID uuid.UUID) (models.FootballStanding, error) {
 
 	row := q.db.QueryRowContext(ctx, createFootballStanding,
-		tournamentID,
+		tournamentPublicID,
 		groupID,
-		teamID,
+		teamPublicID,
 		nil,
 		nil,
 		nil,
@@ -45,6 +61,7 @@ func (q *Queries) CreateFootballStanding(ctx context.Context, tournamentID, grou
 	var i models.FootballStanding
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.TournamentID,
 		&i.GroupID,
 		&i.TeamID,
@@ -66,11 +83,13 @@ const getFootballStanding = `
         WHEN EXISTS (
             SELECT 1
             FROM football_standing fs
-            WHERE tournament_id = $1
+            JOIN tournament t ON t.id = fs.tournament_id
+            WHERE t.public_id = $1
         ) THEN 
             JSON_AGG(
                 JSON_BUILD_OBJECT(
                     'id', fs.id,
+                    'public_id', fs.public_id,
                     'tournament_id', fs.tournament_id,
                     'group_id', CASE
                         WHEN fs.group_id IS NOT NULL THEN fs.group_id
@@ -87,6 +106,8 @@ const getFootballStanding = `
                     'points', fs.points,
                     'tournament', JSON_BUILD_OBJECT(
                         'id', t.id,
+                        'public_id', t.public_id,
+                        'user_id', t.user_id,
                         'name', t.name,
                         'slug', t.slug,
                         'country', t.country,
@@ -104,6 +125,8 @@ const getFootballStanding = `
                     END,
                     'teams', JSON_BUILD_OBJECT(
                         'id', tm.id,
+                        'public_id', tm.public_id,
+                        'user_id', tm.user_id,
                         'name', tm.name,
                         'slug', tm.slug,
                         'short_name', tm.shortname,
@@ -124,15 +147,15 @@ const getFootballStanding = `
 	LEFT JOIN groups g ON fs.group_id = g.id
 	JOIN tournaments t ON t.id = fs.tournament_id
 	JOIN teams tm ON fs.team_id = tm.id
-	WHERE fs.tournament_id = $1;
+	WHERE t.public_id = $1;
 `
 
 type GetFootballStandingR struct {
 	StandingData interface{} `json:"standing_data"`
 }
 
-func (q *Queries) GetFootballStanding(ctx context.Context, tournamentId int64) (*GetFootballStandingR, error) {
-	rows, err := q.db.QueryContext(ctx, getFootballStanding, tournamentId)
+func (q *Queries) GetFootballStanding(ctx context.Context, tournamentPublicID uuid.UUID) (*GetFootballStandingR, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballStanding, tournamentPublicID)
 	if err != nil {
 		return nil, err
 	}
@@ -161,31 +184,37 @@ SET
         FROM football_score AS fs
         JOIN matches AS ms ON fs.match_id = ms.id
         WHERE fs.team_id = ts.team_id
+          AND ms.tournament_id = ts.tournament_id
+          AND (ms.stage = 'group' OR ms.stage = 'league')
     ), 0),
     goal_against = COALESCE((
         SELECT SUM(CASE 
             WHEN ms.home_team_id = ts.team_id THEN (
-                SELECT SUM(fs.goals) 
-                FROM football_score AS fs 
+                SELECT COALESCE(SUM(fs.goals), 0)
+                FROM football_score AS fs
                 WHERE fs.match_id = ms.id AND fs.team_id = ms.away_team_id
             )
             WHEN ms.away_team_id = ts.team_id THEN (
-                SELECT SUM(fs2.goals) 
+                SELECT COALESCE(SUM(fs2.goals), 0)
                 FROM football_score AS fs2
                 WHERE fs2.match_id = ms.id AND fs2.team_id = ms.home_team_id
             )
         END)
         FROM matches AS ms
-        WHERE ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id
+        WHERE (ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id)
+          AND ms.tournament_id = ts.tournament_id
+          AND (ms.stage = 'group' OR ms.stage = 'league')
     ), 0),
     goal_difference = COALESCE(goal_for, 0) - COALESCE(goal_against, 0),
     wins = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms
-        LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = ts.team_id
+        LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = fs_home.team_id
         LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
         WHERE (ms.home_team_id = ts.team_id AND fs_home.goals > fs_away.goals)
-        OR (ms.away_team_id = ts.team_id AND fs_away.goals > fs_home.goals)
+           OR (ms.away_team_id = ts.team_id AND fs_away.goals > fs_home.goals)
+          AND ms.tournament_id = ts.tournament_id
+          AND (ms.stage = 'group' OR ms.stage = 'league')
     ), 0),
     loss = COALESCE((
         SELECT COUNT(*)
@@ -193,26 +222,35 @@ SET
         LEFT JOIN football_score fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = fs_home.team_id
         LEFT JOIN football_score fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
         WHERE (ms.home_team_id = ts.team_id AND fs_home.goals < fs_away.goals)
-        OR (ms.away_team_id = ts.team_id AND fs_away.goals < fs_home.goals)
+           OR (ms.away_team_id = ts.team_id AND fs_away.goals < fs_home.goals)
+          AND ms.tournament_id = ts.tournament_id
+          AND (ms.stage = 'group' OR ms.stage = 'league')
     ), 0),
     draw = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms
         LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = ts.team_id
-        LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
+        LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = ts.team_id
         WHERE (ms.home_team_id = ts.team_id AND fs_home.goals = fs_away.goals)
-        OR (ms.away_team_id = ts.team_id AND fs_away.goals = fs_home.goals)
+           OR (ms.away_team_id = ts.team_id AND fs_away.goals = fs_home.goals)
+          AND ms.tournament_id = ts.tournament_id
+          AND (ms.stage = 'group' OR ms.stage = 'league')
     ), 0),
     points = ((wins * 3) + draw)
-WHERE ts.tournament_id = $1 AND ts.team_id = $2 AND (ms.stage = 'group' OR ms.stage = 'league')
-RETURNING standing_id, tournament_id, group_id, team_id, wins, loss, draw, goal_for, goal_against, goal_difference, points
+FROM tournaments t, teams tm
+WHERE ts.tournament_id = t.id
+  AND ts.team_id = tm.id
+  AND t.public_id = $1
+  AND tm.public_id = $2
+RETURNING *;
 `
 
-func (q *Queries) UpdateFootballStanding(ctx context.Context, tournamentID, teamID int64) (models.FootballStanding, error) {
-	row := q.db.QueryRowContext(ctx, updateFootballStanding, tournamentID, teamID)
+func (q *Queries) UpdateFootballStanding(ctx context.Context, tournamentPublicID, teamPublicID uuid.UUID) (models.FootballStanding, error) {
+	row := q.db.QueryRowContext(ctx, updateFootballStanding, tournamentPublicID, teamPublicID)
 	var i models.FootballStanding
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.TournamentID,
 		&i.GroupID,
 		&i.TeamID,

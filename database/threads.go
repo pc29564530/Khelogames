@@ -10,6 +10,12 @@ import (
 )
 
 const createThread = `
+WITH userID AS (
+	SELECT * FROM users WHERE public_id = $1
+),
+communityID AS (
+	SELECT * FROM communities WHERE public_id = $2
+),
 INSERT INTO threads (
     user_id,
     community_id,
@@ -18,9 +24,17 @@ INSERT INTO threads (
 	media_url,
     media_type,
     created_at
-) VALUES (
-    $1, $2, $3, $4, $5, $6 CURRENT_TIMESTAMP
-) RETURNING *
+)
+SELECT
+	userID.id,
+	communityID.id,
+	$3,
+	$4,
+	$5,
+	$6,
+	CURRENT_TIMESTAMP
+FROM userID, communityID
+RETURNING *;
 `
 
 type CreateThreadParams struct {

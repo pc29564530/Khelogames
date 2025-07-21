@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const getTournamentTeam = `
-SELECT tt.tournament_id, JSON_BUILD_OBJECT('id', tm.id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id) AS team_data
+SELECT tt.tournament_id, JSON_BUILD_OBJECT('id', tm.id, 'public_id', tm.public_id, 'user_id', tm.user_id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id) AS team_data
 FROM tournament_team tt
 JOIN teams AS tm ON tm.id = tt.team_id
-WHERE team_id=$1 AND tournament_id=$2
+WHERE tm.public_id=$1 AND tt.public_id=$2
 `
 
 type GetTournamentTeamInterface struct {
@@ -18,8 +20,8 @@ type GetTournamentTeamInterface struct {
 	TeamData     string `json:"team_data"`
 }
 
-func (q *Queries) GetTournamentTeam(ctx context.Context, teamID, tournamentID int64) (GetTournamentTeamInterface, error) {
-	row := q.db.QueryRowContext(ctx, getTournamentTeam, teamID, tournamentID)
+func (q *Queries) GetTournamentTeam(ctx context.Context, teamPublicID, tournamentPublicID uuid.UUID) (GetTournamentTeamInterface, error) {
+	row := q.db.QueryRowContext(ctx, getTournamentTeam, teamPublicID, tournamentPublicID)
 	var i GetTournamentTeamInterface
 	err := row.Scan(&i.TournamentID, &i.TeamData)
 	return i, err
@@ -27,10 +29,10 @@ func (q *Queries) GetTournamentTeam(ctx context.Context, teamID, tournamentID in
 
 const getTournamentTeams = `
 SELECT
-    tt.tournament_id, JSON_BUILD_OBJECT('id', tm.id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id) AS team_data
+    tt.tournament_id, JSON_BUILD_OBJECT('id', tm.id, 'public_id', tm.public_id, 'user_id', tm.user_id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id) AS team_data
 FROM tournament_team tt
 JOIN teams AS tm ON tm.id = tt.team_id
-WHERE tt.tournament_id=$1
+WHERE tt.public_id=$1
 `
 
 type GetTournamentTeamsRow struct {
@@ -38,8 +40,8 @@ type GetTournamentTeamsRow struct {
 	TeamData     json.RawMessage `json:"team_data"`
 }
 
-func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([]GetTournamentTeamsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentTeams, tournamentID)
+func (q *Queries) GetTournamentTeams(ctx context.Context, publicID uuid.UUID) ([]GetTournamentTeamsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentTeams, publicID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,32 +64,38 @@ func (q *Queries) GetTournamentTeams(ctx context.Context, tournamentID int64) ([
 }
 
 const getTournamentTeamsCount = `
-SELECT COUNT(*) FROM tournament_team
-WHERE tournament_id=$1
+SELECT COUNT(*) FROM tournament_team tm
+JOIN tournaments AS t ON t.id = tm.tournament_id
+WHERE t.public_id=$1
 `
 
-func (q *Queries) GetTournamentTeamsCount(ctx context.Context, tournamentID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getTournamentTeamsCount, tournamentID)
+func (q *Queries) GetTournamentTeamsCount(ctx context.Context, tournamentPublicID uuid.UUID) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTournamentTeamsCount, tournamentPublicID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
 const newTournamentTeam = `
+WITH tournamentID AS (
+	SELECT * FROM tournaments WHERE public_id=$1
+),
+teamID AS (
+	SELECT * FROM teams WHERE public_id=$2
+)
 INSERT INTO tournament_team (
     tournament_id,
     team_id
-) VALUES ( $1, $2 )
-RETURNING tournament_id, team_id
+)
+SELECT
+	tournamentID.id,
+	teamID.id
+FROM tournamentID, teamID
+RETURNING * 
 `
 
-type NewTournamentTeamParams struct {
-	TournamentID int64 `json:"tournament_id"`
-	TeamID       int64 `json:"team_id"`
-}
-
-func (q *Queries) NewTournamentTeam(ctx context.Context, arg NewTournamentTeamParams) (models.TournamentTeam, error) {
-	row := q.db.QueryRowContext(ctx, newTournamentTeam, arg.TournamentID, arg.TeamID)
+func (q *Queries) NewTournamentTeam(ctx context.Context, tournamentPublicID, teamPublicID uuid.UUID) (models.TournamentTeam, error) {
+	row := q.db.QueryRowContext(ctx, newTournamentTeam, tournamentPublicID, teamPublicID)
 	var i models.TournamentTeam
 	err := row.Scan(&i.TournamentID, &i.TeamID)
 	return i, err

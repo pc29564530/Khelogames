@@ -6,12 +6,16 @@ import (
 	"encoding/json"
 	"khelogames/database/models"
 	"log"
+
+	"github.com/google/uuid"
 )
 
 const getAllMatches = `
     SELECT 
         json_build_object(
             'id', m.id,
+            'public_id', m.public_id,
+            'user_id', m.user_id,
             'tournament_id', m.tournament_id,
             'away_team_id', m.away_team_id,
             'home_team_id', m.home_team_id,
@@ -26,6 +30,8 @@ const getAllMatches = `
 
             'homeTeam', json_build_object(
                 'id', ht.id,
+                'public_id', ht.public_id,
+                'user_id', ht.user_id,
                 'name', ht.name,
                 'slug', ht.slug,
                 'short_name', ht.shortname,
@@ -55,6 +61,8 @@ const getAllMatches = `
 
             'awayTeam', json_build_object(
                 'id', at.id,
+                'public_id', at.public_id,
+                'user_id', at.user_id,
                 'name', at.name,
                 'slug', at.slug,
                 'short_name', at.shortname,
@@ -84,6 +92,8 @@ const getAllMatches = `
 
             'tournament', json_build_object(
                 'id', t.id,
+                'public_id', t.public_id,
+                'user_id', t.user_id,
                 'name', t.name,
                 'slug', t.slug,
                 'country', t.country,
@@ -114,6 +124,7 @@ const getAllMatches = `
         SELECT json_agg(
             json_build_object(
                 'id', cs.id,
+                'public_id', cs.public_id,
                 'match_id', cs.match_id,
                 'team_id', cs.team_id,
                 'inning_number', cs.inning_number,
@@ -136,6 +147,7 @@ const getAllMatches = `
         SELECT json_agg(
             json_build_object(
                 'id', cs.id,
+                'public_id', cs.public_id,
                 'match_id', cs.match_id,
                 'team_id', cs.team_id,
                 'inning_number', cs.inning_number,
@@ -200,6 +212,7 @@ const getCricketMatchByMatchID = `
 SELECT 
     json_build_object(
         'id', m.id,
+        'public_id', m.public_id,
         'tournament_id', m.tournament_id,
         'away_team_id', m.away_team_id,
         'home_team_id', m.home_team_id,
@@ -214,6 +227,8 @@ SELECT
 
         'homeTeam', json_build_object(
             'id', ht.id,
+            'public_id', ht.public_id,
+            'user_id', ht.user_id,
             'name', ht.name,
             'slug', ht.slug,
             'short_name', ht.shortname,
@@ -244,6 +259,8 @@ SELECT
 
         'awayTeam', json_build_object(
             'id', at.id,
+            'public_id', at.public_id,
+            'user_id', at.user_id,
             'name', at.name,
             'slug', at.slug,
             'short_name', at.shortname,
@@ -274,6 +291,8 @@ SELECT
 
         'tournament', json_build_object(
             'id', t.id,
+            'public_id', t.public_id,
+            'user_id', t.user_id,
             'name', t.name,
             'slug', t.slug,
             'country', t.country,
@@ -304,6 +323,7 @@ LEFT JOIN LATERAL (
     SELECT json_agg(
         json_build_object(
             'id', cs.id,
+            'public_id', cs.public_id,
             'match_id', cs.match_id,
             'team_id', cs.team_id,
             'inning_number', cs.inning_number,
@@ -326,6 +346,7 @@ LEFT JOIN LATERAL (
     SELECT json_agg(
         json_build_object(
             'id', cs.id,
+            'public_id', cs.public_id,
             'match_id', cs.match_id,
             'team_id', cs.team_id,
             'inning_number', cs.inning_number,
@@ -343,17 +364,17 @@ LEFT JOIN LATERAL (
     WHERE cs.match_id = m.id AND cs.team_id = at.id
 ) AS cricket_away_scores ON true
 
-WHERE m.id = $1 AND t.game_id = $2;
+WHERE m.public_id = $1 AND t.game_id = $2;
 `
 
 type MatchResponse struct {
 	Response interface{} `json:"response"`
 }
 
-func (q *Queries) GetMatchByMatchID(ctx context.Context, matchID, gameID int64) (map[string]interface{}, error) {
+func (q *Queries) GetMatchByMatchID(ctx context.Context, matchPublicID uuid.UUID, gameID int64) (map[string]interface{}, error) {
 	var matchResponse MatchResponse
 
-	row := q.db.QueryRowContext(ctx, getCricketMatchByMatchID, matchID, gameID)
+	row := q.db.QueryRowContext(ctx, getCricketMatchByMatchID, matchPublicID, gameID)
 
 	if err := row.Scan(&matchResponse.Response); err != nil {
 		if err == sql.ErrNoRows {
@@ -377,13 +398,14 @@ const getMatchByIDQuery = `
     WHERE id = $1;
 `
 
-func (q *Queries) GetMatchByID(ctx context.Context, id int64) (*models.Match, error) {
+func (q *Queries) GetMatchByID(ctx context.Context, publicID uuid.UUID) (*models.Match, error) {
 	var i models.Match
 
-	row := q.db.QueryRowContext(ctx, getMatchByIDQuery, id)
+	row := q.db.QueryRowContext(ctx, getMatchByIDQuery, publicID)
 
 	if err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.TournamentID,
 		&i.AwayTeamID,
 		&i.HomeTeamID,

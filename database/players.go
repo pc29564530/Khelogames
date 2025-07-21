@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"fmt"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const getAllPlayer = `
-SELECT id, username, slug, short_name, media_url, positions, country, player_name, game_id, profile_id FROM players
+SELECT * FROM players
 `
 
 func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
@@ -22,7 +24,8 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 		var i models.Player
 		if err := rows.Scan(
 			&i.ID,
-			&i.Username,
+			&i.PublicID,
+			&i.UserID,
 			&i.Slug,
 			&i.ShortName,
 			&i.MediaUrl,
@@ -30,7 +33,6 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
-			&i.ProfileID,
 		); err != nil {
 			return nil, err
 		}
@@ -46,16 +48,18 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 }
 
 const getPlayer = `
-SELECT id, username, slug, short_name, media_url, positions, country, player_name, game_id, profile_id FROM players
-WHERE id=$1
+SELECT * FROM players p
+JOIN users AS u ON u.id = p.user_id
+WHERE u.public_id=$1
 `
 
-func (q *Queries) GetPlayer(ctx context.Context, id int64) (*models.Player, error) {
-	row := q.db.QueryRowContext(ctx, getPlayer, id)
+func (q *Queries) GetPlayer(ctx context.Context, userPublicID uuid.UUID) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayer, userPublicID)
 	var i models.Player
 	err := row.Scan(
 		&i.ID,
-		&i.Username,
+		&i.PublicID,
+		&i.UserID,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
@@ -63,7 +67,6 @@ func (q *Queries) GetPlayer(ctx context.Context, id int64) (*models.Player, erro
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
-		&i.ProfileID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -75,16 +78,18 @@ func (q *Queries) GetPlayer(ctx context.Context, id int64) (*models.Player, erro
 }
 
 const getPlayerByProfileID = `
-SELECT * FROM players pp
-WHERE pp.profile_id=$1;
+SELECT * FROM players p
+JOIN users AS u ON p.user_id = u.id
+WHERE u.public_id=$1;
 `
 
-func (q *Queries) GetPlayerByProfileID(ctx context.Context, profileID int64) (*models.Player, error) {
-	row := q.db.QueryRowContext(ctx, getPlayerByProfileID, profileID)
+func (q *Queries) GetPlayerByProfileID(ctx context.Context, userPublicID uuid.UUID) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerByProfileID, userPublicID)
 	var i models.Player
 	err := row.Scan(
 		&i.ID,
-		&i.Username,
+		&i.PublicID,
+		&i.UserID,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
@@ -92,7 +97,6 @@ func (q *Queries) GetPlayerByProfileID(ctx context.Context, profileID int64) (*m
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
-		&i.ProfileID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -105,7 +109,7 @@ func (q *Queries) GetPlayerByProfileID(ctx context.Context, profileID int64) (*m
 }
 
 const getPlayersCountry = `
-SELECT id, username, slug, short_name, media_url, positions, country, player_name, game_id, profile_id FROM players
+SELECT * FROM players
 WHERE country=$1
 `
 
@@ -120,7 +124,8 @@ func (q *Queries) GetPlayersCountry(ctx context.Context, country string) ([]mode
 		var i models.Player
 		if err := rows.Scan(
 			&i.ID,
-			&i.Username,
+			&i.PublicID,
+			&i.UserID,
 			&i.Slug,
 			&i.ShortName,
 			&i.MediaUrl,
@@ -158,7 +163,8 @@ func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) ([]models
 		var i models.Player
 		if err := rows.Scan(
 			&i.ID,
-			&i.Username,
+			&i.PublicID,
+			&i.UserID,
 			&i.Slug,
 			&i.ShortName,
 			&i.MediaUrl,
@@ -166,7 +172,6 @@ func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) ([]models
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
-			&i.ProfileID,
 		); err != nil {
 			return nil, err
 		}
@@ -182,36 +187,45 @@ func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) ([]models
 }
 
 const newPlayer = `
+WITH userID AS (
+	SELECT * FROM users
+)
 INSERT INTO players (
-    username,
+    player_name,
     slug,
     short_name,
     media_url,
     positions,
     country,
-    player_name,
-    game_id,
-	profile_id
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, username, slug, short_name, media_url, positions, country, player_name, game_id, profile_id
+    game_id
+)
+SELECT 
+	userID.id,
+	$1,
+	$2,
+	$3,
+	$4,
+	$5,
+	$6,
+	$7
+FROM userID
+RETURNING *
 `
 
 type NewPlayerParams struct {
-	Username   string `json:"username"`
-	Slug       string `json:"slug"`
-	ShortName  string `json:"short_name"`
-	MediaUrl   string `json:"media_url"`
-	Positions  string `json:"positions"`
-	Country    string `json:"country"`
-	PlayerName string `json:"player_name"`
-	GameID     int64  `json:"game_id"`
-	ProfileID  int32  `json:"profile_id"`
+	UserPublicID int32  `json:"userPublicID"`
+	Slug         string `json:"slug"`
+	ShortName    string `json:"short_name"`
+	MediaUrl     string `json:"media_url"`
+	Positions    string `json:"positions"`
+	Country      string `json:"country"`
+	PlayerName   string `json:"player_name"`
+	GameID       int64  `json:"game_id"`
 }
 
 func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Player, error) {
 	row := q.db.QueryRowContext(ctx, newPlayer,
-		arg.Username,
+		arg.UserPublicID,
 		arg.Slug,
 		arg.ShortName,
 		arg.MediaUrl,
@@ -219,12 +233,12 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Pl
 		arg.Country,
 		arg.PlayerName,
 		arg.GameID,
-		arg.ProfileID,
 	)
 	var i models.Player
 	err := row.Scan(
 		&i.ID,
-		&i.Username,
+		&i.PublicID,
+		&i.UserID,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
@@ -232,13 +246,12 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Pl
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
-		&i.ProfileID,
 	)
 	return i, err
 }
 
 const searchPlayer = `
-SELECT id, username, slug, short_name, media_url, positions, country, player_name, game_id, profile_id FROM players
+SELECT * FROM players
 WHERE player_name LIKE $1
 `
 
@@ -253,7 +266,8 @@ func (q *Queries) SearchPlayer(ctx context.Context, playerName string) ([]models
 		var i models.Player
 		if err := rows.Scan(
 			&i.ID,
-			&i.Username,
+			&i.PublicID,
+			&i.UserID,
 			&i.Slug,
 			&i.ShortName,
 			&i.MediaUrl,
@@ -261,7 +275,6 @@ func (q *Queries) SearchPlayer(ctx context.Context, playerName string) ([]models
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
-			&i.ProfileID,
 		); err != nil {
 			return nil, err
 		}
@@ -278,22 +291,23 @@ func (q *Queries) SearchPlayer(ctx context.Context, playerName string) ([]models
 
 const updatePlayerMedia = `
 UPDATE players
-SET media_url=$1
-WHERE id=$2
-RETURNING id, username, slug, short_name, media_url, positions, country, player_name, game_id, profile_id
+SET media_url=$2
+WHERE public_id=$1
+RETURNING *
 `
 
 type UpdatePlayerMediaParams struct {
-	MediaUrl string `json:"media_url"`
-	ID       int64  `json:"id"`
+	PublicID uuid.UUID `json:"public_id"`
+	MediaUrl string    `json:"media_url"`
 }
 
-func (q *Queries) UpdatePlayerMedia(ctx context.Context, arg UpdatePlayerMediaParams) (models.Player, error) {
-	row := q.db.QueryRowContext(ctx, updatePlayerMedia, arg.MediaUrl, arg.ID)
+func (q *Queries) UpdatePlayerMedia(ctx context.Context, publicID uuid.UUID, mediaUrl string) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, updatePlayerMedia, publicID, mediaUrl)
 	var i models.Player
 	err := row.Scan(
 		&i.ID,
-		&i.Username,
+		&i.PublicID,
+		&i.UserID,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
@@ -301,29 +315,29 @@ func (q *Queries) UpdatePlayerMedia(ctx context.Context, arg UpdatePlayerMediaPa
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
-		&i.ProfileID,
 	)
-	return i, err
+	return &i, err
 }
 
 const updatePlayerPosition = `
 UPDATE players
-SET positions=$1
-WHERE id=$2
-RETURNING id, username, slug, short_name, media_url, positions, country, player_name, game_id, profile_id
+SET positions=$2
+WHERE public_id=$1
+RETURNING *
 `
 
 type UpdatePlayerPositionParams struct {
-	Positions string `json:"positions"`
-	ID        int64  `json:"id"`
+	PublicID  uuid.UUID `json:"public_id"`
+	Positions string    `json:"positions"`
 }
 
-func (q *Queries) UpdatePlayerPosition(ctx context.Context, arg UpdatePlayerPositionParams) (models.Player, error) {
-	row := q.db.QueryRowContext(ctx, updatePlayerPosition, arg.Positions, arg.ID)
+func (q *Queries) UpdatePlayerPosition(ctx context.Context, publicID uuid.UUID, positions string) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, updatePlayerPosition, publicID, positions)
 	var i models.Player
 	err := row.Scan(
 		&i.ID,
-		&i.Username,
+		&i.PublicID,
+		&i.UserID,
 		&i.Slug,
 		&i.ShortName,
 		&i.MediaUrl,
@@ -331,7 +345,6 @@ func (q *Queries) UpdatePlayerPosition(ctx context.Context, arg UpdatePlayerPosi
 		&i.Country,
 		&i.PlayerName,
 		&i.GameID,
-		&i.ProfileID,
 	)
-	return i, err
+	return &i, err
 }
