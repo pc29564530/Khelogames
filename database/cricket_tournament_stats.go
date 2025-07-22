@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type PlayerStat struct {
@@ -13,8 +15,8 @@ type PlayerStat struct {
 	StatValue  string `json:"stat_value"`
 }
 
-func (q *Queries) GetPlayerStat(ctx context.Context, query string, tournamentID int64) ([]map[string]interface{}, error) {
-	rows, err := q.db.QueryContext(ctx, query, tournamentID)
+func (q *Queries) GetPlayerStat(ctx context.Context, query string, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, query, tournamentPublicID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to query : ", err)
 	}
@@ -52,14 +54,15 @@ const cricketTournamentsMostRuns = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.batsman_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = b.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING SUM(b.runs_scored) > 0
 	ORDER BY total_runs DESC;
 `
 
-func (q *Queries) GetCricketTournamentMostRuns(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, cricketTournamentsMostRuns, tournamentID)
+func (q *Queries) GetCricketTournamentMostRuns(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, cricketTournamentsMostRuns, tournamentPublicID)
 }
 
 const getCricketTournamentHighestRuns = `
@@ -72,14 +75,15 @@ const getCricketTournamentHighestRuns = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.batsman_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING SUM (b.runs_scored) > 0
 	ORDER BY highest_runs DESC;
 `
 
-func (q *Queries) GetCricketTournamentHighestRuns(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentHighestRuns, tournamentID)
+func (q *Queries) GetCricketTournamentHighestRuns(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentHighestRuns, tournamentPublicID)
 }
 
 const getCricketTournamentMostSixes = `
@@ -92,14 +96,15 @@ const getCricketTournamentMostSixes = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.batsman_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING SUM(b.sixes) > 0
 	ORDER BY sixes DESC;
 `
 
-func (q *Queries) GetCricketTournamentMostSixes(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentMostSixes, tournamentID)
+func (q *Queries) GetCricketTournamentMostSixes(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentMostSixes, tournamentPublicID)
 }
 
 const getCricketTournamentMostFours = `
@@ -112,14 +117,15 @@ const getCricketTournamentMostFours = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.batsman_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING SUM(b.fours) > 0
 	ORDER BY fours DESC;
 `
 
-func (q *Queries) GetCricketTournamentMostFours(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentMostFours, tournamentID)
+func (q *Queries) GetCricketTournamentMostFours(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentMostFours, tournamentPublicID)
 }
 
 const getCricketTournamentMostFifties = `
@@ -132,14 +138,15 @@ const getCricketTournamentMostFifties = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.batsman_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING COUNT(*) FILTER(WHERE b.runs_scored >= 50 AND b.runs_scored < 100) > 0
 	ORDER BY fifties DESC;
 `
 
-func (q *Queries) GetCricketTournamentMostFifties(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentMostFifties, tournamentID)
+func (q *Queries) GetCricketTournamentMostFifties(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentMostFifties, tournamentPublicID)
 }
 
 const getCricketTournamentMostHundreds = `
@@ -152,14 +159,15 @@ const getCricketTournamentMostHundreds = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.batsman_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING COUNT(*) FILTER(WHERE b.runs_scored >= 100) > 0
 	ORDER BY hundreds DESC;
 `
 
-func (q *Queries) GetCricketTournamentMostHundreds(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentMostHundreds, tournamentID)
+func (q *Queries) GetCricketTournamentMostHundreds(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentMostHundreds, tournamentPublicID)
 }
 
 //Bowling Parts
@@ -175,14 +183,15 @@ const getCricketTournamentMostWickets = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.bowler_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING SUM(b.wickets) > 0
 	ORDER BY wickets DESC;
 `
 
-func (q *Queries) GetCricketTournamentMostWickets(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentMostWickets, tournamentID)
+func (q *Queries) GetCricketTournamentMostWickets(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentMostWickets, tournamentPublicID)
 }
 
 // EconomyRate
@@ -196,13 +205,14 @@ const getCricketTournamentEconomyRate = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.bowler_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	ORDER BY economy_rate DESC;
 `
 
-func (q *Queries) GetCricketTournamentBowlingEconomyRate(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentEconomyRate, tournamentID)
+func (q *Queries) GetCricketTournamentBowlingEconomyRate(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentEconomyRate, tournamentPublicID)
 }
 
 // Bowling Average
@@ -216,14 +226,15 @@ const getCricketTournamentBowlingAverage = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.bowler_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING SUM(b.wickets) > 0
 	ORDER BY bowling_average DESC;
 `
 
-func (q *Queries) GetCricketTournamentBowlingAverage(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentID)
+func (q *Queries) GetCricketTournamentBowlingAverage(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentPublicID)
 }
 
 // Bowling Strike Rate
@@ -237,13 +248,14 @@ const getCricketTournamentBowlingStrikeRate = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.bowler_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	ORDER BY bowling_strike_rate DESC;
 `
 
-func (q *Queries) GetCricketTournamentBowlingStrikeRate(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentBowlingStrikeRate, tournamentID)
+func (q *Queries) GetCricketTournamentBowlingStrikeRate(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentBowlingStrikeRate, tournamentPublicID)
 }
 
 // Bowling Strike Rate
@@ -257,13 +269,14 @@ const getCricketTournamentBowlingFiveWicketHaul = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.bowler_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	ORDER BY five_wickets_haul DESC;
 `
 
-func (q *Queries) GetCricketTournamentBowlingFiveWicketHaul(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentBowlingFiveWicketHaul, tournamentID)
+func (q *Queries) GetCricketTournamentBowlingFiveWicketHaul(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentBowlingFiveWicketHaul, tournamentPublicID)
 }
 
 // batting average
@@ -284,7 +297,8 @@ const getCricketTournamentBattingAverage = `
 	LEFT JOIN players p ON p.id = b.batsman_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
 	JOIN cricket_score cs ON cs.match_id = m.id AND cs.team_id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING
 		SUM(b.runs_scored)::numeric / NULLIF(
@@ -295,8 +309,8 @@ const getCricketTournamentBattingAverage = `
 	ORDER BY batting_average DESC;
 `
 
-func (q *Queries) GetCricketTournamentBattingAverage(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentID)
+func (q *Queries) GetCricketTournamentBattingAverage(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentBowlingAverage, tournamentPublicID)
 }
 
 // Batting Strike Rate
@@ -310,11 +324,12 @@ const getCricketTournamentBattingStrikeRate = `
 	LEFT JOIN matches m ON m.id = b.match_id
 	LEFT JOIN players p ON p.id = b.batsman_id
 	LEFT JOIN teams tm ON tm.id = b.team_id
-	WHERE m.tournament_id = $1
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1
 	GROUP BY p.id, p.player_name, tm.name
 	ORDER BY batting_strike_rate DESC;
 `
 
-func (q *Queries) GetCricketTournamentBattingStrikeRate(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetPlayerStat(ctx, getCricketTournamentBattingStrikeRate, tournamentID)
+func (q *Queries) GetCricketTournamentBattingStrikeRate(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetPlayerStat(ctx, getCricketTournamentBattingStrikeRate, tournamentPublicID)
 }

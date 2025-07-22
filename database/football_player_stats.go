@@ -7,19 +7,29 @@ import (
 	"khelogames/database/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 const addFootballPlayerStats = `
+	WITH resolved_ids AS (
+		SELECT 
+			p.id AS player_id
+		FROM players p
+		WHERE p.public_id=$1
+	)
 	INSERT INTO football_player_stats ( player_id, player_position, matches, minutes_played, goals_scored, goals_conceded, clean_sheet, assists, yellow_card, red_card, created_at, updated_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, $1)
+	SELECT
+		ri.playe_id, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+	FROM resolved_ids ri
 	RETURNING *
 `
 
-func (q *Queries) football_player_stats(ctx *gin.Context, playerID int64) (*models.FootballPlayerStats, error) {
-	rows := q.db.QueryRowContext(ctx, addFootballPlayerStats, playerID)
+func (q *Queries) football_player_stats(ctx *gin.Context, playerPublicID uuid.UUID) (*models.FootballPlayerStats, error) {
+	rows := q.db.QueryRowContext(ctx, addFootballPlayerStats, playerPublicID)
 	var stats models.FootballPlayerStats
 	err := rows.Scan(
 		&stats.ID,
+		&stats.PublicID,
 		&stats.PlayerID,
 		&stats.PlayerPosition,
 		&stats.Matches,
@@ -43,14 +53,16 @@ func (q *Queries) football_player_stats(ctx *gin.Context, playerID int64) (*mode
 
 const getFootballPlayerStatsQuery = `
 	SELECT * FROM football_player_stats fps
-	WHERE fps.player_id = $1
+	JOIN players p ON p.id = fps.player_id
+	WHERE p.public_id = $1
 `
 
-func (q *Queries) GetFootballPlayerStats(ctx context.Context, playerID int64) (*models.FootballPlayerStats, error) {
+func (q *Queries) GetFootballPlayerStats(ctx context.Context, playerPublicID uuid.UUID) (*models.FootballPlayerStats, error) {
 	var stats models.FootballPlayerStats
-	row := q.db.QueryRowContext(ctx, getFootballPlayerStatsQuery, playerID)
+	row := q.db.QueryRowContext(ctx, getFootballPlayerStatsQuery, playerPublicID)
 	err := row.Scan(
 		&stats.ID,
+		&stats.PublicID,
 		&stats.PlayerID,
 		&stats.PlayerPosition,
 		&stats.Matches,
@@ -75,16 +87,19 @@ func (q *Queries) GetFootballPlayerStats(ctx context.Context, playerID int64) (*
 }
 
 const addAndUpdateFootballPlayerStats = `
-WITH subs AS (
+WITH match_context AS (
+	SELECT id AS match_id FROM matches WHERE public_id = $1
+),
+subs AS (
 	SELECT fsp.*, fi.incident_time
 	FROM football_substitutions_player fsp
 	JOIN football_incidents fi ON fi.id = fsp.incident_id
-	WHERE fi.match_id = 23
+	JOIN match_context mc ON fsp.match_id = mc.match_id
 ),
 all_players AS (
 	SELECT fs.player_id, fs.is_substitute
-	FROM football_squad fs
-	WHERE fs.match_id = 23
+	FROM football_squad fs 
+	JOIN match_context mc ON fs.match_id = mc.match_id
 ),
 incident_data AS (
 	SELECT
@@ -93,17 +108,17 @@ incident_data AS (
 		COUNT(*) AS count
 	FROM football_incident_player fip
 	JOIN football_incidents fi ON fip.incident_id = fi.id
-	WHERE fi.match_id = 23
+	JOIN match_context mc ON fi.match_id = mc.match_id
 	GROUP BY fip.player_id, fi.incident_type
-  ),
+),
 minutes_played AS (
 	SELECT
 		ap.player_id,
 		CASE
-		WHEN ap.is_substitute = FALSE AND s.player_out_id = ap.player_id THEN s.incident_time
-		WHEN ap.is_substitute = TRUE AND s.player_in_id = ap.player_id THEN 90 - s.incident_time
-		WHEN ap.is_substitute = FALSE THEN 90
-		ELSE 0
+			WHEN ap.is_substitute = FALSE AND s.player_out_id = ap.player_id THEN s.incident_time
+			WHEN ap.is_substitute = TRUE AND s.player_in_id = ap.player_id THEN 90 - s.incident_time
+			WHEN ap.is_substitute = FALSE THEN 90
+			ELSE 0
 		END AS minutes
 	FROM all_players ap
 	LEFT JOIN subs s ON ap.player_id = s.player_out_id OR ap.player_id = s.player_in_id
@@ -120,10 +135,9 @@ aggregated AS (
 		COALESCE(SUM(CASE WHEN id.incident_type = 'red_card' THEN id.count ELSE 0 END), 0) AS red_cards
 	FROM minutes_played mp
 	LEFT JOIN incident_data id ON mp.player_id = id.player_id
-	WHERE mp.player_id = id.player_id
 	GROUP BY mp.player_id
-  ),
-  updated AS (
+),
+updated AS (
 	UPDATE football_player_stats fps
 	SET
 		matches = fps.matches + 1,
@@ -138,10 +152,10 @@ aggregated AS (
 	FROM aggregated a
 	WHERE fps.player_id = a.player_id
 	RETURNING fps.player_id
-  )
-  INSERT INTO football_player_stats (
+)
+INSERT INTO football_player_stats (
 	player_id, player_position, matches, minutes_played, goals_scored, goals_conceded, clean_sheet, assists, yellow_cards, red_cards, average, created_at, updated_at )
-  SELECT 
+SELECT 
 	a.player_id,
 	'',
 	1,
@@ -155,16 +169,16 @@ aggregated AS (
 	'0.0',
 	CURRENT_TIMESTAMP,
 	CURRENT_TIMESTAMP
-  FROM aggregated a
-  WHERE NOT EXISTS (
+FROM aggregated a
+WHERE NOT EXISTS (
 	SELECT 1 FROM updated u WHERE u.player_id = a.player_id
-  )
-  RETURNING *;
+)
+RETURNING *;
 `
 
-func (q *Queries) AddORUpdateFootballPlayerStats(ctx context.Context, matchID int64) (*[]models.FootballPlayerStats, error) {
+func (q *Queries) AddORUpdateFootballPlayerStats(ctx context.Context, mathchPublicID uuid.UUID) (*[]models.FootballPlayerStats, error) {
 	var playerStats []models.FootballPlayerStats
-	rows, err := q.db.QueryContext(ctx, addAndUpdateFootballPlayerStats, matchID)
+	rows, err := q.db.QueryContext(ctx, addAndUpdateFootballPlayerStats, mathchPublicID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to execute query: %w", err)
 	}
@@ -175,6 +189,7 @@ func (q *Queries) AddORUpdateFootballPlayerStats(ctx context.Context, matchID in
 		var stats models.FootballPlayerStats
 		err = rows.Scan(
 			&stats.ID,
+			&stats.PublicID,
 			&stats.PlayerID,
 			&stats.PlayerPosition,
 			&stats.Matches,

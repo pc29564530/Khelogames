@@ -20,8 +20,8 @@ RETURNING *
 `
 
 type AddTeamPlayersParams struct {
-	TeamID    int64  `json:"team_id"`
-	PlayerID  int64  `json:"player_id"`
+	TeamID    int32  `json:"team_id"`
+	PlayerID  int32  `json:"player_id"`
 	JoinDate  int32  `json:"join_date"`
 	LeaveDate *int32 `json:"leave_date"`
 }
@@ -34,11 +34,11 @@ func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) 
 }
 
 type GetMatchByTeamRow struct {
-	TournamentID   int64  `json:"touranment_id"`
+	TournamentID   int32  `json:"touranment_id"`
 	TournamentName string `json:"tournament_name"`
 	MatchID        int64  `json:"match_id"`
-	HomeTeamID     int64  `json:"home_team_id"`
-	AwayTeamID     int64  `json:"away_team_id"`
+	HomeTeamID     int32  `json:"home_team_id"`
+	AwayTeamID     int32  `json:"away_team_id"`
 	HomeTeamName   string `json:"home_team_name"`
 	AwayTeamName   string `json:"away_team_name"`
 	StartTimestamp int64  `json:"start_timestamp"`
@@ -201,12 +201,12 @@ const getMatchesByTeam = `
 		WHERE cs.match_id = m.id AND cs.team_id = at.id
 	) AS cricket_away_scores ON true
 
-	WHERE (ht.id = $1 OR at.id = $1) AND t.game_id = $2;
+	WHERE (ht.public_id = $1 OR at.public_id = $1) AND t.game_id = $2;
 `
 
-func (q *Queries) GetMatchesByTeam(ctx context.Context, teamID, gameID int64) ([]map[string]interface{}, error) {
+func (q *Queries) GetMatchesByTeam(ctx context.Context, teamPublicID, gameID int64) ([]map[string]interface{}, error) {
 
-	rows, err := q.db.QueryContext(ctx, getMatchesByTeam, teamID, gameID)
+	rows, err := q.db.QueryContext(ctx, getMatchesByTeam, teamPublicID, gameID)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,6 @@ SELECT
   tp.join_date, 
   tp.leave_date, 
   p.id AS player_id,
-  p.username, 
   p.slug, 
   p.short_name, 
   p.media_url, 
@@ -319,7 +318,6 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamPublicID uuid.UUID) (
 			&i.JoinDate,
 			&i.LeaveDate,
 			&i.ID,
-			&i.Username,
 			&i.Slug,
 			&i.ShortName,
 			&i.MediaUrl,
@@ -370,13 +368,14 @@ func (q *Queries) GetTeam(ctx context.Context, publicID uuid.UUID) (models.Team,
 }
 
 const getTeamByPlayer = `
-SELECT tm.* FROM team_players
-JOIN teams AS tm ON team_players.team_id=tm.id
-WHERE player_id=$1
+SELECT t.* FROM team_players tp
+JOIN teams AS t ON tp.team_id=t.id
+JOIN players AS p ON tp.player_id = p.id
+WHERE p.public_id=$1
 `
 
-func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models.GetTeamByPlayer, error) {
-	rows, err := q.db.QueryContext(ctx, getTeamByPlayer, playerID)
+func (q *Queries) GetTeamByPlayer(ctx context.Context, playerPublicID uuid.UUID) ([]models.GetTeamByPlayer, error) {
+	rows, err := q.db.QueryContext(ctx, getTeamByPlayer, playerPublicID)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +413,7 @@ func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models
 }
 
 const getTeamPlayers = `
-SELECT * FROM team_players tp
+SELECT tp.* FROM team_players tp
 JOIN teams AS t ON t.id = tp.team_id
 WHERE t.public_id=$1
 `

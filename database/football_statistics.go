@@ -3,9 +3,18 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const createFootballStatistics = `
+WITH resolved_ids AS (
+  SELECT 
+    m.id AS match_id,
+    t.id AS team_id
+  FROM matches m, teams t
+  WHERE m.public_id = $1 AND t.public_id = $2
+)
 INSERT INTO football_statistics (
     match_id,
     team_id,
@@ -17,8 +26,13 @@ INSERT INTO football_statistics (
     free_kicks,
     yellow_cards,
     red_cards
-) VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, match_id, team_id, shots_on_target, total_shots, corner_kicks, fouls, goalkeeper_saves, free_kicks, yellow_cards, red_cards
+)
+SELECT 
+    r.match_id,
+    r.team_id,
+    $3, $4, $5, $6, $7, $8, $9, $10
+FROM resolved_ids r
+RETURNING *;
 `
 
 type CreateFootballStatisticsParams struct {
@@ -50,6 +64,7 @@ func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootba
 	var i models.FootballStatistic
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.ShotsOnTarget,
@@ -65,20 +80,18 @@ func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootba
 }
 
 const getFootballStatistics = `
-SELECT id, match_id, team_id, shots_on_target, total_shots, corner_kicks, fouls, goalkeeper_saves, free_kicks, yellow_cards, red_cards FROM football_statistics
-WHERE match_id=$1 AND team_id=$2
+SELECT * FROM football_statistics fs
+JOIN matches m ON m.id = fs.match_id
+JOIN teams t ON t.id = fs.team_id
+WHERE m.public_id=$1 AND t.public_id=$2
 `
 
-type GetFootballStatisticsParams struct {
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
-}
-
-func (q *Queries) GetFootballStatistics(ctx context.Context, arg GetFootballStatisticsParams) (models.FootballStatistic, error) {
-	row := q.db.QueryRowContext(ctx, getFootballStatistics, arg.MatchID, arg.TeamID)
+func (q *Queries) GetFootballStatistics(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (models.FootballStatistic, error) {
+	row := q.db.QueryRowContext(ctx, getFootballStatistics, matchPublicID, teamPublicID)
 	var i models.FootballStatistic
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.ShotsOnTarget,
@@ -96,33 +109,36 @@ func (q *Queries) GetFootballStatistics(ctx context.Context, arg GetFootballStat
 const updateFootballStatistics = `
 UPDATE football_statistics
 SET 
-    shots_on_target = shots_on_target + $1,
-    total_shots = total_shots + $2,
-    corner_kicks = corner_kicks + $3,
-    fouls = fouls + $4,
-    goalkeeper_saves = goalkeeper_saves + $5,
-    free_kicks = free_kicks + $6,
-    yellow_cards = yellow_cards + $7,
-    red_cards = red_cards + $8
-WHERE match_id = $9 AND team_id = $10
-RETURNING id, match_id, team_id, shots_on_target, total_shots, corner_kicks, fouls, goalkeeper_saves, free_kicks, yellow_cards, red_cards
+    shots_on_target = shots_on_target + $2,
+    total_shots = total_shots + $3,
+    corner_kicks = corner_kicks + $4,
+    fouls = fouls + $5,
+    goalkeeper_saves = goalkeeper_saves + $6,
+    free_kicks = free_kicks + $7,
+    yellow_cards = yellow_cards + $9,
+    red_cards = red_cards + $10
+FROM matches m, teams t
+WHERE m.public_id = $1 AND t.public_id = $2 AND m.id = fs.match_id AND t.id = fs.team_id
+RETURNING *
 `
 
 type UpdateFootballStatisticsParams struct {
-	ShotsOnTarget   int32 `json:"shots_on_target"`
-	TotalShots      int32 `json:"total_shots"`
-	CornerKicks     int32 `json:"corner_kicks"`
-	Fouls           int32 `json:"fouls"`
-	GoalkeeperSaves int32 `json:"goalkeeper_saves"`
-	FreeKicks       int32 `json:"free_kicks"`
-	YellowCards     int32 `json:"yellow_cards"`
-	RedCards        int32 `json:"red_cards"`
-	MatchID         int64 `json:"match_id"`
-	TeamID          int64 `json:"team_id"`
+	MatchPublicID   uuid.UUID `json:"match_public_id"`
+	TeamPublicID    uuid.UUID `json:"team_public_id"`
+	ShotsOnTarget   int32     `json:"shots_on_target"`
+	TotalShots      int32     `json:"total_shots"`
+	CornerKicks     int32     `json:"corner_kicks"`
+	Fouls           int32     `json:"fouls"`
+	GoalkeeperSaves int32     `json:"goalkeeper_saves"`
+	FreeKicks       int32     `json:"free_kicks"`
+	YellowCards     int32     `json:"yellow_cards"`
+	RedCards        int32     `json:"red_cards"`
 }
 
 func (q *Queries) UpdateFootballStatistics(ctx context.Context, arg UpdateFootballStatisticsParams) (models.FootballStatistic, error) {
 	row := q.db.QueryRowContext(ctx, updateFootballStatistics,
+		arg.MatchPublicID,
+		arg.TeamPublicID,
 		arg.ShotsOnTarget,
 		arg.TotalShots,
 		arg.CornerKicks,
@@ -131,12 +147,11 @@ func (q *Queries) UpdateFootballStatistics(ctx context.Context, arg UpdateFootba
 		arg.FreeKicks,
 		arg.YellowCards,
 		arg.RedCards,
-		arg.MatchID,
-		arg.TeamID,
 	)
 	var i models.FootballStatistic
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.ShotsOnTarget,
