@@ -36,8 +36,8 @@ RETURNING *;
 `
 
 type CreateFootballStatisticsParams struct {
-	MatchID         int64 `json:"match_id"`
-	TeamID          int64 `json:"team_id"`
+	MatchID         int32 `json:"match_id"`
+	TeamID          int32 `json:"team_id"`
 	ShotsOnTarget   int32 `json:"shots_on_target"`
 	TotalShots      int32 `json:"total_shots"`
 	CornerKicks     int32 `json:"corner_kicks"`
@@ -117,28 +117,27 @@ SET
     free_kicks = free_kicks + $7,
     yellow_cards = yellow_cards + $9,
     red_cards = red_cards + $10
-FROM matches m, teams t
-WHERE m.public_id = $1 AND t.public_id = $2 AND m.id = fs.match_id AND t.id = fs.team_id
+WHERE match_id = $1 AND team_id = $2
 RETURNING *
 `
 
 type UpdateFootballStatisticsParams struct {
-	MatchPublicID   uuid.UUID `json:"match_public_id"`
-	TeamPublicID    uuid.UUID `json:"team_public_id"`
-	ShotsOnTarget   int32     `json:"shots_on_target"`
-	TotalShots      int32     `json:"total_shots"`
-	CornerKicks     int32     `json:"corner_kicks"`
-	Fouls           int32     `json:"fouls"`
-	GoalkeeperSaves int32     `json:"goalkeeper_saves"`
-	FreeKicks       int32     `json:"free_kicks"`
-	YellowCards     int32     `json:"yellow_cards"`
-	RedCards        int32     `json:"red_cards"`
+	MatchID         int32 `json:"match_id"`
+	TeamID          int32 `json:"team_id"`
+	ShotsOnTarget   int32 `json:"shots_on_target"`
+	TotalShots      int32 `json:"total_shots"`
+	CornerKicks     int32 `json:"corner_kicks"`
+	Fouls           int32 `json:"fouls"`
+	GoalkeeperSaves int32 `json:"goalkeeper_saves"`
+	FreeKicks       int32 `json:"free_kicks"`
+	YellowCards     int32 `json:"yellow_cards"`
+	RedCards        int32 `json:"red_cards"`
 }
 
 func (q *Queries) UpdateFootballStatistics(ctx context.Context, arg UpdateFootballStatisticsParams) (models.FootballStatistic, error) {
 	row := q.db.QueryRowContext(ctx, updateFootballStatistics,
-		arg.MatchPublicID,
-		arg.TeamPublicID,
+		arg.MatchID,
+		arg.TeamID,
 		arg.ShotsOnTarget,
 		arg.TotalShots,
 		arg.CornerKicks,

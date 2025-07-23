@@ -3,15 +3,15 @@ package players
 import (
 	"khelogames/database/models"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *PlayerServer) GetPlayerCricketStatsByMatchType(ctx *gin.Context) {
-	playerIDString := ctx.Query("player_id")
-	playerID, err := strconv.ParseInt(playerIDString, 10, 64)
-	playerStats, err := s.store.GetCricketPlayerBowlingStats(ctx, playerID)
+	playerPublicIDString := ctx.Query("player_public_id")
+	playerPublicID, err := uuid.Parse(playerPublicIDString)
+	playerStats, err := s.store.GetCricketPlayerBowlingStats(ctx, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the player bowling stats: ", err)
 		return
@@ -40,7 +40,7 @@ func (s *PlayerServer) GetPlayerCricketStatsByMatchType(ctx *gin.Context) {
 
 func (s *PlayerServer) GetFootballPlayerStatsFunc(ctx *gin.Context) {
 	var req struct {
-		MatchID int64 `uri:"match_id"`
+		MatchPublicID uuid.UUID `uri:"match_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -49,7 +49,7 @@ func (s *PlayerServer) GetFootballPlayerStatsFunc(ctx *gin.Context) {
 		return
 	}
 
-	playersStats, err := s.store.GetFootballPlayerStats(ctx, req.MatchID)
+	playersStats, err := s.store.GetFootballPlayerStats(ctx, req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get football player stats: ", err)
 		return
@@ -59,14 +59,14 @@ func (s *PlayerServer) GetFootballPlayerStatsFunc(ctx *gin.Context) {
 }
 
 func (s *PlayerServer) GetPlayerCricketStatsByMatchTypeFunc(ctx *gin.Context) {
-	playerIDString := ctx.Query("player_id")
-	playerID, err := strconv.ParseInt(playerIDString, 10, 64)
+	playerPublicIDString := ctx.Query("player_id")
+	playerPublicID, err := uuid.Parse(playerPublicIDString)
 	if err != nil {
-		s.logger.Error("Failed to parst to int: ", err)
+		s.logger.Error("Failed to parst to uuid: ", err)
 		return
 	}
 
-	playerStats, err := s.store.GetPlayerCricketStatsByMatchType(ctx, playerID)
+	playerStats, err := s.store.GetPlayerCricketStatsByMatchType(ctx, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the player stats for cricket: ", err)
 		return

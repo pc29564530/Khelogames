@@ -1,17 +1,16 @@
 package teams
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	db "khelogames/database"
-
 	"khelogames/pkg"
 	"khelogames/token"
+
 	"khelogames/util"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type addTeamsRequest struct {
@@ -40,39 +39,22 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 	}
 
 	defer tx.Rollback()
-
-	saveImageStruct := util.NewSaveImageStruct(s.logger)
-	var path string
-	if req.MediaURL != "" {
-		b64Data := req.MediaURL[strings.IndexByte(req.MediaURL, ',')+1:]
-
-		data, err := base64.StdEncoding.DecodeString(b64Data)
-		if err != nil {
-			s.logger.Error("Failed to decode string: ", err)
-			return
-		}
-
-		path, err = saveImageStruct.SaveImageToFile(data, "image")
-		if err != nil {
-			s.logger.Error("Failed to create file: ", err)
-			return
-		}
-	}
+	authPayload := ctx.MustGet(pkg.AuthorizationHeaderKey).(*token.Payload)
 	slug := util.GenerateSlug(req.Name)
 	shortName := util.GenerateShortName(req.Name)
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.NewTeamsParams{
-		Name:        req.Name,
-		Slug:        slug,
-		Shortname:   shortName,
-		Admin:       authPayload.Username,
-		MediaUrl:    path,
-		Gender:      req.Gender,
-		National:    false,
-		Country:     req.Country,
-		Type:        req.Type,
-		PlayerCount: int32(req.PlayerCount),
-		GameID:      req.GameID,
+		UserPublicID: authPayload.PublicID,
+		Name:         req.Name,
+		Slug:         slug,
+		Shortname:    shortName,
+		Admin:        "",
+		MediaUrl:     req.MediaURL,
+		Gender:       req.Gender,
+		National:     false,
+		Country:      req.Country,
+		Type:         req.Type,
+		PlayerCount:  int32(req.PlayerCount),
+		GameID:       req.GameID,
 	}
 
 	response, err := s.store.NewTeams(ctx, arg)
@@ -105,7 +87,7 @@ func (s *TeamsServer) GetTeamsFunc(ctx *gin.Context) {
 }
 
 type getClubRequest struct {
-	ID int64 `uri:"id"`
+	PublicID uuid.UUID `uri:"public_id"`
 }
 
 func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
@@ -116,7 +98,7 @@ func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	response, err := s.store.GetTeam(ctx, req.ID)
+	response, err := s.store.GetTeam(ctx, req.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get club: ", err)
 		ctx.JSON(http.StatusNoContent, (err))
@@ -177,7 +159,7 @@ func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 }
 
 type getTeamByPlayerRequest struct {
-	PlayerID int64 `uri:"player_id`
+	PlayerPublicID uuid.UUID `uri:"player_public_id`
 }
 
 func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
@@ -189,7 +171,7 @@ func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTeamByPlayer(ctx, req.PlayerID)
+	response, err := s.store.GetTeamByPlayer(ctx, req.PlayerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get club by sport: ", err)
 	}
@@ -198,6 +180,7 @@ func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
 
 		teamDetail := map[string]interface{}{
 			"id":         team.ID,
+			"public_id":  team.PublicID,
 			"name":       team.Name,
 			"gender":     team.Gender,
 			"media_url":  team.MediaUrl,
@@ -214,7 +197,7 @@ func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
 }
 
 type getPlayersByTeamRequest struct {
-	TeamID int64 `uri:"teamID`
+	TeamPublicID uuid.UUID `uri:"team_public_id`
 }
 
 func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
@@ -225,7 +208,7 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetPlayerByTeam(ctx, req.TeamID)
+	response, err := s.store.GetPlayerByTeam(ctx, req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get club by sport: ", err)
 	}
@@ -233,15 +216,15 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 	for _, player := range response {
 
 		teamDetail := map[string]interface{}{
-			"id":          player.ID,
-			"player_name": player.PlayerName,
-			"slug":        player.Slug,
-			"short_name":  player.ShortName,
-			"position":    player.Positions,
-			"country":     player.Country,
-			"media_url":   player.MediaUrl,
-			"game_id":     player.GameID,
-			"profile_id":  player.ProfileID,
+			"id":         player.ID,
+			"name":       player.PlayerName,
+			"slug":       player.Slug,
+			"short_name": player.ShortName,
+			"position":   player.Positions,
+			"country":    player.Country,
+			"media_url":  player.MediaUrl,
+			"game_id":    player.GameID,
+			"profile_id": player.ProfileID,
 		}
 		teamDetails = append(teamDetails, teamDetail)
 

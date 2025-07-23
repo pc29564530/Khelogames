@@ -395,20 +395,16 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID
 const updateMatchResult = `
 UPDATE matches m
 SET 
-    result = t.id,
+    result = $2,
     status_code = 'finished',
     end_timestamp = COALESCE(matches.end_timestamp, NOW()),
     updated_at = NOW()
-FROM match_results mr
-INNER JOIN teams t ON (t.id = mr.home_team_id OR t.id = mr.away_team_id)
-WHERE m.public_id = $1
-AND t.public_id = $2
-AND mr.match_id = m.id
-RETURNING m.*
+WHERE m.id = $1
+RETURNING *
 `
 
-func (q *Queries) UpdateMatchResult(ctx context.Context, matchPublicID, resultPublicID uuid.UUID) (models.Match, error) {
-	row := q.db.QueryRowContext(ctx, updateMatchResult, matchPublicID, resultPublicID)
+func (q *Queries) UpdateMatchResult(ctx context.Context, matchID, resultID int32) (models.Match, error) {
+	row := q.db.QueryRowContext(ctx, updateMatchResult, matchID, resultID)
 	var i models.Match
 	err := row.Scan(
 		&i.ID,

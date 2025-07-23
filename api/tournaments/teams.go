@@ -2,20 +2,23 @@ package tournaments
 
 import (
 	"encoding/json"
-	db "khelogames/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type addTournamentTeamRequest struct {
-	TournamentID int64 `json:"tournament_id"`
-	TeamID       int64 `json:"team_id"`
+	TournamentPublicID uuid.UUID `json:"tournament_public_id"`
+	TeamPublicID       uuid.UUID `json:"team_public_id"`
 }
 
 func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to add a team")
-	var req addTournamentTeamRequest
+	var req struct {
+		TournamentPublicID uuid.UUID `json:"tournament_public_id"`
+		TeamPublicID       uuid.UUID `json:"team_public_id"`
+	}
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind request: ", err)
@@ -31,7 +34,7 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	teamPlayer, err := s.store.GetTeamByPlayer(ctx, req.TeamID)
+	teamPlayer, err := s.store.GetPlayerByTeam(ctx, req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team player: ", err)
 		return
@@ -44,19 +47,14 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.NewTournamentTeamParams{
-		TournamentID: req.TournamentID,
-		TeamID:       req.TeamID,
-	}
-
-	newTeam, err := s.store.NewTournamentTeam(ctx, arg)
+	_, err = s.store.NewTournamentTeam(ctx, req.TournamentPublicID, req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to add team: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
-	teamByTournament, err := s.store.GetTournamentTeam(ctx, newTeam.TeamID, newTeam.TournamentID)
+	teamByTournament, err := s.store.GetTournamentTeam(ctx, req.TournamentPublicID, req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get Tournament Team: ", err)
 		return
@@ -75,7 +73,7 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 }
 
 type getTournamentTeamsRequest struct {
-	TournamentID int64 `uri:"tournament_id"`
+	TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 }
 
 func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
@@ -88,7 +86,7 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 		return
 	}
 
-	tournamentTeamsData, err := s.store.GetTournamentTeams(ctx, req.TournamentID)
+	tournamentTeamsData, err := s.store.GetTournamentTeams(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get teams: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Not found"})

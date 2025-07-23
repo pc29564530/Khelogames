@@ -3,28 +3,29 @@ package cricket
 import (
 	"khelogames/database/models"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Player struct {
-	ID         int64  `json:"id"`
-	PlayerName string `json:"player_name"`
-	ShortName  string `json:"short_name"`
-	Slug       string `json:"slug"`
-	Country    string `json:"country"`
-	Position   string `json:"position"`
-	MediaURL   string `json:"media_url"`
-	GameID     int64  `json:"game_id"`
-	ProfileID  int32  `json:"profile_id"`
+	ID         int64     `json:"id"`
+	PublicID   uuid.UUID `json:"public_id"`
+	PlayerName string    `json:"player_name"`
+	ShortName  string    `json:"short_name"`
+	Slug       string    `json:"slug"`
+	Country    string    `json:"country"`
+	Position   string    `json:"position"`
+	MediaURL   string    `json:"media_url"`
+	GameID     int64     `json:"game_id"`
+	ProfileID  int32     `json:"profile_id"`
 }
 
 type MatchSquadRequest struct {
-	MatchID *int64   `json:"match_id"`
-	TeamID  int64    `json:"team_id"`
-	Player  []Player `json:"player"`
-	OnBench []int64  `json:"on_bench"`
+	MatchPublicID uuid.UUID `json:"match_public_id"`
+	TeamPublicID  uuid.UUID `json:"team_public_id"`
+	Player        []Player  `json:"player"`
+	OnBench       []int64   `json:"on_bench"`
 }
 
 func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
@@ -44,7 +45,7 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 		var squad models.CricketSquad
 		var err error
 		isBench := benchMap[player.ID]
-		squad, err = s.store.AddCricketSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, isBench, false)
+		squad, err = s.store.AddCricketSquad(ctx, req.MatchPublicID, req.TeamPublicID, player.PublicID, player.Position, isBench, false)
 		if err != nil {
 			s.logger.Error("Failed to add cricket squad: ", err)
 			return
@@ -69,21 +70,17 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 
 func (s *CricketServer) GetCricketMatchSquadFunc(ctx *gin.Context) {
 
-	teamIDString := ctx.Query("team_id")
-	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
+	var req struct {
+		MatchPublicID uuid.UUID `json: "match_public_id"`
+		TeamPublicID  uuid.UUID `json:"team_public_id"`
+	}
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse team id: ", err)
+		s.logger.Error("Failed to bind ", err)
 		return
 	}
 
-	matchIDString := ctx.Query("match_id")
-	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
-	if err != nil {
-		s.logger.Error("Failed to parse match id: ", err)
-		return
-	}
-
-	cricketSquad, err := s.store.GetCricketMatchSquad(ctx, matchID, teamID)
+	cricketSquad, err := s.store.GetCricketMatchSquad(ctx, req.MatchPublicID, req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get cricket squad: ", err)
 		return

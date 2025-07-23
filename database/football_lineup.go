@@ -23,23 +23,19 @@ INSERT INTO football_squad (
     match_id,
     team_id,
     player_id,
-    position,
 	is_substitute,
-	role
 )
 SELECT 
 	matchID.id,
 	teamID.id,
 	playerID.id,
-	$4,
-	$5,
-	$6
+	$4
 FROM matchID, teamID, playerID
 RETURNING *;
 `
 
-func (q *Queries) AddFootballSquad(ctx context.Context, matchPublicID, teamPublicID, playerPublicID uuid.UUID, position string, IsSubstitute bool, Role string) (models.FootballSquad, error) {
-	row := q.db.QueryRowContext(ctx, addFootballSquad, matchPublicID, teamPublicID, playerPublicID, position, IsSubstitute, Role)
+func (q *Queries) AddFootballSquad(ctx context.Context, matchPublicID, teamPublicID, playerPublicID uuid.UUID, IsSubstitute bool) (models.FootballSquad, error) {
+	row := q.db.QueryRowContext(ctx, addFootballSquad, matchPublicID, teamPublicID, playerPublicID, IsSubstitute)
 	var i models.FootballSquad
 	err := row.Scan(
 		&i.ID,

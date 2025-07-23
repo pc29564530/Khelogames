@@ -7,14 +7,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type addFootballMatchScoreRequest struct {
-	MatchID    int64 `json:"match_id"`
-	TeamID     int64 `json:"team_id"`
-	FirstHalf  int32 `json:"first_half"`
-	SecondHalf int32 `json:"second_half"`
-	Goals      int64 `json:"goal_for"`
+	MatchPublicID uuid.UUID `json:"match_public_id"`
+	TeamPublicD   uuid.UUID `json:"team_public_id"`
+	FirstHalf     int32     `json:"first_half"`
+	SecondHalf    int32     `json:"second_half"`
+	Goals         int       `json:"goal_for"`
 }
 
 func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
@@ -26,12 +27,23 @@ func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
 		return
 	}
 
+	match, err := s.store.GetMatchByID(ctx, req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get match : ", err)
+		return
+	}
+	team, err := s.store.GetTeam(ctx, req.TeamPublicD)
+	if err != nil {
+		s.logger.Error("Failed to get team: ", err)
+		return
+	}
+
 	arg := db.NewFootballScoreParams{
-		MatchID:    req.MatchID,
-		TeamID:     req.TeamID,
+		MatchID:    int32(match.ID),
+		TeamID:     int32(team.ID),
 		FirstHalf:  req.FirstHalf,
 		SecondHalf: req.SecondHalf,
-		Goals:      req.Goals,
+		Goals:      int64(req.Goals),
 	}
 
 	response, err := s.store.NewFootballScore(ctx, arg)
@@ -51,10 +63,10 @@ type getFootballScoreRequest struct {
 	TeamID  int64 `json:"team_id"`
 }
 
-func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tournamentID int64) []map[string]interface{} {
+func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tournamentPublicID uuid.UUID) []map[string]interface{} {
 	ctx := context.Background()
 
-	tournament, err := s.store.GetTournament(ctx, tournamentID)
+	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament: ", err)
 	}
@@ -162,97 +174,4 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 	})
 
 	return matchDetail
-}
-
-type updateFootballMatchScoreRequest struct {
-	Goals   int64 `json:"goals"`
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
-}
-
-func (s *FootballServer) UpdateFootballMatchScoreFunc(ctx *gin.Context) {
-
-	var req updateFootballMatchScoreRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind update football match score: ", err)
-		return
-	}
-
-	arg := db.UpdateFootballScoreParams{
-		Goals:   req.Goals,
-		MatchID: req.MatchID,
-		TeamID:  req.TeamID,
-	}
-
-	response, err := s.store.UpdateFootballScore(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to update football match score: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-	return
-}
-
-type updateFootballMatchScoreFirstHalfRequest struct {
-	FirstHalf int32 `json:"first_half"`
-	MatchID   int64 `json:"match_id"`
-	TeamID    int64 `json:"team_id"`
-}
-
-func (s *FootballServer) UpdateFootballMatchScoreFirstHalfFunc(ctx *gin.Context) {
-
-	var req updateFootballMatchScoreFirstHalfRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind update football match score: ", err)
-		return
-	}
-
-	arg := db.UpdateFirstHalfScoreParams{
-		FirstHalf: req.FirstHalf,
-		MatchID:   req.MatchID,
-		TeamID:    req.TeamID,
-	}
-
-	response, err := s.store.UpdateFirstHalfScore(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to update football match score: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-	return
-}
-
-type updateFootballMatchScoreSecondHalfRequest struct {
-	SecondHalf int32 `json:"second_half"`
-	MatchID    int64 `json:"match_id"`
-	TeamID     int64 `json:"team_id"`
-}
-
-func (s *FootballServer) UpdateFootballMatchScoreSecondHalfFunc(ctx *gin.Context) {
-
-	var req updateFootballMatchScoreSecondHalfRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind update football match score: ", err)
-		return
-	}
-
-	arg := db.UpdateSecondHalfScoreParams{
-		SecondHalf: req.SecondHalf,
-		MatchID:    req.MatchID,
-		TeamID:     req.TeamID,
-	}
-
-	response, err := s.store.UpdateSecondHalfScore(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to update football match score: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-	return
 }

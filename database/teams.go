@@ -10,24 +10,37 @@ import (
 )
 
 const addTeamPlayers = `
+WITH resolve_ids AS (
+	SELECT
+		t.id AS team_id,
+		p.id AS player_id
+	FROM teams t, players p
+	WHERE t.public_id = $1 AND p.public_id = $2
+)
 INSERT INTO team_players (
     team_id,
     player_id,
 	join_date,
 	leave_date
-) VALUES ($1, $2, $3, $4)
-RETURNING *
+)
+SELECT 
+	ri.team_id,
+	ri.player_id,
+	$3,
+	$4
+FROM resolve_ids ri
+RETURING *;
 `
 
 type AddTeamPlayersParams struct {
-	TeamID    int32  `json:"team_id"`
-	PlayerID  int32  `json:"player_id"`
-	JoinDate  int32  `json:"join_date"`
-	LeaveDate *int32 `json:"leave_date"`
+	TeamPublicID   uuid.UUID `json:"team_public_id"`
+	PlayerPublicID uuid.UUID `json:"player_public_id"`
+	JoinDate       int32     `json:"join_date"`
+	LeaveDate      *int32    `json:"leave_date"`
 }
 
 func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID, arg.JoinDate, arg.LeaveDate)
+	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamPublicID, arg.PlayerPublicID, arg.JoinDate, arg.LeaveDate)
 	var i models.TeamPlayer
 	err := row.Scan(&i.TeamID, &i.PlayerID, &i.JoinDate, &i.LeaveDate)
 	return i, err
@@ -204,7 +217,7 @@ const getMatchesByTeam = `
 	WHERE (ht.public_id = $1 OR at.public_id = $1) AND t.game_id = $2;
 `
 
-func (q *Queries) GetMatchesByTeam(ctx context.Context, teamPublicID, gameID int64) ([]map[string]interface{}, error) {
+func (q *Queries) GetMatchesByTeam(ctx context.Context, teamPublicID uuid.UUID, gameID int64) ([]map[string]interface{}, error) {
 
 	rows, err := q.db.QueryContext(ctx, getMatchesByTeam, teamPublicID, gameID)
 	if err != nil {

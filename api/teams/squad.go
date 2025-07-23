@@ -4,15 +4,15 @@ import (
 	db "khelogames/database"
 	"khelogames/util"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type addPlayerToTeamRequest struct {
-	PlayerID int64  `json:"player_id"`
-	TeamID   int64  `json:"team_id"`
-	JoinDate string `json:"join_date"`
+	PlayerPublicID uuid.UUID `json:"player_public_id"`
+	TeamPublicID   uuid.UUID `json:"team_public_id"`
+	JoinDate       string    `json:"join_date"`
 }
 
 func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
@@ -30,43 +30,39 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to convert the timestamp to second ", err)
 	}
 
-	checkPlayerExist := s.store.GetTeamPlayer(ctx, req.TeamID, req.PlayerID)
+	checkPlayerExist := s.store.GetTeamPlayer(ctx, req.TeamPublicID, req.PlayerPublicID)
 	if checkPlayerExist {
-		arg := db.UpdateLeaveDateParams{
-			TeamID:    req.TeamID,
-			PlayerID:  req.PlayerID,
-			LeaveDate: nil,
-		}
-		_, err := s.store.RemovePlayerFromTeam(ctx, arg)
+		var leaveData int32
+		_, err := s.store.RemovePlayerFromTeam(ctx, req.TeamPublicID, req.PlayerPublicID, leaveData)
 		if err != nil {
 			s.logger.Error("Failed to update the the leave date: ", err)
 			return
 		}
 
-		player, err := s.store.GetPlayer(ctx, arg.PlayerID)
+		player, err := s.store.GetPlayer(ctx, req.PlayerPublicID)
 		if err != nil {
 			s.logger.Error("Failed to get the player: ", err)
 			return
 		}
 		playerData := map[string]interface{}{
-			"id":          player.ID,
-			"player_name": player.PlayerName,
-			"slug":        player.Slug,
-			"short_name":  player.ShortName,
-			"position":    player.Positions,
-			"country":     player.Country,
-			"media_url":   player.MediaUrl,
-			"game_id":     player.GameID,
-			"profile_id":  player.ProfileID,
+			"id":         player.ID,
+			"public_id":  player.PublicID,
+			"name":       player.Name,
+			"slug":       player.Slug,
+			"short_name": player.ShortName,
+			"position":   player.Positions,
+			"country":    player.Country,
+			"media_url":  player.MediaUrl,
+			"game_id":    player.GameID,
 		}
 		ctx.JSON(http.StatusAccepted, playerData)
 		return
 	} else {
 		arg := db.AddTeamPlayersParams{
-			TeamID:    req.TeamID,
-			PlayerID:  req.PlayerID,
-			JoinDate:  int32(startDate),
-			LeaveDate: nil,
+			TeamPublicID:   req.TeamPublicID,
+			PlayerPublicID: req.PlayerPublicID,
+			JoinDate:       int32(startDate),
+			LeaveDate:      nil,
 		}
 
 		members, err := s.store.AddTeamPlayers(ctx, arg)
@@ -81,15 +77,17 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 }
 
 func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
-	teamIDStr := ctx.Query("team_id")
-	teamID, err := strconv.ParseInt(teamIDStr, 10, 64)
+	var req struct {
+		TeamPublicID uuid.UUID `uri:"team_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse team id string: ", err)
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	s.logger.Debug("get club id from reqeust:", teamID)
 
-	players, err := s.store.GetPlayerByTeam(ctx, teamID)
+	players, err := s.store.GetPlayerByTeam(ctx, req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team member: ", err)
 		ctx.JSON(http.StatusNotFound, err)
@@ -100,6 +98,7 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 	for _, player := range players {
 		playerData := map[string]interface{}{
 			"id":          player.ID,
+			"public_id":   player.PublicID,
 			"player_name": player.PlayerName,
 			"slug":        player.Slug,
 			"short_name":  player.ShortName,
@@ -119,9 +118,9 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 }
 
 type removePlayerFromTeamRequest struct {
-	TeamID    int64  `json:"team_id"`
-	PlayerID  int64  `json:"player_id"`
-	LeaveDate string `json:"leave_date"`
+	TeamPublicID   uuid.UUID `json:"team_public_id"`
+	PlayerPublicID uuid.UUID `json:"player_public_id"`
+	LeaveDate      string    `json:"leave_date"`
 }
 
 func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
@@ -141,13 +140,7 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 	leave := int32(endDate)
 	var eddPointer *int32 = &leave
 
-	arg := db.UpdateLeaveDateParams{
-		TeamID:    req.TeamID,
-		PlayerID:  req.PlayerID,
-		LeaveDate: eddPointer,
-	}
-
-	response, err := s.store.RemovePlayerFromTeam(ctx, arg)
+	response, err := s.store.RemovePlayerFromTeam(ctx, req.TeamPublicID, req.PlayerPublicID, *eddPointer)
 	if err != nil {
 		s.logger.Error("Failed to remove player from team: ", err)
 		return

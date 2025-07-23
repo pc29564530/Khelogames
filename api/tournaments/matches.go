@@ -7,51 +7,53 @@ import (
 	"khelogames/database/models"
 	"khelogames/util"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 
-	tournamentIDStr := ctx.Query("tournament_id")
-	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	var req struct {
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse tournament id: ", err)
-		ctx.JSON(http.StatusNotAcceptable, err)
+		s.logger.Error("Failed to bind: ", err)
 		return
 	}
 	sports := strings.TrimSpace(ctx.Param("sport"))
-	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", tournamentID, sports))
-	s.logger.Debug("Tournament match params: ", tournamentID)
+	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", req.TournamentPublicID, sports))
+	s.logger.Debug("Tournament match params: ", req.TournamentPublicID)
 
-	matches, err := s.store.GetMatchByTournamentID(ctx, tournamentID)
+	matches, err := s.store.GetMatchByTournamentID(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament match: ", err)
 		return
 	}
 
 	checkSportServer := util.NewCheckSport(s.store, s.logger)
-	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, tournamentID)
+	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, matches[0].TournamentID)
 
 	s.logger.Info("successfully  get the tournament match: ", matchDetailsWithScore)
 	ctx.JSON(http.StatusAccepted, matchDetailsWithScore)
 }
 
 type createTournamentMatchRequest struct {
-	ID              int64   `json:"id"`
-	TournamentID    int64   `json:"tournament_id"`
-	AwayTeamID      int64   `json:"away_team_id"`
-	HomeTeamID      int64   `json:"home_team_id"`
-	StartTimestamp  string  `json:"start_timestamp"`
-	EndTimestamp    string  `json:"end_timestamp"`
-	Type            string  `json:"type"`
-	StatusCode      string  `json:"status_code"`
-	Result          *int64  `json:"result"`
-	Stage           string  `json:"stage"`
-	KnockoutLevelID *int32  `json:"knockout_level_id"`
-	MatchFormat     *string `json:"match_format"`
+	ID              int64     `json:"id"`
+	PublicID        uuid.UUID `json:"public_id"`
+	TournamentID    int64     `json:"tournament_id"`
+	AwayTeamID      int64     `json:"away_team_id"`
+	HomeTeamID      int64     `json:"home_team_id"`
+	StartTimestamp  string    `json:"start_timestamp"`
+	EndTimestamp    string    `json:"end_timestamp"`
+	Type            string    `json:"type"`
+	StatusCode      string    `json:"status_code"`
+	Result          *int64    `json:"result"`
+	Stage           string    `json:"stage"`
+	KnockoutLevelID *int32    `json:"knockout_level_id"`
+	MatchFormat     *string   `json:"match_format"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -127,16 +129,16 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	if gameName == "football" {
 
 		argAway := db.NewFootballScoreParams{
-			MatchID:    response.AwayTeamID,
-			TeamID:     response.AwayTeamID,
+			MatchID:    int32(response.ID),
+			TeamID:     int32(response.AwayTeamID),
 			FirstHalf:  0,
 			SecondHalf: 0,
 			Goals:      0,
 		}
 
 		argHome := db.NewFootballScoreParams{
-			MatchID:    response.HomeTeamID,
-			TeamID:     response.HomeTeamID,
+			MatchID:    int32(response.HomeTeamID),
+			TeamID:     int32(response.HomeTeamID),
 			FirstHalf:  0,
 			SecondHalf: 0,
 			Goals:      0,
@@ -172,8 +174,8 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, gameID int64, s *TournamentServer, tx *sql.Tx) {
 	if updatedMatchData.StatusCode == "not_started" {
 		argAway := db.NewFootballScoreParams{
-			MatchID:    updatedMatchData.ID,
-			TeamID:     updatedMatchData.AwayTeamID,
+			MatchID:    int32(updatedMatchData.ID),
+			TeamID:     int32(updatedMatchData.AwayTeamID),
 			FirstHalf:  0,
 			SecondHalf: 0,
 			Goals:      0,
@@ -187,8 +189,8 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 		}
 
 		argHome := db.NewFootballScoreParams{
-			MatchID:    updatedMatchData.ID,
-			TeamID:     updatedMatchData.HomeTeamID,
+			MatchID:    int32(updatedMatchData.ID),
+			TeamID:     int32(updatedMatchData.HomeTeamID),
 			FirstHalf:  0,
 			SecondHalf: 0,
 			Goals:      0,
@@ -202,8 +204,8 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 		}
 
 		argStatisticsHome := db.CreateFootballStatisticsParams{
-			MatchID:         updatedMatchData.ID,
-			TeamID:          updatedMatchData.HomeTeamID,
+			MatchID:         int32(updatedMatchData.ID),
+			TeamID:          int32(updatedMatchData.HomeTeamID),
 			ShotsOnTarget:   0,
 			TotalShots:      0,
 			CornerKicks:     0,
@@ -215,8 +217,8 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 		}
 
 		argStatisticsAway := db.CreateFootballStatisticsParams{
-			MatchID:         updatedMatchData.ID,
-			TeamID:          updatedMatchData.AwayTeamID,
+			MatchID:         int32(updatedMatchData.ID),
+			TeamID:          int32(updatedMatchData.AwayTeamID),
 			ShotsOnTarget:   0,
 			TotalShots:      0,
 			CornerKicks:     0,
@@ -260,13 +262,13 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 		}
 
 		if awayScore.Goals > homeScore.Goals {
-			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, updatedMatchData.AwayTeamID)
+			_, err := s.store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
 			if err != nil {
 				tx.Rollback()
 				s.logger.Error("Failed to update match result: ", err)
 			}
 		} else if homeScore.Goals > awayScore.Goals {
-			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, updatedMatchData.HomeTeamID)
+			_, err := s.store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
 			if err != nil {
 				tx.Rollback()
 				s.logger.Error("Failed to update match result: ", err)
@@ -277,36 +279,27 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 
 func updateCricketStatusCode(ctx *gin.Context, updatedMatchData models.Match, gameID int64, s *TournamentServer, tx *sql.Tx) {
 	if updatedMatchData.StatusCode == "finished" {
-		argAway := db.GetCricketScoreParams{
-			MatchID: updatedMatchData.ID,
-			TeamID:  updatedMatchData.AwayTeamID,
-		}
 
-		awayScore, err := s.store.GetCricketScore(ctx, argAway)
+		awayScore, err := s.store.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
 		if err != nil {
 			tx.Rollback()
 			s.logger.Error("Failed to get away score: ", err)
 		}
 
-		argHome := db.GetCricketScoreParams{
-			MatchID: updatedMatchData.ID,
-			TeamID:  updatedMatchData.HomeTeamID,
-		}
-
-		homeScore, err := s.store.GetCricketScore(ctx, argHome)
+		homeScore, err := s.store.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
 		if err != nil {
 			tx.Rollback()
 			s.logger.Error("Failed to get away score: ", err)
 		}
 
 		if awayScore.Score > homeScore.Score {
-			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, updatedMatchData.AwayTeamID)
+			_, err := s.store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
 			if err != nil {
 				tx.Rollback()
 				s.logger.Error("Failed to update match result: ", err)
 			}
 		} else if homeScore.Score > awayScore.Score {
-			_, err := s.store.UpdateMatchResult(ctx, updatedMatchData.ID, updatedMatchData.HomeTeamID)
+			_, err := s.store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
 			if err != nil {
 				tx.Rollback()
 				s.logger.Error("Failed to update match result: ", err)
@@ -316,8 +309,8 @@ func updateCricketStatusCode(ctx *gin.Context, updatedMatchData models.Match, ga
 }
 
 type updateStatusRequest struct {
-	ID         int64  `json:"id"`
-	StatusCode string `json:"status_code"`
+	MatchPublicID uuid.UUID `json:"match_public_id"`
+	StatusCode    string    `json:"status_code"`
 }
 
 func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
@@ -344,12 +337,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.UpdateMatchStatusParams{
-		ID:         req.ID,
-		StatusCode: req.StatusCode,
-	}
-
-	updatedMatchData, err := s.store.UpdateMatchStatus(ctx, arg)
+	updatedMatchData, err := s.store.UpdateMatchStatus(ctx, req.MatchPublicID, req.StatusCode)
 	if err != nil {
 		tx.Rollback()
 		s.logger.Error("unable to update the match status: ", err)
@@ -358,7 +346,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	if updatedMatchData.StatusCode == "finished" {
 
-		_, err := s.store.AddORUpdateFootballPlayerStats(ctx, req.ID)
+		_, err := s.store.AddORUpdateFootballPlayerStats(ctx, req.MatchPublicID)
 		if err != nil {
 			s.logger.Error("Failed to add or update player stats: ", err)
 			return
@@ -373,7 +361,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	s.logger.Info("successfully updated the match status")
 
-	match, err := s.store.GetMatchByMatchID(ctx, updatedMatchData.ID, gameID.ID)
+	match, err := s.store.GetMatchByMatchID(ctx, req.MatchPublicID, gameID.ID)
 	if err != nil {
 		s.logger.Error("Failed to get match: ", err)
 	}
@@ -388,8 +376,8 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 }
 
 type updateMatchResultRequest struct {
-	ID     int64 `json:"id"`
-	Result int64 `json:"result"`
+	MatchPublicID uuid.UUID `json:"match_public_id"`
+	Result        uuid.UUID `json:"result"`
 }
 
 func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
@@ -400,7 +388,19 @@ func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	response, err := s.store.UpdateMatchResult(ctx, req.ID, req.Result)
+	match, err := s.store.GetMatchByID(ctx, req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get match ", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	team, err := s.store.GetTeam(ctx, req.Result)
+	if err != nil {
+		s.logger.Error("Failed to team ", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	response, err := s.store.UpdateMatchResult(ctx, int32(match.ID), int32(team.ID))
 	if err != nil {
 		s.logger.Error("Failed to update result: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)

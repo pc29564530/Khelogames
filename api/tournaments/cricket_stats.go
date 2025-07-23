@@ -4,11 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *TournamentServer) GetCricketTournamentMostRunsFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -17,7 +18,7 @@ func (s *TournamentServer) GetCricketTournamentMostRunsFunc(ctx *gin.Context) {
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentMostRuns(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentMostRuns(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most runs: ", err)
 		return
@@ -29,7 +30,7 @@ func (s *TournamentServer) GetCricketTournamentMostRunsFunc(ctx *gin.Context) {
 
 func (s *TournamentServer) GetCricketTournamentHighestRunsFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -38,7 +39,7 @@ func (s *TournamentServer) GetCricketTournamentHighestRunsFunc(ctx *gin.Context)
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentHighestRuns(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentHighestRuns(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket highest runs: ", err)
 		return
@@ -51,7 +52,7 @@ func (s *TournamentServer) GetCricketTournamentHighestRunsFunc(ctx *gin.Context)
 // GetCricketTournamentMostSixes
 func (s *TournamentServer) GetCricketTournamentMostSixesFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -60,7 +61,7 @@ func (s *TournamentServer) GetCricketTournamentMostSixesFunc(ctx *gin.Context) {
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentMostSixes(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentMostSixes(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most sixes: ", err)
 		return
@@ -73,7 +74,7 @@ func (s *TournamentServer) GetCricketTournamentMostSixesFunc(ctx *gin.Context) {
 // GetCricketTournamentMostFours
 func (s *TournamentServer) GetCricketTournamentMostFoursFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -82,7 +83,7 @@ func (s *TournamentServer) GetCricketTournamentMostFoursFunc(ctx *gin.Context) {
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentMostFours(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentMostFours(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most fours: ", err)
 		return
@@ -95,7 +96,7 @@ func (s *TournamentServer) GetCricketTournamentMostFoursFunc(ctx *gin.Context) {
 // GetCricketTournamentMostFifties
 func (s *TournamentServer) GetCricketTournamentMostFiftiesFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -104,7 +105,7 @@ func (s *TournamentServer) GetCricketTournamentMostFiftiesFunc(ctx *gin.Context)
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentMostFifties(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentMostFifties(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most fifties: ", err)
 		return
@@ -117,7 +118,7 @@ func (s *TournamentServer) GetCricketTournamentMostFiftiesFunc(ctx *gin.Context)
 // GetCricketTournamentMostHundreds
 func (s *TournamentServer) GetCricketTournamentMostHundredsFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -126,7 +127,7 @@ func (s *TournamentServer) GetCricketTournamentMostHundredsFunc(ctx *gin.Context
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentMostHundreds(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentMostHundreds(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most hundreds: ", err)
 		return
@@ -140,7 +141,7 @@ func (s *TournamentServer) GetCricketTournamentMostHundredsFunc(ctx *gin.Context
 // GetCricketTournamentMostWickets
 func (s *TournamentServer) GetCricketTournamentMostWicketsFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -149,7 +150,7 @@ func (s *TournamentServer) GetCricketTournamentMostWicketsFunc(ctx *gin.Context)
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentMostWickets(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentMostWickets(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most wickets: ", err)
 		return
@@ -162,7 +163,7 @@ func (s *TournamentServer) GetCricketTournamentMostWicketsFunc(ctx *gin.Context)
 // GetCricketTournamentBowlwingEconomyRate
 func (s *TournamentServer) GetCricketTournamentBowlingEconomyRateFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -171,7 +172,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingEconomyRateFunc(ctx *gin.C
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentBowlingEconomyRate(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentBowlingEconomyRate(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket bowling economy rate: ", err)
 		return
@@ -184,7 +185,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingEconomyRateFunc(ctx *gin.C
 // GetCricketTournamentBowlingAverage
 func (s *TournamentServer) GetCricketTournamentBowlingAverageFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -193,7 +194,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingAverageFunc(ctx *gin.Conte
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentBowlingAverage(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentBowlingAverage(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket bowling average: ", err)
 		return
@@ -206,7 +207,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingAverageFunc(ctx *gin.Conte
 // GetCricketTournamentBowlwingEconomyRate
 func (s *TournamentServer) GetCricketTournamentBowlingStrikeRateFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -215,7 +216,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingStrikeRateFunc(ctx *gin.Co
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentBowlingStrikeRate(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentBowlingStrikeRate(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket bowling strike rate: ", err)
 		return
@@ -228,7 +229,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingStrikeRateFunc(ctx *gin.Co
 // GetCricketTournamentBowlwingEconomyRate
 func (s *TournamentServer) GetCricketTournamentBowlingFiveWicketHaulFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -237,7 +238,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingFiveWicketHaulFunc(ctx *gi
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentBowlingFiveWicketHaul(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentBowlingFiveWicketHaul(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket  five wicket haul: ", err)
 		return
@@ -250,7 +251,7 @@ func (s *TournamentServer) GetCricketTournamentBowlingFiveWicketHaulFunc(ctx *gi
 // GetCricketTournamentBattingAverage
 func (s *TournamentServer) GetCricketTournamentBattingAverageFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -259,7 +260,7 @@ func (s *TournamentServer) GetCricketTournamentBattingAverageFunc(ctx *gin.Conte
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentBattingAverage(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentBattingAverage(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket batting average: ", err)
 		return
@@ -272,7 +273,7 @@ func (s *TournamentServer) GetCricketTournamentBattingAverageFunc(ctx *gin.Conte
 // GetCricketTournamentBattingAverage
 func (s *TournamentServer) GetCricketTournamentBattingStrikeFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -281,7 +282,7 @@ func (s *TournamentServer) GetCricketTournamentBattingStrikeFunc(ctx *gin.Contex
 		return
 	}
 
-	stats, err := s.store.GetCricketTournamentBattingStrikeRate(ctx, req.TournamentID)
+	stats, err := s.store.GetCricketTournamentBattingStrikeRate(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket batting strike: ", err)
 		return

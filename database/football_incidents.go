@@ -246,14 +246,12 @@ func (q *Queries) GetFootballIncidentWithPlayer(ctx context.Context, matchPublic
 
 const getFootballScoreByIncidentTime = `
 SELECT SUM ( CASE WHEN team_id=$3 AND incident_type='goal' THEN 1 ELSE 0 END )
-FROM football_incidents
-JOIN matches m ON m.id = fi.match_id
-JOIN teams t ON t.id = fi.team_id
-WHERE fi.public_id = $1 AND m.public_id = $2 AND t.public_id = $3
+FROM football_incidents fi
+WHERE fi.id = $1 AND fi.match_id = $2 AND fi.team_id = $3
 `
 
-func (q *Queries) GetFootballScoreByIncidentTime(ctx context.Context, incidentPublicID, matchPublicID, teamPublicID uuid.UUID) ([]int64, error) {
-	rows, err := q.db.QueryContext(ctx, getFootballScoreByIncidentTime, incidentPublicID, matchPublicID, teamPublicID)
+func (q *Queries) GetFootballScoreByIncidentTime(ctx context.Context, incidentID, matchID, teamID int32) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballScoreByIncidentTime, incidentID, matchID, teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -279,12 +277,11 @@ const getFootballShootoutScoreByTeam = `
 SELECT SUM ( CASE WHEN team_id=$1 AND incident_type='penalty_shootout' AND penalty_shootout_scored='t' THEN 1 ELSE 0 END )
 FROM football_incidents fi
 JOIN matches m ON  m.id = fi.match_id
-JOIN teams t ON t.id = fi.team_id
-WHERE fi.public_id=$1 AND m.public_id = $2 AND t.public_id = $3
+WHERE fi.public_id=$1 AND m.public_id = $2 AND fi.team_id = $3
 `
 
-func (q *Queries) GetFootballShootoutScoreByTeam(ctx context.Context, incidentPublicID, matchPublicID, teamPublicID uuid.UUID) ([]int64, error) {
-	rows, err := q.db.QueryContext(ctx, getFootballShootoutScoreByTeam, incidentPublicID, matchPublicID, teamPublicID)
+func (q *Queries) GetFootballShootoutScoreByTeam(ctx context.Context, incidentPublicID, matchPublicID uuid.UUID, teamID int32) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getFootballShootoutScoreByTeam, incidentPublicID, matchPublicID, teamID)
 	if err != nil {
 		return nil, err
 	}

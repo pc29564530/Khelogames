@@ -2,23 +2,24 @@ package tournaments
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 
-	tournamentIDStr := ctx.Query("tournament_id")
+	var req struct {
+		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
+	}
 
-	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse tournament id: ", err)
-		ctx.JSON(http.StatusResetContent, err)
+		s.logger.Error("Failed to bind: ", err)
 		return
 	}
 
-	rows, err := s.store.GetCricketStanding(ctx, tournamentID)
+	rows, err := s.store.GetCricketStanding(ctx, req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get cricket standing: ", err)
 		ctx.JSON(http.StatusNotFound, err)
@@ -42,6 +43,7 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		tournamentID, _ := dataMap.(map[string]interface{})["tournament_id"].(float64)
 		groupID := dataMap.(map[string]interface{})["group_id"].(float64)
 		id := dataMap.(map[string]interface{})["id"].(float64)
+		publicID := dataMap.(map[string]interface{})["public_id"].(uuid.UUID)
 		matches := dataMap.(map[string]interface{})["matches"].(float64)
 		wins := dataMap.(map[string]interface{})["wins"].(float64)
 		loss := dataMap.(map[string]interface{})["loss"].(float64)
@@ -54,6 +56,7 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 			"tournament_id": int64(tournamentID),
 			"group_id":      int64(groupID),
 			"id":            int64(id),
+			"public_id":     publicID,
 			"matches":       int32(matches),
 			"wins":          int32(wins),
 			"loss":          int32(loss),
@@ -70,13 +73,14 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		groupID := standing["group_id"]
 		grpID := groupID.(int64)
 		groupData[grpID] = append(groupData[grpID], map[string]interface{}{
-			"teams":   standing["teams"],
-			"id":      standing["id"],
-			"matches": standing["matches"],
-			"wins":    standing["wins"],
-			"loss":    standing["loss"],
-			"draw":    standing["draw"],
-			"points":  standing["points"],
+			"teams":     standing["teams"],
+			"id":        standing["id"],
+			"public_id": standing["public_id"],
+			"matches":   standing["matches"],
+			"wins":      standing["wins"],
+			"loss":      standing["loss"],
+			"draw":      standing["draw"],
+			"points":    standing["points"],
 		})
 
 		// Set the group name if not already visited
@@ -104,8 +108,8 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 }
 
 type updateCricketStandingRequest struct {
-	TournamentID int64 `json:"tournament_id"`
-	TeamID       int64 `json:"team_id"`
+	TournamentPublicID uuid.UUID `json:"tournament_public_id"`
+	TeamPublicID       uuid.UUID `json:"team_public_id"`
 }
 
 func (s *TournamentServer) UpdateCricketStandingFunc(ctx *gin.Context) {
@@ -118,7 +122,7 @@ func (s *TournamentServer) UpdateCricketStandingFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
-	response, err := s.store.UpdateCricketStanding(ctx, req.TournamentID, req.TeamID)
+	response, err := s.store.UpdateCricketStanding(ctx, req.TournamentPublicID, req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to update tournament standing: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)

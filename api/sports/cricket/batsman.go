@@ -2,34 +2,24 @@ package cricket
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *CricketServer) GetCurrentBatsmanFunc(ctx *gin.Context) {
-	matchIDString := ctx.Query("match_id")
-	teamIDString := ctx.Query("team_id")
-	inningStr := ctx.Query("inning_number")
-	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
+	var req struct {
+		MatchPublicID uuid.UUID `json: "match_public_id"`
+		TeamPublicID  uuid.UUID `json:"team_public_id"`
+		InningNumber  int       `json:"inning_number"`
+	}
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse match id ", err)
+		s.logger.Error("Failed to bind ", err)
 		return
 	}
 
-	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
-	if err != nil {
-		s.logger.Error("Failed to parse team id ", err)
-		return
-	}
-
-	inning, err := strconv.Atoi(inningStr)
-	if err != nil {
-		s.logger.Error("Failed to parse inning ", err)
-		return
-	}
-
-	currentBatsmansResponse, err := s.store.GetCurrentBatsman(ctx, matchID, teamID, inning)
+	currentBatsmansResponse, err := s.store.GetCurrentBatsman(ctx, req.MatchPublicID, req.TeamPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get current batsman score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

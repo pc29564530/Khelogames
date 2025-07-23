@@ -5,11 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type addFootballStatisticsRequest struct {
-	MatchID         int64 `json:"match_id"`
-	TeamID          int64 `json:"team_id"`
+	MatchID         int32 `json:"match_id"`
+	TeamID          int32 `json:"team_id"`
 	ShotsOnTarget   int32 `json:"shots_on_target"`
 	TotalShots      int32 `json:"total_shots"`
 	CornerKicks     int32 `json:"corner_kicks"`
@@ -29,8 +30,8 @@ func (s *FootballServer) AddFootballStatisticsFunc(ctx *gin.Context) {
 	}
 
 	arg := db.CreateFootballStatisticsParams{
-		MatchID:         req.MatchID,
-		TeamID:          req.TeamID,
+		MatchID:         int32(req.MatchID),
+		TeamID:          int32(req.TeamID),
 		ShotsOnTarget:   req.ShotsOnTarget,
 		TotalShots:      req.TotalShots,
 		CornerKicks:     req.CornerKicks,
@@ -51,8 +52,8 @@ func (s *FootballServer) AddFootballStatisticsFunc(ctx *gin.Context) {
 }
 
 type getFootballStatisticsRequest struct {
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
+	MatchPublicID uuid.UUID `json:"match_public_id"`
+	TeamPublicID  uuid.UUID `json:"team_public_id"`
 }
 
 func (s *FootballServer) GetFootballStatisticsFunc(ctx *gin.Context) {
@@ -63,12 +64,7 @@ func (s *FootballServer) GetFootballStatisticsFunc(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.GetFootballStatisticsParams{
-		MatchID: req.MatchID,
-		TeamID:  req.TeamID,
-	}
-
-	response, err := s.store.GetFootballStatistics(ctx, arg)
+	response, err := s.store.GetFootballStatistics(ctx, req.MatchPublicID, req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the football statistics: ", err)
 	}
