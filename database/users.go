@@ -3,18 +3,21 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const getUser = `
 SELECT * FROM users
-WHERE username = $1 LIMIT 1
+WHERE public_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUser(ctx context.Context, username string) (models.Users, error) {
-	row := q.db.QueryRowContext(ctx, getUser, username)
+func (q *Queries) GetUser(ctx context.Context, publicID uuid.UUID) (models.Users, error) {
+	row := q.db.QueryRowContext(ctx, getUser, publicID)
 	var users models.Users
 	err := row.Scan(
 		&users.ID,
+		&users.PublicID,
 		&users.FullName,
 		&users.Username,
 		&users.Email,
@@ -31,8 +34,8 @@ func (q *Queries) GetUser(ctx context.Context, username string) (models.Users, e
 
 const listUser = `
 SELECT * FROM users
-WHERE username = $1
-ORDER BY username
+WHERE public_id = $1
+ORDER BY id
 LIMIT $2
 OFFSET $3
 `
@@ -48,6 +51,7 @@ func (q *Queries) ListUser(ctx context.Context, pageSize, offSet int32) ([]model
 		var users models.Users
 		if err := rows.Scan(
 			&users.ID,
+			&users.PublicID,
 			&users.FullName,
 			&users.Username,
 			&users.Email,
@@ -82,6 +86,7 @@ func (q *Queries) GetUsersByGmail(ctx context.Context, gmail string) (*models.Us
 	var users models.Users
 	err := row.Scan(
 		&users.ID,
+		&users.PublicID,
 		&users.FullName,
 		&users.Username,
 		&users.Email,
@@ -111,6 +116,7 @@ func (q *Queries) UpdateUser(ctx context.Context, userID int32, fullName string)
 	var users models.Users
 	err := row.Scan(
 		&users.ID,
+		&users.PublicID,
 		&users.FullName,
 		&users.Username,
 		&users.Email,

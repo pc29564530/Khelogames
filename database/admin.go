@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const addAdmin = `
@@ -14,8 +16,8 @@ RETURNING id, content_id, admin
 `
 
 type AddAdminParams struct {
-	ContentID int64  `json:"content_id"`
-	Admin     string `json:"admin"`
+	ContentID int64     `json:"content_id"`
+	Admin     uuid.UUID `json:"admin"`
 }
 
 func (q *Queries) AddAdmin(ctx context.Context, arg AddAdminParams) (models.ContentAdmin, error) {
@@ -32,8 +34,8 @@ RETURNING id, content_id, admin
 `
 
 type DeleteAdminParams struct {
-	ContentID int64  `json:"content_id"`
-	Admin     string `json:"admin"`
+	ContentID int64     `json:"content_id"`
+	Admin     uuid.UUID `json:"admin"`
 }
 
 func (q *Queries) DeleteAdmin(ctx context.Context, arg DeleteAdminParams) (models.ContentAdmin, error) {

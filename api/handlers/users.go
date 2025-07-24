@@ -1,9 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
-	db "khelogames/database"
-
 	"net/http"
 	"time"
 
@@ -33,59 +30,8 @@ type userResponse struct {
 	Gmail        string `json:"gmail"`
 }
 
-func CreateNewToken(ctx *gin.Context, username string, s *HandlersServer, tx *sql.Tx) map[string]interface{} {
-	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
-		username,
-		s.config.AccessTokenDuration,
-	)
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create access token", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return nil
-	}
-	s.logger.Debug("created a accesstoken: ", accessToken)
-
-	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
-		username,
-		s.config.RefreshTokenDuration,
-	)
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create refresh token", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return nil
-	}
-
-	s.logger.Debug("created a refresh token: ", refreshToken)
-
-	session, err := s.store.CreateSessions(ctx, db.CreateSessionsParams{
-		ID:           refreshPayload.ID,
-		Username:     username,
-		RefreshToken: refreshToken,
-		UserAgent:    ctx.Request.UserAgent(),
-		ClientIp:     ctx.ClientIP(),
-		ExpiresAt:    refreshPayload.ExpiredAt,
-	})
-
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create session", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return nil
-	}
-
-	return map[string]interface{}{
-		"accessToken":    accessToken,
-		"accessPayload":  accessPayload,
-		"refreshToken":   refreshToken,
-		"refreshPayload": refreshPayload,
-		"session":        session,
-	}
-}
-
 type getUserRequest struct {
-	Username string `uri:"username"`
+	PublicID uuid.UUID `uri:"public_id"`
 }
 
 func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
@@ -98,7 +44,7 @@ func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the reqeust: ", req)
 
-	users, err := s.store.GetUser(ctx, req.Username)
+	users, err := s.store.GetUser(ctx, req.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
