@@ -98,7 +98,7 @@ func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	response, err := s.store.GetTeam(ctx, req.PublicID)
+	response, err := s.store.GetTeamByPublicID(ctx, req.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get club: ", err)
 		ctx.JSON(http.StatusNoContent, (err))
@@ -224,7 +224,6 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 			"country":    player.Country,
 			"media_url":  player.MediaUrl,
 			"game_id":    player.GameID,
-			"profile_id": player.ProfileID,
 		}
 		teamDetails = append(teamDetails, teamDetail)
 

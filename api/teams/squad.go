@@ -39,7 +39,7 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			return
 		}
 
-		player, err := s.store.GetPlayer(ctx, req.PlayerPublicID)
+		player, err := s.store.GetPlayerByPublicID(ctx, req.PlayerPublicID)
 		if err != nil {
 			s.logger.Error("Failed to get the player: ", err)
 			return
@@ -106,7 +106,6 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 			"country":     player.Country,
 			"media_url":   player.MediaUrl,
 			"game_id":     player.GameID,
-			"profile_id":  player.ProfileID,
 		}
 		playerList = append(playerList, playerData)
 	}

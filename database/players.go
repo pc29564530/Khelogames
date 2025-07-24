@@ -46,14 +46,78 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 	return items, nil
 }
 
+// Existing method - gets player by user's public ID
 const getPlayer = `
-SELECT * FROM players p
+SELECT p.id, p.public_id, p.user_id, p.name, p.slug, p.short_name, p.media_url, p.positions, p.country, p.game_id
+FROM players p
 JOIN users AS u ON u.id = p.user_id
 WHERE u.public_id=$1
 `
 
 func (q *Queries) GetPlayer(ctx context.Context, userPublicID uuid.UUID) (*models.Player, error) {
 	row := q.db.QueryRowContext(ctx, getPlayer, userPublicID)
+	var i models.Player
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
+		&i.ShortName,
+		&i.MediaUrl,
+		&i.Positions,
+		&i.Country,
+		&i.GameID,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &i, err
+}
+
+// New method - gets player by player's own public ID
+const getPlayerByPublicID = `
+SELECT p.id, p.public_id, p.user_id, p.name, p.slug, p.short_name, p.media_url, p.positions, p.country, p.game_id
+FROM players p
+WHERE p.public_id=$1
+`
+
+func (q *Queries) GetPlayerByPublicID(ctx context.Context, playerPublicID uuid.UUID) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerByPublicID, playerPublicID)
+	var i models.Player
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
+		&i.ShortName,
+		&i.MediaUrl,
+		&i.Positions,
+		&i.Country,
+		&i.GameID,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &i, err
+}
+
+// Method to get player by internal ID (for cases where you have the int64 ID)
+const getPlayerByID = `
+SELECT p.id, p.public_id, p.user_id, p.name, p.slug, p.short_name, p.media_url, p.positions, p.country, p.game_id
+FROM players p
+WHERE p.id=$1
+`
+
+func (q *Queries) GetPlayerByID(ctx context.Context, playerID int64) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerByID, playerID)
 	var i models.Player
 	err := row.Scan(
 		&i.ID,

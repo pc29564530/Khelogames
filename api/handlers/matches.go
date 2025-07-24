@@ -3,9 +3,9 @@ package handlers
 import (
 	"khelogames/util"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
@@ -31,20 +31,24 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 }
 
 func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
+	var req struct {
+		MatchPublicID uuid.UUID `uri:"match_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
 	sport := ctx.Param("sport")
 	game, err := s.store.GetGamebyName(ctx, sport)
 	if err != nil {
 		s.logger.Error("Failed to get game by name: ", err)
 		return
 	}
-	matchIDStr := ctx.Query("match_id")
-	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
-	if err != nil {
-		s.logger.Error("Failed to parse match_id: ", err)
-		return
-	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, matchID, game.ID)
+	match, err := s.store.GetMatchByMatchID(ctx, req.MatchPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by match id: ", err)
 		return

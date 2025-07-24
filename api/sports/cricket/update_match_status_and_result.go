@@ -5,7 +5,7 @@ import (
 	"khelogames/database/models"
 )
 
-func (s *CricketServer) UpdateMatchStatusAndResult(ctx context.Context, inningScore *models.CricketScore, matchData map[string]interface{}, matchID int64) error {
+func (s *CricketServer) UpdateMatchStatusAndResult(ctx context.Context, inningScore *models.CricketScore, matchData *models.Match, matchID int64) error {
 	if inningScore.IsInningCompleted {
 		matchInningScore, err := s.store.GetCricketScores(ctx, int32(matchID))
 		if err != nil {
@@ -19,16 +19,16 @@ func (s *CricketServer) UpdateMatchStatusAndResult(ctx context.Context, inningSc
 					s.logger.Error("Failed to update match result: ", err)
 					return err
 				}
-				matchData["status_code"] = updateMatchStatusResponse.StatusCode
-				matchData["result"] = updateMatchStatusResponse.Result
+				matchData.StatusCode = updateMatchStatusResponse.StatusCode
+				matchData.Result = updateMatchStatusResponse.Result
 			} else if matchInningScore[0].Score < matchInningScore[1].Score {
 				updateMatchStatusResponse, err := s.store.UpdateMatchResult(ctx, int32(matchID), int32(matchInningScore[1].TeamID))
 				if err != nil {
 					s.logger.Error("Failed to update match result: ", err)
 					return err
 				}
-				matchData["status_code"] = updateMatchStatusResponse.StatusCode
-				matchData["result"] = updateMatchStatusResponse.Result
+				matchData.StatusCode = updateMatchStatusResponse.StatusCode
+				matchData.Result = updateMatchStatusResponse.Result
 			}
 		} else if len(matchInningScore) == 4 {
 			firstBatTeamScore := matchInningScore[0].Score + matchInningScore[2].Score
@@ -39,16 +39,16 @@ func (s *CricketServer) UpdateMatchStatusAndResult(ctx context.Context, inningSc
 					s.logger.Error("Failed to update match result: ", err)
 					return err
 				}
-				matchData["status_code"] = updateMatchStatusResponse.StatusCode
-				matchData["result"] = updateMatchStatusResponse.Result
+				matchData.StatusCode = updateMatchStatusResponse.StatusCode
+				matchData.Result = updateMatchStatusResponse.Result
 			} else if firstBatTeamScore < secondBatTeamScore {
 				updateMatchStatusResponse, err := s.store.UpdateMatchResult(ctx, int32(matchID), int32(matchInningScore[1].TeamID))
 				if err != nil {
 					s.logger.Error("Failed to update match result: ", err)
 					return err
 				}
-				matchData["status_code"] = updateMatchStatusResponse.StatusCode
-				matchData["result"] = updateMatchStatusResponse.Result
+				matchData.StatusCode = updateMatchStatusResponse.StatusCode
+				matchData.Result = updateMatchStatusResponse.Result
 			}
 		}
 	}

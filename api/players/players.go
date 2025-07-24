@@ -84,7 +84,7 @@ func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetPlayer(ctx, req.PlayerPublicID)
+	response, err := s.store.GetPlayerByPublicID(ctx, req.PlayerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
 		ctx.JSON(http.StatusNoContent, err)

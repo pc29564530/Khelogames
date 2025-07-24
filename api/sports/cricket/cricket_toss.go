@@ -35,7 +35,7 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 		s.logger.Error("Failed to get the match by id: ", err)
 		return
 	}
-	var teamID int64
+	var teamID int32
 	if req.TossDecision == "batting" {
 		teamID = response.TossWin
 	} else {
@@ -107,7 +107,7 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 		return
 	}
 
-	tossWonTeam, err := s.store.GetTeam(ctx, publicID)
+	tossWonTeam, err := s.store.GetTeamByPublicID(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get team: ", err)
 		return

@@ -34,7 +34,7 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	}
 
 	checkSportServer := util.NewCheckSport(s.store, s.logger)
-	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, matches[0].TournamentID)
+	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, req.TournamentPublicID)
 
 	s.logger.Info("successfully  get the tournament match: ", matchDetailsWithScore)
 	ctx.JSON(http.StatusAccepted, matchDetailsWithScore)
@@ -241,7 +241,7 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 	} else if updatedMatchData.StatusCode == "finished" {
 		argAway := db.GetFootballScoreParams{
 			MatchID: updatedMatchData.ID,
-			TeamID:  updatedMatchData.AwayTeamID,
+			TeamID:  int64(updatedMatchData.AwayTeamID),
 		}
 
 		awayScore, err := s.store.GetFootballScore(ctx, argAway)
@@ -252,7 +252,7 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 
 		argHome := db.GetFootballScoreParams{
 			MatchID: updatedMatchData.ID,
-			TeamID:  updatedMatchData.HomeTeamID,
+			TeamID:  int64(updatedMatchData.HomeTeamID),
 		}
 
 		homeScore, err := s.store.GetFootballScore(ctx, argHome)
@@ -394,7 +394,7 @@ func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	team, err := s.store.GetTeam(ctx, req.Result)
+	team, err := s.store.GetTeamByPublicID(ctx, req.Result)
 	if err != nil {
 		s.logger.Error("Failed to team ", err)
 		ctx.JSON(http.StatusInternalServerError, err)

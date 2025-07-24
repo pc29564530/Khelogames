@@ -86,9 +86,9 @@ ORDER BY m.id ASC;
 type GetMatchByIDRow struct {
 	ID                  int64     `json:"id"`
 	PublicID            uuid.UUID `json:"public_id"`
-	TournamentID        int64     `json:"tournament_id"`
-	AwayTeamID          int64     `json:"away_team_id"`
-	HomeTeamID          int64     `json:"home_team_id"`
+	TournamentID        int32     `json:"tournament_id"`
+	AwayTeamID          int32     `json:"away_team_id"`
+	HomeTeamID          int32     `json:"home_team_id"`
 	StartTimestamp      int64     `json:"start_timestamp"`
 	EndTimestamp        int64     `json:"end_timestamp"`
 	Type                string    `json:"type"`

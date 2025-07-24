@@ -34,6 +34,33 @@ func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (models
 	return i, err
 }
 
+const getTournamentByID = `
+SELECT * FROM tournaments
+WHERE id=$1
+`
+
+func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (models.Tournament, error) {
+	row := q.db.QueryRowContext(ctx, getTournament, id)
+	var i models.Tournament
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
+		&i.Country,
+		&i.StatusCode,
+		&i.Level,
+		&i.StartTimestamp,
+		&i.GameID,
+		&i.GroupCount,
+		&i.MaxGroupTeam,
+		&i.Stage,
+		&i.HasKnockout,
+	)
+	return i, err
+}
+
 const getTournaments = `
 SELECT * FROM tournaments
 `

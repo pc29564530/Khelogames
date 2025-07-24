@@ -338,7 +338,6 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamPublicID uuid.UUID) (
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
-			&i.ProfileID,
 		); err != nil {
 			return nil, err
 		}
@@ -353,13 +352,42 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamPublicID uuid.UUID) (
 	return items, nil
 }
 
-const getTeam = `
-SELECT * FROM teams
-WHERE public_id=$1
+// team by public_id
+const getTeamByPublicID = `
+	SELECT * FROM teams
+	WHERE public_id=$1
 `
 
-func (q *Queries) GetTeam(ctx context.Context, publicID uuid.UUID) (models.Team, error) {
-	row := q.db.QueryRowContext(ctx, getTeam, publicID)
+func (q *Queries) GetTeamByPublicID(ctx context.Context, publicID uuid.UUID) (models.Team, error) {
+	row := q.db.QueryRowContext(ctx, getTeamByPublicID, publicID)
+	var i models.Team
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
+		&i.Shortname,
+		&i.Admin,
+		&i.MediaUrl,
+		&i.Gender,
+		&i.National,
+		&i.Country,
+		&i.Type,
+		&i.PlayerCount,
+		&i.GameID,
+	)
+	return i, err
+}
+
+// team by public_id
+const getTeamByID = `
+	SELECT * FROM teams
+	WHERE id=$1
+`
+
+func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error) {
+	row := q.db.QueryRowContext(ctx, getTeamByPublicID, id)
 	var i models.Team
 	err := row.Scan(
 		&i.ID,

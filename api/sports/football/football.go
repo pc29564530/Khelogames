@@ -32,7 +32,7 @@ func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get match : ", err)
 		return
 	}
-	team, err := s.store.GetTeam(ctx, req.TeamPublicD)
+	team, err := s.store.GetTeamByPublicID(ctx, req.TeamPublicD)
 	if err != nil {
 		s.logger.Error("Failed to get team: ", err)
 		return
@@ -84,8 +84,8 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 	}
 
 	for _, match := range matches {
-		homeTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: match.HomeTeamID}
-		awayTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: match.AwayTeamID}
+		homeTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: int64(match.HomeTeamID)}
+		awayTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: int64(match.AwayTeamID)}
 		homeScore, err := s.store.GetFootballScore(ctx, homeTeamArg)
 		if err != nil {
 			s.logger.Error("Failed to get football match score for home team:", err)

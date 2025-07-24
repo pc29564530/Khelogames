@@ -92,13 +92,39 @@ func (q *Queries) GetCricketBowlerScoreByTeamID(ctx context.Context, teamPublicI
 
 const getCricketScore = `
 SELECT * FROM cricket_score cs
+WHERE cs.match_id=$1 AND cs.team_id=$2
+`
+
+func (q *Queries) GetCricketScore(ctx context.Context, matchID, teamID int32) (models.CricketScore, error) {
+	row := q.db.QueryRowContext(ctx, getCricketScore, matchID, teamID)
+	var i models.CricketScore
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.MatchID,
+		&i.TeamID,
+		&i.InningNumber,
+		&i.Score,
+		&i.Wickets,
+		&i.Overs,
+		&i.RunRate,
+		&i.TargetRunRate,
+		&i.FollowOn,
+		&i.IsInningCompleted,
+		&i.Declared,
+	)
+	return i, err
+}
+
+const getCricketScoreByPublicID = `
+SELECT * FROM cricket_score cs
 JOIN matches m ON m.id = cs.match_id
 JOIN teams t ON t.id = cs.team_id
 WHERE m.public_id=$1 AND t.public_id=$2
 `
 
-func (q *Queries) GetCricketScore(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (models.CricketScore, error) {
-	row := q.db.QueryRowContext(ctx, getCricketScore, matchPublicID, teamPublicID)
+func (q *Queries) GetCricketScoreByPublicID(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (models.CricketScore, error) {
+	row := q.db.QueryRowContext(ctx, getCricketScoreByPublicID, matchPublicID, teamPublicID)
 	var i models.CricketScore
 	err := row.Scan(
 		&i.ID,
@@ -120,13 +146,12 @@ func (q *Queries) GetCricketScore(ctx context.Context, matchPublicID, teamPublic
 
 const getCricketScores = `
 SELECT * FROM cricket_score
-JOIN matches m ON m.id = cs.match_id
-WHERE m.public_id = $1
+WHERE m.match_id = $1
 ORDER BY inning_number;
 `
 
-func (q *Queries) GetCricketScores(ctx context.Context, matchPublicID uuid.UUID) ([]models.CricketScore, error) {
-	row, err := q.db.QueryContext(ctx, getCricketScores, matchPublicID)
+func (q *Queries) GetCricketScores(ctx context.Context, matchID int32) ([]models.CricketScore, error) {
+	row, err := q.db.QueryContext(ctx, getCricketScores, matchID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get all cricket scores inning: %w", err)
 	}
