@@ -57,15 +57,15 @@ const getCricketBowlerScoreByTeamID = `
 	WHERE t.public_id=$1
 `
 
-func (q *Queries) GetCricketBowlerScoreByTeamID(ctx context.Context, teamPublicID uuid.UUID) (*[]models.Ball, error) {
+func (q *Queries) GetCricketBowlerScoreByTeamID(ctx context.Context, teamPublicID uuid.UUID) (*[]models.BowlerScore, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketBowlerScoreByTeamID, teamPublicID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to query: ", err)
 	}
-	var bowlerScore []models.Ball
+	var bowlerScore []models.BowlerScore
 
 	for rows.Next() {
-		var i models.Ball
+		var i models.BowlerScore
 		err := rows.Scan(
 			&i.ID,
 			&i.PublicID,
