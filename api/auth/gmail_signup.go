@@ -72,7 +72,7 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 	//create a token using user id
 	tokens := CreateNewToken(ctx, userSignUp.PublicID, int32(userSignUp.ID), s, tx)
 
-	session := tokens["session"].(models.Session)
+	session := tokens["session"].(*models.Session)
 	accessToken := tokens["accessToken"].(string)
 	accessPayload := tokens["accessPayload"].(*token.Payload)
 	refreshToken := tokens["refreshToken"].(string)

@@ -121,7 +121,6 @@ func CreateNewToken(ctx *gin.Context, publicID uuid.UUID, userID int32, s *AuthS
 		RefreshToken: refreshToken,
 		UserAgent:    ctx.Request.UserAgent(),
 		ClientIp:     ctx.ClientIP(),
-		ExpiresAt:    refreshPayload.ExpiredAt,
 	})
 
 	if err != nil {

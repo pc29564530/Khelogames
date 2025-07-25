@@ -2,8 +2,8 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"khelogames/database/models"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -22,22 +22,18 @@ INSERT INTO sessions (
 `
 
 type CreateSessionsParams struct {
-	UserID       int32     `json:"user_id"`
-	RefreshToken string    `json:"refresh_token"`
-	UserAgent    string    `json:"user_agent"`
-	ClientIp     string    `json:"client_ip"`
-	CreatedAt    time.Time `json:"created_at"`
-	ExpiresAt    time.Time `json:"expires_at"`
+	UserID       int32  `json:"user_id"`
+	RefreshToken string `json:"refresh_token"`
+	UserAgent    string `json:"user_agent"`
+	ClientIp     string `json:"client_ip"`
 }
 
-func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) (models.Session, error) {
+func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) (*models.Session, error) {
 	row := q.db.QueryRowContext(ctx, createSessions,
 		arg.UserID,
 		arg.RefreshToken,
 		arg.UserAgent,
 		arg.ClientIp,
-		arg.CreatedAt,
-		arg.ExpiresAt,
 	)
 	var session models.Session
 	err := row.Scan(
@@ -50,7 +46,10 @@ func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) 
 		&session.CreatedAt,
 		&session.ExpiresAt,
 	)
-	return session, err
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan: ", err)
+	}
+	return &session, nil
 }
 
 const deleteSessions = `
