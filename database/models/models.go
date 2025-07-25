@@ -21,37 +21,37 @@ type Users struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-type Ball struct {
+type BowlerScore struct {
 	ID              int64     `json:"id"`
 	PublicID        uuid.UUID `json:"public_id"`
 	MatchID         int32     `json:"match_id"`
 	TeamID          int32     `json:"team_id"`
 	BowlerID        int32     `json:"bowler_id"`
-	Ball            int32     `json:"ball"`
+	InningNumber    int       `json:"inning_number"`
+	BallNumber      int       `json:"ball_number"`
 	Runs            int32     `json:"runs"`
 	Wickets         int32     `json:"wickets"`
 	Wide            int32     `json:"wide"`
 	NoBall          int32     `json:"no_ball"`
 	BowlingStatus   bool      `json:"bowling_status"`
 	IsCurrentBowler bool      `json:"is_current_bowler"`
-	InningNumber    int       `json:"inning_number"`
 }
 
-type Bat struct {
+type BatsmanScore struct {
 	ID                 int64     `json:"id"`
 	PublicID           uuid.UUID `json:"public_id"`
 	MatchID            int32     `json:"match_id"`
 	TeamID             int32     `json:"team_id"`
 	BatsmanID          int32     `json:"batsman_id"`
+	InningNumber       int       `json:"inning_number"`
 	Position           string    `json:"position"`
-	RunsScored         int32     `json:"runs_scored"`
-	BallsFaced         int32     `json:"balls_faced"`
-	Fours              int32     `json:"fours"`
-	Sixes              int32     `json:"sixes"`
+	RunsScored         int       `json:"runs_scored"`
+	BallsFaced         int       `json:"balls_faced"`
+	Fours              int       `json:"fours"`
+	Sixes              int       `json:"sixes"`
 	BattingStatus      bool      `json:"batting_status"`
 	IsStriker          bool      `json:"is_striker"`
 	IsCurrentlyBatting bool      `json:"is_currently_batting"`
-	InningNumber       int       `json:"inning_number"`
 }
 
 type CricketScore struct {
@@ -60,9 +60,9 @@ type CricketScore struct {
 	MatchID           int32     `json:"match_id"`
 	TeamID            int32     `json:"team_id"`
 	InningNumber      int       `json:"inning_number"`
-	Score             int32     `json:"score"`
-	Wickets           int32     `json:"wickets"`
-	Overs             int32     `json:"overs"`
+	Score             int       `json:"score"`
+	Wickets           int       `json:"wickets"`
+	Overs             int       `json:"overs"`
 	RunRate           string    `json:"run_rate"`
 	TargetRunRate     string    `json:"target_run_rate"`
 	IsInningCompleted bool      `json:"is_inning_completed"`
@@ -165,23 +165,14 @@ type FootballIncident struct {
 	IncidentType          string    `json:"incident_type"`
 	IncidentTime          int64     `json:"incident_time"`
 	Description           string    `json:"description"`
-	CreatedAt             int64     `json:"created_at"`
 	PenaltyShootoutScored bool      `json:"penalty_shootout_scored"`
+	CreatedAt             int64     `json:"created_at"`
 }
 
 type FootballIncidentPlayer struct {
 	ID         int64 `json:"id"`
 	IncidentID int32 `json:"incident_id"`
 	PlayerID   int32 `json:"player_id"`
-}
-
-type FootballLineup struct {
-	ID       int64     `json:"id"`
-	PublicID uuid.UUID `json:"public_id"`
-	MatchID  int32     `json:"match_id"`
-	TeamID   int32     `json:"team_id"`
-	PlayerID int32     `json:"player_id"`
-	Position string    `json:"position"`
 }
 
 type FootballScore struct {
@@ -195,7 +186,7 @@ type FootballScore struct {
 	PenaltyShootOut int       `json:"penalty_shootout"`
 }
 
-type FootballStatistic struct {
+type FootballStatistics struct {
 	ID              int64     `json:"id"`
 	PublicID        uuid.UUID `json:"public_id"`
 	MatchID         int32     `json:"match_id"`
@@ -210,35 +201,17 @@ type FootballStatistic struct {
 	RedCards        int32     `json:"red_cards"`
 }
 
-type FootballSubstitution struct {
-	ID       int64     `json:"id"`
-	PublicID uuid.UUID `json:"public_id"`
-	MatchID  int32     `json:"match_id"`
-	TeamID   int32     `json:"team_id"`
-	PlayerID int32     `json:"player_id"`
-	Position string    `json:"position"`
-}
-
 type FootballSubstitutionsPlayer struct {
-	ID          int64     `json:"id"`
-	PublicID    uuid.UUID `json:"public_id"`
-	IncidentID  int32     `json:"incident_id"`
-	PlayerInID  int32     `json:"player_in_id"`
-	PlayerOutID int32     `json:"player_out_id"`
+	ID          int64 `json:"id"`
+	IncidentID  int32 `json:"incident_id"`
+	PlayerInID  int32 `json:"player_in_id"`
+	PlayerOutID int32 `json:"player_out_id"`
 }
 
 type Game struct {
 	ID         int64  `json:"id"`
 	Name       string `json:"name"`
 	MinPlayers int32  `json:"min_players"`
-}
-
-type Goal struct {
-	ID       int64 `json:"id"`
-	MatchID  int32 `json:"match_id"`
-	TeamID   int32 `json:"team_id"`
-	PlayerID int32 `json:"player_id"`
-	GoalTime int64 `json:"goal_time"`
 }
 
 type Group struct {
@@ -258,11 +231,6 @@ type UserLikeThread struct {
 	ThreadID int32  `json:"thread_id"`
 	UserID   string `json:"user_id"`
 }
-
-// type Login struct {
-// 	Username string `json:"username"`
-// 	Password string `json:"password"`
-// }
 
 type Match struct {
 	ID              int64     `json:"id"`
@@ -298,7 +266,7 @@ type Message struct {
 // 	MediaID   int64 `json:"media_id"`
 // }
 
-type Player struct {
+type OldPlayer struct {
 	ID        int64     `json:"id"`
 	PublicID  uuid.UUID `json:"public_id"`
 	UserID    int32     `json:"user_id"`
@@ -311,15 +279,31 @@ type Player struct {
 	GameID    int64     `json:"game_id"`
 }
 
-type UsersProfile struct {
-	ID        int64     `json:"id"`
-	PublicID  uuid.UUID `json:"public_id"`
-	UserID    int32     `json:"user_id"`
-	FullName  string    `json:"full_name"`
-	Bio       string    `json:"bio"`
-	AvatarUrl string    `json:"avatar_url"`
-	CreatedAT time.Time `json:"created_at"`
-	UpdatedAT time.Time `json:"updated_at"`
+// Player - references User (many:1 with User)
+type Player struct {
+	ID        int64     `json:"id" db:"id"`
+	PublicID  uuid.UUID `json:"public_id" db:"public_id"`
+	UserID    int64     `json:"user_id" db:"user_id"`
+	GameID    int64     `json:"game_id" db:"game_id"`
+	Name      string    `json:"name" db:"name"`
+	Slug      string    `json:"slug" db:"slug"`
+	ShortName string    `json:"short_name" db:"short_name"`
+	MediaUrl  string    `json:"media_url" db:"media_url"`
+	Positions string    `json:"positions" db:"positions"`
+	Country   string    `json:"country" db:"country"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+type UserProfiles struct {
+	ID        int64     `json:"id" db:"id"`
+	PublicID  uuid.UUID `json:"public_id" db:"public_id"`
+	UserID    int64     `json:"user_id" db:"user_id"`
+	Bio       string    `json:"bio" db:"bio"`
+	AvatarUrl string    `json:"avatar_url" db:"avatar_url"`
+	Location  string    `json:"location" db:"location"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Session struct {
@@ -345,7 +329,6 @@ type Team struct {
 	Name        string    `json:"name"`
 	Slug        string    `json:"slug"`
 	Shortname   string    `json:"shortname"`
-	Admin       string    `json:"admin"`
 	MediaUrl    string    `json:"media_url"`
 	Gender      string    `json:"gender"`
 	National    bool      `json:"national"`
@@ -399,17 +382,22 @@ type Tournament struct {
 	ID             int64     `json:"id"`
 	PublicID       uuid.UUID `json:"public_id"`
 	UserID         int32     `json:"user_id"`
+	GameID         int64     `json:"game_id"`
 	Name           string    `json:"name"`
 	Slug           string    `json:"slug"`
+	Description    string    `json:"description"`
 	Country        string    `json:"country"`
-	StatusCode     string    `json:"status_code"`
+	Status         string    `json:"status"`
+	Season         int       `json:"season"`
 	Level          string    `json:"level"`
 	StartTimestamp int64     `json:"start_timestamp"`
-	GameID         *int64    `json:"game_id"`
-	GroupCount     *int32    `json:"group_count"`
-	MaxGroupTeam   *int32    `json:"max_group_team"`
+	GroupCount     *int      `json:"group_count"`
+	MaxGroupTeam   *int      `json:"max_group_team"`
 	Stage          string    `json:"stage"`
 	HasKnockout    bool      `json:"has_knockout"`
+	IsPublic       bool      `json:"is_public"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type FootballStanding struct {
@@ -418,14 +406,14 @@ type FootballStanding struct {
 	TournamentID   int32     `json:"tournament_id"`
 	GroupID        *int32    `json:"group_id"`
 	TeamID         int32     `json:"team_id"`
-	Matches        *int64    `json:"matches"`
-	Wins           *int64    `json:"wins"`
-	Loss           *int64    `json:"loss"`
-	Draw           *int64    `json:"draw"`
-	GoalFor        *int64    `json:"goal_for"`
-	GoalAgainst    *int64    `json:"goal_against"`
-	GoalDifference *int64    `json:"goal_difference"`
-	Points         *int64    `json:"points"`
+	Matches        *int      `json:"matches"`
+	Wins           *int      `json:"wins"`
+	Loss           *int      `json:"loss"`
+	Draw           *int      `json:"draw"`
+	GoalFor        *int      `json:"goal_for"`
+	GoalAgainst    *int      `json:"goal_against"`
+	GoalDifference *int      `json:"goal_difference"`
+	Points         *int      `json:"points"`
 }
 
 type CricketStanding struct {
@@ -434,11 +422,11 @@ type CricketStanding struct {
 	TournamentID int32     `json:"tournament_id"`
 	GroupID      *int64    `json:"group_id"`
 	TeamID       int32     `json:"team_id"`
-	Matches      *int64    `json:"matches"`
-	Wins         *int64    `json:"wins"`
-	Loss         *int64    `json:"loss"`
-	Draw         *int64    `json:"draw"`
-	Points       *int64    `json:"points"`
+	Matches      *int      `json:"matches"`
+	Wins         *int      `json:"wins"`
+	Loss         *int      `json:"loss"`
+	Draw         *int      `json:"draw"`
+	Points       *int      `json:"points"`
 }
 
 type TournamentTeam struct {
@@ -460,12 +448,12 @@ type Wicket struct {
 	TeamID        int32     `json:"team_id"`
 	BatsmanID     int32     `json:"batsman_id"`
 	BowlerID      int32     `json:"bowler_id"`
-	WicketsNumber int32     `json:"wickets_number"`
-	WicketType    string    `json:"wicket_type"`
-	BallNumber    int32     `json:"ball_number"`
-	FielderID     *int32    `json:"fielder_id"`
-	Score         *int32    `json:"score"`
 	InningNumber  int       `json:"inning_number"`
+	WicketsNumber int       `json:"wickets_number"`
+	WicketType    string    `json:"wicket_type"`
+	BallNumber    int       `json:"ball_number"`
+	FielderID     *int32    `json:"fielder_id"`
+	Score         *int      `json:"score"`
 }
 
 type GetPlayerByTeam struct {
@@ -542,23 +530,23 @@ type Document struct {
 }
 
 type PlayerBattingStats struct {
-	ID           int64     `json:"id"`
-	PublicID     uuid.UUID `json:"public_id"`
-	PlayerID     int32     `json:"player_id"`
-	MatchType    string    `json:"match_type"`
-	TotalMatches int       `json:"total_matches"`
-	TotalInnings int       `json:"total_innings"`
-	Runs         int       `json:"runs"`
-	Balls        int       `json:"balls"`
-	Sixes        int       `json:"sixes"`
-	Fours        int       `json:"fours"`
-	Fifties      int       `json:"fifties"`
-	Hundreds     int       `json:"hundreds"`
-	BestScore    int       `json:"best_score"`
-	Average      string    `json:"average"`
-	StrikeRate   string    `json:"strike_rate"`
-	CreatedAT    time.Time `json:"created_at"`
-	UpdatedAT    time.Time `json:"updated_at"`
+	ID         int64     `json:"id"`
+	PublicID   uuid.UUID `json:"public_id"`
+	PlayerID   int32     `json:"player_id"`
+	MatchType  string    `json:"match_type"`
+	Matches    int       `json:"matches"`
+	Innings    int       `json:"innings"`
+	Runs       int       `json:"runs"`
+	Balls      int       `json:"balls"`
+	Sixes      int       `json:"sixes"`
+	Fours      int       `json:"fours"`
+	Fifties    int       `json:"fifties"`
+	Hundreds   int       `json:"hundreds"`
+	BestScore  int       `json:"best_score"`
+	Average    string    `json:"average"`
+	StrikeRate string    `json:"strike_rate"`
+	CreatedAT  time.Time `json:"created_at"`
+	UpdatedAT  time.Time `json:"updated_at"`
 }
 
 type PlayerBowlingStats struct {
@@ -598,7 +586,7 @@ type FootballPlayerStats struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
-type PlayerCricketStats struct {
+type CricketPlayerStats struct {
 	ID             int64     `json:"id"`
 	PublicID       uuid.UUID `json:"public_id"`
 	PlayerID       int32     `json:"player_id"`

@@ -13,8 +13,8 @@ import (
 type addFootballMatchScoreRequest struct {
 	MatchPublicID uuid.UUID `json:"match_public_id"`
 	TeamPublicD   uuid.UUID `json:"team_public_id"`
-	FirstHalf     int32     `json:"first_half"`
-	SecondHalf    int32     `json:"second_half"`
+	FirstHalf     int       `json:"first_half"`
+	SecondHalf    int       `json:"second_half"`
 	Goals         int       `json:"goal_for"`
 }
 
@@ -43,7 +43,7 @@ func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
 		TeamID:     int32(team.ID),
 		FirstHalf:  req.FirstHalf,
 		SecondHalf: req.SecondHalf,
-		Goals:      int64(req.Goals),
+		Goals:      req.Goals,
 	}
 
 	response, err := s.store.NewFootballScore(ctx, arg)
@@ -162,7 +162,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			"name":            tournament.Name,
 			"slug":            tournament.Slug,
 			"country":         tournament.Country,
-			"status_code":     tournament.StatusCode,
+			"status_code":     tournament.Status,
 			"level":           tournament.Level,
 			"start_timestamp": tournament.StartTimestamp,
 			"game_id":         tournament.GameID,

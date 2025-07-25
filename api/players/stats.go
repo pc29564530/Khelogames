@@ -72,9 +72,9 @@ func (s *PlayerServer) GetPlayerCricketStatsByMatchTypeFunc(ctx *gin.Context) {
 		return
 	}
 
-	var testStats models.PlayerCricketStats
-	var odiStats models.PlayerCricketStats
-	var t20Stats models.PlayerCricketStats
+	var testStats models.CricketPlayerStats
+	var odiStats models.CricketPlayerStats
+	var t20Stats models.CricketPlayerStats
 
 	for _, item := range *playerStats {
 		if item.MatchType == "Test" {

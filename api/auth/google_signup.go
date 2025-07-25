@@ -177,7 +177,6 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	// Create user profile
 	arg := db.CreateProfileParams{
 		UserID:    int32(userSignUp.ID),
-		FullName:  req.FullName,
 		Bio:       "",
 		AvatarUrl: req.AvatarURL, // Use the avatar URL from request
 	}

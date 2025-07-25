@@ -17,8 +17,8 @@ const addPlayerBattingStats = `
 	INSERT INTO player_batting_stats (
 		player_id,
 		match_type,
-		total_matches,
-		total_innings,
+		matches,
+		innings,
 		runs,
 		balls
 		sixes,
@@ -37,11 +37,11 @@ const addPlayerBattingStats = `
 	RETURNING *;
 `
 
-func (q *Queries) AddPlayerCricketStats(ctx context.Context, playerPublicID uuid.UUID, matchType string, matches, battingInnings int32, runs, ballsFaced, fours, sixes, fifties, hundreds, bestScore int, bowlingInnings int32, wickets, runsConceded, ballsBowled, fourWickets, fiveWickets int) (*models.PlayerCricketStats, error) {
+func (q *Queries) AddPlayerCricketStats(ctx context.Context, playerPublicID uuid.UUID, matchType string, matches, battingInnings int32, runs, ballsFaced, fours, sixes, fifties, hundreds, bestScore int, bowlingInnings int32, wickets, runsConceded, ballsBowled, fourWickets, fiveWickets int) (*models.CricketPlayerStats, error) {
 
 	rows := q.db.QueryRowContext(ctx, addPlayerBattingStats, playerPublicID, matchType, matches, battingInnings, runs, ballsFaced, fours, sixes, fifties, hundreds, bestScore, bowlingInnings, wickets, runsConceded, ballsBowled, fourWickets, fiveWickets)
 
-	var i models.PlayerCricketStats
+	var i models.CricketPlayerStats
 	err := rows.Scan(
 		&i.ID,
 		&i.PublicID,
@@ -83,8 +83,8 @@ func (q *Queries) AddPlayerBattingStats(ctx context.Context, playerPublicID uuid
 		&i.PublicID,
 		&i.PlayerID,
 		&i.MatchType,
-		&i.TotalMatches,
-		&i.TotalInnings,
+		&i.Matches,
+		&i.Innings,
 		&i.Runs,
 		&i.Balls,
 		&i.Sixes,
@@ -112,17 +112,17 @@ const getPlayerCricketStatsByMatchType = `
 	WHERE p.public_id=$1
 `
 
-func (q *Queries) GetPlayerCricketStatsByMatchType(context context.Context, playerPublicID uuid.UUID) (*[]models.PlayerCricketStats, error) {
+func (q *Queries) GetPlayerCricketStatsByMatchType(context context.Context, playerPublicID uuid.UUID) (*[]models.CricketPlayerStats, error) {
 	rows, err := q.db.QueryContext(context, getCricketPlayerBattingStats, playerPublicID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to query database: ", err)
 	}
 	defer rows.Close()
 
-	var playerStats []models.PlayerCricketStats
+	var playerStats []models.CricketPlayerStats
 
 	for rows.Next() {
-		var i models.PlayerCricketStats
+		var i models.CricketPlayerStats
 		err := rows.Scan(
 			&i.ID,
 			&i.PublicID,
@@ -215,8 +215,8 @@ func (q *Queries) GetCricketPlayerBattingStats(context context.Context, playerID
 			&i.ID,
 			&i.PlayerID,
 			&i.MatchType,
-			&i.TotalMatches,
-			&i.TotalInnings,
+			&i.Matches,
+			&i.Innings,
 			&i.Runs,
 			&i.Balls,
 			&i.Sixes,
@@ -308,8 +308,8 @@ const updatePlayerBattingStatsQuery = `
 	RETURNING *;
 `
 
-func (q *Queries) UpdatePlayerBattingStats(ctx context.Context, playerPublicID uuid.UUID, matchType string, runs, balls, fours, sixes, fifties, hundreds, bestScore int) (*models.PlayerCricketStats, error) {
-	var i models.PlayerCricketStats
+func (q *Queries) UpdatePlayerBattingStats(ctx context.Context, playerPublicID uuid.UUID, matchType string, runs, balls, fours, sixes, fifties, hundreds, bestScore int) (*models.CricketPlayerStats, error) {
+	var i models.CricketPlayerStats
 	rows := q.db.QueryRowContext(ctx, updatePlayerBattingStatsQuery, playerPublicID, matchType)
 	err := rows.Scan(
 		&i.ID,
@@ -356,8 +356,8 @@ const updatePlayerBowlingStatsQuery = `
 
 `
 
-func (q *Queries) UpdatePlayerBowlingStats(ctx context.Context, playerPublicID uuid.UUID, matchType string, wickets, runsConceded, ballsBowled int, fourWickets, fiveWickets int) (*models.PlayerCricketStats, error) {
-	var i models.PlayerCricketStats
+func (q *Queries) UpdatePlayerBowlingStats(ctx context.Context, playerPublicID uuid.UUID, matchType string, wickets, runsConceded, ballsBowled int, fourWickets, fiveWickets int) (*models.CricketPlayerStats, error) {
+	var i models.CricketPlayerStats
 	rows := q.db.QueryRowContext(ctx, updatePlayerBowlingStatsQuery, playerPublicID, matchType)
 	err := rows.Scan(
 		&i.ID,

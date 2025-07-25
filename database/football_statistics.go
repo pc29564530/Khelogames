@@ -48,7 +48,7 @@ type CreateFootballStatisticsParams struct {
 	RedCards        int32 `json:"red_cards"`
 }
 
-func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootballStatisticsParams) (models.FootballStatistic, error) {
+func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootballStatisticsParams) (models.FootballStatistics, error) {
 	row := q.db.QueryRowContext(ctx, createFootballStatistics,
 		arg.MatchID,
 		arg.TeamID,
@@ -61,7 +61,7 @@ func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootba
 		arg.YellowCards,
 		arg.RedCards,
 	)
-	var i models.FootballStatistic
+	var i models.FootballStatistics
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,
@@ -86,9 +86,9 @@ JOIN teams t ON t.id = fs.team_id
 WHERE m.public_id=$1 AND t.public_id=$2
 `
 
-func (q *Queries) GetFootballStatistics(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (models.FootballStatistic, error) {
+func (q *Queries) GetFootballStatistics(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (models.FootballStatistics, error) {
 	row := q.db.QueryRowContext(ctx, getFootballStatistics, matchPublicID, teamPublicID)
-	var i models.FootballStatistic
+	var i models.FootballStatistics
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,
@@ -134,7 +134,7 @@ type UpdateFootballStatisticsParams struct {
 	RedCards        int32 `json:"red_cards"`
 }
 
-func (q *Queries) UpdateFootballStatistics(ctx context.Context, arg UpdateFootballStatisticsParams) (models.FootballStatistic, error) {
+func (q *Queries) UpdateFootballStatistics(ctx context.Context, arg UpdateFootballStatisticsParams) (models.FootballStatistics, error) {
 	row := q.db.QueryRowContext(ctx, updateFootballStatistics,
 		arg.MatchID,
 		arg.TeamID,
@@ -147,7 +147,7 @@ func (q *Queries) UpdateFootballStatistics(ctx context.Context, arg UpdateFootba
 		arg.YellowCards,
 		arg.RedCards,
 	)
-	var i models.FootballStatistic
+	var i models.FootballStatistics
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,

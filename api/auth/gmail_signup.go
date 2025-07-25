@@ -92,7 +92,6 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 
 	arg := db.CreateProfileParams{
 		UserID:    int32(userSignUp.ID),
-		FullName:  req.FullName,
 		Bio:       "",
 		AvatarUrl: "",
 	}

@@ -16,11 +16,12 @@ WITH resolve_ids AS (
 	SELECT m.id AS match_id, t.id AS team_id, p.id AS player_id FROM matches m, teams t, players p
 	WHERE m.public_id = $1 AND t.public_id = $2 AND p.public_id = $3
 ),
-INSERT INTO balls (
+INSERT INTO bowler_score (
     match_id,
     team_id,
     bowler_id,
-    ball,
+	inning_number,
+    ball_number,
     runs,
     wickets,
     wide,
@@ -49,7 +50,7 @@ type AddCricketBallParams struct {
 	MatchPublicID   uuid.UUID `json:"match_public_id"`
 	TeamPublicID    uuid.UUID `json:"team_public_id"`
 	BowlerPublicID  uuid.UUID `json:"bowler_public_id"`
-	Ball            int32     `json:"ball"`
+	BallNumber      int32     `json:"ball_number"`
 	Runs            int32     `json:"runs"`
 	Wickets         int32     `json:"wickets"`
 	Wide            int32     `json:"wide"`
@@ -59,12 +60,12 @@ type AddCricketBallParams struct {
 	InningNumber    int       `json:"inning_number"` // inning1 or inning2
 }
 
-func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) (models.Ball, error) {
+func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) (models.BowlerScore, error) {
 	row := q.db.QueryRowContext(ctx, addCricketBall,
 		arg.MatchPublicID,
 		arg.TeamPublicID,
 		arg.BowlerPublicID,
-		arg.Ball,
+		arg.BallNumber,
 		arg.Runs,
 		arg.Wickets,
 		arg.Wide,
@@ -73,14 +74,15 @@ func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) 
 		arg.IsCurrentBowler,
 		arg.InningNumber,
 	)
-	var i models.Ball
+	var i models.BowlerScore
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.BowlerID,
-		&i.Ball,
+		&i.InningNumber,
+		&i.BallNumber,
 		&i.Runs,
 		&i.Wickets,
 		&i.Wide,
@@ -92,16 +94,16 @@ func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) 
 }
 
 const getCricketStricker = `
-	SELECT * FROM bats b
+	SELECT * FROM batsman_score b
 	JOIN matches m ON m.id = b.match_id
 	JOIN teams t ON t.id = b.team_id
 	WHERE m.public_id=$1 AND t.public_id=$2 AND is_currently_batting=true AND is_striker=true AND b.inning_number= $3;
 `
 
-func (q *Queries) GetCricketStricker(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (*models.Bat, error) {
+func (q *Queries) GetCricketStricker(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (*models.BatsmanScore, error) {
 	row := q.db.QueryRowContext(ctx, getCricketStricker, matchPublicID, teamPublicID, inningNumber)
 
-	var i models.Bat
+	var i models.BatsmanScore
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,
@@ -133,7 +135,7 @@ WITH resolve_ids AS (
 	SELECT m.id AS match_id, t.id AS team_id, p.id AS player_id FROM matches m, teams t, players p
 	WHERE m.public_id = $1 AND t.public_id = $2 AND p.public_id = $3
 ),
-INSERT INTO bats (
+INSERT INTO batsman_score (
     match_id,
     team_id,
 	batsman_id,
@@ -168,7 +170,7 @@ type AddCricketBatsScoreParams struct {
 	InningNumber       int       `json:"inning_number"`
 }
 
-func (q *Queries) AddCricketBatsScore(ctx context.Context, arg AddCricketBatsScoreParams) (models.Bat, error) {
+func (q *Queries) AddCricketBatsScore(ctx context.Context, arg AddCricketBatsScoreParams) (models.BatsmanScore, error) {
 	row := q.db.QueryRowContext(ctx, addCricketBatsScore,
 		arg.MatchPublicID,
 		arg.TeamPublicID,
@@ -183,7 +185,7 @@ func (q *Queries) AddCricketBatsScore(ctx context.Context, arg AddCricketBatsSco
 		arg.IsCurrentlyBatting,
 		arg.InningNumber,
 	)
-	var i models.Bat
+	var i models.BatsmanScore
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,
@@ -204,29 +206,29 @@ func (q *Queries) AddCricketBatsScore(ctx context.Context, arg AddCricketBatsSco
 }
 
 const getCricketBalls = `
-SELECT * FROM balls b
+SELECT * FROM bowler_score b
 JOIN matches m ON m.id = b.match_id
 JOIN teams t ON t.id = b.team_id
 WHERE m.public_id=$1 AND t.public_id = $2
 ORDER BY id, inning_number
 `
 
-func (q *Queries) GetCricketBalls(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) ([]models.Ball, error) {
+func (q *Queries) GetCricketBalls(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) ([]models.BowlerScore, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketBalls, matchPublicID, teamPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.Ball
+	var items []models.BowlerScore
 	for rows.Next() {
-		var i models.Ball
+		var i models.BowlerScore
 		if err := rows.Scan(
 			&i.ID,
 			&i.PublicID,
 			&i.TeamID,
 			&i.MatchID,
 			&i.BowlerID,
-			&i.Ball,
+			&i.BallNumber,
 			&i.Runs,
 			&i.Wickets,
 			&i.Wide,
@@ -249,16 +251,16 @@ func (q *Queries) GetCricketBalls(ctx context.Context, matchPublicID, teamPublic
 }
 
 const getCricketPlayerScore = `
-SELECT * FROM bats b
+SELECT * FROM batsman_score b
 JOIN matches m ON m.id = b.match_id
 JOIN players p ON p.id = b.batsman_id
 WHERE m.public_id=$1 AND p.public_id=$2 LIMIT 1
 `
 
 // Not used function
-func (q *Queries) GetCricketPlayerScore(ctx context.Context, matchPublicID, batsmanPublicID uuid.UUID) (models.Bat, error) {
+func (q *Queries) GetCricketPlayerScore(ctx context.Context, matchPublicID, batsmanPublicID uuid.UUID) (models.BatsmanScore, error) {
 	row := q.db.QueryRowContext(ctx, getCricketPlayerScore, matchPublicID, batsmanPublicID)
-	var i models.Bat
+	var i models.BatsmanScore
 	err := row.Scan(
 		&i.ID,
 		&i.MatchID,
@@ -278,23 +280,23 @@ func (q *Queries) GetCricketPlayerScore(ctx context.Context, matchPublicID, bats
 }
 
 const getCricketPlayersScore = `
-SELECT * FROM bats
+SELECT * FROM batsman_score
 JOIN matches m ON m.id = b.match_id
 JOIN teams t ON t.id = b.team_id
 WHERE m.public_id = $1 AND t.public_id = $2
 ORDER BY id, inning_number
 `
 
-func (q *Queries) GetCricketPlayersScore(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) ([]models.Bat, error) {
+func (q *Queries) GetCricketPlayersScore(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) ([]models.BatsmanScore, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketPlayersScore, matchPublicID, teamPublicID)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
-	var items []models.Bat
+	var items []models.BatsmanScore
 	for rows.Next() {
-		var i models.Bat
+		var i models.BatsmanScore
 		if err := rows.Scan(
 			&i.ID,
 			&i.PublicID,
@@ -481,9 +483,9 @@ func (q *Queries) GetCricketWickets(ctx context.Context, matchPublicID, teamPubl
 }
 
 const updateCricketBowler = `
-UPDATE balls
+UPDATE bowler_score
 SET 
-    ball = $1,
+    ball_number = $1,
     runs = $2,
     wickets = $3,
     wide = $4,
@@ -493,7 +495,7 @@ RETURNING *;
 `
 
 type UpdateCricketBowlerParams struct {
-	Ball         int32 `json:"ball"`
+	BallNumber   int32 `json:"ball_number"`
 	Runs         int32 `json:"runs"`
 	Wickets      int32 `json:"wickets"`
 	Wide         int32 `json:"wide"`
@@ -505,9 +507,9 @@ type UpdateCricketBowlerParams struct {
 }
 
 // Not used function
-func (q *Queries) UpdateCricketBowler(ctx context.Context, arg UpdateCricketBowlerParams) (models.Ball, error) {
+func (q *Queries) UpdateCricketBowler(ctx context.Context, arg UpdateCricketBowlerParams) (models.BowlerScore, error) {
 	row := q.db.QueryRowContext(ctx, updateCricketBowler,
-		arg.Ball,
+		arg.BallNumber,
 		arg.Runs,
 		arg.Wickets,
 		arg.Wide,
@@ -517,13 +519,13 @@ func (q *Queries) UpdateCricketBowler(ctx context.Context, arg UpdateCricketBowl
 		arg.TeamID,
 		arg.InningNumber,
 	)
-	var i models.Ball
+	var i models.BowlerScore
 	err := row.Scan(
 		&i.ID,
 		&i.TeamID,
 		&i.MatchID,
 		&i.BowlerID,
-		&i.Ball,
+		&i.BallNumber,
 		&i.Runs,
 		&i.Wickets,
 		&i.Wide,
@@ -535,7 +537,7 @@ func (q *Queries) UpdateCricketBowler(ctx context.Context, arg UpdateCricketBowl
 
 // not used function
 const updateCricketRunsScored = `
-UPDATE bats
+UPDATE batsman_score
 SET runs_scored = $1,
     balls_faced = $2,
     fours = $3,
@@ -555,7 +557,7 @@ type UpdateCricketRunsScoredParams struct {
 	InningNumber int   `json:"inning_number"`
 }
 
-func (q *Queries) UpdateCricketRunsScored(ctx context.Context, arg UpdateCricketRunsScoredParams) (models.Bat, error) {
+func (q *Queries) UpdateCricketRunsScored(ctx context.Context, arg UpdateCricketRunsScoredParams) (models.BatsmanScore, error) {
 	row := q.db.QueryRowContext(ctx, updateCricketRunsScored,
 		arg.RunsScored,
 		arg.BallsFaced,
@@ -566,7 +568,7 @@ func (q *Queries) UpdateCricketRunsScored(ctx context.Context, arg UpdateCricket
 		arg.TeamID,
 		arg.InningNumber,
 	)
-	var i models.Bat
+	var i models.BatsmanScore
 	err := row.Scan(
 		&i.ID,
 		&i.BatsmanID,
@@ -587,29 +589,29 @@ func (q *Queries) UpdateCricketRunsScored(ctx context.Context, arg UpdateCricket
 
 // not used function
 const updateBowlingStats = `
-UPDATE balls b
+UPDATE bowler_score b
 SET runs = runs + $1,
-    ball = ball + 1
+    ball_number = ball_number + 1
 FROM matches m, players bw
 WHERE m.public_id = $2 AND bw.public_id = $3 AND is_current_bowler=true AND inning_number= $4 AND m.id = b.match_id AND bw.id = b.bowler_id
 RETURNING *;
 `
 
-func (q *Queries) UpdateBowlerStats(ctx context.Context, runs int32, matchPublicID, bowlerPublicID uuid.UUID, inningNumber int) (models.Ball, error) {
+func (q *Queries) UpdateBowlerStats(ctx context.Context, runs int32, matchPublicID, bowlerPublicID uuid.UUID, inningNumber int) (models.BowlerScore, error) {
 	row := q.db.QueryRowContext(ctx, updateBowlingStats,
 		runs,
 		matchPublicID,
 		bowlerPublicID,
 		inningNumber,
 	)
-	var i models.Ball
+	var i models.BowlerScore
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.BowlerID,
-		&i.Ball,
+		&i.BallNumber,
 		&i.Runs,
 		&i.Wickets,
 		&i.Wide,
@@ -622,21 +624,21 @@ func (q *Queries) UpdateBowlerStats(ctx context.Context, runs int32, matchPublic
 }
 
 const getCurrentPlayingBatsman = `
-	SELECT * FROM bats bs
+	SELECT * FROM batsman_score bs
 	JOIN matches m ON m.id = bs.match_id
 	WHERE bs.match_id = $1 AND bs.batting_status = true AND inning_number= $2;
 `
 
-func (q *Queries) GetCurrentPlayingBatsmen(ctx context.Context, matchPublicID uuid.UUID, inningNumber int) ([]models.Bat, error) {
+func (q *Queries) GetCurrentPlayingBatsmen(ctx context.Context, matchPublicID uuid.UUID, inningNumber int) ([]models.BatsmanScore, error) {
 	rows, err := q.db.QueryContext(ctx, getCurrentPlayingBatsman, matchPublicID, inningNumber)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var batsmen []models.Bat
+	var batsmen []models.BatsmanScore
 	for rows.Next() {
-		var i models.Bat
+		var i models.BatsmanScore
 		err := rows.Scan(
 			&i.ID,
 			&i.PublicID,
@@ -667,9 +669,9 @@ func (q *Queries) GetCurrentPlayingBatsmen(ctx context.Context, matchPublicID uu
 	return batsmen, nil
 }
 
-func (q *Queries) ToggleCricketStricker(ctx context.Context, matchPublicID uuid.UUID, inningNumber int) ([]models.Bat, error) {
+func (q *Queries) ToggleCricketStricker(ctx context.Context, matchPublicID uuid.UUID, inningNumber int) ([]models.BatsmanScore, error) {
 	const query = `
-		UPDATE bats b
+		UPDATE batsman_score b
 		SET is_striker = NOT b.is_striker
 		FROM matches m
 		WHERE b.match_id = m.id
@@ -685,9 +687,9 @@ func (q *Queries) ToggleCricketStricker(ctx context.Context, matchPublicID uuid.
 	}
 	defer rows.Close()
 
-	var batsmen []models.Bat
+	var batsmen []models.BatsmanScore
 	for rows.Next() {
-		var bat models.Bat
+		var bat models.BatsmanScore
 		err := rows.Scan(
 			&bat.ID,
 			&bat.PublicID,
@@ -720,7 +722,7 @@ func (q *Queries) ToggleCricketStricker(ctx context.Context, matchPublicID uuid.
 
 const updateWideRun = `
 	WITH update_bowler AS (
-		UPDATE balls
+		UPDATE bowler_score
 		SET 
 			wide = wide + 1, 
 			runs = runs + $4
@@ -752,7 +754,7 @@ const updateWideRun = `
 		RETURNING *
 	),
 	update_batsman AS (
-		UPDATE bats
+		UPDATE batsman_score
 		SET 
 			runs_scored = runs_scored + $4
 		FROM matches m
@@ -784,9 +786,9 @@ const updateWideRun = `
 	);
 `
 
-func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeamPublicID, bowlerPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.Bat, *models.Ball, *models.CricketScore, error) {
-	var bowler models.Ball
-	var batsman models.Bat
+func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeamPublicID, bowlerPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
+	var bowler models.BowlerScore
+	var batsman models.BatsmanScore
 	var inningScore models.CricketScore
 	row := q.db.QueryRowContext(ctx, updateWideRun, matchPublicID, battingTeamPublicID, bowlerPublicID, runsScored, inningNumber)
 	err := row.Scan(
@@ -809,7 +811,7 @@ func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeam
 		&bowler.MatchID,
 		&bowler.TeamID,
 		&bowler.BowlerID,
-		&bowler.Ball,
+		&bowler.BallNumber,
 		&bowler.Runs,
 		&bowler.Wickets,
 		&bowler.Wide,
@@ -840,7 +842,7 @@ func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeam
 
 const updateNoBallRun = `
 WITH update_bowler AS (
-	UPDATE balls
+	UPDATE bowler_score
 	SET no_ball = no_ball + 1, 
 		runs = runs + 1 + $4
 	FROM matches m, bowler bw
@@ -855,7 +857,7 @@ update_inning_score AS (
 	RETURNING *
 ),
 update_batsman AS (
-	UPDATE bats
+	UPDATE batsman_score
 	SET runs_scored = runs_scored + $4
 	FROM matches m
 	WHERE m.public_id = $1 AND is_striker = true AND inning_number= $5
@@ -870,9 +872,9 @@ JOIN update_bowler ubl ON ub.match_id = ubl.match_id AND ub.inning_number= ubl.i
 JOIN update_inning_score uis ON ub.match_id = uis.match_id AND ub.inning_number= uis.inning_number
 `
 
-func (q *Queries) UpdateNoBallsRuns(ctx *gin.Context, matchPublicID, bowlerPublicID, battingTeamPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.Bat, *models.Ball, *models.CricketScore, error) {
-	var bowler models.Ball
-	var batsman models.Bat
+func (q *Queries) UpdateNoBallsRuns(ctx *gin.Context, matchPublicID, bowlerPublicID, battingTeamPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
+	var bowler models.BowlerScore
+	var batsman models.BatsmanScore
 	var inningScore models.CricketScore
 	row := q.db.QueryRowContext(ctx, updateNoBallRun, matchPublicID, bowlerPublicID, battingTeamPublicID, runsScored, inningNumber)
 	err := row.Scan(
@@ -895,7 +897,7 @@ func (q *Queries) UpdateNoBallsRuns(ctx *gin.Context, matchPublicID, bowlerPubli
 		&bowler.MatchID,
 		&bowler.TeamID,
 		&bowler.BowlerID,
-		&bowler.Ball,
+		&bowler.BallNumber,
 		&bowler.Runs,
 		&bowler.Wickets,
 		&bowler.Wide,
@@ -946,7 +948,7 @@ type BowlingScore struct {
 	MatchID         int32     `json:"match_id"`
 	TeamID          int32     `json:"team_id"`
 	BowlerID        int32     `json:"bowler_id"`
-	Ball            int32     `json:"ball"`
+	BallNumber      int32     `json:"ball_number"`
 	Runs            int32     `json:"runs"`
 	Wickets         int32     `json:"wickets"`
 	Wide            int32     `json:"wide"`
@@ -961,9 +963,9 @@ type InningScore struct {
 	MatchID           int32     `json:"match_id"`
 	TeamID            int32     `json:"team_id"`
 	InningNumber      int       `json:"inning_number"`
-	Score             int32     `json:"score"`
-	Wickets           int32     `json:"wickets"`
-	Overs             int32     `json:"overs"`
+	Score             int       `json:"score"`
+	Wickets           int       `json:"wickets"`
+	Overs             int       `json:"overs"`
 	RunRate           string    `json:"run_rate"`
 	TargetRunRate     string    `json:"target_run_rate"`
 	FollowOn          bool      `json:"follow_on"`
@@ -971,7 +973,7 @@ type InningScore struct {
 	Declared          bool      `json:"declared"`
 }
 
-// Enhance about the no ball
+// Enhance about the no ball_number
 const addCricketWicket = `
 WITH resolved_ids AS (
   SELECT 
@@ -1007,7 +1009,7 @@ add_wicket AS (
   RETURNING *
 ),
 update_out_batsman AS (
-  UPDATE bats b
+  UPDATE batsman_score b
   SET 
     balls_faced = balls_faced + 1,
     runs_scored = runs_scored + (CASE WHEN is_striker THEN GREATEST($9, 0) ELSE 0 END),
@@ -1021,7 +1023,7 @@ update_out_batsman AS (
   RETURNING *
 ),
 update_not_out_batsman AS (
-  UPDATE bats b
+  UPDATE batsman_score b
   SET 
     balls_faced = balls_faced + 1,
     runs_scored = runs_scored + (CASE WHEN is_striker THEN GREATEST($9, 0) ELSE 0 END)
@@ -1034,11 +1036,11 @@ update_not_out_batsman AS (
   RETURNING *
 ),
 update_bowler AS (
-  UPDATE balls bl
+  UPDATE bowler_score bl
   SET 
     wickets = CASE WHEN $6 != 'Run Out' THEN bl.wickets + 1 ELSE bl.wickets END,
     runs = bl.runs + GREATEST($9, 0),
-    ball = bl.ball + 1
+    ball_number = bl.ball_number + 1
   FROM resolved_ids r
   WHERE bl.match_id = r.match_id
     AND bl.bowler_id = r.bowler_id
@@ -1067,10 +1069,10 @@ JOIN update_bowler b ON w.match_id = b.match_id AND w.bowler_id = b.bowler_id AN
 JOIN update_inning_score sc ON w.match_id = sc.match_id AND w.team_id = sc.team_id AND sc.inning_number = w.inning_number;
 `
 
-func (q *Queries) AddCricketWicket(ctx context.Context, matchPublicID, teamPublicID, batsmanPublicID, bowlerPublicID uuid.UUID, wicketNumber int, wicketType string, ballNumber int, fielderID uuid.UUID, score int32, runsScored int32, inningNumber int) (*models.Bat, *models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
-	var outBatsman models.Bat
-	var notOutBatsman models.Bat
-	var bowler models.Ball
+func (q *Queries) AddCricketWicket(ctx context.Context, matchPublicID, teamPublicID, batsmanPublicID, bowlerPublicID uuid.UUID, wicketNumber int, wicketType string, ballNumber int, fielderID uuid.UUID, score int, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BatsmanScore, *models.BowlerScore, *models.CricketScore, *models.Wicket, error) {
+	var outBatsman models.BatsmanScore
+	var notOutBatsman models.BatsmanScore
+	var bowler models.BowlerScore
 	var inningScore models.CricketScore
 	var wickets models.Wicket
 
@@ -1106,7 +1108,7 @@ func (q *Queries) AddCricketWicket(ctx context.Context, matchPublicID, teamPubli
 		&bowler.TeamID,
 		&bowler.MatchID,
 		&bowler.BowlerID,
-		&bowler.Ball,
+		&bowler.BallNumber,
 		&bowler.Runs,
 		&bowler.Wickets,
 		&bowler.Wide,
@@ -1184,53 +1186,53 @@ WITH add_wicket AS (
     RETURNING *
 ),
 update_out_batsman AS (
-    UPDATE bats
+    UPDATE batsman_score
     SET balls_faced = balls_faced + 1,
         runs_scored = runs_scored + (CASE WHEN is_striker THEN (CASE WHEN $9 > 0 THEN $9 ELSE 0 END) ELSE 0 END),
         is_currently_batting = false,
         is_striker = false
     FROM matches m, teams t, players p
-    WHERE bats.match_id = m.id 
-      AND bats.batsman_id = p.id 
-      AND bats.team_id = t.id
+    WHERE batsman_score.match_id = m.id 
+      AND batsman_score.batsman_id = p.id 
+      AND batsman_score.team_id = t.id
       AND m.public_id = $1
       AND t.public_id = $2
       AND p.public_id = $3
-      AND bats.inning_number = $10
-    RETURNING bats.*
+      AND batsman_score.inning_number = $10
+    RETURNING batsman_score.*
 ),
 update_not_out_batsman AS (
-    UPDATE bats
+    UPDATE batsman_score
     SET balls_faced = balls_faced + 1,
         runs_scored = runs_scored + (CASE WHEN is_striker THEN (CASE WHEN $9 > 0 THEN $9 ELSE 0 END) ELSE 0 END)
     FROM matches m, teams t, players batsman_p
-    WHERE bats.match_id = m.id 
-      AND bats.team_id = t.id 
-      AND bats.batsman_id <> (SELECT id FROM players WHERE public_id = $3)
-      AND bats.is_currently_batting = true
+    WHERE batsman_score.match_id = m.id 
+      AND batsman_score.team_id = t.id 
+      AND batsman_score.batsman_id <> (SELECT id FROM players WHERE public_id = $3)
+      AND batsman_score.is_currently_batting = true
       AND m.public_id = $1
       AND t.public_id = $2
-      AND bats.inning_number = $10
-    RETURNING bats.*
+      AND batsman_score.inning_number = $10
+    RETURNING batsman_score.*
 ),
 update_bowler AS (
-    UPDATE balls
+    UPDATE bowler_score
     SET wickets = CASE
                     WHEN $6 != 'Run Out' THEN wickets + 1
                     ELSE wickets
                   END,
         runs = runs + (CASE WHEN $9 > 0 THEN $9 ELSE 0 END),
-        ball = ball,
+        ball_number = ball_number,
         wide = wide + (CASE WHEN $11 = 'wide' THEN 1 ELSE 0 END),
         no_ball = no_ball + (CASE WHEN $11 = 'no_ball' THEN 1 ELSE 0 END)
     FROM matches m, players p
-    WHERE balls.match_id = m.id 
-      AND balls.bowler_id = p.id 
-      AND balls.is_current_bowler = true
+    WHERE bowler_score.match_id = m.id 
+      AND bowler_score.bowler_id = p.id 
+      AND bowler_score.is_current_bowler = true
       AND m.public_id = $1
       AND p.public_id = $4
-      AND balls.inning_number = $10
-    RETURNING balls.*
+      AND bowler_score.inning_number = $10
+    RETURNING bowler_score.*
 ),
 update_inning_score AS (
     UPDATE cricket_score
@@ -1258,10 +1260,10 @@ LEFT JOIN update_bowler b ON w.match_id = b.match_id
 LEFT JOIN update_inning_score sc ON w.match_id = sc.match_id;
 `
 
-func (q *Queries) AddCricketWicketWithBowlType(ctx context.Context, matchPublicID, teamPublicID, batsmanPublicID, bowlerPublicID uuid.UUID, wicketNumber int, wicketType string, ballNumber int, fielderPublicID *uuid.UUID, score int32, bowlType string, inningNumber int) (*models.Bat, *models.Bat, *models.Ball, *models.CricketScore, *models.Wicket, error) {
-	var outBatsman models.Bat
-	var notOutBatsman models.Bat
-	var bowler models.Ball
+func (q *Queries) AddCricketWicketWithBowlType(ctx context.Context, matchPublicID, teamPublicID, batsmanPublicID, bowlerPublicID uuid.UUID, wicketNumber int, wicketType string, ballNumber int, fielderPublicID *uuid.UUID, score int, bowlType string, inningNumber int) (*models.BatsmanScore, *models.BatsmanScore, *models.BowlerScore, *models.CricketScore, *models.Wicket, error) {
+	var outBatsman models.BatsmanScore
+	var notOutBatsman models.BatsmanScore
+	var bowler models.BowlerScore
 	var inningScore models.CricketScore
 	var wickets models.Wicket
 
@@ -1321,7 +1323,7 @@ func (q *Queries) AddCricketWicketWithBowlType(ctx context.Context, matchPublicI
 		&bowler.MatchID,
 		&bowler.TeamID,
 		&bowler.BowlerID,
-		&bowler.Ball,
+		&bowler.BallNumber,
 		&bowler.Runs,
 		&bowler.Wickets,
 		&bowler.Wide,
@@ -1374,13 +1376,13 @@ WITH update_inning_number AS (
 	RETURNING *
 ),
 update_batsman AS (
-	UPDATE bats
+	UPDATE batsman_score
 	SET is_striker = false
 	WHERE match_id = $1 AND team_id = $2 AND is_striker = true AND inning_number= $3
 	RETURNING *
 ),
 update_bowler AS (
-	UPDATE balls
+	UPDATE bowler_score
 	SET is_current_bowler = false
 	WHERE match_id = $1 AND is_current_bowler = true AND inning_number= $3
 	RETURNING *
@@ -1394,10 +1396,10 @@ JOIN update_bowler AS ubl ON ub.match_id = ubl.match_id AND ub.team_id = ubl.tea
 JOIN update_inning_number AS ui ON ub.match_id = ui.match_id AND ui.team_id = ub.team_id AND ui.inning_number= ub.inning_number
 `
 
-func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTeamID int32, inningNumber int) (*models.CricketScore, *models.Bat, *models.Ball, error) {
+func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTeamID int32, inningNumber int) (*models.CricketScore, *models.BatsmanScore, *models.BowlerScore, error) {
 	var inningScore models.CricketScore
-	var batsmanScore models.Bat
-	var bowler models.Ball
+	var batsmanScore models.BatsmanScore
+	var bowler models.BowlerScore
 
 	row := q.db.QueryRowContext(ctx, updateInningEndStatus, matchID, batsmanTeamID)
 
@@ -1434,7 +1436,7 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 		&bowler.MatchID,
 		&bowler.TeamID,
 		&bowler.BowlerID,
-		&bowler.Ball,
+		&bowler.BallNumber,
 		&bowler.Runs,
 		&bowler.Wickets,
 		&bowler.Wide,
@@ -1468,14 +1470,14 @@ update_inning_number AS (
 	RETURNING *
 ),
 update_batsman AS (
-	UPDATE bats
+	UPDATE batsman_score
 	SET is_striker = false
 	FROM resolve_ids AS ri 
 	WHERE match_id = ri.match_id AND team_id = ri.team_id AND is_striker = true AND inning_number= $3
 	RETURNING *
 ),
 update_bowler AS (
-	UPDATE balls
+	UPDATE bowler_score
 	SET is_current_bowler = false
 	FROM resolve_ids AS ri 
 	WHERE match_id = ri.match_id AND is_current_bowler = true AND inning_number= $3
@@ -1490,10 +1492,10 @@ JOIN update_bowler AS ubl ON ub.match_id = ubl.match_id AND ub.team_id = ubl.tea
 JOIN update_inning_number AS ui ON ub.match_id = ui.match_id AND ui.team_id = ub.team_id AND ui.inning_number= ub.inning_number
 `
 
-func (q *Queries) UpdateInningEndStatusByPublicID(ctx context.Context, matchPublicID, batsmanTeamPublicID uuid.UUID, inningNumber int) (*models.CricketScore, *models.Bat, *models.Ball, error) {
+func (q *Queries) UpdateInningEndStatusByPublicID(ctx context.Context, matchPublicID, batsmanTeamPublicID uuid.UUID, inningNumber int) (*models.CricketScore, *models.BatsmanScore, *models.BowlerScore, error) {
 	var inningScore models.CricketScore
-	var batsmanScore models.Bat
-	var bowler models.Ball
+	var batsmanScore models.BatsmanScore
+	var bowler models.BowlerScore
 
 	row := q.db.QueryRowContext(ctx, updateInningEndStatus, matchPublicID, batsmanTeamPublicID)
 
@@ -1530,7 +1532,7 @@ func (q *Queries) UpdateInningEndStatusByPublicID(ctx context.Context, matchPubl
 		&bowler.MatchID,
 		&bowler.TeamID,
 		&bowler.BowlerID,
-		&bowler.Ball,
+		&bowler.BallNumber,
 		&bowler.Runs,
 		&bowler.Wickets,
 		&bowler.Wide,
@@ -1552,7 +1554,7 @@ func (q *Queries) UpdateInningEndStatusByPublicID(ctx context.Context, matchPubl
 
 const updateInningScore = `
 	WITH update_batsman AS (
-		UPDATE bats
+		UPDATE batsman_score
 		SET runs_scored = runs_scored + $5,
 			balls_faced = balls_faced + 1,
 			fours = fours + CASE WHEN $5 = 4 THEN 1 ELSE 0 END,
@@ -1572,9 +1574,9 @@ const updateInningScore = `
 		FROM matches AS m WHERE id = $1
 	),
 	update_bowler AS (
-		UPDATE balls
+		UPDATE bowler_score
 		SET runs = runs + $5,
-			ball = ball + 1
+			ball_number = ball_number + 1
 		FROM bowler_score bs
 		JOIN matches m ON m.id = bs.match_id
 		JOIN players p ON p.id = bs.bowler_id
@@ -1601,9 +1603,9 @@ const updateInningScore = `
 	JOIN update_inning_score uis ON ub.match_id = uis.match_id AND ub.team_id = uis.team_id AND ub.inning_number= ubl.inning_number;
 `
 
-func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanTeamPublicID, batsmanPublicID, bowlerTeamID uuid.UUID, runsScored int32, inningNumber int) (*models.Bat, *models.Ball, *models.CricketScore, error) {
-	var batsman models.Bat
-	var bowler models.Ball
+func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanTeamPublicID, batsmanPublicID, bowlerTeamID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
+	var batsman models.BatsmanScore
+	var bowler models.BowlerScore
 	var inningScore models.CricketScore
 	row := q.db.QueryRowContext(ctx, updateInningScore, matchPublicID, batsmanTeamPublicID, batsmanPublicID, bowlerTeamID, runsScored, inningNumber)
 
@@ -1627,7 +1629,7 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanT
 		&bowler.MatchID,
 		&bowler.TeamID,
 		&bowler.BowlerID,
-		&bowler.Ball,
+		&bowler.BallNumber,
 		&bowler.Runs,
 		&bowler.Wickets,
 		&bowler.Wide,
@@ -1658,7 +1660,7 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanT
 }
 
 const updateSetBowlerStatus = `
-	UPDATE balls b
+	UPDATE bowler_score b
 	SET is_current_bowler = NOT is_current_bowler
 	FROM balls_status bs
 	JOIN matches m ON m.id = b.match_id
@@ -1668,8 +1670,8 @@ const updateSetBowlerStatus = `
 	RETURNING *
 `
 
-func (q *Queries) UpdateBowlingBowlerStatus(ctx context.Context, matchPublicID, teamPublicID, bowlerPublicID uuid.UUID, inningNumber int) (*models.Ball, error) {
-	var currentBowler models.Ball
+func (q *Queries) UpdateBowlingBowlerStatus(ctx context.Context, matchPublicID, teamPublicID, bowlerPublicID uuid.UUID, inningNumber int) (*models.BowlerScore, error) {
+	var currentBowler models.BowlerScore
 
 	row := q.db.QueryRowContext(ctx, updateSetBowlerStatus, matchPublicID, teamPublicID, bowlerPublicID, inningNumber)
 
@@ -1679,7 +1681,7 @@ func (q *Queries) UpdateBowlingBowlerStatus(ctx context.Context, matchPublicID, 
 		&currentBowler.MatchID,
 		&currentBowler.TeamID,
 		&currentBowler.BowlerID,
-		&currentBowler.Ball,
+		&currentBowler.BallNumber,
 		&currentBowler.Runs,
 		&currentBowler.Wickets,
 		&currentBowler.Wide,
@@ -1697,22 +1699,22 @@ func (q *Queries) UpdateBowlingBowlerStatus(ctx context.Context, matchPublicID, 
 }
 
 const getCurrentBattingBatsmanQuery = `
-	SELECT * FROM bats b
+	SELECT * FROM batsman_score b
 	JOIN matches ON m.id = b.match_id
 	JOIN teams ON t.id = b.team_id
 	WHERE m.public_id=$1 AND t.public_id=$2 AND is_currently_batting=true AND inning_number= $3;
 `
 
-func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) ([]models.Bat, error) {
+func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) ([]models.BatsmanScore, error) {
 	rows, err := q.db.QueryContext(ctx, getCurrentBattingBatsmanQuery, matchPublicID, teamPublicID, inningNumber)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var batsmen []models.Bat
+	var batsmen []models.BatsmanScore
 	for rows.Next() {
-		var bat models.Bat
+		var bat models.BatsmanScore
 		err := rows.Scan(
 			&bat.ID,
 			&bat.PublicID,
@@ -1778,7 +1780,7 @@ const getCurrentBatsmanQuery = `
 				)
         	)
     	) AS team_data
-	FROM bats bt
+	FROM batsman_score bt
 	JOIN players AS pl ON pl.id = bt.batsman_id
 	JOIN teams AS tm ON tm.id = bt.team_id
 	JOIN matches AS m ON m.id = bt.match_id
@@ -1841,7 +1843,7 @@ const getCurrentBowlerQuery = `
 					'bowler_id', bl.bowler_id,
 					'player', JSON_BUILD_OBJECT('id',pl.id,'public_id',pl.public_id, 'name', pl.player_name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
 					'runs', bl.runs, 
-					'ball', bl.ball, 
+					'ball_number', bl.ball_number, 
 					'wickets', bl.wickets, 
 					'wide', bl.wide, 
 					'no_ball', bl.no_ball,
@@ -1850,7 +1852,7 @@ const getCurrentBowlerQuery = `
 					'inning_number', bl.inning_number,
 				)
     	) AS team_data
-	FROM balls bl
+	FROM bowler_score bl
 	JOIN matches AS m ON m.id = bl.match_id
 	JOIN players AS pl ON pl.id = bl.bowler_id
 	JOIN teams AS tm ON tm.id = bl.team_id

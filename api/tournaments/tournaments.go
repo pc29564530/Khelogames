@@ -65,7 +65,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		Name:           req.Name,
 		Slug:           slug,
 		Country:        req.Country,
-		StatusCode:     req.StatusCode,
+		Status:         req.StatusCode,
 		Level:          req.Level,
 		StartTimestamp: startTimeStamp,
 		GameID:         req.GameID,
@@ -232,7 +232,7 @@ func (s *TournamentServer) UpdateTournamentStatusFunc(ctx *gin.Context) {
 
 	arg := db.UpdateTournamentStatusParams{
 		TournamentPublicID: req.TournamentPublicID,
-		StatusCode:         statusCode,
+		Status:             statusCode,
 	}
 
 	updatedMatchData, err := s.store.UpdateTournamentStatus(ctx, arg)

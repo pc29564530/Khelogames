@@ -22,7 +22,7 @@ func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (models
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,
@@ -49,7 +49,7 @@ func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (models.Tourn
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,
@@ -81,7 +81,7 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 			&i.Name,
 			&i.Slug,
 			&i.Country,
-			&i.StatusCode,
+			&i.Status,
 			&i.Level,
 			&i.StartTimestamp,
 			&i.GameID,
@@ -124,7 +124,7 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level
 			&i.Name,
 			&i.Slug,
 			&i.Country,
-			&i.StatusCode,
+			&i.Status,
 			&i.Level,
 			&i.StartTimestamp,
 			&i.GameID,
@@ -229,7 +229,7 @@ type NewTournamentParams struct {
 	Name           string    `json:"name"`
 	Slug           string    `json:"slug"`
 	Country        string    `json:"country"`
-	StatusCode     string    `json:"status_code"`
+	Status         string    `json:"status_code"`
 	Level          string    `json:"level"`
 	StartTimestamp int64     `json:"start_timestamp"`
 	GameID         *int64    `json:"game_id"`
@@ -245,7 +245,7 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		arg.Name,
 		arg.Slug,
 		arg.Country,
-		arg.StatusCode,
+		arg.Status,
 		arg.Level,
 		arg.StartTimestamp,
 		arg.GameID,
@@ -262,7 +262,7 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,
@@ -297,7 +297,7 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GroupCount,
@@ -317,18 +317,18 @@ RETURNING *
 
 type UpdateTournamentStatusParams struct {
 	TournamentPublicID uuid.UUID `json:"tournament_public_id"`
-	StatusCode         string    `json:"status_code"`
+	Status             string    `json:"status_code"`
 }
 
 func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTournamentStatusParams) (models.Tournament, error) {
-	row := q.db.QueryRowContext(ctx, updateTournamentStatus, arg.TournamentPublicID, arg.StatusCode)
+	row := q.db.QueryRowContext(ctx, updateTournamentStatus, arg.TournamentPublicID, arg.Status)
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,

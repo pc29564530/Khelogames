@@ -10,20 +10,20 @@ import (
 )
 
 const getCricketBatsmanScoreByTeamID = `
-	SELECT * FROM bats b
+	SELECT * FROM batsman_score b
 	JOIN teams t ON t.id = b.team_id
 	WHERE t.public_id=$1
 `
 
-func (q *Queries) GetCricketBatsmanScoreByTeamID(ctx context.Context, teamPublicID uuid.UUID) (*[]models.Bat, error) {
+func (q *Queries) GetCricketBatsmanScoreByTeamID(ctx context.Context, teamPublicID uuid.UUID) (*[]models.BatsmanScore, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketBatsmanScoreByTeamID, teamPublicID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to query: ", err)
 	}
-	var batsmanScore []models.Bat
+	var batsmanScore []models.BatsmanScore
 
 	for rows.Next() {
-		var i models.Bat
+		var i models.BatsmanScore
 		err := rows.Scan(
 			&i.ID,
 			&i.PublicID,
@@ -52,7 +52,7 @@ func (q *Queries) GetCricketBatsmanScoreByTeamID(ctx context.Context, teamPublic
 }
 
 const getCricketBowlerScoreByTeamID = `
-	SELECT * FROM balls b
+	SELECT * FROM bowler_score b
 	JOIN teams t ON t.id = b.team_id
 	WHERE t.public_id=$1
 `
@@ -72,7 +72,7 @@ func (q *Queries) GetCricketBowlerScoreByTeamID(ctx context.Context, teamPublicI
 			&i.MatchID,
 			&i.TeamID,
 			&i.BowlerID,
-			&i.Ball,
+			&i.BallNumber,
 			&i.Runs,
 			&i.Wickets,
 			&i.Wide,
@@ -350,7 +350,7 @@ UPDATE cricket_score cs
 SET score = (
         SELECT SUM(bt.runs_scored) + SUM(bl.wide + bl.no_ball)
         FROM bats bt
-		LEFT JOIN balls AS bl ON bt.match_id=bl.match_id AND bl.team_id =  $3 AND bl.bowling_status=true
+		LEFT JOIN bowler_score AS bl ON bt.match_id=bl.match_id AND bl.team_id =  $3 AND bl.bowling_status=true
         WHERE bt.match_id = cs.match_id AND bt.inning_number = cs.inning_number AND bt.team_id=cs.team_id
         GROUP BY (bt.match_id, bt.inning_number, bt.team_id)
     )

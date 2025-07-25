@@ -11,11 +11,11 @@ import (
 )
 
 const createProfile = `
-INSERT INTO users_profile (
+INSERT INTO user_profiles (
     user_id,
-    full_name,
     bio,
     avatar_url,
+	location,
 	created_at,
 	updated_at
 ) VALUES (
@@ -25,69 +25,73 @@ INSERT INTO users_profile (
 
 type CreateProfileParams struct {
 	UserID    int32  `json:"user_id"`
-	FullName  string `json:"full_name"`
 	Bio       string `json:"bio"`
 	AvatarUrl string `json:"avatar_url"`
+	Location  string `json:"location"`
 }
 
-func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (models.UsersProfile, error) {
+func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (models.UserProfiles, error) {
 	row := q.db.QueryRowContext(ctx, createProfile,
 		arg.UserID,
-		arg.FullName,
 		arg.Bio,
 		arg.AvatarUrl,
+		arg.Location,
 	)
-	var profile models.UsersProfile
+	var profile models.UserProfiles
 	err := row.Scan(
 		&profile.ID,
 		&profile.PublicID,
 		&profile.UserID,
-		&profile.FullName,
 		&profile.Bio,
 		&profile.AvatarUrl,
-		&profile.CreatedAT,
-		&profile.UpdatedAT,
+		&profile.Location,
+		&profile.CreatedAt,
+		&profile.UpdatedAt,
 	)
 	return profile, err
 }
 
+type UpdateUserParams struct {
+	PublicID uuid.UUID `db:"public_id"`
+	FullName string    `db:"full_name"`
+}
+
 // edit profile
 const editProfile = `
-UPDATE users_profile
-SET full_name=$1, avatar_url=$2, bio=$3
-WHERE public_id=$4
+UPDATE user_profiles
+SET avatar_url=$2, bio=$3
+WHERE public_id=$1
 RETURNING *
 `
 
 type EditProfileParams struct {
 	PublicID  uuid.UUID `json:"public_id"`
-	FullName  string    `json:"full_name"`
 	AvatarUrl string    `json:"avatar_url"`
 	Bio       string    `json:"bio"`
 }
 
-func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (models.UsersProfile, error) {
+func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (models.UserProfiles, error) {
 	row := q.db.QueryRowContext(ctx, editProfile,
 		arg.PublicID,
-		arg.FullName,
 		arg.AvatarUrl,
 		arg.Bio,
 	)
-	var profile models.UsersProfile
+	var profile models.UserProfiles
 	err := row.Scan(
 		&profile.ID,
+		&profile.PublicID,
 		&profile.UserID,
-		&profile.FullName,
 		&profile.Bio,
 		&profile.AvatarUrl,
+		&profile.Location,
 	)
 	return profile, err
 }
 
 const getProfile = `
-SELECT  FROM users_profile up
-JOIN users AS u ON u.id = up.user_id
-WHERE public_id=$1
+SELECT up.*, u.full_name AS full_name, u.username AS username FROM user_profiles up
+LEFT JOIN users AS u ON u.id = up.user_id
+WHERE up.public_id = $1
 `
 
 type userProfile struct {

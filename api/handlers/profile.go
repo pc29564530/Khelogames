@@ -65,7 +65,6 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 
 	arg := db.EditProfileParams{
 		PublicID:  authPayload.PublicID,
-		FullName:  req.FullName,
 		Bio:       req.Bio,
 		AvatarUrl: req.AvatarUrl,
 	}
@@ -77,7 +76,7 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 		return
 	}
 
-	_, err = s.store.UpdateUser(ctx, updatedProfile.UserID, updatedProfile.FullName)
+	_, err = s.store.UpdateUser(ctx, int32(updatedProfile.UserID), req.FullName)
 	if err != nil {
 		s.logger.Error("Failed to update the user full name: ", err)
 		ctx.JSON(http.StatusNotAcceptable, err)

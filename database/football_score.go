@@ -82,9 +82,9 @@ RETURNING *
 type NewFootballScoreParams struct {
 	MatchID         int32 `json:"match_id"`
 	TeamID          int32 `json:"team_id"`
-	FirstHalf       int32 `json:"first_half"`
-	SecondHalf      int32 `json:"second_half"`
-	Goals           int64 `json:"goals"`
+	FirstHalf       int   `json:"first_half"`
+	SecondHalf      int   `json:"second_half"`
+	Goals           int   `json:"goals"`
 	PenaltyShootOut int   `json:"penalty_shootout"`
 }
 
