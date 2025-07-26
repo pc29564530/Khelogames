@@ -66,7 +66,7 @@ func NewServer(config util.Config,
 		public.DELETE("/removeSession/:public_id", authServer.DeleteSessionFunc)
 		public.POST("/tokens/renew_access", authServer.RenewAccessTokenFunc)
 		// public.GET("/user/:username", handlersServer.GetUsersFunc)
-		public.GET("/getProfile/:username", handlersServer.GetProfileFunc)
+		public.GET("/getProfile/:public_id", handlersServer.GetProfileFunc)
 		public.POST("/google/createGoogleSignUp", authServer.CreateGoogleSignUpFunc)
 		public.POST("/google/createGoogleSignIn", authServer.CreateGoogleSignIn)
 		public.GET("/google/handleGoogleRedirect", authServer.HandleGoogleRedirect)

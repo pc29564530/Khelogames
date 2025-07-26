@@ -54,8 +54,9 @@ func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) 
 
 const deleteSessions = `
 	DELETE FROM sessions s
-	JOIN users AS u ON u.id = s.user_id
-	WHERE u.public_id = $1
+	WHERE user_id IN (
+		SELECT id FROM users WHERE public_id = $1
+	);
 `
 
 func (q *Queries) DeleteSessions(ctx context.Context, publicID uuid.UUID) error {

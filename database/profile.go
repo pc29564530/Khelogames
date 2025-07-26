@@ -89,9 +89,9 @@ func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (model
 }
 
 const getProfile = `
-SELECT up.*, u.full_name AS full_name, u.username AS username FROM user_profiles up
+SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
 LEFT JOIN users AS u ON u.id = up.user_id
-WHERE up.public_id = $1
+WHERE u.public_id = $1;
 `
 
 type userProfile struct {

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	db "khelogames/database"
 	"khelogames/database/models"
 	"khelogames/pkg"
@@ -15,7 +16,7 @@ import (
 func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get profile")
 	var req struct {
-		PublicID uuid.UUID `uri:"public_id"`
+		PublicID string `uri:"public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -25,12 +26,20 @@ func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("Successfully bind: ", req)
 
-	profile, err := s.store.GetProfile(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	profile, err := s.store.GetProfile(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get profile: ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+	fmt.Println("Profile; ", profile)
 	s.logger.Info("Successfully retrieved profile: ", profile)
 	ctx.JSON(http.StatusOK, profile)
 }

@@ -9,7 +9,7 @@ import (
 
 func (s *AuthServer) DeleteSessionFunc(ctx *gin.Context) {
 	var req struct {
-		PublicID uuid.UUID `uri:"public_id"`
+		PublicID string `uri:"public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -17,7 +17,14 @@ func (s *AuthServer) DeleteSessionFunc(ctx *gin.Context) {
 		return
 	}
 
-	err = s.store.DeleteSessions(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	err = s.store.DeleteSessions(ctx, publicID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, (err))
 		return
