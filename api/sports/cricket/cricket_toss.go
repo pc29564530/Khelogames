@@ -9,9 +9,9 @@ import (
 )
 
 type addCricketTossRequest struct {
-	MatchPublicID uuid.UUID `json:"match_public_id"`
-	TossDecision  string    `json:"toss_decision"`
-	TossWin       uuid.UUID `json:"toss_win"`
+	MatchPublicID string `json:"match_public_id"`
+	TossDecision  string `json:"toss_decision"`
+	TossWin       string `json:"toss_win"`
 }
 
 func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
@@ -23,14 +23,28 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.AddCricketToss(ctx, req.MatchPublicID, req.TossDecision, req.TossWin)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	tossWin, err := uuid.Parse(req.TossWin)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.AddCricketToss(ctx, matchPublicID, req.TossDecision, tossWin)
 	if err != nil {
 		s.logger.Error("Failed to add cricket match toss : ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
 
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, req.MatchPublicID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the match by id: ", err)
 		return
@@ -70,7 +84,7 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 }
 
 type getTossRequest struct {
-	MatchPublicID uuid.UUID `uri:"match_id" form:"match_id"`
+	MatchPublicID string `uri:"match_id" form:"match_id"`
 }
 
 func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
@@ -83,7 +97,14 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 		return
 	}
 
-	cricketToss, err := s.store.GetCricketToss(ctx, req.MatchPublicID)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	cricketToss, err := s.store.GetCricketToss(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the cricket match toss: ", err)
 		return

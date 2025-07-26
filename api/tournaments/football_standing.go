@@ -10,7 +10,7 @@ import (
 
 func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 	var req struct {
-		PublicID uuid.UUID `uri:"public_id"`
+		PublicID string `uri:"public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -20,7 +20,14 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 		return
 	}
 
-	rows, err := s.store.GetFootballStanding(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	rows, err := s.store.GetFootballStanding(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament standing: ", err)
 		ctx.JSON(http.StatusNotFound, err)
@@ -146,8 +153,8 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 }
 
 type updateFootballStandingRequest struct {
-	TournamentPublicID uuid.UUID `json:"tournament_public_id"`
-	TeamPublicID       uuid.UUID `json:"team_public_id"`
+	TournamentPublicID string `json:"tournament_public_id"`
+	TeamPublicID       string `json:"team_public_id"`
 }
 
 func (s *TournamentServer) UpdateFootballStandingFunc(ctx *gin.Context) {
@@ -160,7 +167,21 @@ func (s *TournamentServer) UpdateFootballStandingFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
-	response, err := s.store.UpdateFootballStanding(ctx, req.TournamentPublicID, req.TeamPublicID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.UpdateFootballStanding(ctx, tournamentPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to update tournament standing: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)

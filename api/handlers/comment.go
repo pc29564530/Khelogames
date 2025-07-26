@@ -14,7 +14,7 @@ type createCommentRequest struct {
 }
 
 type createCommentThreadIdRequest struct {
-	ThreadPublicID uuid.UUID `uri:"thread_public_id"`
+	ThreadPublicID string `uri:"thread_public_id"`
 }
 
 func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
@@ -31,8 +31,15 @@ func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 		return
 	}
 
+	threadPublicID, err := uuid.Parse(uriReq.ThreadPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	comment, err := s.store.CreateComment(ctx, uriReq.ThreadPublicID, authPayload.ID, bodyReq.CommentText)
+	comment, err := s.store.CreateComment(ctx, threadPublicID, authPayload.ID, bodyReq.CommentText)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create comment"})
 		return
@@ -42,7 +49,7 @@ func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 }
 
 type getAllCommentRequest struct {
-	PublicID uuid.UUID `uri:"public_id"`
+	PublicID string `uri:"public_id"`
 }
 
 func (s *HandlersServer) GetAllCommentFunc(ctx *gin.Context) {
@@ -56,7 +63,14 @@ func (s *HandlersServer) GetAllCommentFunc(ctx *gin.Context) {
 
 	s.logger.Debug("bind the request: ", req)
 
-	comments, err := s.store.GetAllComment(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	comments, err := s.store.GetAllComment(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get comment: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -68,7 +82,7 @@ func (s *HandlersServer) GetAllCommentFunc(ctx *gin.Context) {
 }
 
 type deleteCommentByUserRequest struct {
-	PublicID uuid.UUID `json:"public_id"`
+	PublicID string `json:"public_id"`
 }
 
 func (s *HandlersServer) DeleteCommentByUserFunc(ctx *gin.Context) {
@@ -80,9 +94,16 @@ func (s *HandlersServer) DeleteCommentByUserFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationHeaderKey).(*token.Payload)
 
-	comments, err := s.store.DeleteComment(ctx, req.PublicID, authPayload.PublicID)
+	comments, err := s.store.DeleteComment(ctx, publicID, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get comment by user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))

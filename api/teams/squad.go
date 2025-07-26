@@ -10,9 +10,9 @@ import (
 )
 
 type addPlayerToTeamRequest struct {
-	PlayerPublicID uuid.UUID `json:"player_public_id"`
-	TeamPublicID   uuid.UUID `json:"team_public_id"`
-	JoinDate       string    `json:"join_date"`
+	PlayerPublicID string `json:"player_public_id"`
+	TeamPublicID   string `json:"team_public_id"`
+	JoinDate       string `json:"join_date"`
 }
 
 func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
@@ -24,22 +24,36 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		return
 	}
 
+	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	//convert the date to second to insert into the teamplayer table
 	startDate, err := util.ConvertTimeStamp(req.JoinDate)
 	if err != nil {
 		s.logger.Error("Failed to convert the timestamp to second ", err)
 	}
 
-	checkPlayerExist := s.store.GetTeamPlayer(ctx, req.TeamPublicID, req.PlayerPublicID)
+	checkPlayerExist := s.store.GetTeamPlayer(ctx, teamPublicID, playerPublicID)
 	if checkPlayerExist {
 		var leaveData int32
-		_, err := s.store.RemovePlayerFromTeam(ctx, req.TeamPublicID, req.PlayerPublicID, leaveData)
+		_, err := s.store.RemovePlayerFromTeam(ctx, teamPublicID, playerPublicID, leaveData)
 		if err != nil {
 			s.logger.Error("Failed to update the the leave date: ", err)
 			return
 		}
 
-		player, err := s.store.GetPlayerByPublicID(ctx, req.PlayerPublicID)
+		player, err := s.store.GetPlayerByPublicID(ctx, playerPublicID)
 		if err != nil {
 			s.logger.Error("Failed to get the player: ", err)
 			return
@@ -59,8 +73,8 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		return
 	} else {
 		arg := db.AddTeamPlayersParams{
-			TeamPublicID:   req.TeamPublicID,
-			PlayerPublicID: req.PlayerPublicID,
+			TeamPublicID:   teamPublicID,
+			PlayerPublicID: playerPublicID,
 			JoinDate:       int32(startDate),
 			LeaveDate:      nil,
 		}
@@ -78,7 +92,7 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 
 func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 	var req struct {
-		TeamPublicID uuid.UUID `uri:"team_public_id"`
+		TeamPublicID string `uri:"team_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -87,7 +101,14 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 		return
 	}
 
-	players, err := s.store.GetPlayerByTeam(ctx, req.TeamPublicID)
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	players, err := s.store.GetPlayerByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team member: ", err)
 		ctx.JSON(http.StatusNotFound, err)
@@ -117,9 +138,9 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 }
 
 type removePlayerFromTeamRequest struct {
-	TeamPublicID   uuid.UUID `json:"team_public_id"`
-	PlayerPublicID uuid.UUID `json:"player_public_id"`
-	LeaveDate      string    `json:"leave_date"`
+	TeamPublicID   string `json:"team_public_id"`
+	PlayerPublicID string `json:"player_public_id"`
+	LeaveDate      string `json:"leave_date"`
 }
 
 func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
@@ -129,6 +150,21 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind: ", err)
 		return
 	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	//var endDate *int64
 	endDate, err := util.ConvertTimeStamp(req.LeaveDate)
 	if err != nil {
@@ -139,7 +175,7 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 	leave := int32(endDate)
 	var eddPointer *int32 = &leave
 
-	response, err := s.store.RemovePlayerFromTeam(ctx, req.TeamPublicID, req.PlayerPublicID, *eddPointer)
+	response, err := s.store.RemovePlayerFromTeam(ctx, teamPublicID, playerPublicID, *eddPointer)
 	if err != nil {
 		s.logger.Error("Failed to remove player from team: ", err)
 		return

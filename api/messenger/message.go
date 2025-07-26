@@ -12,7 +12,7 @@ import (
 )
 
 type getMessageByReceiverRequest struct {
-	ReceiverPublicID uuid.UUID `uri:"receiver_public_id"`
+	ReceiverPublicID string `uri:"receiver_public_id"`
 }
 
 func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
@@ -26,10 +26,17 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 
 	s.logger.Debug("message receiver username: ", err)
 
+	receiverPublicID, err := uuid.Parse(req.ReceiverPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	arg := db.GetMessageByReceiverParams{
 		SenderID:   authToken.PublicID,
-		ReceiverID: req.ReceiverPublicID,
+		ReceiverID: receiverPublicID,
 	}
 
 	s.logger.Debug("message by receiver arg: ", arg)

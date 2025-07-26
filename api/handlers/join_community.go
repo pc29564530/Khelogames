@@ -11,7 +11,7 @@ import (
 
 func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	var req struct {
-		CommunityPublicID uuid.UUID `uri:"community_public_id"`
+		CommunityPublicID string `uri:"community_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -20,9 +20,16 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
+	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	communityUser, err := s.store.AddJoinCommunity(ctx, req.CommunityPublicID, authPayload.PublicID)
+	communityUser, err := s.store.AddJoinCommunity(ctx, communityPublicID, authPayload.PublicID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return

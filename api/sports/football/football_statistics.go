@@ -52,8 +52,8 @@ func (s *FootballServer) AddFootballStatisticsFunc(ctx *gin.Context) {
 }
 
 type getFootballStatisticsRequest struct {
-	MatchPublicID uuid.UUID `json:"match_public_id"`
-	TeamPublicID  uuid.UUID `json:"team_public_id"`
+	MatchPublicID string `json:"match_public_id"`
+	TeamPublicID  string `json:"team_public_id"`
 }
 
 func (s *FootballServer) GetFootballStatisticsFunc(ctx *gin.Context) {
@@ -64,7 +64,21 @@ func (s *FootballServer) GetFootballStatisticsFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetFootballStatistics(ctx, req.MatchPublicID, req.TeamPublicID)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetFootballStatistics(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the football statistics: ", err)
 	}

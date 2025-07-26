@@ -32,12 +32,19 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 
 func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 	var req struct {
-		MatchPublicID uuid.UUID `uri:"match_public_id"`
+		MatchPublicID string `uri:"match_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
@@ -48,7 +55,7 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, req.MatchPublicID, game.ID)
+	match, err := s.store.GetMatchByMatchID(ctx, matchPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by match id: ", err)
 		return

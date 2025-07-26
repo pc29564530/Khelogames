@@ -9,9 +9,9 @@ import (
 
 func (s *CricketServer) GetCurrentBatsmanFunc(ctx *gin.Context) {
 	var req struct {
-		MatchPublicID uuid.UUID `json: "match_public_id"`
-		TeamPublicID  uuid.UUID `json:"team_public_id"`
-		InningNumber  int       `json:"inning_number"`
+		MatchPublicID string `json: "match_public_id"`
+		TeamPublicID  string `json:"team_public_id"`
+		InningNumber  int    `json:"inning_number"`
 	}
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -19,7 +19,21 @@ func (s *CricketServer) GetCurrentBatsmanFunc(ctx *gin.Context) {
 		return
 	}
 
-	currentBatsmansResponse, err := s.store.GetCurrentBatsman(ctx, req.MatchPublicID, req.TeamPublicID, req.InningNumber)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	currentBatsmansResponse, err := s.store.GetCurrentBatsman(ctx, matchPublicID, teamPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get current batsman score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

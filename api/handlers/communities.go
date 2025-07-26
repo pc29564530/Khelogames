@@ -60,7 +60,7 @@ func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 }
 
 type getCommunityRequest struct {
-	PublicID uuid.UUID `uri:"public_id" binding:"required,min=1"`
+	PublicID string `uri:"public_id" binding:"required,min=1"`
 }
 
 // get Community by id.
@@ -80,7 +80,14 @@ func (s *HandlersServer) GetCommunityFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
-	community, err := s.store.GetCommunity(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	community, err := s.store.GetCommunity(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get community: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -107,7 +114,7 @@ func (s *HandlersServer) GetAllCommunitiesFunc(ctx *gin.Context) {
 
 // Get all users that have joined a particular communities
 type getCommunitiesMemberRequest struct {
-	CommunityPublicID uuid.UUID `uri:"community_public_id"`
+	CommunityPublicID string `uri:"community_public_id"`
 }
 
 func (s *HandlersServer) GetCommunitiesMemberFunc(ctx *gin.Context) {
@@ -124,7 +131,14 @@ func (s *HandlersServer) GetCommunitiesMemberFunc(ctx *gin.Context) {
 		return
 	}
 
-	usersList, err := s.store.GetCommunitiesMember(ctx, req.CommunityPublicID)
+	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	usersList, err := s.store.GetCommunitiesMember(ctx, communityPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get community member: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -180,6 +194,14 @@ func (s *HandlersServer) UpdateCommunityByCommunityNameFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+
+	publicID, err := uuid.Parse(reqUri.CommunityPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	var reqJSON updateCommunityName
 	err = ctx.ShouldBindJSON(&reqJSON)
 	if err != nil {
@@ -193,7 +215,7 @@ func (s *HandlersServer) UpdateCommunityByCommunityNameFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.UpdateCommunityName(ctx, reqUri.CommunityPublicID, reqJSON.CommunityName)
+	response, err := s.store.UpdateCommunityName(ctx, publicID, reqJSON.CommunityName)
 	if err != nil {
 		s.logger.Error("Failed to update the community name: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -204,7 +226,7 @@ func (s *HandlersServer) UpdateCommunityByCommunityNameFunc(ctx *gin.Context) {
 }
 
 type communityPublicIDReq struct {
-	CommunityPublicID uuid.UUID `uri:"community_public_id"`
+	CommunityPublicID string `uri:"community_public_id"`
 }
 
 type updateCommunityDescription struct {
@@ -213,7 +235,7 @@ type updateCommunityDescription struct {
 
 func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
 	var reqUri communityPublicIDReq
-	err := ctx.ShouldBindJSON(&reqUri)
+	err := ctx.ShouldBindUri(&reqUri)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.logger.Error("No row error ", err)
@@ -224,6 +246,14 @@ func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
+
+	publicID, err := uuid.Parse(reqUri.CommunityPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	var reqJSON updateCommunityDescription
 	err = ctx.ShouldBindJSON(&reqJSON)
 	if err != nil {
@@ -237,7 +267,7 @@ func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.UpdateCommunityDescription(ctx, reqUri.CommunityPublicID, reqJSON.CommunityDescription)
+	response, err := s.store.UpdateCommunityDescription(ctx, publicID, reqJSON.CommunityDescription)
 	if err != nil {
 		s.logger.Error("Failed to update the  description: ", err)
 		return

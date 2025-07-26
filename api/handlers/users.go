@@ -31,7 +31,7 @@ type userResponse struct {
 }
 
 type getUserRequest struct {
-	PublicID uuid.UUID `uri:"public_id"`
+	PublicID string `uri:"public_id"`
 }
 
 func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
@@ -44,7 +44,14 @@ func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the reqeust: ", req)
 
-	users, err := s.store.GetUser(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	users, err := s.store.GetUser(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))

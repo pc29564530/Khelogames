@@ -87,7 +87,7 @@ func (s *TeamsServer) GetTeamsFunc(ctx *gin.Context) {
 }
 
 type getClubRequest struct {
-	PublicID uuid.UUID `uri:"public_id"`
+	PublicID string `uri:"public_id"`
 }
 
 func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
@@ -98,7 +98,15 @@ func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	response, err := s.store.GetTeamByPublicID(ctx, req.PublicID)
+
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetTeamByPublicID(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get club: ", err)
 		ctx.JSON(http.StatusNoContent, (err))
@@ -159,7 +167,7 @@ func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 }
 
 type getTeamByPlayerRequest struct {
-	PlayerPublicID uuid.UUID `uri:"player_public_id`
+	PlayerPublicID string `uri:"player_public_id`
 }
 
 func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
@@ -171,7 +179,14 @@ func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTeamByPlayer(ctx, req.PlayerPublicID)
+	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetTeamByPlayer(ctx, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get club by sport: ", err)
 	}
@@ -197,7 +212,7 @@ func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
 }
 
 type getPlayersByTeamRequest struct {
-	TeamPublicID uuid.UUID `uri:"team_public_id`
+	TeamPublicID string `uri:"team_public_id`
 }
 
 func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
@@ -208,7 +223,14 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetPlayerByTeam(ctx, req.TeamPublicID)
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetPlayerByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get club by sport: ", err)
 	}

@@ -11,7 +11,7 @@ import (
 
 func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
 	var req struct {
-		TeamPublicID uuid.UUID `uri:"team_public_id"`
+		TeamPublicID string `uri:"team_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -19,7 +19,15 @@ func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
-	response, err := s.store.GetTournamentsByTeam(ctx, req.TeamPublicID)
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetTournamentsByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament by team id: ", err)
 		ctx.JSON(http.StatusNoContent, (err))
@@ -32,7 +40,7 @@ func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
 
 func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 	var req struct {
-		TeamPublicID uuid.UUID `uri:"team_public_id"`
+		TeamPublicID string `uri:"team_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -41,9 +49,16 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 		return
 	}
 
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	sport := ctx.Param("sport")
 
-	matches, err := s.store.GetMatchByTeam(ctx, req.TeamPublicID)
+	matches, err := s.store.GetMatchByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get match by team id: ", err)
 		return
@@ -56,12 +71,19 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 
 func (s *TeamsServer) GetMatchesByTeamFunc(ctx *gin.Context) {
 	var req struct {
-		TeamPublicID uuid.UUID `uri:"team_public_id"`
+		TeamPublicID string `uri:"team_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
 		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
@@ -73,7 +95,7 @@ func (s *TeamsServer) GetMatchesByTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	matches, err := s.store.GetMatchesByTeam(ctx, req.TeamPublicID, game.ID)
+	matches, err := s.store.GetMatchesByTeam(ctx, teamPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by team: ", err)
 		return

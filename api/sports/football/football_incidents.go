@@ -10,15 +10,15 @@ import (
 )
 
 type addFootballIncidentsRequest struct {
-	MatchPublicID        uuid.UUID  `json:"match_public_id"`
-	TeamPublicID         *uuid.UUID `json:"team_public_id"`
-	TournamentPublicID   uuid.UUID  `json:"tournament_public_id"`
-	PlayerPublicID       uuid.UUID  `json:"player_public_id"`
-	Periods              string     `json:"periods"`
-	IncidentType         string     `json:"incident_type"`
-	IncidentTime         int64      `json:"incident_time"`
-	Description          string     `json:"description"`
-	PenaltShootoutScored bool       `json:"penalty_shootout_scored"`
+	MatchPublicID        string  `json:"match_public_id"`
+	TeamPublicID         *string `json:"team_public_id"`
+	TournamentPublicID   string  `json:"tournament_public_id"`
+	PlayerPublicID       string  `json:"player_public_id"`
+	Periods              string  `json:"periods"`
+	IncidentType         string  `json:"incident_type"`
+	IncidentTime         int64   `json:"incident_time"`
+	Description          string  `json:"description"`
+	PenaltShootoutScored bool    `json:"penalty_shootout_scored"`
 }
 
 func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
@@ -29,10 +29,38 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 		return
 	}
 
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(*req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	arg := db.CreateFootballIncidentsParams{
-		TournamentPublicID:    req.TournamentPublicID,
-		MatchPublicID:         req.MatchPublicID,
-		TeamPublicID:          req.TeamPublicID,
+		TournamentPublicID:    tournamentPublicID,
+		MatchPublicID:         matchPublicID,
+		TeamPublicID:          &teamPublicID,
 		Periods:               req.Periods,
 		IncidentType:          req.IncidentType,
 		IncidentTime:          req.IncidentTime,
@@ -60,7 +88,7 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 
 	if incidents.IncidentType != "period" {
 
-		_, err = s.store.AddFootballIncidentPlayer(ctx, incidents.PublicID, req.PlayerPublicID)
+		_, err = s.store.AddFootballIncidentPlayer(ctx, incidents.PublicID, playerPublicID)
 		if err != nil {
 			tx.Rollback()
 			s.logger.Error("Failed to create football incidents: ", err)
@@ -145,14 +173,14 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 }
 
 type addFootballIncidentsSubsRequest struct {
-	MatchPublicID     uuid.UUID `json:"match_public_id"`
-	TeamPublicID      uuid.UUID `json:"team_public_id"`
-	Periods           string    `json:"periods"`
-	IncidentType      string    `json:"incident_type"`
-	IncidentTime      int64     `json:"incident_time"`
-	Description       string    `json:"description"`
-	PlayerInPublicID  uuid.UUID `json:"player_in_public_id"`
-	PlayerOutPublicID uuid.UUID `json:"player_out_public_in"`
+	MatchPublicID     string `json:"match_public_id"`
+	TeamPublicID      string `json:"team_public_id"`
+	Periods           string `json:"periods"`
+	IncidentType      string `json:"incident_type"`
+	IncidentTime      int64  `json:"incident_time"`
+	Description       string `json:"description"`
+	PlayerInPublicID  string `json:"player_in_public_id"`
+	PlayerOutPublicID string `json:"player_out_public_in"`
 }
 
 func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
@@ -160,6 +188,34 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	playerInPublicID, err := uuid.Parse(req.PlayerInPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	playerOutPublicID, err := uuid.Parse(req.PlayerOutPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
@@ -172,8 +228,8 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 	defer tx.Rollback()
 
 	arg := db.CreateFootballIncidentsParams{
-		MatchPublicID: req.MatchPublicID,
-		TeamPublicID:  &req.TeamPublicID,
+		MatchPublicID: matchPublicID,
+		TeamPublicID:  &teamPublicID,
 		Periods:       req.Periods,
 		IncidentType:  req.IncidentType,
 		IncidentTime:  req.IncidentTime,
@@ -186,7 +242,7 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		return
 	}
 
-	_, err = s.store.ADDFootballSubsPlayer(ctx, incidents.PublicID, req.PlayerInPublicID, req.PlayerOutPublicID)
+	_, err = s.store.ADDFootballSubsPlayer(ctx, incidents.PublicID, playerInPublicID, playerOutPublicID)
 	if err != nil {
 		s.logger.Error("Failed to create football incidents: ", err)
 		return
@@ -202,7 +258,7 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 }
 
 type getFootballIncidentsRequest struct {
-	MatchPublicID uuid.UUID `json:"match_public_id" form:"match_public_id"`
+	MatchPublicID string `json:"match_public_id" form:"match_public_id"`
 }
 
 func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
@@ -214,13 +270,20 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 	}
 	s.logger.Debug("Successfully bind the req: ", req)
 
-	response, err := s.store.GetFootballIncidentWithPlayer(ctx, req.MatchPublicID)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetFootballIncidentWithPlayer(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get football incidents: ", err)
 		return
 	}
 
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, req.MatchPublicID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get match data: ", err)
 		return
@@ -309,14 +372,14 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 				},
 			}
 			if incident.IncidentType == "penalty_shootout" {
-				homefootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, incident.PublicID, req.MatchPublicID, int32(match.HomeTeamID))
+				homefootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, incident.PublicID, matchPublicID, int32(match.HomeTeamID))
 				if err != nil {
 					s.logger.Error("unable to fetch the home score: ", err)
 				}
 				homeScore = map[string]interface{}{
 					"goals": homefootballScore[0],
 				}
-				awayfootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, incident.PublicID, req.MatchPublicID, int32(match.AwayTeamID))
+				awayfootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, incident.PublicID, matchPublicID, int32(match.AwayTeamID))
 				if err != nil {
 					s.logger.Error("unable to fetch the home score: ", err)
 				}

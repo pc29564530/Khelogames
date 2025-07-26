@@ -11,11 +11,11 @@ import (
 )
 
 type createCommunityMessageRequest struct {
-	CommuntiyPublicID uuid.UUID `json:"community_public_id"`
-	Name              string    `json:"name"`
-	Content           string    `json:"content"`
-	MediaUrl          string    `json:"media_url"`
-	MediaType         string    `json:"media_type"`
+	CommuntiyPublicID string `json:"community_public_id"`
+	Name              string `json:"name"`
+	Content           string `json:"content"`
+	MediaUrl          string `json:"media_url"`
+	MediaType         string `json:"media_type"`
 }
 
 func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
@@ -28,10 +28,17 @@ func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("Successfully bind: ", req)
 
+	communityPublicID, err := uuid.Parse(req.CommuntiyPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	arg := db.CreateCommunityMessageParams{
-		CommuntiyPublicID: req.CommuntiyPublicID,
+		CommuntiyPublicID: communityPublicID,
 		SenderPublicID:    authPayload.PublicID,
 		Name:              req.Name,
 		Content:           req.Content,
@@ -53,7 +60,7 @@ func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
 
 func (s *MessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
 	var req struct {
-		CommunityPublicID uuid.UUID `json:"community_public_id"`
+		CommunityPublicID string `json:"community_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -64,7 +71,14 @@ func (s *MessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
 
 	s.logger.Info("Received request to get community message")
 
-	response, err := s.store.GetCommuntiyMessage(ctx, req.CommunityPublicID) //spelling mistake
+	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetCommuntiyMessage(ctx, communityPublicID) //spelling mistake
 	if err != nil {
 		s.logger.Error("Failed to get community message: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)

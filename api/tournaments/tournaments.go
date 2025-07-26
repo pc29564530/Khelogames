@@ -13,7 +13,7 @@ import (
 )
 
 type getTournamentPublicIDRequest struct {
-	TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
+	TournamentPublicID string `uri:"tournament_public_id"`
 }
 
 type addTournamentRequest struct {
@@ -116,7 +116,14 @@ func (s *TournamentServer) GetTournamentTeamCountFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTournamentTeamsCount(ctx, req.TournamentPublicID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetTournamentTeamsCount(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team count: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -153,7 +160,14 @@ func (s *TournamentServer) GetTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTournament(ctx, req.TournamentPublicID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -173,6 +187,14 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
+
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	startOnStr := ctx.Query("start_on")
 	startTimeStamp, err := util.ConvertTimeStamp(startOnStr)
 	if err != nil {
@@ -181,7 +203,7 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 	}
 
 	arg := db.UpdateTournamentDateParams{
-		TournamentPublicID: req.TournamentPublicID,
+		TournamentPublicID: tournamentPublicID,
 		StartTimestamp:     startTimeStamp,
 	}
 
@@ -228,10 +250,17 @@ func (s *TournamentServer) UpdateTournamentStatusFunc(ctx *gin.Context) {
 		return
 	}
 
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	statusCode := ctx.Query("status_code")
 
 	arg := db.UpdateTournamentStatusParams{
-		TournamentPublicID: req.TournamentPublicID,
+		TournamentPublicID: tournamentPublicID,
 		Status:             statusCode,
 	}
 

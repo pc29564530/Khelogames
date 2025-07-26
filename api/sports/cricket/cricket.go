@@ -11,10 +11,10 @@ import (
 )
 
 type addCricketScoreRequest struct {
-	MatchPublicID uuid.UUID `json:"match_public_id"`
-	TeamPublicID  uuid.UUID `json:"team_public_id"`
-	InningNumber  int       `json:"inning_number"`
-	FollowOn      bool      `json:"follow_on"`
+	MatchPublicID string `json:"match_public_id"`
+	TeamPublicID  string `json:"team_public_id"`
+	InningNumber  int    `json:"inning_number"`
+	FollowOn      bool   `json:"follow_on"`
 }
 
 func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
@@ -26,12 +26,26 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByID(ctx, req.MatchPublicID)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	match, err := s.store.GetMatchByID(ctx, matchPublicID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	team, err := s.store.GetTeamByPublicID(ctx, req.TeamPublicID)
+	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -62,7 +76,7 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 
 }
 
-func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournamentPublicID uuid.UUID) []map[string]interface{} {
+func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournamentPublicID string) []map[string]interface{} {
 	ctx := context.Background()
 
 	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
@@ -186,9 +200,9 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 }
 
 type updateCricketEndInningRequest struct {
-	MatchPublicID uuid.UUID `json:"match_public_id"`
-	TeamPublicID  uuid.UUID `json:"team_public_id"`
-	InningNumber  int       `json:"inning_number"`
+	MatchPublicID string `json:"match_public_id"`
+	TeamPublicID  string `json:"team_public_id"`
+	InningNumber  int    `json:"inning_number"`
 }
 
 func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
@@ -200,7 +214,21 @@ func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 		return
 	}
 
-	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatusByPublicID(ctx, req.MatchPublicID, req.TeamPublicID, req.InningNumber)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatusByPublicID(ctx, matchPublicID, teamPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update inning end: ", err)
 	}

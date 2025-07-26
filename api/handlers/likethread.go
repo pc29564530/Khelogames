@@ -10,7 +10,7 @@ import (
 )
 
 type createLikeRequest struct {
-	ThreadPublicID uuid.UUID `uri:"thread_public_id"`
+	ThreadPublicID string `uri:"thread_public_id"`
 }
 
 func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
@@ -22,9 +22,17 @@ func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
+
+	threadPublicID, err := uuid.Parse(req.ThreadPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	likeThread, err := s.store.CreateLike(ctx, authPayload.PublicID, req.ThreadPublicID)
+	likeThread, err := s.store.CreateLike(ctx, authPayload.PublicID, threadPublicID)
 	if err != nil {
 		s.logger.Error("Failed to create like : ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -37,7 +45,7 @@ func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 }
 
 type countLikeRequest struct {
-	ThreadPublicID uuid.UUID `uri:"thread_public_id"`
+	ThreadPublicID string `uri:"thread_public_id"`
 }
 
 func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
@@ -50,7 +58,14 @@ func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
-	countLike, err := s.store.CountLikeUser(ctx, req.ThreadPublicID)
+	threadPublicID, err := uuid.Parse(req.ThreadPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	countLike, err := s.store.CountLikeUser(ctx, threadPublicID)
 	if err != nil {
 		s.logger.Error("Failed to count like user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -62,7 +77,7 @@ func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
 }
 
 type checkUserRequest struct {
-	ThreadPublicID uuid.UUID `uri:"thread_public_id"`
+	ThreadPublicID string `uri:"thread_public_id"`
 }
 
 func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
@@ -76,9 +91,16 @@ func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
+	threadPublicID, err := uuid.Parse(req.ThreadPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	userFound, err := s.store.CheckUserCount(ctx, authPayload.PublicID, req.ThreadPublicID)
+	userFound, err := s.store.CheckUserCount(ctx, authPayload.PublicID, threadPublicID)
 	if err != nil {
 		s.logger.Error("Failed to check user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))

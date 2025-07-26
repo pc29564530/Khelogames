@@ -75,7 +75,7 @@ func (s *PlayerServer) GetAllPlayerFunc(ctx *gin.Context) {
 
 func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
 	var req struct {
-		PlayerPublicID uuid.UUID `uri:"player_public_id"`
+		PlayerPublicID string `uri:"player_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -84,7 +84,14 @@ func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetPlayerByPublicID(ctx, req.PlayerPublicID)
+	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetPlayerByPublicID(ctx, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
 		ctx.JSON(http.StatusNoContent, err)

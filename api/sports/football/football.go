@@ -11,11 +11,11 @@ import (
 )
 
 type addFootballMatchScoreRequest struct {
-	MatchPublicID uuid.UUID `json:"match_public_id"`
-	TeamPublicD   uuid.UUID `json:"team_public_id"`
-	FirstHalf     int       `json:"first_half"`
-	SecondHalf    int       `json:"second_half"`
-	Goals         int       `json:"goal_for"`
+	MatchPublicID string `json:"match_public_id"`
+	TeamPublicID  string `json:"team_public_id"`
+	FirstHalf     int    `json:"first_half"`
+	SecondHalf    int    `json:"second_half"`
+	Goals         int    `json:"goal_for"`
 }
 
 func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
@@ -27,12 +27,26 @@ func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByID(ctx, req.MatchPublicID)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	match, err := s.store.GetMatchByID(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get match : ", err)
 		return
 	}
-	team, err := s.store.GetTeamByPublicID(ctx, req.TeamPublicD)
+	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team: ", err)
 		return

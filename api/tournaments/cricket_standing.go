@@ -10,7 +10,7 @@ import (
 func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 
 	var req struct {
-		TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
+		TournamentPublicID string `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -19,7 +19,14 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		return
 	}
 
-	rows, err := s.store.GetCricketStanding(ctx, req.TournamentPublicID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	rows, err := s.store.GetCricketStanding(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get cricket standing: ", err)
 		ctx.JSON(http.StatusNotFound, err)
@@ -43,7 +50,7 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		tournamentID, _ := dataMap.(map[string]interface{})["tournament_id"].(float64)
 		groupID := dataMap.(map[string]interface{})["group_id"].(float64)
 		id := dataMap.(map[string]interface{})["id"].(float64)
-		publicID := dataMap.(map[string]interface{})["public_id"].(uuid.UUID)
+		publicID := dataMap.(map[string]interface{})["public_id"].(string)
 		matches := dataMap.(map[string]interface{})["matches"].(float64)
 		wins := dataMap.(map[string]interface{})["wins"].(float64)
 		loss := dataMap.(map[string]interface{})["loss"].(float64)
@@ -108,8 +115,8 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 }
 
 type updateCricketStandingRequest struct {
-	TournamentPublicID uuid.UUID `json:"tournament_public_id"`
-	TeamPublicID       uuid.UUID `json:"team_public_id"`
+	TournamentPublicID string `json:"tournament_public_id"`
+	TeamPublicID       string `json:"team_public_id"`
 }
 
 func (s *TournamentServer) UpdateCricketStandingFunc(ctx *gin.Context) {
@@ -122,7 +129,21 @@ func (s *TournamentServer) UpdateCricketStandingFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("bind the request: ", req)
 
-	response, err := s.store.UpdateCricketStanding(ctx, req.TournamentPublicID, req.TeamPublicID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.UpdateCricketStanding(ctx, tournamentPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to update tournament standing: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)

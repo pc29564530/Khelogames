@@ -63,7 +63,7 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 }
 
 type getThreadRequest struct {
-	PublicID uuid.UUID `uri:"public_id"`
+	PublicID string `uri:"public_id"`
 }
 
 func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
@@ -75,7 +75,14 @@ func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
 		return
 	}
 
-	thread, err := s.store.GetThread(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	thread, err := s.store.GetThread(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get thread: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -87,7 +94,7 @@ func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
 }
 
 type getThreadUserRequest struct {
-	PublicID uuid.UUID `uri:"public_id"`
+	PublicID string `uri:"public_id"`
 }
 
 // get thread by user
@@ -100,7 +107,14 @@ func (s *HandlersServer) GetThreadByUserFunc(ctx *gin.Context) {
 		return
 	}
 
-	thread, err := s.store.GetThreadUser(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	thread, err := s.store.GetThreadUser(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get thread by user: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -135,7 +149,7 @@ func (s *HandlersServer) GetAllThreadsFunc(ctx *gin.Context) {
 
 func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 	var req struct {
-		CommunityPublicID uuid.UUID `uri:"community_public_id"`
+		CommunityPublicID string `uri:"community_public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -143,7 +157,14 @@ func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 	}
 
-	threads, err := s.store.GetAllThreadsByCommunities(ctx, req.CommunityPublicID)
+	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	threads, err := s.store.GetAllThreadsByCommunities(ctx, communityPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get thread by communities: ", err)
 		ctx.JSON(http.StatusNotFound, (err))
@@ -155,7 +176,7 @@ func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 }
 
 type updateThreadLikeRequest struct {
-	PublicID uuid.UUID `uri:"public_id"`
+	PublicID string `uri:"public_id"`
 }
 
 func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
@@ -167,7 +188,14 @@ func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 		return
 	}
 
-	thread, err := s.store.UpdateThreadLike(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	thread, err := s.store.UpdateThreadLike(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to update like: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -181,7 +209,7 @@ func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 
 func (s *HandlersServer) UpdateThreadCommentCountFunc(ctx *gin.Context) {
 	var req struct {
-		PublicID uuid.UUID `uri:"public_id"`
+		PublicID string `uri:"public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
@@ -190,7 +218,14 @@ func (s *HandlersServer) UpdateThreadCommentCountFunc(ctx *gin.Context) {
 		return
 	}
 
-	thread, err := s.store.UpdateThreadCommentCount(ctx, req.PublicID)
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	thread, err := s.store.UpdateThreadCommentCount(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to update like: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
