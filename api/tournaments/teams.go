@@ -9,20 +9,32 @@ import (
 )
 
 type addTournamentTeamRequest struct {
-	TournamentPublicID uuid.UUID `json:"tournament_public_id"`
-	TeamPublicID       uuid.UUID `json:"team_public_id"`
+	TournamentPublicID string `json:"tournament_public_id"`
+	TeamPublicID       string `json:"team_public_id"`
 }
 
 func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to add a team")
 	var req struct {
-		TournamentPublicID uuid.UUID `json:"tournament_public_id"`
-		TeamPublicID       uuid.UUID `json:"team_public_id"`
+		TournamentPublicID string `json:"tournament_public_id"`
+		TeamPublicID       string `json:"team_public_id"`
 	}
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind request: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse tournament public ID: ", err)
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse team public ID: ", err)
 		return
 	}
 
@@ -34,7 +46,7 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	teamPlayer, err := s.store.GetPlayerByTeam(ctx, req.TeamPublicID)
+	teamPlayer, err := s.store.GetPlayerByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team player: ", err)
 		return
@@ -47,14 +59,14 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	_, err = s.store.NewTournamentTeam(ctx, req.TournamentPublicID, req.TeamPublicID)
+	_, err = s.store.NewTournamentTeam(ctx, tournamentPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to add team: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
-	teamByTournament, err := s.store.GetTournamentTeam(ctx, req.TournamentPublicID, req.TeamPublicID)
+	teamByTournament, err := s.store.GetTournamentTeam(ctx, tournamentPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get Tournament Team: ", err)
 		return
@@ -73,7 +85,7 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 }
 
 type getTournamentTeamsRequest struct {
-	TournamentPublicID uuid.UUID `uri:"tournament_public_id"`
+	TournamentPublicID string `uri:"tournament_public_id"`
 }
 
 func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
@@ -86,7 +98,13 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 		return
 	}
 
-	tournamentTeamsData, err := s.store.GetTournamentTeams(ctx, req.TournamentPublicID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse tournament public ID: ", err)
+		return
+	}
+
+	tournamentTeamsData, err := s.store.GetTournamentTeams(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get teams: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Not found"})
