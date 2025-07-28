@@ -10,7 +10,7 @@ import (
 
 func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 	var req struct {
-		PublicID string `uri:"public_id"`
+		TournamentPublicID string `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -20,14 +20,14 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 		return
 	}
 
-	publicID, err := uuid.Parse(req.PublicID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	rows, err := s.store.GetFootballStanding(ctx, publicID)
+	rows, err := s.store.GetFootballStanding(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament standing: ", err)
 		ctx.JSON(http.StatusNotFound, err)

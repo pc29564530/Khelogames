@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type FootballPlayerStat struct {
@@ -13,9 +15,9 @@ type FootballPlayerStat struct {
 	StatValue  int    `json:"stat_value"`
 }
 
-func (q *Queries) GetFootballFootballPlayerStat(ctx context.Context, query string, tournamentID int64) ([]map[string]interface{}, error) {
+func (q *Queries) GetFootballFootballPlayerStat(ctx context.Context, query string, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
 
-	rows, err := q.db.QueryContext(ctx, query, tournamentID)
+	rows, err := q.db.QueryContext(ctx, query, tournamentPublicID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to query : ", err)
 	}
@@ -56,14 +58,15 @@ LEFT JOIN matches AS m ON fi.match_id = m.id
 INNER JOIN football_incident_player AS fip ON fip.incident_id = fi.id
 INNER JOIN players p ON p.id = fip.player_id
 LEFT JOIN teams tm ON tm.id = fi.team_id
-WHERE fi.tournament_id = $1 AND p.id IS NOT NULL
+LEFT JOIN tournaments t ON t.id = m.tournament_id
+WHERE t.public_id = $1 AND p.id IS NOT NULL
 GROUP BY p.id, p.player_name, tm.name
 HAVING COUNT(*) FILTER(WHERE fi.incident_type = 'goal') > 0
 ORDER BY goals DESC;
 `
 
-func (q *Queries) GetFootballTournamentPlayersGoals(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetFootballFootballPlayerStat(ctx, getFootballTournamentGoals, tournamentID)
+func (q *Queries) GetFootballTournamentPlayersGoals(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetFootballFootballPlayerStat(ctx, getFootballTournamentGoals, tournamentPublicID)
 }
 
 // player yellow cards
@@ -78,14 +81,15 @@ const getFootballTournamentYellowCards = `
 	JOIN football_incident_player AS fip ON fip.incident_id = fi.id
 	JOIN players p ON p.id = fip.player_id
 	LEFT JOIN teams tm ON tm.id = fi.team_id
-	WHERE m.tournament_id = $1 AND p.id IS NOT NULL
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1 AND p.id IS NOT NULL
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING COUNT(*) FILTER(WHERE fi.incident_type = 'yellow_card') > 0
 	ORDER BY yellow_cards DESC;
 `
 
-func (q *Queries) GetFootballTournamentPlayersYellowCard(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetFootballFootballPlayerStat(ctx, getFootballTournamentYellowCards, tournamentID)
+func (q *Queries) GetFootballTournamentPlayersYellowCard(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetFootballFootballPlayerStat(ctx, getFootballTournamentYellowCards, tournamentPublicID)
 }
 
 // player yellow cards
@@ -100,12 +104,13 @@ const getFootballTournamentRedCards = `
 	JOIN football_incident_player AS fip ON fip.incident_id = fi.id
 	JOIN players p ON p.id = fip.player_id
 	LEFT JOIN teams tm ON tm.id = fi.team_id
-	WHERE m.tournament_id = $1 AND p.id IS NOT NULL
+	LEFT JOIN tournaments t ON t.id = m.tournament_id
+	WHERE t.public_id = $1 AND p.id IS NOT NULL
 	GROUP BY p.id, p.player_name, tm.name
 	HAVING COUNT(*) FILTER(WHERE fi.incident_type = 'red_card') > 0
 	ORDER BY red_cards DESC;
 `
 
-func (q *Queries) GetFootballTournamentPlayersRedCard(ctx context.Context, tournamentID int64) ([]map[string]interface{}, error) {
-	return q.GetFootballFootballPlayerStat(ctx, getFootballTournamentRedCards, tournamentID)
+func (q *Queries) GetFootballTournamentPlayersRedCard(ctx context.Context, tournamentPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	return q.GetFootballFootballPlayerStat(ctx, getFootballTournamentRedCards, tournamentPublicID)
 }
