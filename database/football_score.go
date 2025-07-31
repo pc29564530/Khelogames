@@ -3,15 +3,18 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const GetFootballScoreByMatchID = `
-SELECT * FROM football_score
-WHERE match_id=$1
+SELECT * FROM football_score fs
+JOIN matches m ON fs.match_id = m.id
+WHERE m.public_id=$1
 `
 
-func (q *Queries) GetFootballScoreByMatchID(ctx context.Context, matchID int64) ([]models.FootballScore, error) {
-	rows, err := q.db.QueryContext(ctx, GetFootballScoreByMatchID, matchID)
+func (q *Queries) GetFootballScoreByMatchID(ctx context.Context, matchPublicID uuid.UUID) ([]models.FootballScore, error) {
+	rows, err := q.db.QueryContext(ctx, GetFootballScoreByMatchID, matchPublicID)
 	if err != nil {
 		return nil, err
 	}
@@ -21,6 +24,7 @@ func (q *Queries) GetFootballScoreByMatchID(ctx context.Context, matchID int64) 
 		var i models.FootballScore
 		err := rows.Scan(
 			&i.ID,
+			&i.PublicID,
 			&i.MatchID,
 			&i.TeamID,
 			&i.FirstHalf,
@@ -52,6 +56,7 @@ func (q *Queries) GetFootballScore(ctx context.Context, arg GetFootballScorePara
 	var i models.FootballScore
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.FirstHalf,
@@ -71,15 +76,15 @@ INSERT INTO football_score (
     goals,
 	penalty_shootout
 ) VALUES ( $1, $2, $3, $4, $5)
-RETURNING id, match_id, team_id, first_half, second_half, goals, penalty_shootout
+RETURNING *
 `
 
 type NewFootballScoreParams struct {
-	MatchID         int64 `json:"match_id"`
-	TeamID          int64 `json:"team_id"`
-	FirstHalf       int32 `json:"first_half"`
-	SecondHalf      int32 `json:"second_half"`
-	Goals           int64 `json:"goals"`
+	MatchID         int32 `json:"match_id"`
+	TeamID          int32 `json:"team_id"`
+	FirstHalf       int   `json:"first_half"`
+	SecondHalf      int   `json:"second_half"`
+	Goals           int   `json:"goals"`
 	PenaltyShootOut int   `json:"penalty_shootout"`
 }
 
@@ -95,6 +100,7 @@ func (q *Queries) NewFootballScore(ctx context.Context, arg NewFootballScorePara
 	var i models.FootballScore
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.FirstHalf,
@@ -116,9 +122,9 @@ RETURNING *
 `
 
 type UpdateFirstHalfScoreParams struct {
-	FirstHalf int32 `json:"first_half"`
-	MatchID   int64 `json:"match_id"`
-	TeamID    int64 `json:"team_id"`
+	FirstHalf int   `json:"first_half"`
+	MatchID   int32 `json:"match_id"`
+	TeamID    int32 `json:"team_id"`
 }
 
 func (q *Queries) UpdateFirstHalfScore(ctx context.Context, arg UpdateFirstHalfScoreParams) (models.FootballScore, error) {
@@ -126,34 +132,7 @@ func (q *Queries) UpdateFirstHalfScore(ctx context.Context, arg UpdateFirstHalfS
 	var i models.FootballScore
 	err := row.Scan(
 		&i.ID,
-		&i.MatchID,
-		&i.TeamID,
-		&i.FirstHalf,
-		&i.SecondHalf,
-		&i.Goals,
-		&i.PenaltyShootOut,
-	)
-	return i, err
-}
-
-const updateFootballScore = `
-UPDATE football_score
-SET goals=$1
-WHERE match_id=$2 AND team_id=$3
-RETURNING id, match_id, team_id, first_half, second_half, goals, penalty_shootout
-`
-
-type UpdateFootballScoreParams struct {
-	Goals   int64 `json:"goals"`
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
-}
-
-func (q *Queries) UpdateFootballScore(ctx context.Context, arg UpdateFootballScoreParams) (models.FootballScore, error) {
-	row := q.db.QueryRowContext(ctx, updateFootballScore, arg.Goals, arg.MatchID, arg.TeamID)
-	var i models.FootballScore
-	err := row.Scan(
-		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.FirstHalf,
@@ -171,13 +150,13 @@ SET
     goals = COALESCE(goals, 0) + $1
 WHERE 
     match_id = $2 AND team_id = $3
-RETURNING id, match_id, team_id, first_half, second_half, goals, penalty_shootout
+RETURNING *
 `
 
 type UpdateSecondHalfScoreParams struct {
 	SecondHalf int32 `json:"second_half"`
-	MatchID    int64 `json:"match_id"`
-	TeamID     int64 `json:"team_id"`
+	MatchID    int32 `json:"match_id"`
+	TeamID     int32 `json:"team_id"`
 }
 
 func (q *Queries) UpdateSecondHalfScore(ctx context.Context, arg UpdateSecondHalfScoreParams) (models.FootballScore, error) {
@@ -185,6 +164,7 @@ func (q *Queries) UpdateSecondHalfScore(ctx context.Context, arg UpdateSecondHal
 	var i models.FootballScore
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.FirstHalf,
@@ -204,11 +184,12 @@ WHERE
 RETURNING *
 `
 
-func (q *Queries) UpdatePenaltyShootoutScore(ctx context.Context, matchID, teamID int64) (models.FootballScore, error) {
+func (q *Queries) UpdatePenaltyShootoutScore(ctx context.Context, matchID, teamID int32) (models.FootballScore, error) {
 	row := q.db.QueryRowContext(ctx, updatePenaltyShootoutScore, matchID, teamID)
 	var i models.FootballScore
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.FirstHalf,

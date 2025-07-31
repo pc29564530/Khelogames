@@ -3,22 +3,53 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const getTournament = `
 SELECT * FROM tournaments
+WHERE public_id=$1
+`
+
+func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (models.Tournament, error) {
+	row := q.db.QueryRowContext(ctx, getTournament, publicID)
+	var i models.Tournament
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
+		&i.Country,
+		&i.Status,
+		&i.Level,
+		&i.StartTimestamp,
+		&i.GameID,
+		&i.GroupCount,
+		&i.MaxGroupTeam,
+		&i.Stage,
+		&i.HasKnockout,
+	)
+	return i, err
+}
+
+const getTournamentByID = `
+SELECT * FROM tournaments
 WHERE id=$1
 `
 
-func (q *Queries) GetTournament(ctx context.Context, id int64) (models.Tournament, error) {
+func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (models.Tournament, error) {
 	row := q.db.QueryRowContext(ctx, getTournament, id)
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.UserID,
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,
@@ -45,10 +76,12 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 		var i models.Tournament
 		if err := rows.Scan(
 			&i.ID,
+			&i.PublicID,
+			&i.UserID,
 			&i.Name,
 			&i.Slug,
 			&i.Country,
-			&i.StatusCode,
+			&i.Status,
 			&i.Level,
 			&i.StartTimestamp,
 			&i.GameID,
@@ -86,10 +119,12 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level
 		var i models.Tournament
 		if err := rows.Scan(
 			&i.ID,
+			&i.PublicID,
+			&i.UserID,
 			&i.Name,
 			&i.Slug,
 			&i.Country,
-			&i.StatusCode,
+			&i.Status,
 			&i.Level,
 			&i.StartTimestamp,
 			&i.GameID,
@@ -113,7 +148,7 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level
 
 const getTournamentsBySport = `
 SELECT 
-    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_team, 'stage', t.stage, 'has_knockout', t.has_knockout) AS tournament_data
+    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_team, 'stage', t.stage, 'has_knockout', t.has_knockout) AS tournament_data
 FROM tournaments t
 JOIN games AS g ON g.id = t.game_id
 WHERE t.game_id=$1
@@ -155,7 +190,11 @@ func (q *Queries) GetTournamentsBySport(ctx context.Context, gameID int64) ([]Ge
 }
 
 const newTournament = `
+WITH userID AS (
+	SELECT * FROM users WHERE public_id=$1
+)
 INSERT INTO tournaments (
+	user_id,
     name,
     slug,
     country,
@@ -167,30 +206,46 @@ INSERT INTO tournaments (
 	max_group_team,
 	stage,
 	has_knockout
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-RETURNING id, name, slug, country, status_code, level, start_timestamp, game_id, group_count, max_group_team, stage, has_knockout
+) 
+SELECT 
+	userID.id,
+	$2,
+	$3,
+	$4,
+	$5,
+	$6,
+	$7,
+	$8,
+	$9,
+	$10,
+	$11,
+	$12
+FROM userID	
+RETURNING *
 `
 
 type NewTournamentParams struct {
-	Name           string `json:"name"`
-	Slug           string `json:"slug"`
-	Country        string `json:"country"`
-	StatusCode     string `json:"status_code"`
-	Level          string `json:"level"`
-	StartTimestamp int64  `json:"start_timestamp"`
-	GameID         *int64 `json:"game_id"`
-	GroupCount     *int32 `json:"group_count"`
-	MaxGroupTeam   *int32 `json:"max_group_team"`
-	Stage          string `json:"stage"`
-	HasKnockout    bool   `json:"has_knockout"`
+	UserPublicID   uuid.UUID `json:"user_public_id"`
+	Name           string    `json:"name"`
+	Slug           string    `json:"slug"`
+	Country        string    `json:"country"`
+	Status         string    `json:"status_code"`
+	Level          string    `json:"level"`
+	StartTimestamp int64     `json:"start_timestamp"`
+	GameID         *int64    `json:"game_id"`
+	GroupCount     *int32    `json:"group_count"`
+	MaxGroupTeam   *int32    `json:"max_group_team"`
+	Stage          string    `json:"stage"`
+	HasKnockout    bool      `json:"has_knockout"`
 }
 
 func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (models.Tournament, error) {
 	row := q.db.QueryRowContext(ctx, newTournament,
+		arg.UserPublicID,
 		arg.Name,
 		arg.Slug,
 		arg.Country,
-		arg.StatusCode,
+		arg.Status,
 		arg.Level,
 		arg.StartTimestamp,
 		arg.GameID,
@@ -202,10 +257,12 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.UserID,
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,
@@ -219,28 +276,30 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 
 const updateTournamentDate = `
 UPDATE tournaments
-SET start_timestamp=$1
-WHERE id=$2
+SET start_timestamp=$2
+WHERE public_id=$1
 RETURNING *
 `
 
 type UpdateTournamentDateParams struct {
-	StartTimestamp int64 `json:"start_timestamp"`
-	ID             int64 `json:"id"`
+	TournamentPublicID uuid.UUID `json:"tournament_public_id"`
+	StartTimestamp     int64     `json:"start_timestamp"`
 }
 
 func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournamentDateParams) (models.Tournament, error) {
-	row := q.db.QueryRowContext(ctx, updateTournamentDate, arg.StartTimestamp, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateTournamentDate, arg.TournamentPublicID, arg.StartTimestamp)
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.GameID,
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
-		&i.GameID,
 		&i.GroupCount,
 		&i.MaxGroupTeam,
 		&i.Stage,
@@ -251,25 +310,25 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 
 const updateTournamentStatus = `
 UPDATE tournaments
-SET status_code=$1
-WHERE id=$2
+SET status_code=$2
+WHERE public_id=$1
 RETURNING *
 `
 
 type UpdateTournamentStatusParams struct {
-	StatusCode string `json:"status_code"`
-	ID         int64  `json:"id"`
+	TournamentPublicID uuid.UUID `json:"tournament_public_id"`
+	Status             string    `json:"status_code"`
 }
 
 func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTournamentStatusParams) (models.Tournament, error) {
-	row := q.db.QueryRowContext(ctx, updateTournamentStatus, arg.StatusCode, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateTournamentStatus, arg.TournamentPublicID, arg.Status)
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Slug,
 		&i.Country,
-		&i.StatusCode,
+		&i.Status,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GameID,

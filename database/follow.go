@@ -3,71 +3,93 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
-const createFollowing = `
-INSERT INTO follow (
-    follower_owner,
-    following_owner,
-    created_at
-) VALUES (
-             $1, $2, CURRENT_TIMESTAMP
-) RETURNING id, follower_owner, following_owner, created_at
+const createUserConnectionQuery = `
+WITH userID AS (
+	SELECT * FROM users WHERE public_id = $1
+),
+targetUserID AS (
+	SELECT * FROM users WHERE public_id = $2
+)
+
+INSERT INTO users_connections (
+    $1,
+    $2
+) 
+SELECT
+	userID.id,
+	targetUserID.id
+FROM userID, targetUserID
+RETURNING *;
 `
 
-type CreateFollowingParams struct {
-	FollowerOwner  string `json:"follower_owner"`
-	FollowingOwner string `json:"following_owner"`
-}
-
-func (q *Queries) CreateFollowing(ctx context.Context, arg CreateFollowingParams) (models.Follow, error) {
-	row := q.db.QueryRowContext(ctx, createFollowing, arg.FollowerOwner, arg.FollowingOwner)
-	var i models.Follow
+// CreateUserConnections
+func (q *Queries) CreateUserConnections(ctx context.Context, userID, targetUserID uuid.UUID) (models.UsersConnections, error) {
+	row := q.db.QueryRowContext(ctx, createUserConnectionQuery, userID, targetUserID)
+	var i models.UsersConnections
 	err := row.Scan(
-		&i.ID,
-		&i.FollowerOwner,
-		&i.FollowingOwner,
-		&i.CreatedAt,
+		&i.UserID,
+		&i.TargetUserID,
 	)
 	return i, err
 }
 
-const deleteFollowing = `
-DELETE FROM follow
-WHERE follower_owner = $1 AND following_owner = $2 RETURNING id, follower_owner, following_owner, created_at
+const deleteUsersConnectionsQuery = `
+DELETE FROM users_connections
+JOIN users ON u.user_id = users.id
+JOIN users ON tu.users_id = users.id
+WHERE u.public_id = $1 AND tu.public_id = $2
 `
 
-func (q *Queries) DeleteFollowing(ctx context.Context, follower_owner, followingOwner string) (models.Follow, error) {
-	row := q.db.QueryRowContext(ctx, deleteFollowing, follower_owner, followingOwner)
-	var i models.Follow
+func (q *Queries) DeleteUsersConnections(ctx context.Context, userID, targetUserID uuid.UUID) error {
+	row := q.db.QueryRowContext(ctx, deleteUsersConnectionsQuery, userID, targetUserID)
+	var i models.UsersConnections
 	err := row.Scan(
-		&i.ID,
-		&i.FollowerOwner,
-		&i.FollowingOwner,
-		&i.CreatedAt,
+		&i.UserID,
+		&i.TargetUserID,
 	)
-	return i, err
+	return err
 }
 
 const getAllFollower = `
-SELECT DISTINCT follower_owner FROM follow
-WHERE following_owner = $1
+SELECT 
+	JOIN_BUILD_OBJECT(
+		'user_public_id', u.public_id,
+		'profile_public_id', up.public_id,
+		'username', u.username,
+		'full_name', tu.full_name,
+		'avatar_url', up.avatar_url,
+	)
+FROM users_connections uc
+JOIN users u ON u.id = uc.users_id
+JOIN users tu ON tu.id = uc.target_user_id
+JOIN users_profile up ON up.user_id = u.id
+WHERE tu.public_id = $1;
 `
 
-func (q *Queries) GetAllFollower(ctx context.Context, followingOwner string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getAllFollower, followingOwner)
+func (q *Queries) GetAllFollower(ctx context.Context, targetPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFollower, targetPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []map[string]interface{}
 	for rows.Next() {
-		var follower_owner string
-		if err := rows.Scan(&follower_owner); err != nil {
+		var jsonByte []byte
+		var item map[string]interface{}
+		if err := rows.Scan(&jsonByte); err != nil {
 			return nil, err
 		}
-		items = append(items, follower_owner)
+		err := json.Unmarshal(jsonByte, &item)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -79,23 +101,39 @@ func (q *Queries) GetAllFollower(ctx context.Context, followingOwner string) ([]
 }
 
 const getAllFollowing = `
-SELECT DISTINCT following_owner FROM follow
-WHERE follower_owner =  $1
+	SELECT 
+		JOIN_BUILD_OBJECT(
+			'user_public_id', tu.public_id,
+			'profile_public_id', up.public_id,
+			'username', tu.username,
+			'full_name', tu.full_name,
+			'avatar_url', up.avatar_url,
+		)
+	FROM users_connections uc
+	JOIN users u ON u.id = uc.users_id
+	JOIN users tu ON tu.id = uc.target_user_id
+	JOIN users_profile up ON up.user_id = u.id
+	WHERE u.public_id = $1;
 `
 
-func (q *Queries) GetAllFollowing(ctx context.Context, followerOwner string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getAllFollowing, followerOwner)
+func (q *Queries) GetAllFollowing(ctx context.Context, userPublicID uuid.UUID) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getAllFollowing, userPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []map[string]interface{}
 	for rows.Next() {
-		var following_owner string
-		if err := rows.Scan(&following_owner); err != nil {
+		var jsonByte []byte
+		var item map[string]interface{}
+		if err := rows.Scan(&jsonByte); err != nil {
 			return nil, err
 		}
-		items = append(items, following_owner)
+		err := json.Unmarshal(jsonByte, &item)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -106,35 +144,18 @@ func (q *Queries) GetAllFollowing(ctx context.Context, followerOwner string) ([]
 	return items, nil
 }
 
-const getConnection = `
-	SELECT
-		CASE
-			WHEN COUNT(*) > 0 THEN 'true'
-			ELSE 'false'
-		END AS connection_established
-	FROM follow f1
-	JOIN follow AS f2 ON f1.following_owner=f2.follower_owner
-	WHERE f1.follower_owner=$1 AND f2.follower_owner=$2;
-`
-
-func (q *Queries) CheckConnection(ctx context.Context, followerOwner, followingOwner string) (bool, error) {
-	var connectionEstablished bool
-	err := q.db.QueryRowContext(ctx, getConnection, followingOwner, followerOwner).Scan(&connectionEstablished)
-	if err != nil {
-		return false, err
-	}
-
-	return connectionEstablished, nil
-}
-
 const isFollowingCheck = `
 SELECT COUNT(*) > 0
-FROM follow
-WHERE follower_owner=$1 AND following_owner=$2`
+FROM users_connections uc
+JOIN users follower ON follower.id = uc.user_id
+JOIN users following ON following.id = uc.target_user_id
+WHERE follower.public_id = $1
+  AND following.public_id = $2;
+`
 
-func (q *Queries) IsFollowingF(ctx context.Context, followerOwner, followingOwner string) (bool, error) {
+func (q *Queries) IsFollowingF(ctx context.Context, followerPublicID, followingPublicID uuid.UUID) (bool, error) {
 	var isFollowingUser bool
-	err := q.db.QueryRowContext(ctx, isFollowingCheck, followerOwner, followingOwner).Scan(&isFollowingUser)
+	err := q.db.QueryRowContext(ctx, isFollowingCheck, followerPublicID, followingPublicID).Scan(&isFollowingUser)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil

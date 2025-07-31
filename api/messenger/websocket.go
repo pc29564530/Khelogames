@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	ampq "github.com/rabbitmq/amqp091-go"
 )
@@ -83,7 +84,7 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 		h.mutex.Unlock()
 	}()
 
-	h.logger.Infof("WebSocket connection established for user %s", payload.Username)
+	h.logger.Infof("WebSocket connection established for user %s", payload.PublicID)
 
 	for {
 		_, msg, err := conn.ReadMessage()
@@ -95,7 +96,7 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 
 		h.logger.Debug("successfully read message: ", msg)
 
-		var message map[string]string
+		var message map[string]interface{}
 		err = json.Unmarshal(msg, &message)
 		if err != nil {
 			h.logger.Error("unable to unmarshal msg ", err)
@@ -128,30 +129,13 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 		defer tx.Rollback()
 
 		authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-		// b64data := message["media_url"][strings.IndexByte(message["media_url"], ',')+1:]
-		// data, err := base64.StdEncoding.DecodeString(b64data)
-		// if err != nil {
-		// 	h.logger.Error("unable to decode string: ", err)
-		// 	return
-		// }
-		// saveImageStruct := util.NewSaveImageStruct(h.logger)
-		// mediaType := "image"
-		// path, err := saveImageStruct.SaveImageToFile(data, mediaType)
-		// if err != nil {
-		// 	h.logger.Error("unable to create a file")
-		// 	return
-		// }
-
-		// h.logger.Debug("image path successfully created: ", path)
-		// h.logger.Info("successfully created image path")
 
 		arg := db.CreateNewMessageParams{
-			Content:          message["content"],
-			IsSeen:           false,
-			SenderUsername:   authToken.Username,
-			ReceiverUsername: message["receiver_username"],
-			MediaUrl:         message["media_url"],
-			MediaType:        message["media_type"],
+			SenderID:   authToken.PublicID,
+			ReceiverID: message["receiver_public_id"].(uuid.UUID),
+			Content:    message["content"].(string),
+			MediaUrl:   message["media_url"].(string),
+			MediaType:  message["media_type"].(string),
 		}
 
 		h.logger.Debug("create new message params: ", arg)

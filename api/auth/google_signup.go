@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"database/sql"
 	"fmt"
 	"khelogames/database/models"
 	"khelogames/token"
@@ -9,10 +8,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
+
+	db "khelogames/database"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/idtoken"
@@ -32,67 +32,194 @@ type getGoogleLoginRequest struct {
 	Code string `json"code"`
 }
 
-type loginUserResponse struct {
-	SessionID             uuid.UUID    `json:"session_id"`
-	AccessToken           string       `json:"access_token"`
-	AccessTokenExpiresAt  time.Time    `json:"access_token_expires_at"`
-	RefreshToken          string       `json:"refresh_token"`
-	RefreshTokenExpiresAt time.Time    `json:"refresh_token_expires_at"`
-	User                  userResponse `json:"user"`
-}
-
-type userResponse struct {
-	Username     string `json:"username"`
-	MobileNumber string `json:"mobile_number"`
-	Role         string `json:"role"`
-	Gmail        string `json:"gmail"`
-}
-
 func (s *AuthServer) HandleGoogleRedirect(ctx *gin.Context) {
 	googleOauthConfig := getGoogleOauthConfig()
 	url := googleOauthConfig.AuthCodeURL("randomstate")
 	ctx.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-func (s *AuthServer) CreateGoogleSignUp(ctx *gin.Context) {
-	googleOauthConfig := getGoogleOauthConfig()
-	var req getGoogleLoginRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind the login request : ", err)
+func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
+	var req struct {
+		GoogleID  string `json:"google_id"`
+		Email     string `json:"email"`
+		FullName  string `json:"full_name"`
+		AvatarURL string `json:"avatar_url"`
+		IDToken   string `json:"id_token"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		s.logger.Error("Failed to bind the sign-up request: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid request data",
+		})
 		return
 	}
 
+	// Start database transaction
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin the transcation: ", err)
+		s.logger.Error("Failed to begin the transaction: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Internal server error",
+		})
 		return
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
 
-	idToken, err := idtoken.Validate(ctx, req.Code, googleOauthConfig.ClientID)
+	// Validate the ID token
+	googleOauthConfig := getGoogleOauthConfig()
+	payload, err := idtoken.Validate(ctx, req.IDToken, googleOauthConfig.ClientID)
 	if err != nil {
+		tx.Rollback()
 		s.logger.Error("Failed to verify idToken: ", err)
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid idToken"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Invalid Google token",
+		})
 		return
 	}
 
-	// Extract user info from the verified token
-	email, ok := idToken.Claims["email"].(string)
-	if !ok {
+	// Extract user information from the verified token
+	email, ok := payload.Claims["email"].(string)
+	if !ok || email == "" {
+		tx.Rollback()
 		s.logger.Error("Failed to get email from idToken")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get user email",
+		})
 		return
 	}
 
-	s.logger.Info("Successfully Sign up using google ", email)
-	ctx.JSON(http.StatusAccepted, email)
-	return
+	// Check if user already exists
+	_, err = s.store.GetUsersByGmail(ctx, email)
+	if err == nil {
+		tx.Rollback()
+		s.logger.Info("User already exists with email: ", req.Email)
+		ctx.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"message": "Email already registered. Please sign in instead.",
+		})
+		return
+	}
 
+	// Get name from token
+	name, ok := payload.Claims["name"].(string)
+	if !ok || name == "" {
+		tx.Rollback()
+		s.logger.Error("Failed to get name from idToken")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get user name",
+		})
+		return
+	}
+
+	// Get Google ID from token
+	googleID, ok := payload.Claims["sub"].(string)
+	if !ok || googleID == "" {
+		tx.Rollback()
+		s.logger.Error("Failed to get google id from idToken")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get Google ID",
+		})
+		return
+	}
+
+	// Verify the data matches what was sent from frontend
+	if req.Email != email || req.GoogleID != googleID {
+		tx.Rollback()
+		s.logger.Error("Token data doesn't match request data")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Token validation failed",
+		})
+		return
+	}
+
+	// Generate username
+	username := GenerateUsername(email)
+
+	// Create the user in database
+	userSignUp, err := s.store.CreateGoogleSignUp(ctx, name, username, email, googleID)
+	if err != nil {
+		tx.Rollback()
+		s.logger.Error("Failed to create google signup: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to create account",
+		})
+		return
+	}
+
+	// Create tokens and session
+	tokens := CreateNewToken(ctx, userSignUp.PublicID, int32(userSignUp.ID), s, tx)
+	if tokens == nil {
+		// Error already handled in CreateNewToken
+		return
+	}
+
+	session := tokens["session"].(models.Session)
+	accessToken := tokens["accessToken"].(string)
+	accessPayload := tokens["accessPayload"].(*token.Payload)
+	refreshToken := tokens["refreshToken"].(string)
+	refreshPayload := tokens["refreshPayload"].(*token.Payload)
+
+	// Create user profile
+	arg := db.CreateProfileParams{
+		UserID:    int32(userSignUp.ID),
+		Bio:       "",
+		AvatarUrl: req.AvatarURL, // Use the avatar URL from request
+	}
+
+	_, err = s.store.CreateProfile(ctx, arg)
+	if err != nil {
+		tx.Rollback()
+		s.logger.Error("Failed to create profile: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to create profile",
+		})
+		return
+	}
+
+	s.logger.Info("Successfully created user_profile")
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		s.logger.Error("Failed to commit transaction: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to create account",
+		})
+		return
+	}
+
+	s.logger.Info("Successfully created Google sign-up for: ", email)
+	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true, // Changed from "Success" to "success" for consistency
+		"user":    userSignUp,
+		"session": gin.H{
+			"session_id":               session.ID,
+			"access_token":             accessToken,
+			"access_token_expires_at":  accessPayload.ExpiredAt,
+			"refresh_token":            refreshToken,
+			"refresh_token_expires_at": refreshPayload.ExpiredAt,
+		},
+		"message": "Account created successfully",
+	})
 }
 
-func generateUsername(mail string) string {
+func GenerateUsername(mail string) string {
 	// Extract the local part of the email address
 	localPart := strings.Split(mail, "@")[0]
 
@@ -106,73 +233,4 @@ func generateUsername(mail string) string {
 	username := fmt.Sprintf("%s%s", localPart, randomNumber)
 
 	return username
-}
-
-func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
-	googleOauthConfig := getGoogleOauthConfig()
-	var req getGoogleLoginRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind the login request : ", err)
-		return
-	}
-
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin the transcation: ", err)
-		return
-	}
-
-	defer tx.Rollback()
-
-	idToken, err := idtoken.Validate(ctx, req.Code, googleOauthConfig.ClientID)
-	if err != nil {
-		s.logger.Error("Failed to verify idToken: ", err)
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid idToken"})
-		return
-	}
-
-	// Extract user info from the verified token
-	gmail, ok := idToken.Claims["email"].(string)
-	if !ok {
-		s.logger.Error("Failed to get email from idToken")
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
-		return
-	}
-
-	user, err := s.store.GetUserByGmail(ctx, gmail)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			s.logger.Error("User does not exists: ", err)
-			return
-		}
-		s.logger.Error("Failed to get the user by gmail")
-		return
-	}
-
-	tokens := CreateNewToken(ctx, user.Username, s, tx)
-
-	session := tokens["session"].(models.Session)
-	accessToken := tokens["accessToken"].(string)
-	accessPayload := tokens["accessPayload"].(*token.Payload)
-	refreshToken := tokens["refreshToken"].(string)
-	refreshPayload := tokens["refreshPayload"].(*token.Payload)
-
-	rsp := loginUserResponse{
-		SessionID:             session.ID,
-		AccessToken:           accessToken,
-		AccessTokenExpiresAt:  accessPayload.ExpiredAt,
-		RefreshToken:          refreshToken,
-		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
-		User: userResponse{
-			Username:     user.Username,
-			MobileNumber: *user.MobileNumber,
-			Role:         user.Role,
-			Gmail:        *user.Gmail,
-		},
-	}
-
-	s.logger.Info("Successfully Sign in using google ")
-
-	ctx.JSON(http.StatusAccepted, rsp)
 }

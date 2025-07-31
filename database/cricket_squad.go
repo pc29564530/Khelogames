@@ -6,33 +6,54 @@ import (
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const addCricketSquad = `
+WITH matchID AS (
+	SELECT * FROM matches WHERE public_id = $1
+),
+teamID AS (
+	SELECT * FROM teams WHERE public_id = $2
+),
+playerID AS (
+	SELECT * FROM players WHERE public_id = $3
+)
 INSERT INTO cricket_squad (
     match_id,
     team_id,
     player_id,
     role,
 	on_bench,
-	created_at,
-	is_captain
-) VALUES ( $1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6 )
+	is_captain,
+	created_at
+)
+SELECT 
+	matchID.id,
+	teamID.id,
+	playerID.id,
+	$4,
+	$5,
+	$6,
+	CURRENT_TIMESTAMP
+FROM matchPublicID, teamPublicID, playerPublicID
 RETURNING *;
 `
 
-func (q *Queries) AddCricketSquad(ctx context.Context, matchID, teamID, playerID int64, role string, OnBench, isCaptain bool) (models.CricketSquad, error) {
-	row := q.db.QueryRowContext(ctx, addCricketSquad, matchID, teamID, playerID, role, OnBench, isCaptain)
+func (q *Queries) AddCricketSquad(ctx context.Context, matchPublicID, teamPublicID, playerPublicID uuid.UUID, role string, OnBench, isCaptain bool) (models.CricketSquad, error) {
+	row := q.db.QueryRowContext(ctx, addCricketSquad, matchPublicID, teamPublicID, playerPublicID, role, OnBench, isCaptain)
 	var i models.CricketSquad
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
 		&i.MatchID,
 		&i.TeamID,
 		&i.PlayerID,
 		&i.Role,
 		&i.OnBench,
-		&i.CreatedAT,
 		&i.IsCaptain,
+		&i.CreatedAT,
 	)
 	return i, err
 }
@@ -41,11 +62,12 @@ const getCricketMatchSquad = `
 	SELECT 
 		JSON_AGG(
 			JSON_BUILD_OBJECT(
-				'id', cs.id, 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'role', cs.role, 
+				'id', cs.id, 'public_id', cs.public_id 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'role', cs.role, 
 				'on_bench', cs.on_bench, 'is_captain', cs.is_captain, 'created_at', cs.created_at,
 				'player', JSON_BUILD_OBJECT(
 					'id',pl.id,
-					'username',pl.username,
+					'public_id', pl.public_id,
+					'user_id', pl.user_id,
 					'name', pl.player_name, 
 					'slug', pl.slug, 
 					'short_name', pl.short_name, 
@@ -57,11 +79,13 @@ const getCricketMatchSquad = `
 		) AS teamSquad
 	FROM cricket_squad as cs
 	JOIN players AS pl ON pl.id = cs.player_id
-	WHERE match_id=$1 AND team_id=$2;
+	JOIN teams AS t ON t.id = cs.team_id
+	JOIN matches AS m ON m.id = cs.match_id
+	WHERE m.public_id=$1 AND t.public_id=$2;
 `
 
-func (q *Queries) GetCricketMatchSquad(ctx context.Context, matchID, teamID int64) ([]interface{}, error) {
-	row := q.db.QueryRowContext(ctx, getCricketMatchSquad, matchID, teamID)
+func (q *Queries) GetCricketMatchSquad(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) ([]interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getCricketMatchSquad, matchPublicID, teamPublicID)
 	var jsonData []byte
 	err := row.Scan(&jsonData)
 	if err != nil {

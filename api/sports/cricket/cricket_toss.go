@@ -5,12 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type addCricketTossRequest struct {
-	MatchID      int64  `json:"match_id"`
-	TossDecision string `json:"toss_decision"`
-	TossWin      int64  `json:"toss_win"`
+	MatchPublicID string `json:"match_public_id"`
+	TossDecision  string `json:"toss_decision"`
+	TossWin       string `json:"toss_win"`
 }
 
 func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
@@ -22,37 +23,45 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.AddCricketTossParams{
-		MatchID:      req.MatchID,
-		TossDecision: req.TossDecision,
-		TossWin:      req.TossWin,
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
 	}
 
-	response, err := s.store.AddCricketToss(ctx, arg)
+	tossWin, err := uuid.Parse(req.TossWin)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.AddCricketToss(ctx, matchPublicID, req.TossDecision, tossWin)
 	if err != nil {
 		s.logger.Error("Failed to add cricket match toss : ", err)
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
 
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, arg.MatchID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the match by id: ", err)
 		return
 	}
-	var teamID int64
-	if arg.TossDecision == "batting" {
-		teamID = arg.TossWin
+	var teamID int32
+	if req.TossDecision == "batting" {
+		teamID = response.TossWin
 	} else {
-		if match.HomeTeamID != arg.TossWin {
+		if match.HomeTeamID != response.TossWin {
 			teamID = match.AwayTeamID
 		} else {
 			teamID = match.HomeTeamID
 		}
 	}
 	inningR := db.NewCricketScoreParams{
-		MatchID:           response.MatchID,
-		TeamID:            teamID,
+		MatchID:           int32(response.MatchID),
+		TeamID:            int32(teamID),
 		InningNumber:      1,
 		Score:             0,
 		Wickets:           0,
@@ -64,18 +73,41 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 		Declared:          false,
 	}
 
-	_, err = s.store.NewCricketScore(ctx, inningR)
+	responseScore, err := s.store.NewCricketScore(ctx, inningR)
 	if err != nil {
 		s.logger.Error("Failed to add the team score: ", err)
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	teams, err := s.store.GetTeamByID(ctx, int64(response.TossWin))
+	if err != nil {
+		s.logger.Error("Failed to get team by id: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"inning": gin.H{
+			"id":                  responseScore.ID,
+			"public_id":           responseScore.PublicID,
+			"match_id":            responseScore.MatchID,
+			"team_id":             responseScore.TeamID,
+			"inning_number":       responseScore.InningNumber,
+			"score":               responseScore.Score,
+			"wickets":             responseScore.Wickets,
+			"overs":               responseScore.Overs,
+			"run_rate":            responseScore.RunRate,
+			"target_run_rate":     responseScore.TargetRunRate,
+			"follow_on":           responseScore.FollowOn,
+			"is_inning_completed": responseScore.IsInningCompleted,
+			"declared":            responseScore.Declared,
+		},
+		"team": teams,
+	})
 	return
 }
 
 type getTossRequest struct {
-	MatchID int64 `json:"match_id" form:"match_id"`
+	MatchPublicID string `uri:"match_id" form:"match_id"`
 }
 
 func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
@@ -88,13 +120,38 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetCricketToss(ctx, req.MatchID)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	cricketToss, err := s.store.GetCricketToss(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the cricket match toss: ", err)
 		return
 	}
 
-	tossWonTeam, err := s.store.GetTeam(ctx, response.TossWin)
+	tossWonTeamMap, ok := cricketToss["toss_won_team"].(map[string]interface{})
+	if !ok {
+		s.logger.Error("Invalid toss_won_team format")
+		return
+	}
+
+	publicIDStr, ok := tossWonTeamMap["public_id"].(string)
+	if !ok {
+		s.logger.Error("Invalid public_id format")
+		return
+	}
+
+	publicID, err := uuid.Parse(publicIDStr)
+	if err != nil {
+		s.logger.Error("Failed to parse public_id as UUID: ", err)
+		return
+	}
+
+	tossWonTeam, err := s.store.GetTeamByPublicID(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get team: ", err)
 		return
@@ -103,16 +160,19 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 	tossDetails := map[string]interface{}{
 
 		"tossWonTeam": map[string]interface{}{
-			"id":        tossWonTeam.ID,
-			"name":      tossWonTeam.Name,
-			"slug":      tossWonTeam.Slug,
-			"shortName": tossWonTeam.Shortname,
-			"gender":    tossWonTeam.Gender,
-			"national":  tossWonTeam.National,
-			"country":   tossWonTeam.Country,
-			"type":      tossWonTeam.Type,
+			"id":           tossWonTeam.ID,
+			"public_id":    tossWonTeam.PublicID,
+			"name":         tossWonTeam.Name,
+			"slug":         tossWonTeam.Slug,
+			"shortName":    tossWonTeam.Shortname,
+			"gender":       tossWonTeam.Gender,
+			"national":     tossWonTeam.National,
+			"country":      tossWonTeam.Country,
+			"type":         tossWonTeam.Type,
+			"player_count": tossWonTeam.PlayerCount,
+			"game_id":      tossWonTeam.GameID,
 		},
-		"tossDecision": response.TossDecision,
+		"tossDecision": cricketToss["toss_decision"].(map[string]string),
 	}
 
 	s.logger.Debug("toss won team details: ", tossDetails)

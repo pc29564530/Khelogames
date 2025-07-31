@@ -4,11 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *TournamentServer) GetFootballTournamentPlayersGoalsFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID string `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -17,7 +18,13 @@ func (s *TournamentServer) GetFootballTournamentPlayersGoalsFunc(ctx *gin.Contex
 		return
 	}
 
-	stats, err := s.store.GetFootballTournamentPlayersGoals(ctx, req.TournamentID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse tournament public ID: ", err)
+		return
+	}
+
+	stats, err := s.store.GetFootballTournamentPlayersGoals(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get football tournament goals: ", err)
 		return
@@ -29,7 +36,7 @@ func (s *TournamentServer) GetFootballTournamentPlayersGoalsFunc(ctx *gin.Contex
 
 func (s *TournamentServer) GetFootballTournamentPlayersYellowCardFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID string `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -38,7 +45,13 @@ func (s *TournamentServer) GetFootballTournamentPlayersYellowCardFunc(ctx *gin.C
 		return
 	}
 
-	stats, err := s.store.GetFootballTournamentPlayersYellowCard(ctx, req.TournamentID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse tournament public id: ", err)
+		return
+	}
+
+	stats, err := s.store.GetFootballTournamentPlayersYellowCard(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get football tournament yellow cards: ", err)
 		return
@@ -50,7 +63,7 @@ func (s *TournamentServer) GetFootballTournamentPlayersYellowCardFunc(ctx *gin.C
 
 func (s *TournamentServer) GetFootballTournamentPlayersRedCardFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentID int64 `uri:"id"`
+		TournamentPublicID string `uri:"tournament_public_id"`
 	}
 
 	err := ctx.ShouldBindUri(&req)
@@ -59,7 +72,13 @@ func (s *TournamentServer) GetFootballTournamentPlayersRedCardFunc(ctx *gin.Cont
 		return
 	}
 
-	stats, err := s.store.GetFootballTournamentPlayersRedCard(ctx, req.TournamentID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse tournament public id: ", err)
+		return
+	}
+
+	stats, err := s.store.GetFootballTournamentPlayersRedCard(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get football tournament red cards: ", err)
 		return

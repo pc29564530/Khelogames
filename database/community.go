@@ -3,66 +3,109 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const createCommunity = `
+WITH userID AS (
+	SELECT * FROM users
+	WHERE public_id=$1
+)
 INSERT INTO communities (
-    owner,
-    communities_name,
+    user_id,
+    name,
+	slug,
     description,
-    community_type
-) VALUES (
-    $1, $2, $3, $4
-) RETURNING id, owner, communities_name, description, community_type, created_at
+    community_type,
+	is_active,
+	avatar_url,
+	cover_image_url,
+	created_at,
+	updated_at
+) 
+SELECT
+	userID.id,
+	$1,
+	$2,
+	$3,
+	$4,
+	true,
+	$5,
+	$6,
+	CURRENT_TIMESTAMP,
+	CURRENT_TIMESTAMP
+FROM userID
+RETURNING *
 `
 
 type CreateCommunityParams struct {
-	Owner           string `json:"owner"`
-	CommunitiesName string `json:"communities_name"`
-	Description     string `json:"description"`
-	CommunityType   string `json:"community_type"`
+	UserPublicID  uuid.UUID `json:"user_public_id"`
+	Name          string    `json:"name"`
+	Slug          string    `json:"slug"`
+	Description   string    `json:"description"`
+	CommunityType string    `json:"community_type"`
+	AvatarUrl     string    `json:"avatar_url"`
+	CoverImageUrl string    `json:"cover_image_url"`
 }
 
-func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams) (models.Community, error) {
+func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams) (models.Communities, error) {
 	row := q.db.QueryRowContext(ctx, createCommunity,
-		arg.Owner,
-		arg.CommunitiesName,
+		arg.UserPublicID,
+		arg.Name,
+		arg.Slug,
 		arg.Description,
 		arg.CommunityType,
+		arg.AvatarUrl,
+		arg.CoverImageUrl,
 	)
-	var i models.Community
+	var i models.Communities
 	err := row.Scan(
 		&i.ID,
-		&i.Owner,
-		&i.CommunitiesName,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
 		&i.Description,
 		&i.CommunityType,
+		&i.IsActive,
+		&i.MemberCount,
+		&i.AvatarUrl,
+		&i.CoverImageUrl,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getAllCommunities = `
-SELECT id, owner, communities_name, description, community_type, created_at FROM communities
+SELECT * FROM communities
 ORDER BY id
 `
 
-func (q *Queries) GetAllCommunities(ctx context.Context) ([]models.Community, error) {
+func (q *Queries) GetAllCommunities(ctx context.Context) ([]models.Communities, error) {
 	rows, err := q.db.QueryContext(ctx, getAllCommunities)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.Community
+	var items []models.Communities
 	for rows.Next() {
-		var i models.Community
+		var i models.Communities
 		if err := rows.Scan(
 			&i.ID,
-			&i.Owner,
-			&i.CommunitiesName,
+			&i.PublicID,
+			&i.UserID,
+			&i.Name,
+			&i.Slug,
 			&i.Description,
 			&i.CommunityType,
+			&i.IsActive,
+			&i.MemberCount,
+			&i.AvatarUrl,
+			&i.CoverImageUrl,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -78,24 +121,44 @@ func (q *Queries) GetAllCommunities(ctx context.Context) ([]models.Community, er
 }
 
 const getCommunitiesMember = `
-SELECT users.username FROM users
-JOIN communities ON users.username = communities.owner
-WHERE communities.communities_name=$1
+SELECT
+	u.id 
+	up.public_id AS profile_public_id,
+	u.public_id AS user_public_id,
+	u.username AS username
+	up.full_name,
+	up.bio,
+	up.avatar_url
+FROM join_community jc
+JOIN communities c ON jc.community_id = c.id
+JOIN users_profile up ON up.user_id = jc.user_id
+WHERE c.public_id = $1;
 `
 
-func (q *Queries) GetCommunitiesMember(ctx context.Context, communitiesName string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getCommunitiesMember, communitiesName)
+type CommunityMember struct {
+	ID              int64     `json:"id"`
+	UserID          int64     `json:"user_id"`
+	UserPublicID    uuid.UUID `json:"user_public_id"`
+	ProfilePublicID uuid.UUID `json:"profile_public_id"`
+	Username        string    `json:"username"`
+	FullName        string    `json:"full_name"`
+	Bio             string    `json:"bio"`
+	AvatarURL       string    `json:"avatar_url"`
+}
+
+func (q *Queries) GetCommunitiesMember(ctx context.Context, communityPublicID uuid.UUID) ([]CommunityMember, error) {
+	rows, err := q.db.QueryContext(ctx, getCommunitiesMember, communityPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []CommunityMember
 	for rows.Next() {
-		var username string
-		if err := rows.Scan(&username); err != nil {
+		var item CommunityMember
+		if err := rows.Scan(&item); err != nil {
 			return nil, err
 		}
-		items = append(items, username)
+		items = append(items, item)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -107,91 +170,120 @@ func (q *Queries) GetCommunitiesMember(ctx context.Context, communitiesName stri
 }
 
 const getCommunity = `
-SELECT id, owner, communities_name, description, community_type, created_at FROM communities
-WHERE id = $1 LIMIT 1
+SELECT * FROM communities
+WHERE public_id = $1
 `
 
-func (q *Queries) GetCommunity(ctx context.Context, id int64) (models.Community, error) {
-	row := q.db.QueryRowContext(ctx, getCommunity, id)
-	var i models.Community
+func (q *Queries) GetCommunity(ctx context.Context, publicID uuid.UUID) (models.Communities, error) {
+	row := q.db.QueryRowContext(ctx, getCommunity, publicID)
+	var i models.Communities
 	err := row.Scan(
 		&i.ID,
-		&i.Owner,
-		&i.CommunitiesName,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
 		&i.Description,
 		&i.CommunityType,
+		&i.IsActive,
+		&i.MemberCount,
+		&i.AvatarUrl,
+		&i.CoverImageUrl,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getCommunityByCommunityName = `
-SELECT id, owner, communities_name, description, community_type, created_at FROM communities
-WHERE communities_name=$1
+SELECT * FROM communities
+WHERE name=$1
 `
 
-func (q *Queries) GetCommunityByCommunityName(ctx context.Context, communitiesName string) (models.Community, error) {
-	row := q.db.QueryRowContext(ctx, getCommunityByCommunityName, communitiesName)
-	var i models.Community
+func (q *Queries) GetCommunityByCommunityName(ctx context.Context, name string) (models.Communities, error) {
+	row := q.db.QueryRowContext(ctx, getCommunityByCommunityName, name)
+	var i models.Communities
 	err := row.Scan(
 		&i.ID,
-		&i.Owner,
-		&i.CommunitiesName,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
 		&i.Description,
 		&i.CommunityType,
+		&i.IsActive,
+		&i.MemberCount,
+		&i.AvatarUrl,
+		&i.CoverImageUrl,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const updateCommunityDescription = `
-UPDATE communities
-SET description=$1
-WHERE id=$2
-RETURNING id, owner, communities_name, description, community_type, created_at
+	UPDATE communities
+	SET description=$2
+	WHERE publicID=$1
+	RETURNING *
 `
 
-type UpdateCommunityDescriptionParams struct {
-	Description string `json:"description"`
-	ID          int64  `json:"id"`
-}
-
-func (q *Queries) UpdateCommunityDescription(ctx context.Context, arg UpdateCommunityDescriptionParams) (models.Community, error) {
-	row := q.db.QueryRowContext(ctx, updateCommunityDescription, arg.Description, arg.ID)
-	var i models.Community
+func (q *Queries) UpdateCommunityDescription(ctx context.Context, publicID uuid.UUID, description string) (models.Communities, error) {
+	row := q.db.QueryRowContext(ctx, updateCommunityDescription, publicID, description)
+	var i models.Communities
 	err := row.Scan(
 		&i.ID,
-		&i.Owner,
-		&i.CommunitiesName,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
 		&i.Description,
 		&i.CommunityType,
+		&i.IsActive,
+		&i.MemberCount,
+		&i.AvatarUrl,
+		&i.CoverImageUrl,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const updateCommunityName = `
-UPDATE communities
-SET communities_name=$1
-WHERE id=$2
-RETURNING id, owner, communities_name, description, community_type, created_at
+	UPDATE communities
+	SET name=$2
+	WHERE public_id=$1
+	RETURNING *
 `
 
-type UpdateCommunityNameParams struct {
-	CommunitiesName string `json:"communities_name"`
-	ID              int64  `json:"id"`
-}
-
-func (q *Queries) UpdateCommunityName(ctx context.Context, arg UpdateCommunityNameParams) (models.Community, error) {
-	row := q.db.QueryRowContext(ctx, updateCommunityName, arg.CommunitiesName, arg.ID)
-	var i models.Community
+func (q *Queries) UpdateCommunityName(ctx context.Context, publicID uuid.UUID, name string) (models.Communities, error) {
+	row := q.db.QueryRowContext(ctx, updateCommunityName, publicID, name)
+	var i models.Communities
 	err := row.Scan(
 		&i.ID,
-		&i.Owner,
-		&i.CommunitiesName,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
 		&i.Description,
 		&i.CommunityType,
+		&i.IsActive,
+		&i.MemberCount,
+		&i.AvatarUrl,
+		&i.CoverImageUrl,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+// increment community count
+func (q *Queries) IncrementCommunityMemberCount(ctx context.Context, communityPublicID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, `
+		UPDATE communities
+		SET member_count = member_count + 1,
+		    updated_at = NOW()
+		WHERE public_id = $1
+	`, communityPublicID)
+	return err
 }

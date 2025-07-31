@@ -1,50 +1,18 @@
 package football
 
 import (
-	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-type addLineUpRequest struct {
-	TeamID   int64  `json:"team_id"`
-	PlayerID int64  `json:"player_id"`
-	MatchID  int64  `json:"match_id"`
-	Position string `json:"position"`
-}
-
-func (s *FootballServer) AddFootballLineUpFunc(ctx *gin.Context) {
-	var req addLineUpRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		return
-	}
-
-	arg := db.AddFootballLineUpParams{
-		TeamID:   req.TeamID,
-		PlayerID: req.PlayerID,
-		MatchID:  req.MatchID,
-		Position: req.Position,
-	}
-
-	response, err := s.store.AddFootballLineUp(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to add the player in lineup: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-}
-
 type getLineUpRequest struct {
-	TeamID   int64  `json:"team_id"`
-	PlayerID int64  `json:"player_id"`
-	MatchID  int64  `json:"match_id"`
-	Position string `json:"position"`
+	MatchPublicID  string `json:"match_public_id"`
+	TeamPublicID   string `json:"team_public_id"`
+	PlayerPublicID string `json:"player_public_id"`
+	Position       string `json:"position"`
 }
 
 func (s *FootballServer) GetFootballLineUpFunc(ctx *gin.Context) {
@@ -55,96 +23,21 @@ func (s *FootballServer) GetFootballLineUpFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetFootballMatchSquad(ctx, req.MatchID, req.TeamID)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
-		s.logger.Error("Failed to get the player in lineup: ", err)
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
-}
-
-type updateSubsAndLineUpRequest struct {
-	LineUpID int64 `json:"lineup_id"`
-	SubsID   int64 `json:"subs_id"`
-}
-
-func (s *FootballServer) UpdateFootballSubsAndLineUpFunc(ctx *gin.Context) {
-	var req updateSubsAndLineUpRequest
-	err := ctx.ShouldBindJSON(&req)
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	arg := db.UpdateFootballSubsAndLineUpParams{
-		ID:   req.LineUpID,
-		ID_2: req.SubsID,
-	}
-
-	response, err := s.store.UpdateFootballSubsAndLineUp(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to update the football and Subs")
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-}
-
-// substitution code
-
-type addSubsRequest struct {
-	TeamID   int64  `json:"team_id"`
-	PlayerID int64  `json:"player_id"`
-	MatchID  int64  `json:"match_id"`
-	Position string `json:"position"`
-}
-
-func (s *FootballServer) AddFootballSubstitionFunc(ctx *gin.Context) {
-	var req addSubsRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		return
-	}
-
-	arg := db.AddFootballSubstitutionParams{
-		TeamID:   req.TeamID,
-		PlayerID: req.PlayerID,
-		MatchID:  req.MatchID,
-		Position: req.Position,
-	}
-
-	response, err := s.store.AddFootballSubstitution(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to add the player in lineup: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-}
-
-type getSubstitutionpRequest struct {
-	TeamID   int64  `json:"team_id"`
-	PlayerID int64  `json:"player_id"`
-	MatchID  int64  `json:"match_id"`
-	Position string `json:"position"`
-}
-
-func (s *FootballServer) GetFootballSubstitutionFunc(ctx *gin.Context) {
-	var req getSubstitutionpRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		return
-	}
-
-	arg := db.GetFootballSubstitutionParams{
-		TeamID:  req.TeamID,
-		MatchID: req.MatchID,
-	}
-
-	response, err := s.store.GetFootballSubstitution(ctx, arg)
+	response, err := s.store.GetFootballMatchSquad(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the player in lineup: ", err)
 		return
@@ -154,21 +47,14 @@ func (s *FootballServer) GetFootballSubstitutionFunc(ctx *gin.Context) {
 }
 
 type Player struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	ShortName string `json:"short_name"`
-	Slug      string `json:"slug"`
-	Country   string `json:"country"`
-	Position  string `json:"position"`
-	MediaURL  string `json:"media_url"`
-	GameID    int64  `json:"game_id"`
+	PublicID string `json:"public_id"`
 }
 
 type MatchSquadRequest struct {
-	MatchID       *int64   `json:"match_id"`
-	TeamID        int64    `json:"team_id"`
+	MatchPublicID string   `json:"match_public_id"`
+	TeamPublicID  string   `json:"team_public_id"`
 	Player        []Player `json:"player"`
-	IsSubstituted []int64  `json:"is_substituted"`
+	IsSubstituted []string `json:"is_substituted"`
 }
 
 func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
@@ -181,7 +67,21 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 		return
 	}
 
-	substitutedMap := make(map[int64]bool)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	substitutedMap := make(map[string]bool)
 
 	for _, substitutedID := range req.IsSubstituted {
 		substitutedMap[substitutedID] = true
@@ -192,10 +92,16 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 		var squad models.FootballSquad
 		var err error
 
-		substitute := substitutedMap[player.ID]
+		substitute := substitutedMap[player.PublicID]
 
-		var role string
-		squad, err = s.store.AddFootballSquad(ctx, *req.MatchID, req.TeamID, player.ID, player.Position, substitute, role)
+		playerPublicID, err := uuid.Parse(player.PublicID)
+		if err != nil {
+			s.logger.Error("Invalid UUID format", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			return
+		}
+
+		squad, err = s.store.AddFootballSquad(ctx, matchPublicID, teamPublicID, playerPublicID, substitute)
 		if err != nil {
 			s.logger.Error("Failed to add football squad: ", err)
 			return
@@ -203,12 +109,14 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 
 		footballSquad = append(footballSquad, map[string]interface{}{
 			"id":            squad.ID,
+			"public_id":     squad.PublicID,
 			"match_id":      squad.MatchID,
 			"team_id":       squad.TeamID,
 			"player":        player,
 			"positions":     squad.Position,
 			"is_substitute": squad.IsSubstitute,
 			"role":          squad.Role,
+			"created_at":    squad.CreatedAT,
 		})
 	}
 
@@ -218,28 +126,23 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 	})
 }
 
-type GetMatchSquadRequest struct {
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
-}
-
 func (s *FootballServer) GetFootballMatchSquadFunc(ctx *gin.Context) {
 
-	matchIDString := ctx.Query("match_id")
-	matchID, err := strconv.ParseInt(matchIDString, 10, 64)
+	matchIDString := ctx.Query("match_public_id")
+	matchPublicID, err := uuid.Parse(matchIDString)
+	if err != nil {
+		s.logger.Error("`Failed to parse int: ", err)
+		return
+	}
+
+	teamIDString := ctx.Query("team_public_id")
+	teamPublicID, err := uuid.Parse(teamIDString)
 	if err != nil {
 		s.logger.Error("Failed to parse int: ", err)
 		return
 	}
 
-	teamIDString := ctx.Query("team_id")
-	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
-	if err != nil {
-		s.logger.Error("Failed to parse int: ", err)
-		return
-	}
-
-	response, err := s.store.GetFootballMatchSquad(ctx, matchID, teamID)
+	response, err := s.store.GetFootballMatchSquad(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get football match squad: ", err)
 		return

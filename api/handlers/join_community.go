@@ -1,76 +1,62 @@
 package handlers
 
 import (
-	db "khelogames/database"
-
 	"khelogames/pkg"
 	"khelogames/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-type addJoinCommunityRequest struct {
-	CommunityName string `json:"community_name"`
-}
-
 func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
-	var req addJoinCommunityRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return
+	var req struct {
+		CommunityPublicID string `uri:"community_public_id"`
 	}
-	s.logger.Debug("bind the request: ", req)
 
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	arg := db.AddJoinCommunityParams{
-		CommunityName: req.CommunityName,
-		Username:      authPayload.Username,
-	}
-	s.logger.Debug("params arg: ", arg)
-
-	communityUser, err := s.store.AddJoinCommunity(ctx, arg)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return
-	}
-	s.logger.Debug("successfully join community: ", communityUser)
-
-	ctx.JSON(http.StatusOK, communityUser)
-	return
-}
-
-type getUserByCommunityRequest struct {
-	CommunityName string `uri:"community_name"`
-}
-
-func (s *HandlersServer) GetUserByCommunityFunc(ctx *gin.Context) {
-	var req getUserByCommunityRequest
+	// Bind the URI parameter
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind : ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		s.logger.Error("Failed to bind URI: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-	s.logger.Debug("bind the request: ", req)
+	s.logger.Debug("Bind the request: ", req)
 
-	communityUserList, err := s.store.GetUserByCommunity(ctx, req.CommunityName)
+	// Parse UUID
+	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
 	if err != nil {
-		s.logger.Error("Failed to get user by community: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		s.logger.Error("Invalid UUID format: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
-	s.logger.Debug("user by community: ", communityUserList)
 
-	ctx.JSON(http.StatusOK, communityUserList)
-	return
+	// Get auth payload
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	// Add user to join_community table
+	communityUser, err := s.store.AddJoinCommunity(ctx, communityPublicID, authPayload.PublicID)
+	if err != nil {
+		s.logger.Error("Failed to join community: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to join community"})
+		return
+	}
+	s.logger.Debug("Successfully joined community: ", communityUser)
+
+	// Increment member count
+	err = s.store.IncrementCommunityMemberCount(ctx, communityPublicID)
+	if err != nil {
+		s.logger.Error("Failed to increment member count: ", err)
+	}
+
+	// Return result
+	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully joined", "member": communityUser})
 }
 
 // get the community joined by the users
 func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	communityList, err := s.store.GetCommunityByUser(ctx, authPayload.Username)
+	communityList, err := s.store.GetCommunityByUser(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get community by user: ", err)
 		ctx.JSON(http.StatusNotFound, (err))
@@ -79,32 +65,4 @@ func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
 	s.logger.Debug("community by user: ", communityList)
 
 	ctx.JSON(http.StatusOK, communityList)
-}
-
-type inActiveUserRequest struct {
-	Username string `json:"username"`
-	ID       int64  `json:"id"`
-}
-
-// soft delete of user of community
-func (s *HandlersServer) InActiveUserFromCommunityFunc(ctx *gin.Context) {
-	var req inActiveUserRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		return
-	}
-
-	arg := db.InActiveUserFromCommunityParams{
-		Username: req.Username,
-		ID:       req.ID,
-	}
-
-	response, err := s.store.InActiveUserFromCommunity(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to unfollow the user from the community: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
 }

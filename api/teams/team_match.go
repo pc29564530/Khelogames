@@ -4,15 +4,30 @@ import (
 	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
-	idStr := ctx.Query("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	response, err := s.store.GetTournamentsByTeam(ctx, id)
+	var req struct {
+		TeamPublicID string `uri:"team_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetTournamentsByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament by team id: ", err)
 		ctx.JSON(http.StatusNoContent, (err))
@@ -24,16 +39,26 @@ func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
 }
 
 func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
-	teamIDStr := ctx.Query("id")
-	teamID, err := strconv.ParseInt(teamIDStr, 10, 64)
+	var req struct {
+		TeamPublicID string `uri:"team_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse team id: ", err)
+		s.logger.Error("Failed to bind", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
 	sport := ctx.Param("sport")
 
-	matches, err := s.store.GetMatchByTeam(ctx, teamID)
+	matches, err := s.store.GetMatchByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get match by team id: ", err)
 		return
@@ -45,10 +70,20 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 }
 
 func (s *TeamsServer) GetMatchesByTeamFunc(ctx *gin.Context) {
-	teamIDString := ctx.Query("id")
-	teamID, err := strconv.ParseInt(teamIDString, 10, 64)
+	var req struct {
+		TeamPublicID string `uri:"team_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse team id: ", err)
+		s.logger.Error("Failed to bind", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
@@ -60,7 +95,7 @@ func (s *TeamsServer) GetMatchesByTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	matches, err := s.store.GetMatchesByTeam(ctx, teamID, game.ID)
+	matches, err := s.store.GetMatchesByTeam(ctx, teamPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by team: ", err)
 		return
@@ -84,32 +119,30 @@ func (s *TeamsServer) getMatchScore(ctx *gin.Context, matches []db.GetMatchByTea
 func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, matchesDetails []map[string]interface{}) []map[string]interface{} {
 
 	for _, match := range matches {
-		homeArg := db.GetCricketScoreParams{MatchID: match.MatchID, TeamID: match.HomeTeamID}
-		awayArg := db.GetCricketScoreParams{MatchID: match.MatchID, TeamID: match.AwayTeamID}
 
-		homeScore, err := s.store.GetCricketScore(ctx, homeArg)
+		homeScore, err := s.store.GetCricketScore(ctx, int32(match.MatchID), match.HomeTeamID)
 		if err != nil {
 			s.logger.Error("Failed to get cricket match score for home team:", err)
 
 		}
-		awayScore, err := s.store.GetCricketScore(ctx, awayArg)
+		awayScore, err := s.store.GetCricketScore(ctx, int32(match.MatchID), match.AwayTeamID)
 		if err != nil {
 			s.logger.Error("Failed to get cricket match score for away team:", err)
 		}
 
-		homeTeam, err := s.store.GetTeam(ctx, match.HomeTeamID)
+		homeTeam, err := s.store.GetTeamByID(ctx, int64(match.HomeTeamID))
 		if err != nil {
 			s.logger.Error("Failed to get home team:", err)
 			return nil
 		}
 
-		awayTeam, err := s.store.GetTeam(ctx, match.AwayTeamID)
+		awayTeam, err := s.store.GetTeamByID(ctx, int64(match.AwayTeamID))
 		if err != nil {
 			s.logger.Error("Failed to get away team:", err)
 			return nil
 		}
 
-		tournament, err := s.store.GetTournament(ctx, match.TournamentID)
+		tournament, err := s.store.GetTournamentByID(ctx, int64(match.TournamentID))
 		if err != nil {
 			s.logger.Error("Failed to get tournament: ", err)
 			return nil
@@ -130,19 +163,21 @@ func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMat
 			"matchId": match.MatchID,
 			"tournament": map[string]interface{}{
 				"id":              tournament.ID,
+				"public_id":       tournament.PublicID,
+				"user_id":         tournament.UserID,
 				"name":            tournament.Name,
 				"slug":            tournament.Slug,
 				"country":         tournament.Country,
-				"status_code":     tournament.StatusCode,
+				"status_code":     tournament.Status,
 				"level":           tournament.Level,
 				"start_timestamp": tournament.StartTimestamp,
 				"game_id":         tournament.GameID,
 				"group_count":     tournament.GroupCount,
 				"max_group_team":  tournament.MaxGroupTeam,
 			},
-			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
+			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "public_id": homeTeam.PublicID, "user_id": homeTeam.UserID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
 			"homeScore":      homeScoreMap,
-			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
+			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "public_id": awayTeam.PublicID, "user_id": awayTeam.UserID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
 			"awayScore":      awayScoreMap,
 			"startTimeStamp": match.StartTimestamp,
 			"status":         match.StatusCode,
@@ -157,26 +192,26 @@ func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMat
 
 func (s *TeamsServer) getFootballMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, matchesDetails []map[string]interface{}) []map[string]interface{} {
 	for _, match := range matches {
-		homeTeam, err := s.store.GetTeam(ctx, match.HomeTeamID)
+		homeTeam, err := s.store.GetTeamByID(ctx, int64(match.HomeTeamID))
 		if err != nil {
 			s.logger.Error("Failed to get home team:", err)
 			return nil
 		}
 
-		awayTeam, err := s.store.GetTeam(ctx, match.AwayTeamID)
+		awayTeam, err := s.store.GetTeamByID(ctx, int64(match.AwayTeamID))
 		if err != nil {
 			s.logger.Error("Failed to get away team:", err)
 			return nil
 		}
 
-		tournament, err := s.store.GetTournament(ctx, match.TournamentID)
+		tournament, err := s.store.GetTournamentByID(ctx, int64(match.TournamentID))
 		if err != nil {
 			s.logger.Error("Failed to get tournament: ", err)
 			return nil
 		}
 
-		homeTeamArg := db.GetFootballScoreParams{MatchID: match.MatchID, TeamID: match.HomeTeamID}
-		awayTeamArg := db.GetFootballScoreParams{MatchID: match.MatchID, TeamID: match.AwayTeamID}
+		homeTeamArg := db.GetFootballScoreParams{MatchID: match.MatchID, TeamID: int64(match.HomeTeamID)}
+		awayTeamArg := db.GetFootballScoreParams{MatchID: match.MatchID, TeamID: int64(match.AwayTeamID)}
 		homeScore, err := s.store.GetFootballScore(ctx, homeTeamArg)
 		if err != nil {
 			s.logger.Error("Failed to get football match score for home team:", err)
@@ -213,19 +248,20 @@ func (s *TeamsServer) getFootballMatchScore(ctx *gin.Context, matches []db.GetMa
 			"matchId": match.MatchID,
 			"tournament": map[string]interface{}{
 				"id":              tournament.ID,
+				"public_id":       tournament.PublicID,
 				"name":            tournament.Name,
 				"slug":            tournament.Slug,
 				"country":         tournament.Country,
-				"status_code":     tournament.StatusCode,
+				"status_code":     tournament.Status,
 				"level":           tournament.Level,
 				"start_timestamp": tournament.StartTimestamp,
 				"game_id":         tournament.GameID,
 				"group_count":     tournament.GroupCount,
 				"max_group_team":  tournament.MaxGroupTeam,
 			},
-			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
+			"homeTeam":       map[string]interface{}{"id": homeTeam.ID, "public_id": homeTeam.PublicID, "name": homeTeam.Name, "slug": homeTeam.Slug, "shortName": homeTeam.Shortname, "gender": homeTeam.Gender, "national": homeTeam.National, "country": homeTeam.Country, "type": homeTeam.Type},
 			"homeScore":      homeScoreMap,
-			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
+			"awayTeam":       map[string]interface{}{"id": awayTeam.ID, "public_id": awayTeam.PublicID, "name": awayTeam.Name, "slug": awayTeam.Slug, "shortName": awayTeam.Shortname, "gender": awayTeam.Gender, "national": awayTeam.National, "country": awayTeam.Country, "type": awayTeam.Type},
 			"awayScore":      awayScoreMap,
 			"startTimeStamp": match.StartTimestamp,
 			"status":         match.StatusCode,

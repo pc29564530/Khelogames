@@ -5,169 +5,162 @@ import (
 	"database/sql"
 	"fmt"
 	"khelogames/database/models"
+	"time"
+
+	"github.com/google/uuid"
 )
 
+const getPlayerWithProfile = `
+	SELECT pp.* FROM players pp
+	JOIN profiles p ON pp.user_id = p.user_id
+	WHERE p.public_id = $1
+`
+
+func (q *Queries) GetPlayerWithProfile(ctx context.Context, publicID uuid.UUID) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerWithProfile, publicID)
+	var i models.Player
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.GameID,
+		&i.Name,
+		&i.Slug,
+		&i.ShortName,
+		&i.MediaUrl,
+		&i.Positions,
+		&i.Country,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &i, nil
+}
+
 const createProfile = `
-INSERT INTO profile (
-    owner,
-    full_name,
+INSERT INTO user_profiles (
+    user_id,
     bio,
     avatar_url,
-    created_at
+	location,
+	created_at,
+	updated_at
 ) VALUES (
-    $1, $2, $3, $4, CURRENT_TIMESTAMP
-) RETURNING id, owner, full_name, bio, avatar_url, created_at
+    $1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+) RETURNING *
 `
 
 type CreateProfileParams struct {
-	Owner     string `json:"owner"`
-	FullName  string `json:"full_name"`
-	AvatarUrl string `json:"avatar_url"`
+	UserID    int32  `json:"user_id"`
 	Bio       string `json:"bio"`
+	AvatarUrl string `json:"avatar_url"`
+	Location  string `json:"location"`
 }
 
-func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (models.Profile, error) {
+func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (models.UserProfiles, error) {
 	row := q.db.QueryRowContext(ctx, createProfile,
-		arg.Owner,
-		arg.FullName,
+		arg.UserID,
 		arg.Bio,
 		arg.AvatarUrl,
+		arg.Location,
 	)
-	var profile models.Profile
+	var profile models.UserProfiles
 	err := row.Scan(
 		&profile.ID,
-		&profile.Owner,
-		&profile.FullName,
+		&profile.PublicID,
+		&profile.UserID,
 		&profile.Bio,
 		&profile.AvatarUrl,
+		&profile.Location,
 		&profile.CreatedAt,
+		&profile.UpdatedAt,
 	)
 	return profile, err
 }
 
+type UpdateUserParams struct {
+	PublicID uuid.UUID `db:"public_id"`
+	FullName string    `db:"full_name"`
+}
+
+// edit profile
 const editProfile = `
-UPDATE profile
-SET full_name=$1, avatar_url=$2, bio=$3
-WHERE id=$4
-RETURNING id, owner, full_name, bio, avatar_url, created_at
+UPDATE user_profiles
+SET avatar_url=$2, bio=$3
+WHERE public_id=$1
+RETURNING *
 `
 
 type EditProfileParams struct {
-	FullName  string `json:"full_name"`
-	AvatarUrl string `json:"avatar_url"`
-	Bio       string `json:"bio"`
-	ID        int64  `json:"id"`
+	PublicID  uuid.UUID `json:"public_id"`
+	AvatarUrl string    `json:"avatar_url"`
+	Bio       string    `json:"bio"`
 }
 
-func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (models.Profile, error) {
+func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (models.UserProfiles, error) {
 	row := q.db.QueryRowContext(ctx, editProfile,
-		arg.FullName,
+		arg.PublicID,
 		arg.AvatarUrl,
 		arg.Bio,
-		arg.ID,
 	)
-	var profile models.Profile
+	var profile models.UserProfiles
 	err := row.Scan(
 		&profile.ID,
-		&profile.Owner,
-		&profile.FullName,
+		&profile.PublicID,
+		&profile.UserID,
 		&profile.Bio,
 		&profile.AvatarUrl,
-		&profile.CreatedAt,
+		&profile.Location,
 	)
 	return profile, err
 }
 
 const getProfile = `
-SELECT id, owner, full_name, bio, avatar_url, created_at FROM profile
-WHERE owner=$1
+SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
+LEFT JOIN users AS u ON u.id = up.user_id
+WHERE u.public_id = $1;
 `
 
-func (q *Queries) GetProfile(ctx context.Context, owner string) (models.Profile, error) {
-	row := q.db.QueryRowContext(ctx, getProfile, owner)
-	var profile models.Profile
+type userProfile struct {
+	ID        int64     `json:"id"`
+	PublicID  uuid.UUID `json:"public_id"`
+	UserID    int32     `json:"user_id"`
+	Username  string    `json:"username"`
+	FullName  string    `json:"full_name"`
+	Bio       string    `json:"bio"`
+	AvatarUrl string    `json:"avatar_url"`
+	CreatedAT time.Time `json:"created_at"`
+	UpdatedAT time.Time `json:"updated_at"`
+}
+
+func (q *Queries) GetProfile(ctx context.Context, publicID uuid.UUID) (*userProfile, error) {
+
+	row := q.db.QueryRowContext(ctx, getProfile, publicID)
+	var res userProfile
 	err := row.Scan(
-		&profile.ID,
-		&profile.Owner,
-		&profile.FullName,
-		&profile.Bio,
-		&profile.AvatarUrl,
-		&profile.CreatedAt,
+		&res.ID,
+		&res.PublicID,
+		&res.UserID,
+		&res.Username,
+		&res.FullName,
+		&res.Bio,
+		&res.AvatarUrl,
+		&res.CreatedAT,
+		&res.UpdatedAT,
 	)
-	return profile, err
-}
-
-const updateAvatar = `
-UPDATE profile
-SET avatar_url=$1
-WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, created_at
-`
-
-type UpdateAvatarParams struct {
-	AvatarUrl string `json:"avatar_url"`
-	Owner     string `json:"owner"`
-}
-
-func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) (models.Profile, error) {
-	row := q.db.QueryRowContext(ctx, updateAvatar, arg.AvatarUrl, arg.Owner)
-	var profile models.Profile
-	err := row.Scan(
-		&profile.ID,
-		&profile.Owner,
-		&profile.FullName,
-		&profile.Bio,
-		&profile.AvatarUrl,
-		&profile.CreatedAt,
-	)
-	return profile, err
-}
-
-const updateBio = `
-UPDATE profile
-SET bio=$1
-WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, created_at
-`
-
-type UpdateBioParams struct {
-	Bio   string `json:"bio"`
-	Owner string `json:"owner"`
-}
-
-func (q *Queries) UpdateBio(ctx context.Context, arg UpdateBioParams) (models.Profile, error) {
-	row := q.db.QueryRowContext(ctx, updateBio, arg.Bio, arg.Owner)
-	var profile models.Profile
-	err := row.Scan(
-		&profile.ID,
-		&profile.Owner,
-		&profile.FullName,
-		&profile.Bio,
-		&profile.AvatarUrl,
-		&profile.CreatedAt,
-	)
-	return profile, err
-}
-
-const updateFullName = `
-UPDATE profile
-SET full_name=$1
-WHERE owner=$2
-RETURNING id, owner, full_name, bio, avatar_url, created_at
-`
-
-func (q *Queries) UpdateFullName(ctx context.Context, owner string, fullName string) (models.Profile, error) {
-	row := q.db.QueryRowContext(ctx, updateFullName, fullName, owner)
-	var profile models.Profile
-	err := row.Scan(
-		&profile.ID,
-		&profile.Owner,
-		&profile.FullName,
-		&profile.Bio,
-		&profile.AvatarUrl,
-		&profile.CreatedAt,
-	)
-	return profile, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &res, err
 }
 
 const getRoles = `
@@ -200,22 +193,29 @@ func (q *Queries) GetRoles(ctx context.Context) ([]models.Roles, error) {
 }
 
 const addRole = `
+    WITH userID AS (
+		SELECT id FROM users
+		WHERE public_id = $1
+	)
 	INSERT INTO user_roles (
-		profile_id,
+		user_id,
 		role_id,
 		created_at
-	) VALUES ($1, $2, CURRENT_TIMESTAMP) RETURNING *;
+	) 
+	SELECT 
+		userID.id,
+		$2,
+		CURRENT_TIMESTAMP
+	FROM userID
+	RETURNING *;
 `
 
-func (q *Queries) AddRole(ctx context.Context, profileID, roleID int64) (models.UserRole, error) {
-	row := q.db.QueryRowContext(ctx, addRole,
-		profileID,
-		roleID,
-	)
+func (q *Queries) AddRole(ctx context.Context, userID uuid.UUID, roleID int32) (models.UserRole, error) {
+	row := q.db.QueryRowContext(ctx, addRole, userID, roleID)
 	var userRole models.UserRole
 	err := row.Scan(
 		&userRole.ID,
-		&userRole.ProfileID,
+		&userRole.UserID,
 		&userRole.RoleID,
 		&userRole.CreatedAT,
 	)

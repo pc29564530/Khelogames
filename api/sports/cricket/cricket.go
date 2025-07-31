@@ -7,13 +7,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type addCricketScoreRequest struct {
-	MatchID      int64 `json:"match_id"`
-	TeamID       int64 `json:"team_id"`
-	InningNumber int   `json:"inning_number"`
-	FollowOn     bool  `json:"follow_on"`
+	MatchPublicID string `json:"match_public_id"`
+	TeamPublicID  string `json:"team_public_id"`
+	InningNumber  int    `json:"inning_number"`
+	FollowOn      bool   `json:"follow_on"`
 }
 
 func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
@@ -25,9 +26,34 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		return
 	}
 
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
 	arg := db.NewCricketScoreParams{
-		MatchID:           req.MatchID,
-		TeamID:            req.TeamID,
+		MatchID:           int32(match.ID),
+		TeamID:            int32(team.ID),
 		InningNumber:      req.InningNumber,
 		Score:             0,
 		Wickets:           0,
@@ -39,21 +65,38 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		Declared:          false,
 	}
 
-	response, err := s.store.NewCricketScore(ctx, arg)
+	responseScore, err := s.store.NewCricketScore(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"inning": gin.H{
+			"id":                  responseScore.ID,
+			"public_id":           responseScore.PublicID,
+			"match_id":            responseScore.MatchID,
+			"team_id":             responseScore.TeamID,
+			"inning_number":       responseScore.InningNumber,
+			"score":               responseScore.Score,
+			"wickets":             responseScore.Wickets,
+			"overs":               responseScore.Overs,
+			"run_rate":            responseScore.RunRate,
+			"target_run_rate":     responseScore.TargetRunRate,
+			"follow_on":           responseScore.FollowOn,
+			"is_inning_completed": responseScore.IsInningCompleted,
+			"declared":            responseScore.Declared,
+		},
+		"team": team,
+	})
 	return
 
 }
 
-func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournamentID int64) []map[string]interface{} {
+func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournamentPublicID uuid.UUID) []map[string]interface{} {
 	ctx := context.Background()
 
-	tournament, err := s.store.GetTournament(ctx, tournamentID)
+	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament: ", err)
 	}
@@ -63,7 +106,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 	var knockoutRounds []map[string]interface{}
 
 	for _, match := range matches {
-		matchScore, err := s.store.GetCricketScores(ctx, match.ID)
+		matchScore, err := s.store.GetCricketScores(ctx, int32(match.ID))
 		if err != nil {
 			s.logger.Error("Failed to get cricket scores: ", err)
 		}
@@ -79,6 +122,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 
 		matchMap := map[string]interface{}{
 			"id":              match.ID,
+			"public_id":       match.PublicID,
 			"start_timestamp": match.StartTimestamp,
 			"end_timestamp":   match.EndTimestamp,
 			"status_code":     match.StatusCode,
@@ -87,6 +131,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"teams": map[string]interface{}{
 				"home_team": map[string]interface{}{
 					"id":         match.HomeTeamID,
+					"public_id":  match.HomeTeamPublicID,
 					"name":       match.HomeTeamName,
 					"slug":       match.HomeTeamSlug,
 					"short_name": match.HomeTeamShortname,
@@ -97,6 +142,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 				},
 				"away_team": map[string]interface{}{
 					"id":         match.AwayTeamID,
+					"public_id":  match.AwayTeamPublicID,
 					"name":       match.AwayTeamName,
 					"slug":       match.AwayTeamSlug,
 					"short_name": match.AwayTeamShortname,
@@ -153,10 +199,11 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 	matchDetail = append(matchDetail, map[string]interface{}{
 		"tournament": map[string]interface{}{
 			"id":              tournament.ID,
+			"public_id":       tournament.PublicID,
 			"name":            tournament.Name,
 			"slug":            tournament.Slug,
 			"country":         tournament.Country,
-			"status_code":     tournament.StatusCode,
+			"status":          tournament.Status,
 			"level":           tournament.Level,
 			"start_timestamp": tournament.StartTimestamp,
 			"game_id":         tournament.GameID,
@@ -169,181 +216,10 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 	return matchDetail
 }
 
-type updateInningRequest struct {
-	InningNumber int   `json:"inning_number"`
-	MatchID      int64 `json:"match_id"`
-	TeamID       int64 `json:"team_id"`
-}
-
-func (s *CricketServer) UpdateCricketInningsFunc(ctx *gin.Context) {
-	var req updateInningRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("unable to bind the json: ", err)
-		return
-	}
-
-	//get match by match id
-	match, err := s.store.GetMatchByID(ctx, req.MatchID)
-	if err != nil {
-		s.logger.Error("Failed to get match by match id: ", err)
-		return
-	}
-
-	arg := db.UpdateCricketInningsParams{
-		InningNumber: req.InningNumber,
-		MatchID:      req.MatchID,
-		TeamID:       req.TeamID,
-	}
-
-	response, err := s.store.UpdateCricketInnings(ctx, arg)
-	if err != nil {
-		s.logger.Error("unable to update the innings: ", err)
-		return
-	}
-	if response.IsInningCompleted {
-		batTeamID := response.TeamID
-		var bowlTeamID int64
-		if match.AwayTeamID == batTeamID {
-			bowlTeamID = match.HomeTeamID
-		} else {
-			bowlTeamID = match.AwayTeamID
-		}
-
-		//player batting score
-		playerBatsScore, err := s.store.GetCricketBatsmanScoreByTeamID(ctx, batTeamID)
-		if err != nil {
-			s.logger.Error("Failed to get cricket batsman score: ", err)
-			return
-		}
-
-		for _, item := range *playerBatsScore {
-			playerBatsmanData, err := s.store.GetPlayerCricketStatsByMatchType(ctx, item.BatsmanID)
-			if err != nil {
-				s.logger.Error("Failed to get the player batting stats: ", err)
-				return
-			}
-
-			if playerBatsmanData == nil {
-				for _, item := range *playerBatsmanData {
-					if item.MatchType == *match.MatchFormat {
-						_, err := s.store.AddPlayerCricketStats(ctx,
-							int32(item.PlayerID),
-							*&item.MatchType,
-							item.Matches,
-							item.BattingInnings,
-							item.Runs,
-							item.Balls,
-							item.Fours,
-							item.Sixes,
-							item.Fifties,
-							item.Hundreds,
-							item.BestScore,
-							item.BowlingInnings,
-							item.Wickets,
-							item.RunsConceded,
-							item.BallsBowled,
-							item.FourWickets,
-							item.FiveWickets)
-						if err != nil {
-							s.logger.Error("Failed to get the player batting stats: ", err)
-							return
-						}
-					}
-				}
-			} else {
-				//Update the player batting stats:
-				for _, item := range *playerBatsmanData {
-					if item.MatchType == *match.MatchFormat {
-						_, err := s.store.UpdatePlayerBattingStats(ctx,
-							int32(item.PlayerID),
-							*&item.MatchType,
-							item.Runs,
-							item.Balls,
-							item.Fours,
-							item.Sixes,
-							item.Fifties,
-							item.Hundreds,
-							item.BestScore)
-						if err != nil {
-							s.logger.Error("Failed to get the player batting stats: ", err)
-							return
-						}
-					}
-				}
-			}
-		}
-
-		//player bowling stats:
-		playerBallScore, err := s.store.GetCricketBowlerScoreByTeamID(ctx, bowlTeamID)
-		if err != nil {
-			s.logger.Error("Failed to get cricket bowler score: ", err)
-			return
-		}
-
-		for _, item := range *playerBallScore {
-			playerBowlerData, err := s.store.GetPlayerCricketStatsByMatchType(ctx, item.BowlerID)
-			if err != nil {
-				s.logger.Error("Failed to get the player batting stats: ", err)
-				return
-			}
-			if playerBowlerData == nil {
-				for _, item := range *playerBowlerData {
-					if item.MatchType == *match.MatchFormat {
-						_, err := s.store.AddPlayerCricketStats(ctx,
-							int32(item.PlayerID),
-							*&item.MatchType,
-							item.Matches,
-							item.BattingInnings,
-							item.Runs,
-							item.Balls,
-							item.Fours,
-							item.Sixes,
-							item.Fifties,
-							item.Hundreds,
-							item.BestScore,
-							item.BowlingInnings,
-							item.Wickets,
-							item.RunsConceded,
-							item.BallsBowled,
-							item.FourWickets,
-							item.FiveWickets)
-						if err != nil {
-							s.logger.Error("Failed to get the player bowling stats: ", err)
-							return
-						}
-					}
-				}
-			} else {
-				//Update the player bowling stats:
-				for _, item := range *playerBowlerData {
-					if item.MatchType == *match.MatchFormat {
-						_, err := s.store.UpdatePlayerBowlingStats(ctx,
-							int32(item.PlayerID),
-							*&item.MatchType,
-							item.Wickets,
-							item.RunsConceded,
-							item.BallsBowled,
-							item.FourWickets,
-							item.FiveWickets)
-						if err != nil {
-							s.logger.Error("Failed to get the player bowling stats: ", err)
-							return
-						}
-					}
-				}
-			}
-		}
-
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-}
-
 type updateCricketEndInningRequest struct {
-	MatchID      int64 `json:"match_id"`
-	TeamID       int64 `json:"team_id"`
-	InningNumber int   `json:"inning_number"`
+	MatchPublicID string `json:"match_public_id"`
+	TeamPublicID  string `json:"team_public_id"`
+	InningNumber  int    `json:"inning_number"`
 }
 
 func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
@@ -355,27 +231,43 @@ func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 		return
 	}
 
-	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatus(ctx, req.MatchID, req.TeamID, req.InningNumber)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	inningResponse, batsmanResponse, bowlerResponse, err := s.store.UpdateInningEndStatusByPublicID(ctx, matchPublicID, teamPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update inning end: ", err)
 	}
 
-	batsmanPlayer, err := s.store.GetPlayer(ctx, batsmanResponse.BatsmanID)
+	batsmanPlayer, err := s.store.GetPlayerByID(ctx, int64(batsmanResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get player: ", err)
 	}
 
-	bowlerPlayer, err := s.store.GetPlayer(ctx, bowlerResponse.BowlerID)
+	bowlerPlayer, err := s.store.GetPlayerByID(ctx, int64(bowlerResponse.BowlerID))
 	if err != nil {
 		s.logger.Error("Failed to get player: ", err)
 	}
 
 	batsman := map[string]interface{}{
-		"player":               map[string]interface{}{"id": batsmanPlayer.ID, "name": batsmanPlayer.PlayerName, "slug": batsmanPlayer.Slug, "shortName": batsmanPlayer.ShortName, "position": batsmanPlayer.Positions, "username": batsmanPlayer.Username},
+		"player":               map[string]interface{}{"id": batsmanPlayer.ID, "public_id": batsmanPlayer.PublicID, "name": batsmanPlayer.Name, "slug": batsmanPlayer.Slug, "shortName": batsmanPlayer.ShortName, "position": batsmanPlayer.Positions},
 		"id":                   batsmanResponse.ID,
+		"public_id":            batsmanResponse.PublicID,
 		"match_id":             batsmanResponse.MatchID,
 		"team_id":              batsmanResponse.TeamID,
 		"batsman_id":           batsmanResponse.BatsmanID,
+		"inning_number":        bowlerResponse.InningNumber,
 		"runs_scored":          batsmanResponse.RunsScored,
 		"balls_faced":          batsmanResponse.BallsFaced,
 		"fours":                batsmanResponse.Fours,
@@ -386,12 +278,14 @@ func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 	}
 
 	bowler := map[string]interface{}{
-		"player":            map[string]interface{}{"id": bowlerPlayer.ID, "name": bowlerPlayer.PlayerName, "slug": bowlerPlayer.Slug, "shortName": bowlerPlayer.ShortName, "position": bowlerPlayer.Positions, "username": bowlerPlayer.Username},
+		"player":            map[string]interface{}{"id": bowlerPlayer.ID, "public_id": bowlerPlayer.PublicID, "name": bowlerPlayer.Name, "slug": bowlerPlayer.Slug, "shortName": bowlerPlayer.ShortName, "position": bowlerPlayer.Positions},
 		"id":                bowlerResponse.ID,
+		"public_id":         bowlerResponse.PublicID,
 		"match_id":          bowlerResponse.MatchID,
 		"team_id":           bowlerResponse.TeamID,
 		"bowler_id":         bowlerResponse.BowlerID,
-		"ball":              bowlerResponse.Ball,
+		"inning_number":     bowlerResponse.InningNumber,
+		"ball_number":       bowlerResponse.BallNumber,
 		"runs":              bowlerResponse.Runs,
 		"wide":              bowlerResponse.Wide,
 		"no_ball":           bowlerResponse.NoBall,

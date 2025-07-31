@@ -6,45 +6,64 @@ import (
 	"log"
 )
 
-const createMobileSignup = `INSERT INTO signup (
-    mobile_number,
-    otp
-) VALUES (
-    $1, $2
-) RETURNING *;
+const createGoogleSignUp = `
+	INSERT INTO users (
+		full_name, username, email, hash_password, is_verified, is_banned, google_id, role, created_at, updated_at
+	) VALUES (
+	 $1, $2, $3, null, false, false, $4, 'user', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP 
+	) RETURNING *;
 `
 
-func (q *Queries) CreateMobileSignup(ctx context.Context, mobileNumber, otp string) (models.Signup, error) {
-
-	var Signup models.Signup
-	row := q.db.QueryRowContext(ctx, createMobileSignup, mobileNumber, otp)
-	err := row.Scan(&Signup.MobileNumber, &Signup.Otp)
+func (q *Queries) CreateGoogleSignUp(ctx context.Context, fullName, username, email, googleId string) (*models.Users, error) {
+	var users models.Users
+	row := q.db.QueryRowContext(ctx, createGoogleSignUp, fullName, username, email, googleId)
+	err := row.Scan(
+		&users.ID,
+		&users.PublicID,
+		&users.FullName,
+		&users.Username,
+		&users.Email,
+		&users.HashPassword,
+		&users.IsVerified,
+		&users.IsBanned,
+		&users.GoogleID,
+		&users.Role,
+		&users.CreatedAt,
+		&users.UpdatedAt,
+	)
 	if err != nil {
-		log.Printf("Failed to create mobile signup: %v", err)
-		return Signup, err
+		log.Printf("Failed to create google signup: %v", err)
 	}
-	return Signup, nil
+	return &users, nil
 }
 
-const deleteSignup = `
-DELETE FROM signup
-WHERE mobile_number = $1 RETURNING mobile_number, otp
+const createEmailSignUp = `
+	INSERT INTO users (
+		full_name, username, email, hash_password, is_verified, is_banned, google_id, role, created_at, updated_at
+	) VALUES (
+	 $1, $2, $3, $4, false, false, null, 'user', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+	) RETURNING *;
 `
 
-func (q *Queries) DeleteSignup(ctx context.Context, mobileNumber string) (models.Signup, error) {
-	var Signup models.Signup
-	row := q.db.QueryRowContext(ctx, deleteSignup, mobileNumber)
-	err := row.Scan(&Signup.MobileNumber, &Signup.Otp)
-	return Signup, err
-}
-
-const getSignup = `SELECT mobile_number, otp FROM signup
-WHERE mobile_number = $1 LIMIT 1
-`
-
-func (q *Queries) GetSignup(ctx context.Context, mobileNumber string) (models.Signup, error) {
-	var Signup models.Signup
-	row := q.db.QueryRowContext(ctx, getSignup, mobileNumber)
-	err := row.Scan(&Signup.MobileNumber, &Signup.Otp)
-	return Signup, err
+func (q *Queries) CreateEmailSignUp(ctx context.Context, fullName, username, email, hashPassword string) (models.Users, error) {
+	var users models.Users
+	row := q.db.QueryRowContext(ctx, createEmailSignUp, fullName, username, email, hashPassword)
+	err := row.Scan(
+		&users.ID,
+		&users.PublicID,
+		&users.FullName,
+		&users.Username,
+		&users.Email,
+		&users.HashPassword,
+		&users.IsVerified,
+		&users.IsBanned,
+		&users.GoogleID,
+		&users.Role,
+		&users.CreatedAt,
+		&users.UpdatedAt,
+	)
+	if err != nil {
+		log.Printf("Failed to create gmail signup: %v", err)
+	}
+	return users, nil
 }

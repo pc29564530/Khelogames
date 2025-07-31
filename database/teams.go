@@ -5,38 +5,53 @@ import (
 	"encoding/json"
 	"khelogames/database/models"
 	"log"
+
+	"github.com/google/uuid"
 )
 
 const addTeamPlayers = `
+WITH resolve_ids AS (
+	SELECT
+		t.id AS team_id,
+		p.id AS player_id
+	FROM teams t, players p
+	WHERE t.public_id = $1 AND p.public_id = $2
+)
 INSERT INTO team_players (
     team_id,
     player_id,
 	join_date,
 	leave_date
-) VALUES ($1, $2, $3, $4)
-RETURNING *
+)
+SELECT 
+	ri.team_id,
+	ri.player_id,
+	$3,
+	$4
+FROM resolve_ids ri
+RETURING *;
 `
 
 type AddTeamPlayersParams struct {
-	TeamID    int64  `json:"team_id"`
-	PlayerID  int64  `json:"player_id"`
-	JoinDate  int32  `json:"join_date"`
-	LeaveDate *int32 `json:"leave_date"`
+	TeamPublicID   uuid.UUID `json:"team_public_id"`
+	PlayerPublicID uuid.UUID `json:"player_public_id"`
+	JoinDate       int32     `json:"join_date"`
+	LeaveDate      *int32    `json:"leave_date"`
 }
 
 func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamID, arg.PlayerID, arg.JoinDate, arg.LeaveDate)
+	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamPublicID, arg.PlayerPublicID, arg.JoinDate, arg.LeaveDate)
 	var i models.TeamPlayer
 	err := row.Scan(&i.TeamID, &i.PlayerID, &i.JoinDate, &i.LeaveDate)
 	return i, err
 }
 
 type GetMatchByTeamRow struct {
-	TournamentID   int64  `json:"touranment_id"`
+	TournamentID   int32  `json:"touranment_id"`
 	TournamentName string `json:"tournament_name"`
 	MatchID        int64  `json:"match_id"`
-	HomeTeamID     int64  `json:"home_team_id"`
-	AwayTeamID     int64  `json:"away_team_id"`
+	HomeTeamID     int32  `json:"home_team_id"`
+	AwayTeamID     int32  `json:"away_team_id"`
 	HomeTeamName   string `json:"home_team_name"`
 	AwayTeamName   string `json:"away_team_name"`
 	StartTimestamp int64  `json:"start_timestamp"`
@@ -48,6 +63,7 @@ const getMatchesByTeam = `
 	SELECT 
 		json_build_object(
 			'id', m.id,
+			'public_id', m.public_id,
 			'tournament_id', m.tournament_id,
 			'away_team_id', m.away_team_id,
 			'home_team_id', m.home_team_id,
@@ -62,6 +78,7 @@ const getMatchesByTeam = `
 
 			'homeTeam', json_build_object(
 				'id', ht.id,
+				'public_id', ht.public_id,
 				'name', ht.name,
 				'slug', ht.slug,
 				'short_name', ht.shortname,
@@ -79,6 +96,7 @@ const getMatchesByTeam = `
 				WHEN g.name = 'football' THEN 
 					json_build_object(
 						'id', fs_home.id,
+						'public_id', fs_home.public_id,
 						'match_id', fs_home.match_id,
 						'team_id', fs_home.team_id,
 						'first_half', fs_home.first_half,
@@ -92,6 +110,7 @@ const getMatchesByTeam = `
 
 			'awayTeam', json_build_object(
 				'id', at.id,
+				'public_id', at.public_id,
 				'name', at.name,
 				'slug', at.slug,
 				'short_name', at.shortname,
@@ -109,6 +128,7 @@ const getMatchesByTeam = `
 				WHEN g.name = 'football' THEN 
 					json_build_object(
 						'id', fs_away.id,
+						'public_id', fs_away.public_id,
 						'match_id', fs_away.match_id,
 						'team_id', fs_away.team_id,
 						'first_half', fs_away.first_half,
@@ -122,6 +142,7 @@ const getMatchesByTeam = `
 
 			'tournament', json_build_object(
 				'id', t.id,
+				'public_id', t.public_id,
 				'name', t.name,
 				'slug', t.slug,
 				'country', t.country,
@@ -152,6 +173,7 @@ const getMatchesByTeam = `
 		SELECT json_agg(
 			json_build_object(
 				'id', cs.id,
+				'public_id', cs.public_id,
 				'match_id', cs.match_id,
 				'team_id', cs.team_id,
 				'inning_number', cs.inning_number,
@@ -174,6 +196,7 @@ const getMatchesByTeam = `
 		SELECT json_agg(
 			json_build_object(
 				'id', cs.id,
+				'public_id', cs.public_id,
 				'match_id', cs.match_id,
 				'team_id', cs.team_id,
 				'inning_number', cs.inning_number,
@@ -191,12 +214,12 @@ const getMatchesByTeam = `
 		WHERE cs.match_id = m.id AND cs.team_id = at.id
 	) AS cricket_away_scores ON true
 
-	WHERE (ht.id = $1 OR at.id = $1) AND t.game_id = $2;
+	WHERE (ht.public_id = $1 OR at.public_id = $1) AND t.game_id = $2;
 `
 
-func (q *Queries) GetMatchesByTeam(ctx context.Context, teamID, gameID int64) ([]map[string]interface{}, error) {
+func (q *Queries) GetMatchesByTeam(ctx context.Context, teamPublicID uuid.UUID, gameID int64) ([]map[string]interface{}, error) {
 
-	rows, err := q.db.QueryContext(ctx, getMatchesByTeam, teamID, gameID)
+	rows, err := q.db.QueryContext(ctx, getMatchesByTeam, teamPublicID, gameID)
 	if err != nil {
 		return nil, err
 	}
@@ -234,12 +257,12 @@ FROM matches tm
 JOIN tournaments t ON tm.id = t.id
 JOIN teams c1 ON tm.home_team_id = c1.id
 JOIN teams c2 ON tm.away_team_id = c2.id
-WHERE c1.id=$1 OR c2.id=$1
+WHERE c1.public_id=$1 OR c2.public_id=$1
 ORDER BY tm.id DESC, tm.start_timestamp DESC
 `
 
-func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTeamRow, error) {
-	rows, err := q.db.QueryContext(ctx, getMatchByTeam, id)
+func (q *Queries) GetMatchByTeam(ctx context.Context, teamPublicID uuid.UUID) ([]GetMatchByTeamRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMatchByTeam, teamPublicID)
 	if err != nil {
 		return nil, err
 	}
@@ -274,27 +297,29 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, id int64) ([]GetMatchByTea
 
 const getPlayerByTeam = `
 SELECT 
+   p.id AS player_id
+   p.public_id
   tp.team_id, 
-  tp.player_id, 
+  tp.player_id,
+  p.user_id,
   tp.join_date, 
   tp.leave_date, 
   p.id AS player_id,
-  p.username, 
   p.slug, 
   p.short_name, 
   p.media_url, 
   p.positions, 
   p.country, 
   p.player_name, 
-  p.game_id,
-  p.profile_id
+  p.game_id
 FROM team_players tp
 JOIN players p ON tp.player_id = p.id
-WHERE tp.team_id = $1 AND tp.leave_date IS NULL;
+JOIN teams t ON t.id = p.team_id
+WHERE t.public_id = $1 AND tp.leave_date IS NULL;
 `
 
-func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.GetPlayerByTeam, error) {
-	rows, err := q.db.QueryContext(ctx, getPlayerByTeam, teamID)
+func (q *Queries) GetPlayerByTeam(ctx context.Context, teamPublicID uuid.UUID) ([]models.GetPlayerByTeam, error) {
+	rows, err := q.db.QueryContext(ctx, getPlayerByTeam, teamPublicID)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +333,6 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.G
 			&i.JoinDate,
 			&i.LeaveDate,
 			&i.ID,
-			&i.Username,
 			&i.Slug,
 			&i.ShortName,
 			&i.MediaUrl,
@@ -316,7 +340,6 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.G
 			&i.Country,
 			&i.PlayerName,
 			&i.GameID,
-			&i.ProfileID,
 		); err != nil {
 			return nil, err
 		}
@@ -331,20 +354,49 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamID int64) ([]models.G
 	return items, nil
 }
 
-const getTeam = `
-SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, player_count, game_id FROM teams
-WHERE id=$1
+// team by public_id
+const getTeamByPublicID = `
+	SELECT * FROM teams
+	WHERE public_id=$1
 `
 
-func (q *Queries) GetTeam(ctx context.Context, id int64) (models.Team, error) {
-	row := q.db.QueryRowContext(ctx, getTeam, id)
+func (q *Queries) GetTeamByPublicID(ctx context.Context, publicID uuid.UUID) (models.Team, error) {
+	row := q.db.QueryRowContext(ctx, getTeamByPublicID, publicID)
 	var i models.Team
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.UserID,
 		&i.Name,
 		&i.Slug,
 		&i.Shortname,
-		&i.Admin,
+		&i.MediaUrl,
+		&i.Gender,
+		&i.National,
+		&i.Country,
+		&i.Type,
+		&i.PlayerCount,
+		&i.GameID,
+	)
+	return i, err
+}
+
+// team by public_id
+const getTeamByID = `
+	SELECT * FROM teams
+	WHERE id=$1
+`
+
+func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error) {
+	row := q.db.QueryRowContext(ctx, getTeamByID, id)
+	var i models.Team
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
+		&i.Shortname,
 		&i.MediaUrl,
 		&i.Gender,
 		&i.National,
@@ -357,13 +409,14 @@ func (q *Queries) GetTeam(ctx context.Context, id int64) (models.Team, error) {
 }
 
 const getTeamByPlayer = `
-SELECT tm.* FROM team_players
-JOIN teams AS tm ON team_players.team_id=tm.id
-WHERE player_id=$1
+SELECT t.* FROM team_players tp
+JOIN teams AS t ON tp.team_id=t.id
+JOIN players AS p ON tp.player_id = p.id
+WHERE p.public_id=$1
 `
 
-func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models.GetTeamByPlayer, error) {
-	rows, err := q.db.QueryContext(ctx, getTeamByPlayer, playerID)
+func (q *Queries) GetTeamByPlayer(ctx context.Context, playerPublicID uuid.UUID) ([]models.GetTeamByPlayer, error) {
+	rows, err := q.db.QueryContext(ctx, getTeamByPlayer, playerPublicID)
 	if err != nil {
 		return nil, err
 	}
@@ -373,6 +426,8 @@ func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models
 		var i models.GetTeamByPlayer
 		if err := rows.Scan(
 			&i.ID,
+			&i.PublicID,
+			&i.TeamID,
 			&i.Name,
 			&i.Slug,
 			&i.Shortname,
@@ -399,12 +454,13 @@ func (q *Queries) GetTeamByPlayer(ctx context.Context, playerID int64) ([]models
 }
 
 const getTeamPlayers = `
-SELECT * FROM team_players
-WHERE team_id=$1
+SELECT tp.* FROM team_players tp
+JOIN teams AS t ON t.id = tp.team_id
+WHERE t.public_id=$1
 `
 
-func (q *Queries) GetTeamPlayers(ctx context.Context, teamID int64) ([]models.TeamPlayer, error) {
-	rows, err := q.db.QueryContext(ctx, getTeamPlayers, teamID)
+func (q *Queries) GetTeamPlayers(ctx context.Context, teamPublicID uuid.UUID) ([]models.TeamPlayer, error) {
+	rows, err := q.db.QueryContext(ctx, getTeamPlayers, teamPublicID)
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +483,7 @@ func (q *Queries) GetTeamPlayers(ctx context.Context, teamID int64) ([]models.Te
 }
 
 const getTeams = `
-SELECT id, name, slug, shortname, admin, media_url, gender, national, country, type, player_count, game_id FROM teams
+SELECT * FROM teams
 `
 
 func (q *Queries) GetTeams(ctx context.Context) ([]models.Team, error) {
@@ -441,10 +497,11 @@ func (q *Queries) GetTeams(ctx context.Context) ([]models.Team, error) {
 		var i models.Team
 		if err := rows.Scan(
 			&i.ID,
+			&i.PublicID,
+			&i.UserID,
 			&i.Name,
 			&i.Slug,
 			&i.Shortname,
-			&i.Admin,
 			&i.MediaUrl,
 			&i.Gender,
 			&i.National,
@@ -467,11 +524,11 @@ func (q *Queries) GetTeams(ctx context.Context) ([]models.Team, error) {
 }
 
 const getTeamsBySport = `
-SELECT 
-    g.id, g.name, g.min_players,JSON_BUILD_OBJECT('id', t.id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'admin', t.admin, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id) AS team_data
-FROM teams t
-JOIN games AS g ON g.id = t.game_id
-WHERE t.game_id=$1
+	SELECT 
+		g.id, g.name, g.min_players, teams, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'admin', t.admin, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id) AS team_data
+	FROM teams t
+	JOIN games AS g ON g.id = t.game_id
+	WHERE t.game_id=$1
 `
 
 type GetTeamsBySportRow struct {
@@ -514,25 +571,27 @@ const getTournamentsByTeam = `
 SELECT * FROM tournaments t
 JOIN tournament_team tt ON t.id=tt.id
 JOIN teams c ON tt.team_id=c.id
-WHERE c.id=$1
+WHERE c.public_id=$1
 `
 
 type GetTournamentsByTeamRow struct {
-	ID             int64  `json:"id"`
-	Name           string `json:"name"`
-	Slug           string `json:"slug"`
-	Country        string `json:"country"`
-	StatusCode     string `json:"status_code"`
-	Level          string `json:"level"`
-	StartTimestamp int64  `json:"start_timestamp"`
-	GameID         int32  `json:"game_id"`
-	GroupCount     int    `json:"group_count"`
-	MaxGroupTeam   int    `json:"max_group_team"`
-	Stage          string `json:"stage"`
+	ID             int64     `json:"id"`
+	PublicID       uuid.UUID `json:"public_id"`
+	UserID         int32     `json:"user_id"`
+	Name           string    `json:"name"`
+	Slug           string    `json:"slug"`
+	Country        string    `json:"country"`
+	StatusCode     string    `json:"status_code"`
+	Level          string    `json:"level"`
+	StartTimestamp int64     `json:"start_timestamp"`
+	GameID         int32     `json:"game_id"`
+	GroupCount     int       `json:"group_count"`
+	MaxGroupTeam   int       `json:"max_group_team"`
+	Stage          string    `json:"stage"`
 }
 
-func (q *Queries) GetTournamentsByTeam(ctx context.Context, id int64) ([]GetTournamentsByTeamRow, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentsByTeam, id)
+func (q *Queries) GetTournamentsByTeam(ctx context.Context, publicID uuid.UUID) ([]GetTournamentsByTeamRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentsByTeam, publicID)
 	if err != nil {
 		return nil, err
 	}
@@ -542,6 +601,8 @@ func (q *Queries) GetTournamentsByTeam(ctx context.Context, id int64) ([]GetTour
 		var i GetTournamentsByTeamRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.PublicID,
+			&i.UserID,
 			&i.Name,
 			&i.Slug,
 			&i.Country,
@@ -567,7 +628,12 @@ func (q *Queries) GetTournamentsByTeam(ctx context.Context, id int64) ([]GetTour
 }
 
 const newTeams = `
+WITH userID AS (
+	SELECT * FROM users
+	WHERE public_id=$1
+)
 INSERT INTO teams (
+	user_id
     name,
     slug,
     shortName,
@@ -579,27 +645,42 @@ INSERT INTO teams (
     type,
     player_count,
     game_id 
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, player_count, game_id
+)
+SELECT 
+	userID.id,
+	$2,
+	$3,
+	$4,
+	$5,
+	$6,
+	$7,
+	$8,
+	$9,
+	$10,
+	$11,
+	$12
+FROM userID
+RETURNING *;
 `
 
 type NewTeamsParams struct {
-	Name        string `json:"name"`
-	Slug        string `json:"slug"`
-	Shortname   string `json:"shortname"`
-	Admin       string `json:"admin"`
-	MediaUrl    string `json:"media_url"`
-	Gender      string `json:"gender"`
-	National    bool   `json:"national"`
-	Country     string `json:"country"`
-	Type        string `json:"type"`
-	PlayerCount int32  `json:"player_count"`
-	GameID      int32  `json:"game_id"`
+	UserPublicID uuid.UUID `json:"user_public_id"`
+	Name         string    `json:"name"`
+	Slug         string    `json:"slug"`
+	Shortname    string    `json:"shortname"`
+	Admin        string    `json:"admin"`
+	MediaUrl     string    `json:"media_url"`
+	Gender       string    `json:"gender"`
+	National     bool      `json:"national"`
+	Country      string    `json:"country"`
+	Type         string    `json:"type"`
+	PlayerCount  int32     `json:"player_count"`
+	GameID       int32     `json:"game_id"`
 }
 
 func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team, error) {
 	row := q.db.QueryRowContext(ctx, newTeams,
+		arg.UserPublicID,
 		arg.Name,
 		arg.Slug,
 		arg.Shortname,
@@ -615,10 +696,11 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team
 	var i models.Team
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.UserID,
 		&i.Name,
 		&i.Slug,
 		&i.Shortname,
-		&i.Admin,
 		&i.MediaUrl,
 		&i.Gender,
 		&i.National,
@@ -665,25 +747,26 @@ func (q *Queries) SearchTeam(ctx context.Context, name string) ([]models.SearchT
 
 const updateMediaUrl = `
 UPDATE teams
-SET media_url=$1
-WHERE id=$2
-RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, player_count, game_id
+SET media_url=$2
+WHERE public_id=$1
+RETURNING *
 `
 
 type UpdateMediaUrlParams struct {
-	MediaUrl string `json:"media_url"`
-	ID       int64  `json:"id"`
+	PublicID uuid.UUID `json:"public_id"`
+	MediaUrl string    `json:"media_url"`
 }
 
-func (q *Queries) UpdateMediaUrl(ctx context.Context, arg UpdateMediaUrlParams) (models.Team, error) {
-	row := q.db.QueryRowContext(ctx, updateMediaUrl, arg.MediaUrl, arg.ID)
+func (q *Queries) UpdateMediaUrl(ctx context.Context, publicID uuid.UUID, mediaUrl string) (models.Team, error) {
+	row := q.db.QueryRowContext(ctx, updateMediaUrl, publicID, mediaUrl)
 	var i models.Team
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.UserID,
 		&i.Name,
 		&i.Slug,
 		&i.Shortname,
-		&i.Admin,
 		&i.MediaUrl,
 		&i.Gender,
 		&i.National,
@@ -697,25 +780,26 @@ func (q *Queries) UpdateMediaUrl(ctx context.Context, arg UpdateMediaUrlParams) 
 
 const updateTeamName = `
 UPDATE teams
-SET name=$1
-WHERE id=$2
-RETURNING id, name, slug, shortname, admin, media_url, gender, national, country, type, player_count, game_id
+SET name=$2
+WHERE public_id=$1
+RETURNING *
 `
 
 type UpdateTeamNameParams struct {
-	Name string `json:"name"`
-	ID   int64  `json:"id"`
+	PublicID uuid.UUID `json:"public_id"`
+	Name     string    `json:"name"`
 }
 
-func (q *Queries) UpdateTeamName(ctx context.Context, arg UpdateTeamNameParams) (models.Team, error) {
-	row := q.db.QueryRowContext(ctx, updateTeamName, arg.Name, arg.ID)
+func (q *Queries) UpdateTeamName(ctx context.Context, publicID uuid.UUID, name string) (models.Team, error) {
+	row := q.db.QueryRowContext(ctx, updateTeamName, publicID, name)
 	var i models.Team
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.UserID,
 		&i.Name,
 		&i.Slug,
 		&i.Shortname,
-		&i.Admin,
 		&i.MediaUrl,
 		&i.Gender,
 		&i.National,
@@ -728,20 +812,17 @@ func (q *Queries) UpdateTeamName(ctx context.Context, arg UpdateTeamNameParams) 
 }
 
 const removePlayerFromTeam = `
-UPDATE team_players
+UPDATE team_players AS tp
 SET leave_date=$3
-WHERE team_id=$1 AND player_id=$2
-RETURNING *;
+FROM team_player_result tpr
+JOIN teams t ON t.id = tpr.team_id
+JOIN players p ON p.id = tpr.player_id
+WHERE t.public_id=$1 AND p.public_id=$2 AND t.id = tpr.team_id
+RETURNING tp.*;
 `
 
-type UpdateLeaveDateParams struct {
-	TeamID    int64  `json:"team_id"`
-	PlayerID  int64  `json:"player_id"`
-	LeaveDate *int32 `json:"leave_date"`
-}
-
-func (q *Queries) RemovePlayerFromTeam(ctx context.Context, arg UpdateLeaveDateParams) (models.TeamPlayer, error) {
-	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, arg.TeamID, arg.PlayerID, arg.LeaveDate)
+func (q *Queries) RemovePlayerFromTeam(ctx context.Context, teamPublicID, playerPublicID uuid.UUID, leaveDate int32) (models.TeamPlayer, error) {
+	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, teamPublicID, playerPublicID, leaveDate)
 	var i models.TeamPlayer
 	err := row.Scan(
 		&i.TeamID,
@@ -755,12 +836,14 @@ func (q *Queries) RemovePlayerFromTeam(ctx context.Context, arg UpdateLeaveDateP
 const getTeamPlayer = `
 SELECT COUNT(*) > 0
 FROM team_players
-WHERE team_id = $1 AND player_id = $2 AND leave_date IS NOT NULL
+JOIN teams t ON t.id = team_players.team_id
+JOIN players p ON p.id = team_players.player_id
+WHERE t.public_id = $1 AND p.public_id = $2 AND leave_date IS NOT NULL
 `
 
-func (q *Queries) GetTeamPlayer(ctx context.Context, teamID int64, playerID int64) bool {
+func (q *Queries) GetTeamPlayer(ctx context.Context, teamPublicID, playerPublicID uuid.UUID) bool {
 	var exists bool
-	err := q.db.QueryRowContext(ctx, getTeamPlayer, teamID, playerID).Scan(&exists)
+	err := q.db.QueryRowContext(ctx, getTeamPlayer, teamPublicID, playerPublicID).Scan(&exists)
 	if err != nil {
 		ctx.Err()
 		return false

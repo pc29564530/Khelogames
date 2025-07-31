@@ -3,45 +3,64 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+
+	"github.com/google/uuid"
 )
 
 const addJoinCommunity = `
+WITH communityID AS (
+	SELECT id FROM communities WHERE public_id = $1
+),
+userID AS (
+	SELECT id FROM users WHERE public_id = $2
+)
 INSERT INTO join_community (
-    community_name,
-    username
-) VALUES (
-    $1, $2
-) RETURNING id, community_name, username
+    communityID.id,
+    userID.id
+) 
+SELECT
+	$1,
+	$2
+FROM communityID, userID
+RETURNING *;
 `
 
-type AddJoinCommunityParams struct {
-	CommunityName string `json:"community_name"`
-	Username      string `json:"username"`
-}
-
-func (q *Queries) AddJoinCommunity(ctx context.Context, arg AddJoinCommunityParams) (models.JoinCommunity, error) {
-	row := q.db.QueryRowContext(ctx, addJoinCommunity, arg.CommunityName, arg.Username)
+func (q *Queries) AddJoinCommunity(ctx context.Context, communityID, userID uuid.UUID) (models.JoinCommunity, error) {
+	row := q.db.QueryRowContext(ctx, addJoinCommunity, communityID, userID)
 	var i models.JoinCommunity
-	err := row.Scan(&i.ID, &i.CommunityName, &i.Username)
+	err := row.Scan(&i.ID, &i.PublicID, &i.CommunityID, &i.UserID)
 	return i, err
 }
 
 const getCommunityByUser = `
-SELECT id, community_name, username FROM join_community
-WHERE username=$1
+SELECT c.* FROM join_community jc
+JOIN communities AS c ON jc.communityID = c.id
+JOIN users AS u ON jc.userID = u.id
+WHERE u.public_id=$1
 ORDER BY id
 `
 
-func (q *Queries) GetCommunityByUser(ctx context.Context, username string) ([]models.JoinCommunity, error) {
-	rows, err := q.db.QueryContext(ctx, getCommunityByUser, username)
+func (q *Queries) GetCommunityByUser(ctx context.Context, userPublicID uuid.UUID) ([]models.Communities, error) {
+	rows, err := q.db.QueryContext(ctx, getCommunityByUser, userPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.JoinCommunity
+	var items []models.Communities
 	for rows.Next() {
-		var i models.JoinCommunity
-		if err := rows.Scan(&i.ID, &i.CommunityName, &i.Username); err != nil {
+		var i models.Communities
+		if err := rows.Scan(
+			&i.ID,
+			&i.PublicID,
+			&i.UserID,
+			&i.Name,
+			&i.Description,
+			&i.IsActive,
+			&i.MemberCount,
+			&i.AvatarUrl,
+			&i.CoverImageUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -53,69 +72,4 @@ func (q *Queries) GetCommunityByUser(ctx context.Context, username string) ([]mo
 		return nil, err
 	}
 	return items, nil
-}
-
-const getUserByCommunity = `
-SELECT DISTINCT username FROM join_community
-WHERE community_name=$1
-`
-
-func (q *Queries) GetUserByCommunity(ctx context.Context, communityName string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getUserByCommunity, communityName)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var username string
-		if err := rows.Scan(&username); err != nil {
-			return nil, err
-		}
-		items = append(items, username)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const inActiveUserFromCommunity = `
-UPDATE join_community
-SET is_active = FALSE
-WHERE username = $1 AND id = $2
-RETURNING id, community_name, username
-`
-
-type InActiveUserFromCommunityParams struct {
-	Username string `json:"username"`
-	ID       int64  `json:"id"`
-}
-
-func (q *Queries) InActiveUserFromCommunity(ctx context.Context, arg InActiveUserFromCommunityParams) (models.JoinCommunity, error) {
-	row := q.db.QueryRowContext(ctx, inActiveUserFromCommunity, arg.Username, arg.ID)
-	var i models.JoinCommunity
-	err := row.Scan(&i.ID, &i.CommunityName, &i.Username)
-	return i, err
-}
-
-const removeUserFromCommunity = `
-DELETE FROM join_community
-WHERE id=$1 AND username=$2
-RETURNING id, community_name, username
-`
-
-type RemoveUserFromCommunityParams struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-}
-
-func (q *Queries) RemoveUserFromCommunity(ctx context.Context, arg RemoveUserFromCommunityParams) (models.JoinCommunity, error) {
-	row := q.db.QueryRowContext(ctx, removeUserFromCommunity, arg.ID, arg.Username)
-	var i models.JoinCommunity
-	err := row.Scan(&i.ID, &i.CommunityName, &i.Username)
-	return i, err
 }

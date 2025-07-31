@@ -3,9 +3,9 @@ package handlers
 import (
 	"khelogames/util"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
@@ -21,7 +21,7 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to convert to second: ", err)
 	}
-	response, err := s.store.GetAllMatches(ctx, int32(startDate), game.ID)
+	response, err := s.store.ListMatches(ctx, int32(startDate), game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by game: ", err)
 		return
@@ -31,20 +31,31 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 }
 
 func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
+	var req struct {
+		MatchPublicID string `uri:"match_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
 	sport := ctx.Param("sport")
 	game, err := s.store.GetGamebyName(ctx, sport)
 	if err != nil {
 		s.logger.Error("Failed to get game by name: ", err)
 		return
 	}
-	matchIDStr := ctx.Query("match_id")
-	matchID, err := strconv.ParseInt(matchIDStr, 10, 64)
-	if err != nil {
-		s.logger.Error("Failed to parse match_id: ", err)
-		return
-	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, matchID, game.ID)
+	match, err := s.store.GetMatchByPublicId(ctx, matchPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by match id: ", err)
 		return

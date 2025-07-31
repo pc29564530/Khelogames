@@ -7,11 +7,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type addAdminRequest struct {
-	ContentID int64  `json:"content_id"`
-	Admin     string `json:"admin"`
+	ContentID int64     `json:"content_id"`
+	Admin     uuid.UUID `json:"admin"`
 }
 
 func (s *HandlersServer) AddAdminFunc(ctx *gin.Context) {
@@ -73,7 +74,7 @@ func (s *HandlersServer) DeleteAdminFunc(ctx *gin.Context) {
 
 	arg := db.DeleteAdminParams{
 		ContentID: req.ContentID,
-		Admin:     authPayload.Username,
+		Admin:     authPayload.PublicID,
 	}
 
 	response, err := s.store.DeleteAdmin(ctx, arg)

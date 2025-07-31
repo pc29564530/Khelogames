@@ -3,12 +3,18 @@ package tournaments
 import (
 	"encoding/json"
 	db "khelogames/database"
+	"khelogames/pkg"
+	"khelogames/token"
 	"khelogames/util"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
+
+type getTournamentPublicIDRequest struct {
+	TournamentPublicID string `uri:"tournament_public_id"`
+}
 
 type addTournamentRequest struct {
 	Name           string `json:"name"`
@@ -52,11 +58,14 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(pkg.AuthorizationHeaderKey).(*token.Payload)
+
 	arg := db.NewTournamentParams{
+		UserPublicID:   authPayload.PublicID,
 		Name:           req.Name,
 		Slug:           slug,
 		Country:        req.Country,
-		StatusCode:     req.StatusCode,
+		Status:         req.StatusCode,
 		Level:          req.Level,
 		StartTimestamp: startTimeStamp,
 		GameID:         req.GameID,
@@ -77,7 +86,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 
 	// argAdmin := db.AddAdminParams{
 	// 	ContentID: newTournament.ID,
-	// 	Admin:     authPayload.Username,
+	// 	Admin:     authPayload.UserID,
 	// }
 
 	// _, err = s.store.AddAdmin(ctx, argAdmin)
@@ -97,13 +106,9 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 	return
 }
 
-type getTournamentTeamRequest struct {
-	TournamentID int64 `uri:"tournament_id"`
-}
-
 func (s *TournamentServer) GetTournamentTeamCountFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get team count for tournament")
-	var req getTournamentTeamRequest
+	var req getTournamentPublicIDRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind request: %v", err)
@@ -111,7 +116,14 @@ func (s *TournamentServer) GetTournamentTeamCountFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTournamentTeamsCount(ctx, req.TournamentID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetTournamentTeamsCount(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team count: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -138,13 +150,9 @@ func (s *TournamentServer) GetTournamentsFunc(ctx *gin.Context) {
 	return
 }
 
-type getTournamentRequest struct {
-	TournamentID int64 `uri:"tournament_id"`
-}
-
 func (s *TournamentServer) GetTournamentFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get a tournament")
-	var req getTournamentRequest
+	var req getTournamentPublicIDRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind request: %v", err)
@@ -152,7 +160,14 @@ func (s *TournamentServer) GetTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetTournament(ctx, req.TournamentID)
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	response, err := s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament: %v", err)
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -165,11 +180,18 @@ func (s *TournamentServer) GetTournamentFunc(ctx *gin.Context) {
 
 func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to update tournament dates")
-	tournamentIDStr := ctx.Query("tournament_id")
-	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	var req getTournamentPublicIDRequest
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse tournament ID: ", err)
-		ctx.JSON(http.StatusBadRequest, err)
+		s.logger.Error("Failed to bind request: %v", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
@@ -181,8 +203,8 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 	}
 
 	arg := db.UpdateTournamentDateParams{
-		StartTimestamp: startTimeStamp,
-		ID:             tournamentID,
+		TournamentPublicID: tournamentPublicID,
+		StartTimestamp:     startTimeStamp,
 	}
 
 	response, err := s.store.UpdateTournamentDate(ctx, arg)
@@ -220,18 +242,26 @@ func (s *TournamentServer) GetTournamentByLevelFunc(ctx *gin.Context) {
 }
 
 func (s *TournamentServer) UpdateTournamentStatusFunc(ctx *gin.Context) {
-	tournamentIDStr := ctx.Query("id")
-	tournamentID, err := strconv.ParseInt(tournamentIDStr, 10, 64)
+	var req getTournamentPublicIDRequest
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse the match id: ", err)
+		s.logger.Error("Failed to bind request: %v", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
 	statusCode := ctx.Query("status_code")
 
 	arg := db.UpdateTournamentStatusParams{
-		ID:         tournamentID,
-		StatusCode: statusCode,
+		TournamentPublicID: tournamentPublicID,
+		Status:             statusCode,
 	}
 
 	updatedMatchData, err := s.store.UpdateTournamentStatus(ctx, arg)
