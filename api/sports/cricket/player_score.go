@@ -288,7 +288,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, matchPublicID, game.ID)
+	match, err := s.store.GetMatchByPublicId(ctx, matchPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get match:", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -422,7 +422,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, matchPublicID, game.ID)
+	match, err := s.store.GetMatchByPublicId(ctx, matchPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get player :", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -522,7 +522,7 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 
 	var wicketsData []map[string]interface{}
 
-	match, err := s.store.GetMatchByID(ctx, matchPublicID)
+	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get match : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1058,7 +1058,7 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		}
 	}
 
-	matchData, err := s.store.GetMatchByID(ctx, matchPublicID)
+	matchData, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("failed to get match: ", err)
 		return
@@ -1299,7 +1299,7 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		}
 	}
 
-	matchData, err := s.store.GetMatchByID(ctx, matchPublicID)
+	matchData, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("failed to get match by match id: ", err)
 		return

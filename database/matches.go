@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const getAllMatches = `
+const listMatchesQuery = `
     SELECT 
         json_build_object(
             'id', m.id,
@@ -27,7 +27,6 @@ const getAllMatches = `
             'stage', m.stage,
             'knockout_level_id', m.knockout_level_id,
             'match_format', m.match_format,
-
             'homeTeam', json_build_object(
                 'id', ht.id,
                 'public_id', ht.public_id,
@@ -53,7 +52,8 @@ const getAllMatches = `
                         'team_id', fs_home.team_id,
                         'first_half', fs_home.first_half,
                         'second_half', fs_home.second_half,
-                        'goals', fs_home.goals
+                        'goals', fs_home.goals,
+                        'penalty_shootout', fs_home.penalty_shootout
                     )
                 WHEN g.name = 'cricket' THEN cricket_home_scores.scores
                 ELSE NULL
@@ -84,7 +84,8 @@ const getAllMatches = `
                         'team_id', fs_away.team_id,
                         'first_half', fs_away.first_half,
                         'second_half', fs_away.second_half,
-                        'goals', fs_away.goals
+                        'goals', fs_away.goals,
+                        'penalty_shootout', fs_away.penalty_shootout
                     )
                 WHEN g.name = 'cricket' THEN cricket_away_scores.scores
                 ELSE NULL
@@ -109,7 +110,6 @@ const getAllMatches = `
         ) AS response
 
     FROM matches m
-
     JOIN teams ht ON m.home_team_id = ht.id
     JOIN teams at ON m.away_team_id = at.id
     LEFT JOIN tournaments t ON m.tournament_id = t.id
@@ -171,44 +171,7 @@ const getAllMatches = `
     ORDER BY m.start_timestamp;
 `
 
-type MatchesResponse struct {
-	Response interface{} `json:"response"`
-}
-
-func (q *Queries) GetAllMatches(ctx context.Context, date int32, gameID int64) ([]map[string]interface{}, error) {
-	var matches []map[string]interface{}
-
-	rows, err := q.db.QueryContext(ctx, getAllMatches, date, gameID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var matchResponse MatchesResponse
-		if err := rows.Scan(&matchResponse.Response); err != nil {
-			log.Printf("Failed to scan match: %v", err)
-			continue
-		}
-
-		var matchResult map[string]interface{}
-		data := matchResponse.Response.([]byte)
-		if err := json.Unmarshal(data, &matchResult); err != nil {
-			log.Printf("Error unmarshaling JSON: %v", err)
-			continue
-		}
-
-		matches = append(matches, matchResult)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return matches, nil
-}
-
-const getCricketMatchByMatchID = `
+const getMatchByPublicIdQuery = `
 SELECT 
     json_build_object(
         'id', m.id,
@@ -308,7 +271,6 @@ SELECT
     ) AS response
 
 FROM matches m
-
 JOIN teams ht ON m.home_team_id = ht.id
 JOIN teams at ON m.away_team_id = at.id
 LEFT JOIN tournaments t ON m.tournament_id = t.id
@@ -367,62 +329,109 @@ LEFT JOIN LATERAL (
 WHERE m.public_id = $1 AND t.game_id = $2;
 `
 
-type MatchResponse struct {
-	Response interface{} `json:"response"`
+const getMatchModelByPublicIdQuery = `
+    SELECT 
+        id,
+        public_id,
+        user_id,
+        tournament_id,
+        away_team_id,
+        home_team_id,
+        start_timestamp,
+        end_timestamp,
+        type,
+        status_code,
+        result,
+        stage,
+        knockout_level_id,
+        match_format
+    FROM matches
+    WHERE public_id = $1;
+`
+
+// ListMatches retrieves all matches with enriched data based on date and game filters
+func (q *Queries) ListMatches(ctx context.Context, startDate int32, gameID int64) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, listMatchesQuery, startDate, gameID)
+	if err != nil {
+		log.Printf("Failed to execute ListMatches query: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var matches []map[string]interface{}
+	for rows.Next() {
+		var jsonByte []byte
+		if err := rows.Scan(&jsonByte); err != nil {
+			log.Printf("Failed to scan match row: %v", err)
+			continue
+		}
+
+		var match map[string]interface{}
+		if err := json.Unmarshal(jsonByte, &match); err != nil {
+			log.Printf("Failed to unmarshal match JSON: %v", err)
+			continue
+		}
+
+		matches = append(matches, match)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("Row iteration error in ListMatches: %v", err)
+		return nil, err
+	}
+
+	return matches, nil
 }
 
-func (q *Queries) GetMatchByMatchID(ctx context.Context, matchPublicID uuid.UUID, gameID int64) (map[string]interface{}, error) {
-	var matchResponse MatchResponse
-
-	row := q.db.QueryRowContext(ctx, getCricketMatchByMatchID, matchPublicID, gameID)
-
-	if err := row.Scan(&matchResponse.Response); err != nil {
+// GetMatchByPublicId retrieves a single match with all related data by public ID
+func (q *Queries) GetMatchByPublicId(ctx context.Context, publicId uuid.UUID, gameID int64) (map[string]interface{}, error) {
+	var jsonByte []byte
+	row := q.db.QueryRowContext(ctx, getMatchByPublicIdQuery, publicId, gameID)
+	if err := row.Scan(&jsonByte); err != nil {
 		if err == sql.ErrNoRows {
+			log.Printf("Match not found with public_id: %s, game_id: %d", publicId, gameID)
 			return nil, nil
 		}
+		log.Printf("Failed to scan match detail: %v", err)
 		return nil, err
 	}
 
 	var match map[string]interface{}
-	data := matchResponse.Response.([]byte)
-	if err := json.Unmarshal(data, &match); err != nil {
-		log.Printf("Error unmarshaling JSON: %v", err)
+	if err := json.Unmarshal(jsonByte, &match); err != nil {
+		log.Printf("Failed to unmarshal match detail JSON: %v", err)
 		return nil, err
 	}
 
 	return match, nil
 }
 
-const getMatchByIDQuery = `
-    SELECT * FROM matches
-    WHERE id = $1;
-`
+// GetMatchModelByPublicId retrieves raw match model data by public ID
+func (q *Queries) GetMatchModelByPublicId(ctx context.Context, public_id uuid.UUID) (*models.Match, error) {
+	var match models.Match
 
-func (q *Queries) GetMatchByID(ctx context.Context, publicID uuid.UUID) (*models.Match, error) {
-	var i models.Match
-
-	row := q.db.QueryRowContext(ctx, getMatchByIDQuery, publicID)
-
+	row := q.db.QueryRowContext(ctx, getMatchModelByPublicIdQuery, public_id)
 	if err := row.Scan(
-		&i.ID,
-		&i.PublicID,
-		&i.TournamentID,
-		&i.AwayTeamID,
-		&i.HomeTeamID,
-		&i.StartTimestamp,
-		&i.EndTimestamp,
-		&i.Type,
-		&i.StatusCode,
-		&i.Result,
-		&i.Stage,
-		&i.KnockoutLevelID,
-		&i.MatchFormat,
+		&match.ID,
+		&match.PublicID,
+		&match.TournamentID,
+		&match.AwayTeamID,
+		&match.HomeTeamID,
+		&match.StartTimestamp,
+		&match.EndTimestamp,
+		&match.Type,
+		&match.StatusCode,
+		&match.Result,
+		&match.Stage,
+		&match.KnockoutLevelID,
+		&match.MatchFormat,
 	); err != nil {
 		if err == sql.ErrNoRows {
+			log.Printf("Match model not found with public_id: %s", public_id)
 			return nil, nil
 		}
+		log.Printf("Failed to scan match model: %v", err)
 		return nil, err
 	}
 
-	return &i, nil
+	return &match, nil
 }

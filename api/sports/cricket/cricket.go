@@ -40,7 +40,7 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByID(ctx, matchPublicID)
+	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return

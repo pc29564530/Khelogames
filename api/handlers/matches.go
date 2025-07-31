@@ -21,7 +21,7 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to convert to second: ", err)
 	}
-	response, err := s.store.GetAllMatches(ctx, int32(startDate), game.ID)
+	response, err := s.store.ListMatches(ctx, int32(startDate), game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by game: ", err)
 		return
@@ -55,7 +55,7 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByMatchID(ctx, matchPublicID, game.ID)
+	match, err := s.store.GetMatchByPublicId(ctx, matchPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by match id: ", err)
 		return

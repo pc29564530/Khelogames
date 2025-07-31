@@ -376,7 +376,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	s.logger.Info("successfully updated the match status")
 
-	match, err := s.store.GetMatchByMatchID(ctx, matchPublicID, gameID.ID)
+	match, err := s.store.GetMatchByPublicId(ctx, matchPublicID, gameID.ID)
 	if err != nil {
 		s.logger.Error("Failed to get match: ", err)
 	}
@@ -418,7 +418,7 @@ func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchByID(ctx, matchPublicID)
+	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get match ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
