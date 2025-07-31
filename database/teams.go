@@ -388,7 +388,7 @@ const getTeamByID = `
 `
 
 func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error) {
-	row := q.db.QueryRowContext(ctx, getTeamByPublicID, id)
+	row := q.db.QueryRowContext(ctx, getTeamByID, id)
 	var i models.Team
 	err := row.Scan(
 		&i.ID,
@@ -525,7 +525,7 @@ func (q *Queries) GetTeams(ctx context.Context) ([]models.Team, error) {
 
 const getTeamsBySport = `
 	SELECT 
-		g.id, g.name, g.min_players,JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'admin', t.admin, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id) AS team_data
+		g.id, g.name, g.min_players, teams, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'admin', t.admin, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id) AS team_data
 	FROM teams t
 	JOIN games AS g ON g.id = t.game_id
 	WHERE t.game_id=$1

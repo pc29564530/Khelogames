@@ -39,13 +39,13 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 
 	arg := db.NewPlayerParams{
 		UserPublicID: authPayload.PublicID,
+		GameID:       req.GameID,
 		Name:         userPlayer.FullName,
 		Slug:         fullNameSlug,
 		ShortName:    shortName,
 		MediaUrl:     userPlayer.AvatarUrl,
 		Positions:    req.Positions,
 		Country:      req.Country,
-		GameID:       req.GameID,
 	}
 
 	response, err := s.store.NewPlayer(ctx, arg)

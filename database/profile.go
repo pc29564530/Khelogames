@@ -10,6 +10,39 @@ import (
 	"github.com/google/uuid"
 )
 
+const getPlayerWithProfile = `
+	SELECT pp.* FROM players pp
+	JOIN profiles p ON pp.user_id = p.user_id
+	WHERE p.public_id = $1
+`
+
+func (q *Queries) GetPlayerWithProfile(ctx context.Context, publicID uuid.UUID) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerWithProfile, publicID)
+	var i models.Player
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.GameID,
+		&i.Name,
+		&i.Slug,
+		&i.ShortName,
+		&i.MediaUrl,
+		&i.Positions,
+		&i.Country,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &i, nil
+}
+
 const createProfile = `
 INSERT INTO user_profiles (
     user_id,

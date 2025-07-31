@@ -81,6 +81,7 @@ func NewServer(config util.Config,
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
 	{
 		// added the funcitonality for the matches by player
+		authRouter.GET("/getPlayerWithProfile/:public_id", handlersServer.GetPlayerWithProfileFunc)
 		authRouter.GET("/getGroups", tournamentServer.GetGroupsFunc)
 		authRouter.GET("/isFollowing/:target_public_id", handlersServer.IsFollowingFunc)
 		// authRouter.GET("/checkConnection", handlersServer.CheckConnectionFunc)
@@ -134,7 +135,7 @@ func NewServer(config util.Config,
 		authRouter.POST("/newPlayer", playersServer.NewPlayerFunc)
 		authRouter.GET("/getPlayerByCountry", playersServer.GetPlayerByCountry)
 		authRouter.GET("/getPlayersBySport", playersServer.GetPlayersBySportFunc)
-		authRouter.GET("/getPlayer/:player_public_id", playersServer.GetPlayerFunc)
+		authRouter.GET("/getPlayer/:public_id", playersServer.GetPlayerFunc)
 		// authRouter.GET("/getPlayerByProfileID", playersServer.GetPlayerByProfileIDFunc)
 		authRouter.GET("/getAllPlayers", playersServer.GetAllPlayerFunc)
 		authRouter.GET("/getPlayerSearch", playersServer.GetPlayerSearchFunc)
@@ -154,7 +155,7 @@ func NewServer(config util.Config,
 		authRouter.GET("/getFootballPlayerStats/:playerID", playersServer.GetFootballPlayerStatsFunc)
 		authRouter.POST("/createUploadChunks", handlersServer.CreateUploadMediaFunc)
 		authRouter.POST("/completedChunkUpload", handlersServer.CompletedChunkUploadFunc)
-		authRouter.PUT("/updateThreadCommentCount/:public_id", handlersServer.UpdateThreadCommentCountFunc)
+		//authRouter.PUT("/updateThreadCommentCount/:public_id", handlersServer.UpdateThreadCommentCountFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	//tournament
@@ -172,7 +173,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getCricketStanding/:tournament_public_id", tournamentServer.GetCricketStandingFunc)
 	sportRouter.PUT("/updateFootballStanding", tournamentServer.UpdateFootballStandingFunc)
 	sportRouter.PUT("/updateCricketStanding", tournamentServer.UpdateCricketStandingFunc)
-	sportRouter.PUT("/updateTournamentDate/:tournament_public_id", tournamentServer.UpdateTournamentDateFunc)
+	//sportRouter.PUT("/updateTournamentDate/:tournament_public_id", tournamentServer.UpdateTournamentDateFunc)
 
 	sportRouter.POST("/createTournamentStanding", tournamentServer.CreateTournamentStandingFunc)
 	sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
@@ -180,7 +181,7 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateMatchStatus", tournamentServer.UpdateMatchStatusFunc)
 	sportRouter.PUT("/updateMatchResult", tournamentServer.UpdateMatchResultFunc)
 	sportRouter.PUT("/updateTournamentStatus/:tournament_public_id", tournamentServer.UpdateTournamentStatusFunc)
-	sportRouter.GET("/getMatchByMatchID/match_public_id", handlersServer.GetMatchByMatchIDFunc)
+	sportRouter.GET("/getMatchByMatchID/:match_public_id", handlersServer.GetMatchByMatchIDFunc)
 
 	//teams //teams database update completed
 	sportRouter.POST("/newTeams", teamsServer.AddTeam)
@@ -206,7 +207,7 @@ func NewServer(config util.Config,
 	// sportRouter.PUT("/updateFootballFirstHalfScore", footballServer.UpdateFootballMatchScoreFirstHalfFunc)
 	// sportRouter.PUT("/updateFootballSecondHalfScore", footballServer.UpdateFootballMatchScoreSecondHalfFunc)
 	// sportRouter.PUT("/updateFootballMatchScore", footballServer.UpdateFootballMatchScoreFunc)
-	sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
+	//sportRouter.POST("/addFootballMatchScore", footballServer.AddFootballMatchScoreFunc)
 
 	//football->player
 	// sportRouter.POST("/addFootballLineUp", footballServer.AddFootballLineUpFunc)
