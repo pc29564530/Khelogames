@@ -4,78 +4,9 @@ import (
 	"context"
 	db "khelogames/database"
 	"khelogames/database/models"
-	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
-
-type addFootballMatchScoreRequest struct {
-	MatchPublicID string `json:"match_public_id"`
-	TeamPublicID  string `json:"team_public_id"`
-	FirstHalf     int    `json:"first_half"`
-	SecondHalf    int    `json:"second_half"`
-	Goals         int    `json:"goal_for"`
-}
-
-func (s *FootballServer) AddFootballMatchScoreFunc(ctx *gin.Context) {
-
-	var req addFootballMatchScoreRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind football match score: ", err)
-		return
-	}
-
-	matchPublicID, err := uuid.Parse(req.MatchPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
-	}
-
-	teamPublicID, err := uuid.Parse(req.TeamPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
-	}
-
-	match, err := s.store.GetMatchByID(ctx, matchPublicID)
-	if err != nil {
-		s.logger.Error("Failed to get match : ", err)
-		return
-	}
-	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
-	if err != nil {
-		s.logger.Error("Failed to get team: ", err)
-		return
-	}
-
-	arg := db.NewFootballScoreParams{
-		MatchID:    int32(match.ID),
-		TeamID:     int32(team.ID),
-		FirstHalf:  req.FirstHalf,
-		SecondHalf: req.SecondHalf,
-		Goals:      req.Goals,
-	}
-
-	response, err := s.store.NewFootballScore(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to add football match score: ", err)
-		ctx.JSON(http.StatusNoContent, err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
-	return
-
-}
-
-type getFootballScoreRequest struct {
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
-}
 
 func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tournamentPublicID uuid.UUID) []map[string]interface{} {
 	ctx := context.Background()
@@ -173,6 +104,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 	matchDetail = append(matchDetail, map[string]interface{}{
 		"tournament": map[string]interface{}{
 			"id":              tournament.ID,
+			"public_id":       tournament.PublicID,
 			"name":            tournament.Name,
 			"slug":            tournament.Slug,
 			"country":         tournament.Country,

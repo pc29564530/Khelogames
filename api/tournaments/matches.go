@@ -35,7 +35,7 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	s.logger.Debug(fmt.Sprintf("parse the tournament: %v and sports: %v", tournamentPublicID, sports))
 	s.logger.Debug("Tournament match params: ", req.TournamentPublicID)
 
-	matches, err := s.store.GetMatchByTournamentID(ctx, tournamentPublicID)
+	matches, err := s.store.GetMatchByTournamentPublicID(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament match: ", err)
 		return

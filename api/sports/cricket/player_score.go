@@ -189,8 +189,9 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to get Player: ", err)
 		}
 		prevBowler = map[string]interface{}{
-			"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
+			"player":            map[string]interface{}{"id": playerData.ID, "public_id": playerData.PublicID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
 			"id":                currentBowlerResponse.ID,
+			"public_id":         currentBowlerResponse.PublicID,
 			"match_id":          currentBowlerResponse.MatchID,
 			"team_id":           currentBowlerResponse.TeamID,
 			"bowler_id":         currentBowlerResponse.BowlerID,
@@ -231,7 +232,7 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 	}
 
 	currentBowler := map[string]interface{}{
-		"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
+		"player":            map[string]interface{}{"id": playerData.ID, "public_id": playerData.PublicID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
 		"id":                response.ID,
 		"public_id":         response.PublicID,
 		"match_id":          response.MatchID,
@@ -326,8 +327,9 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		playerDetails := map[string]interface{}{
-			"player":               map[string]interface{}{"id": playerData.ID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
+			"player":               map[string]interface{}{"id": playerData.ID, "public_id": playerData.PublicID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
 			"id":                   playerScore.ID,
+			"public_id":            playerData.PublicID,
 			"match_id":             playerScore.MatchID,
 			"team_id":              playerScore.TeamID,
 			"batsman_id":           playerScore.BatsmanID,
@@ -364,12 +366,12 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	var emptyDetails map[string]interface{}
 	if len(inningData) >= 1 {
 		scoreDetails = map[string]interface{}{
-			"battingTeam": map[string]interface{}{"id": battingTeam.ID, "name": battingTeam.Name, "slug": battingTeam.Slug, "shortName": battingTeam.Shortname, "gender": battingTeam.Gender, "national": battingTeam.National, "country": battingTeam.Country, "type": battingTeam.Type},
+			"battingTeam": map[string]interface{}{"id": battingTeam.ID, "public_id": battingTeam.PublicID, "name": battingTeam.Name, "slug": battingTeam.Slug, "shortName": battingTeam.Shortname, "gender": battingTeam.Gender, "national": battingTeam.National, "country": battingTeam.Country, "type": battingTeam.Type},
 			"innings":     inningData,
 		}
 	} else {
 		scoreDetails = map[string]interface{}{
-			"battingTeam": map[string]interface{}{"id": battingTeam.ID, "name": battingTeam.Name, "slug": battingTeam.Slug, "shortName": battingTeam.Shortname, "gender": battingTeam.Gender, "national": battingTeam.National, "country": battingTeam.Country, "type": battingTeam.Type},
+			"battingTeam": map[string]interface{}{"id": battingTeam.ID, "public_id": battingTeam.PublicID, "name": battingTeam.Name, "slug": battingTeam.Slug, "shortName": battingTeam.Shortname, "gender": battingTeam.Gender, "national": battingTeam.National, "country": battingTeam.Country, "type": battingTeam.Type},
 			"innings":     emptyDetails,
 		}
 	}
@@ -457,8 +459,9 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 			return
 		}
 		bowlingDetails := map[string]interface{}{
-			"player":            map[string]interface{}{"id": playerData.ID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
+			"player":            map[string]interface{}{"id": playerData.ID, "public_id": playerData.PublicID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
 			"id":                playerScore.ID,
+			"public_id":         playerData.PublicID,
 			"match_id":          playerScore.MatchID,
 			"team_id":           playerScore.TeamID,
 			"bowler_id":         playerScore.BowlerID,
@@ -477,24 +480,21 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 
 	scoreDetails := map[string]interface{}{
 		"bowlingTeam": map[string]interface{}{
-			"id":        bowlingTeam.ID,
-			"name":      bowlingTeam.Name,
-			"slug":      bowlingTeam.Slug,
-			"shortName": bowlingTeam.Shortname,
-			"gender":    bowlingTeam.Gender,
-			"national":  bowlingTeam.National,
-			"country":   bowlingTeam.Country,
-			"type":      bowlingTeam.Type,
+			"id":           bowlingTeam.ID,
+			"public_id":    bowlingTeam.PublicID,
+			"name":         bowlingTeam.Name,
+			"slug":         bowlingTeam.Slug,
+			"shortName":    bowlingTeam.Shortname,
+			"gender":       bowlingTeam.Gender,
+			"national":     bowlingTeam.National,
+			"country":      bowlingTeam.Country,
+			"type":         bowlingTeam.Type,
+			"player_count": bowlingTeam.PlayerCount,
 		},
 		"innings": inningData,
 	}
 
 	ctx.JSON(http.StatusAccepted, scoreDetails)
-}
-
-type getCricketWicketsRequest struct {
-	MatchID int64 `json:"match_id"`
-	TeamID  int64 `json:"team_id"`
 }
 
 func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
@@ -541,6 +541,8 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
+	inningData := make(map[string][]map[string]interface{})
+
 	for _, wicket := range wicketsResponse {
 		batsmanPlayerData, err := s.store.GetPlayerByID(ctx, int64(wicket.BatsmanID))
 		if err != nil {
@@ -563,14 +565,16 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 		}
 
 		wicketData := map[string]interface{}{
-			"batsman_player": map[string]interface{}{"id": batsmanPlayerData.ID, "name": batsmanPlayerData.Name, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions},
-			"bowler_player":  map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
+			"batsman_player": map[string]interface{}{"id": batsmanPlayerData.ID, "public_id": batsmanPlayerData.PublicID, "name": batsmanPlayerData.Name, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions},
+			"bowler_player":  map[string]interface{}{"id": bowlerPlayerData.ID, "public_id": bowlerPlayerData.PublicID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
 			"fielder_player": fielderData,
 			"id":             wicket.ID,
+			"public_id":      wicket.PublicID,
 			"match_id":       wicket.MatchID,
 			"team_id":        wicket.TeamID,
 			"batsman_id":     wicket.BatsmanID,
 			"bowler_id":      wicket.BowlerID,
+			"inning_number":  wicket.InningNumber,
 			"wicket_number":  wicket.WicketsNumber,
 			"wicket_type":    wicket.WicketType,
 			"ball_number":    wicket.BallNumber,
@@ -579,11 +583,15 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 		}
 
 		wicketsData = append(wicketsData, wicketData)
+		wicketsInningNumber := strconv.Itoa(wicket.InningNumber)
+		inningData[wicketsInningNumber] = append(inningData[wicketsInningNumber], wicketData)
 	}
 
 	s.logger.Debug("Successfully update the wickets: ", wicketsData)
 
-	ctx.JSON(http.StatusAccepted, wicketsData)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"inning": inningData,
+	})
 }
 
 type updateCricketBatsmanScoreRequest struct {
@@ -716,8 +724,9 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 	}
 
 	batsman := map[string]interface{}{
-		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "name": batsmanPlayerData.Name, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions},
+		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "public_id": batsmanPlayerData.PublicID, "name": batsmanPlayerData.Name, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions},
 		"id":                   batsmanResponse.ID,
+		"public_id":            batsmanResponse.PublicID,
 		"match_id":             batsmanResponse.MatchID,
 		"team_id":              batsmanResponse.TeamID,
 		"batsman_id":           batsmanResponse.BatsmanID,
@@ -735,8 +744,9 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 
 	if nonStrikerResponse != emptyBatsman {
 		nonStriker = map[string]interface{}{
-			"player":               map[string]interface{}{"id": nonStrikerPlayerData.ID, "name": nonStrikerPlayerData.Name, "slug": nonStrikerPlayerData.Slug, "shortName": nonStrikerPlayerData.ShortName, "position": nonStrikerPlayerData.Positions},
+			"player":               map[string]interface{}{"id": nonStrikerPlayerData.ID, "public_id": nonStrikerPlayerData.PublicID, "name": nonStrikerPlayerData.Name, "slug": nonStrikerPlayerData.Slug, "shortName": nonStrikerPlayerData.ShortName, "position": nonStrikerPlayerData.Positions},
 			"id":                   nonStrikerResponse.ID,
+			"public_id":            nonStrikerPlayerData.PublicID,
 			"match_id":             nonStrikerResponse.MatchID,
 			"team_id":              nonStrikerResponse.TeamID,
 			"batsman_id":           nonStrikerResponse.BatsmanID,
@@ -751,8 +761,9 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 	}
 
 	bowler := map[string]interface{}{
-		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
+		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "public_id": bowlerPlayerData.PublicID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
 		"id":                bowlerResponse.ID,
+		"public_id":         bowlerResponse.PublicID,
 		"match_id":          bowlerResponse.MatchID,
 		"team_id":           bowlerResponse.TeamID,
 		"bowler_id":         bowlerResponse.BowlerID,
@@ -888,8 +899,9 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 	}
 
 	batsman := map[string]interface{}{
-		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "name": batsmanPlayerData.Name, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions},
+		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "public_id": batsmanPlayerData.PublicID, "name": batsmanPlayerData.Name, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions},
 		"id":                   batsmanResponse.ID,
+		"public_id":            batsmanResponse.PublicID,
 		"match_id":             batsmanResponse.MatchID,
 		"team_id":              batsmanResponse.TeamID,
 		"batsman_id":           batsmanResponse.BatsmanID,
@@ -908,8 +920,9 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 
 	if nonStrikerResponse != emptyBatsman {
 		nonStriker = map[string]interface{}{
-			"player":               map[string]interface{}{"id": nonStrikerPlayerData.ID, "name": nonStrikerPlayerData.Name, "slug": nonStrikerPlayerData.Slug, "shortName": nonStrikerPlayerData.ShortName, "position": nonStrikerPlayerData.Positions},
+			"player":               map[string]interface{}{"id": nonStrikerPlayerData.ID, "public_id": nonStrikerPlayerData.PublicID, "name": nonStrikerPlayerData.Name, "slug": nonStrikerPlayerData.Slug, "shortName": nonStrikerPlayerData.ShortName, "position": nonStrikerPlayerData.Positions},
 			"id":                   nonStrikerResponse.ID,
+			"public_id":            nonStrikerPlayerData.PublicID,
 			"match_id":             nonStrikerResponse.MatchID,
 			"team_id":              nonStrikerResponse.TeamID,
 			"batsman_id":           nonStrikerResponse.BatsmanID,
@@ -925,8 +938,9 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 	}
 
 	bowler := map[string]interface{}{
-		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
+		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "public_id": bowlerPlayerData.PublicID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
 		"id":                bowlerResponse.ID,
+		"public_id":         bowlerResponse.PublicID,
 		"match_id":          bowlerResponse.MatchID,
 		"team_id":           bowlerResponse.TeamID,
 		"bowler_id":         bowlerResponse.BowlerID,
@@ -1021,7 +1035,7 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	cricketScore, err := s.store.GetCricketScoreByPublicID(ctx, matchPublicID, battingTeamID)
+	cricketScore, err := s.store.GetCricketScoreByInning(ctx, matchPublicID, battingTeamID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get cricket score: ", err)
 	}
@@ -1120,8 +1134,9 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	}
 
 	outBatsmanScore := map[string]interface{}{
-		"player":               map[string]interface{}{"id": outBatsmanPlayerData.ID, "name": outBatsmanPlayerData.Name, "slug": outBatsmanPlayerData.Slug, "shortName": outBatsmanPlayerData.ShortName, "position": outBatsmanPlayerData.Positions},
+		"player":               map[string]interface{}{"id": outBatsmanPlayerData.ID, "public_id": outBatsmanPlayerData.PublicID, "name": outBatsmanPlayerData.Name, "slug": outBatsmanPlayerData.Slug, "shortName": outBatsmanPlayerData.ShortName, "position": outBatsmanPlayerData.Positions},
 		"id":                   outBatsmanResponse.ID,
+		"public_id":            outBatsmanResponse.PublicID,
 		"match_id":             outBatsmanResponse.MatchID,
 		"team_id":              outBatsmanResponse.TeamID,
 		"batsman_id":           outBatsmanResponse.BatsmanID,
@@ -1136,8 +1151,9 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	}
 
 	notOutBatsmanScore := map[string]interface{}{
-		"player":               map[string]interface{}{"id": notOutBatsmanPlayerData.ID, "name": notOutBatsmanPlayerData.Name, "slug": notOutBatsmanPlayerData.Slug, "shortName": notOutBatsmanPlayerData.ShortName, "position": notOutBatsmanPlayerData.Positions},
+		"player":               map[string]interface{}{"id": notOutBatsmanPlayerData.ID, "public_id": notOutBatsmanPlayerData.PublicID, "name": notOutBatsmanPlayerData.Name, "slug": notOutBatsmanPlayerData.Slug, "shortName": notOutBatsmanPlayerData.ShortName, "position": notOutBatsmanPlayerData.Positions},
 		"id":                   notOutBatsmanResponse.ID,
+		"public_id":            notOutBatsmanResponse.PublicID,
 		"match_id":             notOutBatsmanResponse.MatchID,
 		"team_id":              notOutBatsmanResponse.TeamID,
 		"batsman_id":           notOutBatsmanResponse.BatsmanID,
@@ -1152,8 +1168,9 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	}
 
 	bowler := map[string]interface{}{
-		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
+		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "public_id": bowlerPlayerData.PublicID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
 		"id":                bowlerResponse.ID,
+		"public_id":         bowlerResponse.PublicID,
 		"match_id":          bowlerResponse.MatchID,
 		"team_id":           bowlerResponse.TeamID,
 		"bowler_id":         bowlerResponse.BowlerID,
@@ -1167,10 +1184,11 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	}
 
 	wickets := map[string]interface{}{
-		"batsman_player": map[string]interface{}{"id": outBatsmanPlayerData.ID, "name": outBatsmanPlayerData.Name, "slug": outBatsmanPlayerData.Slug, "shortName": outBatsmanPlayerData.ShortName, "position": outBatsmanPlayerData.Positions},
-		"bowler_player":  map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
+		"batsman_player": map[string]interface{}{"id": outBatsmanPlayerData.ID, "public_id": outBatsmanPlayerData.PublicID, "name": outBatsmanPlayerData.Name, "slug": outBatsmanPlayerData.Slug, "shortName": outBatsmanPlayerData.ShortName, "position": outBatsmanPlayerData.Positions},
+		"bowler_player":  map[string]interface{}{"id": bowlerPlayerData.ID, "public_id": bowlerPlayerData.PublicID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
 		"fielder_player": fielderPlayerData,
 		"id":             wicketResponse.ID,
+		"public_id":      wicketResponse.PublicID,
 		"match_id":       wicketResponse.MatchID,
 		"team_id":        wicketResponse.TeamID,
 		"batsman_id":     wicketResponse.BatsmanID,
@@ -1332,8 +1350,9 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	}
 
 	batsman := map[string]interface{}{
-		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "name": batsmanPlayerData.Name, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions},
+		"player":               map[string]interface{}{"id": batsmanPlayerData.ID, "public_id": batsmanPlayerData.PublicID, "name": batsmanPlayerData.Name, "slug": batsmanPlayerData.Slug, "shortName": batsmanPlayerData.ShortName, "position": batsmanPlayerData.Positions},
 		"id":                   batsmanResponse.ID,
+		"public_id":            batsmanResponse.PublicID,
 		"match_id":             batsmanResponse.MatchID,
 		"team_id":              batsmanResponse.TeamID,
 		"batsman_id":           batsmanResponse.BatsmanID,
@@ -1348,8 +1367,9 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	}
 
 	nonStriker := map[string]interface{}{
-		"player":               map[string]interface{}{"id": nonStrikerPlayerData.ID, "name": nonStrikerPlayerData.Name, "slug": nonStrikerPlayerData.Slug, "shortName": nonStrikerPlayerData.ShortName, "position": nonStrikerPlayerData.Positions},
+		"player":               map[string]interface{}{"id": nonStrikerPlayerData.ID, "public_id": nonStrikerPlayerData.PublicID, "name": nonStrikerPlayerData.Name, "slug": nonStrikerPlayerData.Slug, "shortName": nonStrikerPlayerData.ShortName, "position": nonStrikerPlayerData.Positions},
 		"id":                   nonStrikerResponse.ID,
+		"public_id":            nonStrikerResponse.PublicID,
 		"match_id":             nonStrikerResponse.MatchID,
 		"team_id":              nonStrikerResponse.TeamID,
 		"batsman_id":           nonStrikerResponse.BatsmanID,
@@ -1364,8 +1384,9 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	}
 
 	bowler := map[string]interface{}{
-		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
+		"player":            map[string]interface{}{"id": bowlerPlayerData.ID, "public_id": bowlerPlayerData.PublicID, "name": bowlerPlayerData.Name, "slug": bowlerPlayerData.Slug, "shortName": bowlerPlayerData.ShortName, "position": bowlerPlayerData.Positions},
 		"id":                bowlerResponse.ID,
+		"public_id":         bowlerResponse.PublicID,
 		"match_id":          bowlerResponse.MatchID,
 		"team_id":           bowlerResponse.TeamID,
 		"bowler_id":         bowlerResponse.BowlerID,
@@ -1467,8 +1488,9 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 	}
 
 	nextBowler := map[string]interface{}{
-		"player":            map[string]interface{}{"id": nextPlayerData.ID, "name": nextPlayerData.Name, "slug": nextPlayerData.Slug, "shortName": nextPlayerData.ShortName, "position": nextPlayerData.Positions},
+		"player":            map[string]interface{}{"id": nextPlayerData.ID, "public_id": nextPlayerData.PublicID, "name": nextPlayerData.Name, "slug": nextPlayerData.Slug, "shortName": nextPlayerData.ShortName, "position": nextPlayerData.Positions},
 		"id":                nextBowlerResponse.ID,
+		"public_id":         nextBowlerResponse.PublicID,
 		"match_id":          nextBowlerResponse.MatchID,
 		"team_id":           nextBowlerResponse.TeamID,
 		"bowler_id":         nextBowlerResponse.BowlerID,
@@ -1483,8 +1505,9 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 	}
 
 	currentBowler := map[string]interface{}{
-		"player":            map[string]interface{}{"id": currentPlayerData.ID, "name": currentPlayerData.Name, "slug": currentPlayerData.Slug, "shortName": currentPlayerData.ShortName, "position": currentPlayerData.Positions},
+		"player":            map[string]interface{}{"id": currentPlayerData.ID, "public_id": currentPlayerData.PublicID, "name": currentPlayerData.Name, "slug": currentPlayerData.Slug, "shortName": currentPlayerData.ShortName, "position": currentPlayerData.Positions},
 		"id":                currentBowlerResponse.ID,
+		"public_id":         currentBowlerResponse.PublicID,
 		"match_id":          currentBowlerResponse.MatchID,
 		"team_id":           currentBowlerResponse.TeamID,
 		"bowler_id":         currentBowlerResponse.BowlerID,

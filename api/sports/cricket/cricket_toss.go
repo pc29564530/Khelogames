@@ -73,13 +73,36 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 		Declared:          false,
 	}
 
-	_, err = s.store.NewCricketScore(ctx, inningR)
+	responseScore, err := s.store.NewCricketScore(ctx, inningR)
 	if err != nil {
 		s.logger.Error("Failed to add the team score: ", err)
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	teams, err := s.store.GetTeamByID(ctx, int64(response.TossWin))
+	if err != nil {
+		s.logger.Error("Failed to get team by id: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"inning": gin.H{
+			"id":                  responseScore.ID,
+			"public_id":           responseScore.PublicID,
+			"match_id":            responseScore.MatchID,
+			"team_id":             responseScore.TeamID,
+			"inning_number":       responseScore.InningNumber,
+			"score":               responseScore.Score,
+			"wickets":             responseScore.Wickets,
+			"overs":               responseScore.Overs,
+			"run_rate":            responseScore.RunRate,
+			"target_run_rate":     responseScore.TargetRunRate,
+			"follow_on":           responseScore.FollowOn,
+			"is_inning_completed": responseScore.IsInningCompleted,
+			"declared":            responseScore.Declared,
+		},
+		"team": teams,
+	})
 	return
 }
 
@@ -137,15 +160,17 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 	tossDetails := map[string]interface{}{
 
 		"tossWonTeam": map[string]interface{}{
-			"id":        tossWonTeam.ID,
-			"public_id": tossWonTeam.PublicID,
-			"name":      tossWonTeam.Name,
-			"slug":      tossWonTeam.Slug,
-			"shortName": tossWonTeam.Shortname,
-			"gender":    tossWonTeam.Gender,
-			"national":  tossWonTeam.National,
-			"country":   tossWonTeam.Country,
-			"type":      tossWonTeam.Type,
+			"id":           tossWonTeam.ID,
+			"public_id":    tossWonTeam.PublicID,
+			"name":         tossWonTeam.Name,
+			"slug":         tossWonTeam.Slug,
+			"shortName":    tossWonTeam.Shortname,
+			"gender":       tossWonTeam.Gender,
+			"national":     tossWonTeam.National,
+			"country":      tossWonTeam.Country,
+			"type":         tossWonTeam.Type,
+			"player_count": tossWonTeam.PlayerCount,
+			"game_id":      tossWonTeam.GameID,
 		},
 		"tossDecision": cricketToss["toss_decision"].(map[string]string),
 	}

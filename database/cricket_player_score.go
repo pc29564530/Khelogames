@@ -416,7 +416,7 @@ WHERE m.public_id = $1 AND t.public_id = $2
 ORDER BY w.id, w.inning_number`
 
 func (q *Queries) GetWickets(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) ([]map[string]interface{}, error) {
-	rows, err := q.db.QueryContext(ctx, getCricketWickets, matchPublicID, teamPublicID)
+	rows, err := q.db.QueryContext(ctx, getWickets, matchPublicID, teamPublicID)
 	if err != nil {
 		return nil, err
 	}

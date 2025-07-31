@@ -297,8 +297,11 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, teamPublicID uuid.UUID) ([
 
 const getPlayerByTeam = `
 SELECT 
+   p.id AS player_id
+   p.public_id
   tp.team_id, 
-  tp.player_id, 
+  tp.player_id,
+  p.user_id,
   tp.join_date, 
   tp.leave_date, 
   p.id AS player_id,
@@ -308,8 +311,7 @@ SELECT
   p.positions, 
   p.country, 
   p.player_name, 
-  p.game_id,
-  p.profile_id
+  p.game_id
 FROM team_players tp
 JOIN players p ON tp.player_id = p.id
 JOIN teams t ON t.id = p.team_id

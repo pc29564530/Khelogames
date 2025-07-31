@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const getMatchByTournamentID = `
+const getMatchByTournamentPublicID = `
 WITH cricket_groups AS (
     SELECT team_id, group_id
     FROM cricket_standing
@@ -124,8 +124,8 @@ type GetMatchByIDRow struct {
 	AwayGameID          int64     `json:"away_game_id"`
 }
 
-func (q *Queries) GetMatchByTournamentID(ctx context.Context, tournamentPublicID uuid.UUID) ([]GetMatchByIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, getMatchByTournamentID, tournamentPublicID)
+func (q *Queries) GetMatchByTournamentPublicID(ctx context.Context, tournamentPublicID uuid.UUID) ([]GetMatchByIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMatchByTournamentPublicID, tournamentPublicID)
 	if err != nil {
 		return nil, err
 	}

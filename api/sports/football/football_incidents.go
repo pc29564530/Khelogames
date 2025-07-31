@@ -363,6 +363,7 @@ func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
 				"player": map[string]interface{}{
 					"id":         playerData["id"],
 					"public_id":  playerData["public_id"],
+					"user_id":    playerData["user_id"],
 					"name":       playerData["name"],
 					"slug":       playerData["slug"],
 					"short_name": playerData["short_name"],

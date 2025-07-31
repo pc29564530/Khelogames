@@ -13,6 +13,36 @@ import (
 	"github.com/google/uuid"
 )
 
+func (s *HandlersServer) GetPlayerWithProfileFunc(ctx *gin.Context) {
+	var req struct {
+		PublicID string `json:"public_id"`
+	}
+
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	s.logger.Debug("Successfully bind: ", req)
+
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	playerProfile, err := s.store.GetPlayerWithProfile(ctx, publicID)
+	if err != nil {
+		s.logger.Error("Failed to get player with profile", err)
+	}
+
+	ctx.JSON(http.StatusAccepted, playerProfile)
+	return
+
+}
+
 func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get profile")
 	var req struct {

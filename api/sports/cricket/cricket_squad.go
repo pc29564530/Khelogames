@@ -11,6 +11,7 @@ import (
 type Player struct {
 	ID         int64  `json:"id"`
 	PublicID   string `json:"public_id"`
+	UserID     int32  `json:"user_id"`
 	PlayerName string `json:"player_name"`
 	ShortName  string `json:"short_name"`
 	Slug       string `json:"slug"`
@@ -18,7 +19,6 @@ type Player struct {
 	Position   string `json:"position"`
 	MediaURL   string `json:"media_url"`
 	GameID     int64  `json:"game_id"`
-	ProfileID  int32  `json:"profile_id"`
 }
 
 type MatchSquadRequest struct {
@@ -74,6 +74,7 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 
 		cricketSquad = append(cricketSquad, map[string]interface{}{
 			"id":         squad.ID,
+			"public_id":  squad.PublicID,
 			"match_id":   squad.MatchID,
 			"team_id":    squad.TeamID,
 			"player":     player,

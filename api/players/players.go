@@ -75,7 +75,7 @@ func (s *PlayerServer) GetAllPlayerFunc(ctx *gin.Context) {
 
 func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
 	var req struct {
-		PlayerPublicID string `uri:"player_public_id"`
+		PlayerPublicID string `uri:"public_id"`
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {

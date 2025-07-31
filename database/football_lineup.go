@@ -71,7 +71,7 @@ const getFootballMatchSquad = `
 	JOIN players AS pl ON pl.id = cs.player_id
 	JOIN teams AS t ON t.id = cs.team_id
 	JOIN matches AS m ON m.id = cs.match_id
-	WHERE m.public_id=$1 AND m.team_id=$2;
+	WHERE m.public_id=$1 AND t.public_id=$2;
 `
 
 func (q *Queries) GetFootballMatchSquad(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) ([]map[string]interface{}, error) {

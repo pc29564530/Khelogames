@@ -54,7 +54,7 @@ func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("created community: ", communities)
+	s.logger.Debug("created community : ", communities)
 	ctx.JSON(http.StatusOK, communities)
 	return
 }

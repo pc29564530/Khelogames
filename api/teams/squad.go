@@ -61,6 +61,7 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		playerData := map[string]interface{}{
 			"id":         player.ID,
 			"public_id":  player.PublicID,
+			"user_id":    player.UserID,
 			"name":       player.Name,
 			"slug":       player.Slug,
 			"short_name": player.ShortName,

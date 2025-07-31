@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
 
@@ -24,7 +25,7 @@ const addFootballPlayerStats = `
 	RETURNING *
 `
 
-func (q *Queries) football_player_stats(ctx *gin.Context, playerPublicID uuid.UUID) (*models.FootballPlayerStats, error) {
+func (q *Queries) AddFootballPlayerStats(ctx *gin.Context, playerPublicID uuid.UUID) (*models.FootballPlayerStats, error) {
 	rows := q.db.QueryRowContext(ctx, addFootballPlayerStats, playerPublicID)
 	var stats models.FootballPlayerStats
 	err := rows.Scan(
@@ -52,37 +53,46 @@ func (q *Queries) football_player_stats(ctx *gin.Context, playerPublicID uuid.UU
 }
 
 const getFootballPlayerStatsQuery = `
-	SELECT * FROM football_player_stats fps
+	SELECT JSON_BUILD_OBJECT(
+		'id', fps.id, 'pubic_id', fps.public_id, 'player_id', fps.player_id, 'player_position', fps.player_position, 'matches', fps.matches, 'minutes_played', fps.minutes_played, 'goals_scored, fps.GoalsScored,
+		'goals_conceded', fps.goals_conceded, 'clean_sheet', fps.clean_sheet, 'assists', fps.assists, 'yellow_card', fps.yellow_card, 'red_card', fps.red_card, 'avergae', fps.average,
+		'created_at', fps.created_at, 'updated_at', fps.updated_at,
+		'player', JSON_BUILD_OBJECT(
+				'id',p.id,
+				'public_id', p.public_id,
+				'user_id',p.user_Id,
+				'game_id' p.game_id.
+				'name', p.player_name, 
+				'slug', p.slug, 
+				'short_name', p.short_name, 
+				'country', p.country, 
+				'positions', p.positions, 
+				'media_url', p.media_url,
+				'created_at', p.created_at,
+				'updated_at', p.updated_at,
+			)
+	) FROM football_player_stats fps
 	JOIN players p ON p.id = fps.player_id
 	WHERE p.public_id = $1
 `
 
-func (q *Queries) GetFootballPlayerStats(ctx context.Context, playerPublicID uuid.UUID) (*models.FootballPlayerStats, error) {
-	var stats models.FootballPlayerStats
+func (q *Queries) GetFootballPlayerStats(ctx context.Context, playerPublicID uuid.UUID) (*map[string]interface{}, error) {
 	row := q.db.QueryRowContext(ctx, getFootballPlayerStatsQuery, playerPublicID)
-	err := row.Scan(
-		&stats.ID,
-		&stats.PublicID,
-		&stats.PlayerID,
-		&stats.PlayerPosition,
-		&stats.Matches,
-		&stats.MinutesPlayed,
-		&stats.GoalsScored,
-		&stats.GoalsConceded,
-		&stats.CleanSheet,
-		&stats.Assists,
-		&stats.YellowCards,
-		&stats.RedCards,
-		&stats.Average,
-		&stats.CreatedAt,
-		&stats.UpdatedAt,
-	)
+	var jsonByte []byte
+	var stats map[string]interface{}
+	err := row.Scan(&jsonByte)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("Failed to scan row: %w", err)
 	}
+
+	err = json.Unmarshal(jsonByte, &stats)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal JSON: %w", err)
+	}
+
 	return &stats, nil
 }
 

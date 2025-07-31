@@ -276,3 +276,14 @@ func (q *Queries) UpdateCommunityName(ctx context.Context, publicID uuid.UUID, n
 	)
 	return i, err
 }
+
+// increment community count
+func (q *Queries) IncrementCommunityMemberCount(ctx context.Context, communityPublicID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, `
+		UPDATE communities
+		SET member_count = member_count + 1,
+		    updated_at = NOW()
+		WHERE public_id = $1
+	`, communityPublicID)
+	return err
+}
