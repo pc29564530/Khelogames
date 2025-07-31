@@ -86,7 +86,7 @@ func NewServer(config util.Config,
 		authRouter.GET("/ws", messageServer.HandleWebSocket)
 		authRouter.GET("/getAllGames", sportsServer.GetGamesFunc)
 		authRouter.GET("/getGame/:id", sportsServer.GetGameFunc)
-		authRouter.POST("/searchProfile", playersServer.SearchProfileFunc)
+		// authRouter.POST("/searchProfile", playersServer.SearchProfileFunc)
 		authRouter.POST("/addJoinCommunity", handlersServer.AddJoinCommunityFunc)
 		authRouter.GET("/getUserByCommunity/:community_name", handlersServer.GetUserByCommunityFunc)
 		authRouter.GET("/getCommunityByUser", handlersServer.GetCommunityByUserFunc)
