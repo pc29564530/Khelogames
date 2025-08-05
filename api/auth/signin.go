@@ -51,6 +51,12 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		return
 	}
 
+	// Delete any existing session for this user
+	err = s.store.DeleteSessionsByUserID(ctx, int32(existingUser.ID))
+	if err != nil {
+		s.logger.Error("Failed to delete previous session: ", err)
+	}
+
 	//create a token using user id
 	tokens := CreateNewToken(ctx, existingUser.PublicID, int32(existingUser.ID), s, tx)
 
