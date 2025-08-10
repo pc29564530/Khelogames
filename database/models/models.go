@@ -83,7 +83,7 @@ type Comment struct {
 	PublicID        uuid.UUID `json:"public_id"`
 	ThreadID        int32     `json:"thread_id"`
 	UserID          int32     `json:"user_id"`
-	ParentCommentID int32     `json:"parent_comment_id"`
+	ParentCommentID *int32    `json:"parent_comment_id"`
 	CommentText     string    `json:"comment_text"`
 	LikeCount       int       `json:"like_count"`
 	ReplyCount      int       `json:"reply_count"`
@@ -367,7 +367,7 @@ type Thread struct {
 	ID           int64     `json:"id"`
 	PublicID     uuid.UUID `json:"public_id"`
 	UserID       int32     `json:"user_id"`
-	CommunityID  int32     `json:"community_id"`
+	CommunityID  *int32    `json:"community_id"`
 	Title        string    `json:"title"`
 	Content      string    `json:"content"`
 	MediaUrl     string    `json:"media_url"`

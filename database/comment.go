@@ -33,8 +33,8 @@ FROM threadID, userID
 RETURNING *;
 `
 
-func (q *Queries) CreateComment(ctx context.Context, threadPublicID, commentPublicID uuid.UUID, commentText string) (models.Comment, error) {
-	row := q.db.QueryRowContext(ctx, createComment, threadPublicID, commentPublicID, commentText)
+func (q *Queries) CreateComment(ctx context.Context, threadPublicID, userPublicID uuid.UUID, commentText string) (*models.Comment, error) {
+	row := q.db.QueryRowContext(ctx, createComment, threadPublicID, userPublicID, commentText)
 	var i models.Comment
 	err := row.Scan(
 		&i.ID,
@@ -50,7 +50,10 @@ func (q *Queries) CreateComment(ctx context.Context, threadPublicID, commentPubl
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return i, err
+	if err != nil {
+		log.Println(err)
+	}
+	return &i, err
 }
 
 const deleteComment = `
@@ -83,12 +86,12 @@ func (q *Queries) DeleteComment(ctx context.Context, commentPublicID, userPublic
 const getAllComment = `
 SELECT 
 JSON_BUILD_OBJECT(
-	'id', c.id 'public_id' c.public_id, 'thread_id', c.thread_id,'user_id',c.user_id, 'parent_comment_id', c.parent_comment_id, 'comment_text', c.comment_text,'like_count', c.like_count,'reply_count',c.reply_count, 'is_deleted',c.is_deleted, 'is_edited',c.is_edited, 'created_at',c.created_at, 'updated_at'c.updated_at,,
-	'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_id',p.user_id,  'username',u.username,  'full_name',p.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
+	'id', c.id, 'public_id', c.public_id, 'thread_id', c.thread_id,'user_id',c.user_id, 'parent_comment_id', c.parent_comment_id, 'comment_text', c.comment_text,'like_count', c.like_count,'reply_count',c.reply_count, 'is_deleted',c.is_deleted, 'is_edited',c.is_edited, 'created_at',c.created_at, 'updated_at', c.updated_at,
+	'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_id',p.user_id,  'username',u.username,  'full_name',u.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
 ) 
-FROM comment c
+FROM comments c
 JOIN threads AS t ON t.id = c.thread_id
-JOIN profile AS p ON p.user_id = c.user_id
+JOIN user_profiles AS p ON p.user_id = c.user_id
 JOIN users AS u ON u.id = c.user_id
 WHERE t.public_id=$1
 ORDER BY c.id;

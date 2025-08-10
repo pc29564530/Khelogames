@@ -8,9 +8,9 @@ import (
 )
 
 const checkUserCount = `
-SELECT COUNT(*) AS user_count uc
+SELECT COUNT(*) AS user_count
 FROM user_like_thread l1
-JOIN users u ON l1.user_id = u.user_id
+JOIN users u ON l1.user_id = u.id
 JOIN threads t ON t.id = l1.thread_id
 WHERE u.public_id = $1
 AND t.public_id = $2
@@ -38,22 +38,20 @@ func (q *Queries) CountLikeUser(ctx context.Context, threadID uuid.UUID) (int, e
 
 const createLike = `
 WITH userID AS (
-	SELECT * FROM users
-	FROM public_id = $1
+	SELECT id FROM users WHERE public_id = $1
 ),
 threadID AS (
-	SELECT * FROM threads 
-	FROM public_id = $2
+	SELECT id FROM threads WHERE public_id = $2
 )
 INSERT INTO user_like_thread (
     thread_id,
     user_id
 )
 SELECT
-	$1,
-	$2
+	threadID.id,
+	userID.id
 FROM userID, threadID
-RETURNING *
+RETURNING *;
 `
 
 func (q *Queries) CreateLike(ctx context.Context, userPublicID, threadPublicID uuid.UUID) (models.UserLikeThread, error) {

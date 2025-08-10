@@ -18,14 +18,13 @@ type getTournamentPublicIDRequest struct {
 
 type addTournamentRequest struct {
 	Name           string `json:"name"`
-	Slug           string `json:"slug"`
 	Country        string `json:"country"`
-	StatusCode     string `json:"status_code"`
+	Status         string `json:"status"`
 	Level          string `json:"level"`
 	StartTimestamp string `json:"start_timestamp"`
 	GameID         *int64 `json:"game_id"`
 	GroupCount     *int32 `json:"group_count"`
-	MaxGroupTeam   *int32 `json:"max_group_team"`
+	MaxGroupTeams  *int32 `json:"max_group_teams"`
 	Stage          string `json:"stage"`
 	HasKnockout    bool   `json:"has_knockout"`
 }
@@ -58,19 +57,19 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(pkg.AuthorizationHeaderKey).(*token.Payload)
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	arg := db.NewTournamentParams{
 		UserPublicID:   authPayload.PublicID,
 		Name:           req.Name,
 		Slug:           slug,
 		Country:        req.Country,
-		Status:         req.StatusCode,
+		Status:         req.Status,
 		Level:          req.Level,
 		StartTimestamp: startTimeStamp,
 		GameID:         req.GameID,
 		GroupCount:     req.GroupCount,
-		MaxGroupTeam:   req.MaxGroupTeam,
+		MaxGroupTeams:  req.MaxGroupTeams,
 		Stage:          req.Stage,
 		HasKnockout:    req.HasKnockout,
 	}

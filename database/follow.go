@@ -59,22 +59,27 @@ func (q *Queries) DeleteUsersConnections(ctx context.Context, userID, targetUser
 const getAllFollower = `
 SELECT 
 	JOIN_BUILD_OBJECT(
-		'user_public_id', u.public_id,
-		'profile_public_id', up.public_id,
-		'username', u.username,
-		'full_name', tu.full_name,
-		'avatar_url', up.avatar_url,
+		'user_public_id', tu.public_id,
+			'profile', JOSN_BUILD_OBJECT(
+			'public_id', up.public_id,
+			'username', tu.username,
+			'full_name', tu.full_name,
+			'avatar_url', up.avatar_url,
+			)
 	)
 FROM users_connections uc
 JOIN users u ON u.id = uc.users_id
 JOIN users tu ON tu.id = uc.target_user_id
 JOIN users_profile up ON up.user_id = u.id
-WHERE tu.public_id = $1;
+WHERE u.public_id = $1;
 `
 
 func (q *Queries) GetAllFollower(ctx context.Context, targetPublicID uuid.UUID) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getAllFollower, targetPublicID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	defer rows.Close()
@@ -104,10 +109,12 @@ const getAllFollowing = `
 	SELECT 
 		JOIN_BUILD_OBJECT(
 			'user_public_id', tu.public_id,
-			'profile_public_id', up.public_id,
-			'username', tu.username,
-			'full_name', tu.full_name,
-			'avatar_url', up.avatar_url,
+			 'profile', JOSN_BUILD_OBJECT(
+			 	'public_id', up.public_id,
+				'username', tu.username,
+				'full_name', tu.full_name,
+				'avatar_url', up.avatar_url,
+			 )
 		)
 	FROM users_connections uc
 	JOIN users u ON u.id = uc.users_id
@@ -119,6 +126,9 @@ const getAllFollowing = `
 func (q *Queries) GetAllFollowing(ctx context.Context, userPublicID uuid.UUID) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getAllFollowing, userPublicID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	defer rows.Close()

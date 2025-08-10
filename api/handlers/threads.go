@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"fmt"
 	db "khelogames/database"
+	"khelogames/pkg"
+	"khelogames/token"
 
 	"net/http"
 
@@ -10,11 +13,11 @@ import (
 )
 
 type createThreadRequest struct {
-	CommunityID int32  `json:"community_id,omitempty"`
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	MediaType   string `json:"mediaType,omitempty"`
-	MediaURL    string `json:"mediaURL,omitempty"`
+	CommunityPublicID string `json:"community_public_id,omitempty"`
+	Title             string `json:"title"`
+	Content           string `json:"content"`
+	MediaType         string `json:"mediaType,omitempty"`
+	MediaURL          string `json:"mediaURL,omitempty"`
 }
 
 func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
@@ -32,21 +35,42 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 		return
 	}
 
-	//function for uploading a image or video
-	arg := db.CreateThreadParams{
-		CommunityID: req.CommunityID,
-		Title:       req.Title,
-		Content:     req.Content,
-		MediaType:   req.MediaType,
-		MediaUrl:    req.MediaURL,
+	var communityPublicID *uuid.UUID
+	if req.CommunityPublicID != "" && req.CommunityPublicID != "null" {
+		parsed, err := uuid.Parse(req.CommunityPublicID)
+		if err != nil {
+			s.logger.Error("Failed to parse community public id: ", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid community ID"})
+			return
+		}
+		communityPublicID = &parsed
 	}
 
-	s.logger.Debug("received arg of create thread params: %s", arg)
+	//function for uploading a image or video
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	arg := db.CreateThreadParams{
+		UserPublicID:      authPayload.PublicID,
+		CommunityPublicID: communityPublicID,
+		Title:             req.Title,
+		Content:           req.Content,
+		MediaType:         req.MediaType,
+		MediaUrl:          req.MediaURL,
+	}
 
+	fmt.Println("Arg: ", arg)
+
+	s.logger.Debug("received arg of create thread params: %s", arg)
 	thread, err := s.store.CreateThread(ctx, arg)
 	if err != nil {
 		tx.Rollback()
 		s.logger.Error("Failed to create new thread ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+
+	users, err := s.store.GetProfileByUserID(ctx, thread.UserID)
+	if err != nil {
+		tx.Rollback()
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
@@ -57,8 +81,24 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 		return
 	}
 
+	threadResponse := map[string]interface{}{
+		"id":            thread.ID,
+		"public_id":     thread.PublicID,
+		"user_id":       thread.UserID,
+		"community_id":  thread.CommunityID,
+		"title":         thread.Title,
+		"content":       thread.Content,
+		"media_url":     thread.MediaUrl,
+		"media_type":    thread.MediaType,
+		"like_count":    thread.LikeCount,
+		"comment_count": thread.CommentCount,
+		"is_deleted":    thread.IsDeleted,
+		"created_at":    thread.CreatedAt,
+		"profile":       users,
+	}
+
 	s.logger.Info("Thread successfully created ")
-	ctx.JSON(http.StatusOK, thread)
+	ctx.JSON(http.StatusOK, threadResponse)
 	return
 }
 

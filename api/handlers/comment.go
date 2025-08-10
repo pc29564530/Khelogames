@@ -39,13 +39,34 @@ func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	comment, err := s.store.CreateComment(ctx, threadPublicID, authPayload.ID, bodyReq.CommentText)
+	comment, err := s.store.CreateComment(ctx, threadPublicID, authPayload.PublicID, bodyReq.CommentText)
 	if err != nil {
+		s.logger.Error("Failed to create comment: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create comment"})
 		return
 	}
+	profile, err := s.store.GetProfileByUserID(ctx, comment.UserID)
+	if err != nil {
+		s.logger.Error("Failed to get profile by user ID: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get profile"})
+		return
+	}
 
-	ctx.JSON(http.StatusOK, comment)
+	ctx.JSON(http.StatusOK, gin.H{
+		"id":                comment.ID,
+		"public_id":         comment.PublicID,
+		"thread_id":         comment.ThreadID,
+		"user_id":           comment.UserID,
+		"parent_comment_id": comment.ParentCommentID,
+		"comment_text":      comment.CommentText,
+		"like_count":        comment.LikeCount,
+		"reply_count":       comment.ReplyCount,
+		"is_deleted":        comment.IsDeleted,
+		"is_edited":         comment.IsEdited,
+		"created_at":        comment.CreatedAt,
+		"updated_at":        comment.UpdatedAt,
+		"profile":           profile,
+	})
 }
 
 type getAllCommentRequest struct {
@@ -101,7 +122,7 @@ func (s *HandlersServer) DeleteCommentByUserFunc(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(pkg.AuthorizationHeaderKey).(*token.Payload)
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	comments, err := s.store.DeleteComment(ctx, publicID, authPayload.PublicID)
 	if err != nil {

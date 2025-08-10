@@ -198,12 +198,12 @@ INSERT INTO tournaments (
     name,
     slug,
     country,
-    status_code,
+    status,
     level,
     start_timestamp,
     game_id,
 	group_count,
-	max_group_team,
+	max_group_teams,
 	stage,
 	has_knockout
 ) 
@@ -229,12 +229,12 @@ type NewTournamentParams struct {
 	Name           string    `json:"name"`
 	Slug           string    `json:"slug"`
 	Country        string    `json:"country"`
-	Status         string    `json:"status_code"`
+	Status         string    `json:"status"`
 	Level          string    `json:"level"`
 	StartTimestamp int64     `json:"start_timestamp"`
 	GameID         *int64    `json:"game_id"`
 	GroupCount     *int32    `json:"group_count"`
-	MaxGroupTeam   *int32    `json:"max_group_team"`
+	MaxGroupTeams  *int32    `json:"max_group_teams"`
 	Stage          string    `json:"stage"`
 	HasKnockout    bool      `json:"has_knockout"`
 }
@@ -250,7 +250,7 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		arg.StartTimestamp,
 		arg.GameID,
 		arg.GroupCount,
-		arg.MaxGroupTeam,
+		arg.MaxGroupTeams,
 		arg.Stage,
 		arg.HasKnockout,
 	)
@@ -296,14 +296,19 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		&i.GameID,
 		&i.Name,
 		&i.Slug,
+		&i.Description,
 		&i.Country,
 		&i.Status,
+		&i.Season,
 		&i.Level,
 		&i.StartTimestamp,
 		&i.GroupCount,
 		&i.MaxGroupTeam,
 		&i.Stage,
 		&i.HasKnockout,
+		&i.IsPublic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

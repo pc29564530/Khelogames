@@ -10,6 +10,65 @@ import (
 	"github.com/google/uuid"
 )
 
+const getProfileByPublicID = `
+SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
+LEFT JOIN users AS u ON u.id = up.user_id
+WHERE up.public_id = $1;
+`
+
+func (q *Queries) GetProfileByPublicID(ctx context.Context, publicID uuid.UUID) (*userProfile, error) {
+	row := q.db.QueryRowContext(ctx, getProfileByPublicID, publicID)
+	var res userProfile
+	err := row.Scan(
+		&res.ID,
+		&res.PublicID,
+		&res.UserID,
+		&res.Username,
+		&res.FullName,
+		&res.Bio,
+		&res.AvatarUrl,
+		&res.CreatedAT,
+		&res.UpdatedAT,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &res, err
+}
+
+const getProfileByUserID = `
+SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
+LEFT JOIN users AS u ON u.id = up.user_id
+WHERE up.user_id = $1;
+`
+
+func (q *Queries) GetProfileByUserID(ctx context.Context, userID int32) (*userProfile, error) {
+
+	row := q.db.QueryRowContext(ctx, getProfileByUserID, userID)
+	var res userProfile
+	err := row.Scan(
+		&res.ID,
+		&res.PublicID,
+		&res.UserID,
+		&res.Username,
+		&res.FullName,
+		&res.Bio,
+		&res.AvatarUrl,
+		&res.CreatedAT,
+		&res.UpdatedAT,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &res, err
+}
+
 const getPlayerWithProfile = `
 	SELECT pp.* FROM players pp
 	JOIN profiles p ON pp.user_id = p.user_id

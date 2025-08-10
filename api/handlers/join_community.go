@@ -53,6 +53,19 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully joined", "member": communityUser})
 }
 
+func (s *HandlersServer) GetUserByCommunityFunc(ctx *gin.Context) {
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	communityList, err := s.store.GetCommunityByUser(ctx, authPayload.PublicID)
+	if err != nil {
+		s.logger.Error("Failed to get community by user: ", err)
+		ctx.JSON(http.StatusNotFound, (err))
+		return
+	}
+	s.logger.Debug("community by user: ", communityList)
+
+	ctx.JSON(http.StatusOK, communityList)
+}
+
 // get the community joined by the users
 func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)

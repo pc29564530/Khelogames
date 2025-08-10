@@ -11,45 +11,46 @@ import (
 
 const createThread = `
 WITH userID AS (
-	SELECT * FROM users WHERE public_id = $1
+    SELECT id FROM users WHERE public_id = $1
 ),
 communityID AS (
-	SELECT * FROM communities WHERE public_id = $2
-),
+    SELECT id FROM communities WHERE public_id = $2
+)
 INSERT INTO threads (
     user_id,
     community_id,
     title,
     content,
-	media_url,
+    media_url,
     media_type,
     created_at
 )
 SELECT
-	userID.id,
-	communityID.id,
-	$3,
-	$4,
-	$5,
-	$6,
-	CURRENT_TIMESTAMP
-FROM userID, communityID
+    u.id,
+    c.id,
+    $3,
+    $4,
+    $5,
+    $6,
+    CURRENT_TIMESTAMP
+FROM userID u
+LEFT JOIN communityID c ON $2 IS NOT NULL
 RETURNING *;
 `
 
 type CreateThreadParams struct {
-	UserID      int32  `json:"user_id"`
-	CommunityID int32  `json:"community_id"`
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	MediaUrl    string `json:"media_url"`
-	MediaType   string `json:"media_type"`
+	UserPublicID      uuid.UUID  `json:"user_public_id"`
+	CommunityPublicID *uuid.UUID `json:"community_public_id"`
+	Title             string     `json:"title"`
+	Content           string     `json:"content"`
+	MediaUrl          string     `json:"media_url"`
+	MediaType         string     `json:"media_type"`
 }
 
 func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (models.Thread, error) {
 	row := q.db.QueryRowContext(ctx, createThread,
-		arg.UserID,
-		arg.CommunityID,
+		arg.UserPublicID,
+		arg.CommunityPublicID,
 		arg.Title,
 		arg.Content,
 		arg.MediaUrl,
@@ -101,13 +102,33 @@ func (q *Queries) DeleteThread(ctx context.Context, publicID uuid.UUID) (models.
 
 const getAllThreads = `
 	SELECT 
-	JSON_BUILD_OBJECT(
-		'id', t.id 'public_id' t.public_id,'user_id',c.user_id, 'community_id', t.community_id, 'title', t.title, 'content', t.content,'media_url', t.media_url, 'media_type', 'like_count', t.like_count, 'comment_count',t.comment_count, 'is_deleted',t.is_deleted, 'created_at',c.created_at,
-		'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_id',p.user_id,  'username',u.username,  'full_name',p.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
-	) 
-	FROM threads t
-	JOIN profile AS p ON p.user_id = c.user_id
-	JOIN users AS u ON u.id = c.user_id
+    JSON_BUILD_OBJECT(
+        'id', t.id,
+        'public_id', t.public_id,
+        'user_id', t.user_id,
+        'community_id', t.community_id,
+        'title', t.title,
+        'content', t.content,
+        'media_url', t.media_url,
+        'media_type', t.media_type,
+        'like_count', t.like_count,
+        'comment_count', t.comment_count,
+        'is_deleted', t.is_deleted,
+        'created_at', t.created_at,
+        'profile', JSON_BUILD_OBJECT(
+            'id', p.id,
+            'public_id', p.public_id,
+            'user_id', p.user_id,
+            'username', u.username,
+            'full_name', u.full_name,
+            'bio', p.bio,
+            'avatar_url', p.avatar_url,
+            'created_at', p.created_at
+        )
+    )
+FROM threads t
+JOIN users u ON u.id = t.user_id
+JOIN user_profiles p ON p.user_id = t.user_id;
 `
 
 func (q *Queries) GetAllThreads(ctx context.Context) ([]map[string]interface{}, error) {
@@ -183,14 +204,34 @@ func (q *Queries) GetAllThreadsByCommunities(ctx context.Context, communityPubli
 }
 
 const getThread = `
-SELECT 
-	JSON_BUILD_OBJECT(
-		'id', t.id 'public_id' t.public_id,'user_id',c.user_id, 'community_id', t.community_id, 'title', t.title, 'content', t.content,'media_url', t.media_url, 'media_type', 'like_count', t.like_count, 'comment_count',t.comment_count, 'is_deleted',t.is_deleted, 'created_at',c.created_at,
-		'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_id',p.user_id,  'username',u.username,  'full_name',p.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
-	) 
+	SELECT 
+    JSON_BUILD_OBJECT(
+        'id', t.id,
+        'public_id', t.public_id,
+        'user_id', t.user_id,
+        'community_id', t.community_id,
+        'title', t.title,
+        'content', t.content,
+        'media_url', t.media_url,
+        'media_type', t.media_type,
+        'like_count', t.like_count,
+        'comment_count', t.comment_count,
+        'is_deleted', t.is_deleted,
+        'created_at', t.created_at,
+        'profile', JSON_BUILD_OBJECT(
+            'id', p.id,
+            'public_id', p.public_id,
+            'user_id', p.user_id,
+            'username', u.username,
+            'full_name', u.full_name,
+            'bio', p.bio,
+            'avatar_url', p.avatar_url,
+            'created_at', p.created_at
+        )
+    )
 FROM threads t
-JOIN profile AS p ON p.user_id = t.user_id
-JOIN users AS u ON u.id = t.user_id
+JOIN users u ON u.id = t.user_id
+JOIN user_profiles p ON p.user_id = t.user_id
 WHERE t.public_id = $1
 `
 
@@ -213,7 +254,8 @@ func (q *Queries) GetThread(ctx context.Context, publicID uuid.UUID) (map[string
 const getThreadByUser = `
 SELECT *t. FROM threads
 JOIN users AS u ON u.id = t.user_id
-WHERE u.publid_id=$1
+JOIN user_profiles AS up up.user_id = t.user_id
+WHERE up.publid_id=$1
 `
 
 func (q *Queries) GetThreadUser(ctx context.Context, publicID uuid.UUID) ([]models.Thread, error) {

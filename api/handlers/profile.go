@@ -43,7 +43,69 @@ func (s *HandlersServer) GetPlayerWithProfileFunc(ctx *gin.Context) {
 
 }
 
+func (s *HandlersServer) GetProfileByPublicIDFunc(ctx *gin.Context) {
+	s.logger.Info("Received request to get profile")
+	var req struct {
+		PublicID string `uri:"profile_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	s.logger.Debug("Successfully bind: ", req)
+
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	profile, err := s.store.GetProfileByPublicID(ctx, publicID)
+	if err != nil {
+		s.logger.Error("Failed to get profile: ", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+	fmt.Println("Profile; ", profile)
+	s.logger.Info("Successfully retrieved profile by profile public_id: ", profile)
+	ctx.JSON(http.StatusOK, profile)
+}
+
 func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
+	s.logger.Info("Received request to get profile")
+	var req struct {
+		PublicID string `uri:"public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	s.logger.Debug("Successfully bind: ", req)
+
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	profile, err := s.store.GetProfile(ctx, publicID)
+	if err != nil {
+		s.logger.Error("Failed to get profile: ", err)
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+	fmt.Println("Profile; ", profile)
+	s.logger.Info("Successfully retrieved profile: ", profile)
+	ctx.JSON(http.StatusOK, profile)
+}
+
+func (s *HandlersServer) GetProfileByFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get profile")
 	var req struct {
 		PublicID string `uri:"public_id"`
