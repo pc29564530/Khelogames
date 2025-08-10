@@ -633,11 +633,10 @@ WITH userID AS (
 	WHERE public_id=$1
 )
 INSERT INTO teams (
-	user_id
+	user_id,
     name,
     slug,
     shortName,
-    admin,
     media_url,
     gender,
     national,
@@ -657,8 +656,7 @@ SELECT
 	$8,
 	$9,
 	$10,
-	$11,
-	$12
+	$11
 FROM userID
 RETURNING *;
 `
@@ -668,7 +666,6 @@ type NewTeamsParams struct {
 	Name         string    `json:"name"`
 	Slug         string    `json:"slug"`
 	Shortname    string    `json:"shortname"`
-	Admin        string    `json:"admin"`
 	MediaUrl     string    `json:"media_url"`
 	Gender       string    `json:"gender"`
 	National     bool      `json:"national"`
@@ -684,7 +681,6 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team
 		arg.Name,
 		arg.Slug,
 		arg.Shortname,
-		arg.Admin,
 		arg.MediaUrl,
 		arg.Gender,
 		arg.National,

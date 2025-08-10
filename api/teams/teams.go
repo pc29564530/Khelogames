@@ -39,7 +39,7 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 	}
 
 	defer tx.Rollback()
-	authPayload := ctx.MustGet(pkg.AuthorizationHeaderKey).(*token.Payload)
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	slug := util.GenerateSlug(req.Name)
 	shortName := util.GenerateShortName(req.Name)
 	arg := db.NewTeamsParams{
@@ -47,7 +47,6 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 		Name:         req.Name,
 		Slug:         slug,
 		Shortname:    shortName,
-		Admin:        "",
 		MediaUrl:     req.MediaURL,
 		Gender:       req.Gender,
 		National:     false,
