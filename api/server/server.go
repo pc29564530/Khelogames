@@ -135,7 +135,7 @@ func NewServer(config util.Config,
 		//player
 		authRouter.POST("/newPlayer", playersServer.NewPlayerFunc)
 		authRouter.GET("/getPlayerByCountry", playersServer.GetPlayerByCountry)
-		authRouter.GET("/getPlayersBySport", playersServer.GetPlayersBySportFunc)
+		authRouter.GET("/getPlayersBySport/:game_id", playersServer.GetPlayersBySportFunc)
 		authRouter.GET("/getPlayer/:public_id", playersServer.GetPlayerFunc)
 		// authRouter.GET("/getPlayerByProfileID", playersServer.GetPlayerByProfileIDFunc)
 		authRouter.GET("/getAllPlayers", playersServer.GetAllPlayerFunc)
