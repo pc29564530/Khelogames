@@ -11,7 +11,7 @@ import (
 const getTournamentTeam = `
 SELECT tt.tournament_id, JSON_BUILD_OBJECT('id', tm.id, 'public_id', tm.public_id, 'user_id', tm.user_id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id) AS team_data
 FROM tournament_team tt
-JOIN teams AS tm ON tm.id = tt.team_id
+LEFT JOIN teams AS tm ON tm.id = tt.team_id
 WHERE tm.public_id=$1 AND tt.public_id=$2
 `
 

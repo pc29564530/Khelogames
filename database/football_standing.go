@@ -111,7 +111,7 @@ const getFootballStanding = `
                         'name', t.name,
                         'slug', t.slug,
                         'country', t.country,
-                        'status_code', t.status_code,
+                        'status', t.status,
                         'level', t.level,
                         'start_timestamp', t.start_timestamp,
                         'game_id', t.game_id

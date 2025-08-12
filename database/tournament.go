@@ -168,7 +168,7 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level
 
 const getTournamentsBySport = `
 SELECT 
-    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status', t.status, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_team, 'stage', t.stage, 'has_knockout', t.has_knockout) AS tournament_data
+    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status', t.status, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_teams, 'stage', t.stage, 'has_knockout', t.has_knockout) AS tournament_data
 FROM tournaments t
 JOIN games AS g ON g.id = t.game_id
 WHERE t.game_id=$1

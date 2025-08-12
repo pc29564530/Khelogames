@@ -40,7 +40,7 @@ SELECT DISTINCT
         WHEN m.stage = 'Group' AND g.name = 'football' THEN fg.group_id
         ELSE NULL
     END AS group_id,
-	t1.id AS home_team_id
+	t1.id AS home_team_id,
 	t1.public_id AS home_team_public_id,
 	t1.user_id AS home_team_user_id,
     t1.name AS home_team_name,
@@ -67,8 +67,8 @@ SELECT DISTINCT
     t2.player_count AS away_team_player_count,
     t1.game_id AS away_game_id
 FROM matches m
-JOIN teams AS t1 ON m.home_team_id = t1.id
-JOIN teams AS t2 ON m.away_team_id = t2.id
+LEFT JOIN teams AS t1 ON m.home_team_id = t1.id
+LEFT JOIN teams AS t2 ON m.away_team_id = t2.id
 JOIN games AS g ON g.id = t1.game_id
 LEFT JOIN cricket_groups cg ON cg.team_id = m.home_team_id OR cg.team_id = m.away_team_id
 LEFT JOIN football_groups fg ON fg.team_id = m.home_team_id OR fg.team_id = m.away_team_id
