@@ -146,12 +146,12 @@ const getMatchesByTeam = `
 				'name', t.name,
 				'slug', t.slug,
 				'country', t.country,
-				'status_code', t.status_code,
+				'status', t.status,
 				'level', t.level,
 				'start_timestamp', t.start_timestamp,
 				'game_id', t.game_id,
 				'group_count', t.group_count,
-				'max_group_team', t.max_group_team,
+				'max_group_team', t.max_group_teams,
 				'stage', t.stage,
 				'has_knockout', t.has_knockout
 			)
