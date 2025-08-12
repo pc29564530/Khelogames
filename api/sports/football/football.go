@@ -44,19 +44,21 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 		var hScore map[string]interface{}
 		if homeScore != emptyScore {
 			hScore = map[string]interface{}{
-				"id":         homeScore.ID,
-				"score":      homeScore.Goals,
-				"firstHalf":  homeScore.FirstHalf,
-				"secondHalf": homeScore.SecondHalf,
+				"public_id":        homeScore.PublicID,
+				"firstHalf":        homeScore.FirstHalf,
+				"secondHalf":       homeScore.SecondHalf,
+				"goals":            homeScore.Goals,
+				"penalty_shootout": homeScore.PenaltyShootOut,
 			}
 		}
 		var aScore map[string]interface{}
 		if awayScore != emptyScore {
 			aScore = map[string]interface{}{
-				"id":         awayScore.ID,
-				"score":      awayScore.Goals,
-				"firstHalf":  awayScore.FirstHalf,
-				"secondHalf": awayScore.SecondHalf,
+				"public_id":        awayScore.PublicID,
+				"firstHalf":        awayScore.FirstHalf,
+				"secondHalf":       awayScore.SecondHalf,
+				"goals":            awayScore.Goals,
+				"penalty_shootout": awayScore.PenaltyShootOut,
 			}
 		}
 
@@ -73,6 +75,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			"awayScore":       aScore,
 			"startTimeStamp":  match.StartTimestamp,
 			"endTimestamp":    match.EndTimestamp,
+			"type":            match.Type,
 			"status_code":     match.StatusCode,
 			"game":            game,
 			"result":          match.Result,

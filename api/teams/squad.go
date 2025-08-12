@@ -10,8 +10,8 @@ import (
 )
 
 type addPlayerToTeamRequest struct {
-	PlayerPublicID string `json:"player_public_id"`
 	TeamPublicID   string `json:"team_public_id"`
+	PlayerPublicID string `json:"player_public_id"`
 	JoinDate       string `json:"join_date"`
 }
 
@@ -82,11 +82,11 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 
 		members, err := s.store.AddTeamPlayers(ctx, arg)
 		if err != nil {
-			s.logger.Error("Failed to add club member: ", err)
+			s.logger.Error("Failed to add team member: ", err)
 			ctx.JSON(http.StatusNotFound, err)
 			return
 		}
-		s.logger.Info("successfully added member to the club")
+		s.logger.Info("successfully added member to the team")
 		ctx.JSON(http.StatusAccepted, members)
 	}
 }
@@ -115,26 +115,9 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
+	s.logger.Info("successfully get team member")
 
-	var playerList []map[string]interface{}
-	for _, player := range players {
-		playerData := map[string]interface{}{
-			"id":          player.ID,
-			"public_id":   player.PublicID,
-			"player_name": player.PlayerName,
-			"slug":        player.Slug,
-			"short_name":  player.ShortName,
-			"position":    player.Positions,
-			"country":     player.Country,
-			"media_url":   player.MediaUrl,
-			"game_id":     player.GameID,
-		}
-		playerList = append(playerList, playerData)
-	}
-
-	s.logger.Info("successfully get club member")
-
-	ctx.JSON(http.StatusAccepted, playerList)
+	ctx.JSON(http.StatusAccepted, players)
 	return
 }
 

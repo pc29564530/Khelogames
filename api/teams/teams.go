@@ -1,7 +1,6 @@
 package teams
 
 import (
-	"encoding/json"
 	db "khelogames/database"
 	"khelogames/pkg"
 	"khelogames/token"
@@ -136,33 +135,7 @@ func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 		return
 	}
 
-	var result map[string]interface{}
-	var teamData []map[string]interface{}
-	var gameDetail map[string]interface{}
-
-	for _, row := range rows {
-		var teamDetails map[string]interface{}
-		err := json.Unmarshal(row.TeamData, &teamDetails)
-		if err != nil {
-			s.logger.Error("Failed to unmarshal team data: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process team data"})
-			return
-		}
-
-		teamData = append(teamData, teamDetails)
-		gameDetail = map[string]interface{}{
-			"id":          row.ID,
-			"name":        row.Name,
-			"min_players": row.MinPlayers,
-		}
-	}
-
-	result = map[string]interface{}{
-		"game":  gameDetail,
-		"teams": teamData,
-	}
-
-	ctx.JSON(http.StatusAccepted, result)
+	ctx.JSON(http.StatusAccepted, rows)
 }
 
 type getTeamByPlayerRequest struct {
@@ -229,25 +202,10 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetPlayerByTeam(ctx, teamPublicID)
+	players, err := s.store.GetPlayerByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get club by sport: ", err)
 	}
-	var teamDetails []map[string]interface{}
-	for _, player := range response {
 
-		teamDetail := map[string]interface{}{
-			"id":         player.ID,
-			"name":       player.PlayerName,
-			"slug":       player.Slug,
-			"short_name": player.ShortName,
-			"position":   player.Positions,
-			"country":    player.Country,
-			"media_url":  player.MediaUrl,
-			"game_id":    player.GameID,
-		}
-		teamDetails = append(teamDetails, teamDetail)
-
-	}
-	ctx.JSON(http.StatusAccepted, teamDetails)
+	ctx.JSON(http.StatusAccepted, players)
 }

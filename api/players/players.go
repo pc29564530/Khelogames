@@ -7,7 +7,6 @@ import (
 	"khelogames/token"
 	"khelogames/util"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -91,7 +90,7 @@ func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.GetPlayerByPublicID(ctx, playerPublicID)
+	response, err := s.store.GetPlayer(ctx, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
 		ctx.JSON(http.StatusNoContent, err)
@@ -135,14 +134,17 @@ func (s *PlayerServer) GetPlayerByCountry(ctx *gin.Context) {
 }
 
 func (s *PlayerServer) GetPlayersBySportFunc(ctx *gin.Context) {
-	gameIDString := ctx.Query("game_id")
-	gameID, err := strconv.ParseInt(gameIDString, 10, 64)
+	var req struct {
+		GameID int32 `uri:"game_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to parse game id: ", err)
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	response, err := s.store.GetPlayersBySport(ctx, int32(gameID))
+	response, err := s.store.GetPlayersBySport(ctx, req.GameID)
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
 		ctx.JSON(http.StatusNoContent, err)

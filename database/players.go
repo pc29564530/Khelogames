@@ -50,7 +50,7 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 
 // Existing method - gets player by user's public ID
 const getPlayer = `
-SELECT p.id, p.public_id, p.user_id, p.name, p.slug, p.short_name, p.media_url, p.positions, p.country, p.game_id
+SELECT p.id, p.public_id, p.user_id, p.game_id, p.name, p.slug, p.short_name, p.media_url, p.positions, p.country, p.created_at, p.updated_at
 FROM players p
 JOIN users AS u ON u.id = p.user_id
 WHERE u.public_id=$1
@@ -229,25 +229,27 @@ func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) ([]models
 const newPlayer = `
 WITH userID AS (
 	SELECT * FROM users
+	WHERE public_id = $1
 )
 INSERT INTO players (
+	user_id,
     game_id,
     name,
     slug,
     short_name,
     media_url,
     positions,
-    country,
+    country
 )
 SELECT 
 	userID.id,
-	$1,
 	$2,
 	$3,
 	$4,
 	$5,
 	$6,
-	$7
+	$7,
+	$8
 FROM userID
 RETURNING *
 `

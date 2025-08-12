@@ -19,17 +19,22 @@ func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (models
 		&i.ID,
 		&i.PublicID,
 		&i.UserID,
+		&i.GameID,
 		&i.Name,
 		&i.Slug,
+		&i.Description,
 		&i.Country,
 		&i.Status,
+		&i.Season,
 		&i.Level,
 		&i.StartTimestamp,
-		&i.GameID,
 		&i.GroupCount,
 		&i.MaxGroupTeam,
 		&i.Stage,
 		&i.HasKnockout,
+		&i.IsPublic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -46,17 +51,22 @@ func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (models.Tourn
 		&i.ID,
 		&i.PublicID,
 		&i.UserID,
+		&i.GameID,
 		&i.Name,
 		&i.Slug,
+		&i.Description,
 		&i.Country,
 		&i.Status,
+		&i.Season,
 		&i.Level,
 		&i.StartTimestamp,
-		&i.GameID,
 		&i.GroupCount,
 		&i.MaxGroupTeam,
 		&i.Stage,
 		&i.HasKnockout,
+		&i.IsPublic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -78,17 +88,22 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 			&i.ID,
 			&i.PublicID,
 			&i.UserID,
+			&i.GameID,
 			&i.Name,
 			&i.Slug,
+			&i.Description,
 			&i.Country,
 			&i.Status,
+			&i.Season,
 			&i.Level,
 			&i.StartTimestamp,
-			&i.GameID,
 			&i.GroupCount,
 			&i.MaxGroupTeam,
 			&i.Stage,
 			&i.HasKnockout,
+			&i.IsPublic,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -121,17 +136,22 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level
 			&i.ID,
 			&i.PublicID,
 			&i.UserID,
+			&i.GameID,
 			&i.Name,
 			&i.Slug,
+			&i.Description,
 			&i.Country,
 			&i.Status,
+			&i.Season,
 			&i.Level,
 			&i.StartTimestamp,
-			&i.GameID,
 			&i.GroupCount,
 			&i.MaxGroupTeam,
 			&i.Stage,
 			&i.HasKnockout,
+			&i.IsPublic,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -148,7 +168,7 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level
 
 const getTournamentsBySport = `
 SELECT 
-    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_team, 'stage', t.stage, 'has_knockout', t.has_knockout) AS tournament_data
+    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status', t.status, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_team, 'stage', t.stage, 'has_knockout', t.has_knockout) AS tournament_data
 FROM tournaments t
 JOIN games AS g ON g.id = t.game_id
 WHERE t.game_id=$1
@@ -197,15 +217,18 @@ INSERT INTO tournaments (
 	user_id,
     name,
     slug,
+	description,
     country,
     status,
+	season,
     level,
     start_timestamp,
     game_id,
 	group_count,
 	max_group_teams,
 	stage,
-	has_knockout
+	has_knockout,
+	is_public
 ) 
 SELECT 
 	userID.id,
@@ -219,7 +242,10 @@ SELECT
 	$9,
 	$10,
 	$11,
-	$12
+	$12,
+	$13,
+	$14,
+	$15
 FROM userID	
 RETURNING *
 `
@@ -228,8 +254,10 @@ type NewTournamentParams struct {
 	UserPublicID   uuid.UUID `json:"user_public_id"`
 	Name           string    `json:"name"`
 	Slug           string    `json:"slug"`
+	Description    string    `json:"description"`
 	Country        string    `json:"country"`
 	Status         string    `json:"status"`
+	Season         int       `json:"season"`
 	Level          string    `json:"level"`
 	StartTimestamp int64     `json:"start_timestamp"`
 	GameID         *int64    `json:"game_id"`
@@ -237,6 +265,7 @@ type NewTournamentParams struct {
 	MaxGroupTeams  *int32    `json:"max_group_teams"`
 	Stage          string    `json:"stage"`
 	HasKnockout    bool      `json:"has_knockout"`
+	IsPublic       bool      `json:"is_public"`
 }
 
 func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (models.Tournament, error) {
@@ -244,8 +273,10 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		arg.UserPublicID,
 		arg.Name,
 		arg.Slug,
+		arg.Description,
 		arg.Country,
 		arg.Status,
+		arg.Season,
 		arg.Level,
 		arg.StartTimestamp,
 		arg.GameID,
@@ -253,23 +284,29 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		arg.MaxGroupTeams,
 		arg.Stage,
 		arg.HasKnockout,
+		arg.IsPublic,
 	)
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,
 		&i.UserID,
+		&i.GameID,
 		&i.Name,
 		&i.Slug,
+		&i.Description,
 		&i.Country,
 		&i.Status,
+		&i.Season,
 		&i.Level,
 		&i.StartTimestamp,
-		&i.GameID,
 		&i.GroupCount,
 		&i.MaxGroupTeam,
 		&i.Stage,
 		&i.HasKnockout,
+		&i.IsPublic,
+		&i.UpdatedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -330,17 +367,24 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 	var i models.Tournament
 	err := row.Scan(
 		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.GameID,
 		&i.Name,
 		&i.Slug,
+		&i.Description,
 		&i.Country,
 		&i.Status,
+		&i.Season,
 		&i.Level,
 		&i.StartTimestamp,
-		&i.GameID,
 		&i.GroupCount,
 		&i.MaxGroupTeam,
 		&i.Stage,
 		&i.HasKnockout,
+		&i.IsPublic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

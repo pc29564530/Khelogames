@@ -63,8 +63,10 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		UserPublicID:   authPayload.PublicID,
 		Name:           req.Name,
 		Slug:           slug,
+		Description:    "",
 		Country:        req.Country,
 		Status:         req.Status,
+		Season:         1,
 		Level:          req.Level,
 		StartTimestamp: startTimeStamp,
 		GameID:         req.GameID,
@@ -72,6 +74,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		MaxGroupTeams:  req.MaxGroupTeams,
 		Stage:          req.Stage,
 		HasKnockout:    req.HasKnockout,
+		IsPublic:       true,
 	}
 
 	newTournament, err := s.store.NewTournament(ctx, arg)

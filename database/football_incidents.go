@@ -126,8 +126,8 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		&i.IncidentType,
 		&i.IncidentTime,
 		&i.Description,
-		&i.CreatedAt,
 		&i.PenaltyShootoutScored,
+		&i.CreatedAt,
 	)
 	return i, err
 }

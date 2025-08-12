@@ -29,7 +29,7 @@ SELECT
 	$3,
 	$4
 FROM resolve_ids ri
-RETURING *;
+RETURNING *
 `
 
 type AddTeamPlayersParams struct {
@@ -296,51 +296,39 @@ func (q *Queries) GetMatchByTeam(ctx context.Context, teamPublicID uuid.UUID) ([
 }
 
 const getPlayerByTeam = `
-SELECT 
-   p.id AS player_id
-   p.public_id
-  tp.team_id, 
-  tp.player_id,
-  p.user_id,
-  tp.join_date, 
-  tp.leave_date, 
-  p.id AS player_id,
-  p.slug, 
-  p.short_name, 
-  p.media_url, 
-  p.positions, 
-  p.country, 
-  p.player_name, 
-  p.game_id
+SELECT JSON_BUILD_OBJECT(
+		'public_id', p.public_id,
+		'user_id', p.user_id,
+		'name', p.name,
+		'slug', p.slug,
+		'short_name', p.short_name,
+		'media_url', p.media_url,
+		'positions', p.positions,
+		'country', p.country,
+		'game', p.game_id,
+		'join_date', tp.join_date
+	)
 FROM team_players tp
 JOIN players p ON tp.player_id = p.id
-JOIN teams t ON t.id = p.team_id
+JOIN teams t ON t.id = tp.team_id
 WHERE t.public_id = $1 AND tp.leave_date IS NULL;
 `
 
-func (q *Queries) GetPlayerByTeam(ctx context.Context, teamPublicID uuid.UUID) ([]models.GetPlayerByTeam, error) {
+func (q *Queries) GetPlayerByTeam(ctx context.Context, teamPublicID uuid.UUID) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getPlayerByTeam, teamPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.GetPlayerByTeam
+	var items []map[string]interface{}
 	for rows.Next() {
-		var i models.GetPlayerByTeam
-		if err := rows.Scan(
-			&i.TeamID,
-			&i.PlayerID,
-			&i.JoinDate,
-			&i.LeaveDate,
-			&i.ID,
-			&i.Slug,
-			&i.ShortName,
-			&i.MediaUrl,
-			&i.Positions,
-			&i.Country,
-			&i.PlayerName,
-			&i.GameID,
-		); err != nil {
+		var i map[string]interface{}
+		var jsonByte []byte
+		if err := rows.Scan(&jsonByte); err != nil {
+			return nil, err
+		}
+		err := json.Unmarshal(jsonByte, &i)
+		if err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -524,35 +512,27 @@ func (q *Queries) GetTeams(ctx context.Context) ([]models.Team, error) {
 }
 
 const getTeamsBySport = `
-	SELECT 
-		g.id, g.name, g.min_players, teams, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'admin', t.admin, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id) AS team_data
+	SELECT  JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id)
 	FROM teams t
 	JOIN games AS g ON g.id = t.game_id
 	WHERE t.game_id=$1
 `
 
-type GetTeamsBySportRow struct {
-	ID         int64           `json:"id"`
-	Name       string          `json:"name"`
-	MinPlayers int32           `json:"min_players"`
-	TeamData   json.RawMessage `json:"team_data"`
-}
-
-func (q *Queries) GetTeamsBySport(ctx context.Context, gameID int64) ([]GetTeamsBySportRow, error) {
+func (q *Queries) GetTeamsBySport(ctx context.Context, gameID int64) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getTeamsBySport, gameID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetTeamsBySportRow
+	var items []map[string]interface{}
 	for rows.Next() {
-		var i GetTeamsBySportRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.MinPlayers,
-			&i.TeamData,
-		); err != nil {
+		var i map[string]interface{}
+		var jsonByte []byte
+		if err := rows.Scan(&jsonByte); err != nil {
+			return nil, err
+		}
+		err := json.Unmarshal(jsonByte, &i)
+		if err != nil {
 			return nil, err
 		}
 		items = append(items, i)
