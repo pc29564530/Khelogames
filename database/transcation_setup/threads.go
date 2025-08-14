@@ -55,3 +55,18 @@ func (store *SQLStore) CreateLikeTx(ctx context.Context, userPublicID uuid.UUID,
 	})
 	return likeThread, err
 }
+
+func (store *SQLStore) UpdateThreadLikeTx(ctx context.Context, threadPublicID uuid.UUID) (models.Thread, error) {
+	var thread models.Thread
+	err := store.execTx(ctx, func(q *database.Queries) error {
+		var err error
+
+		thread, err = store.UpdateThreadLike(ctx, threadPublicID)
+		if err != nil {
+			store.logger.Error("Failed to update like: ", err)
+			return err
+		}
+		return err
+	})
+	return thread, err
+}
