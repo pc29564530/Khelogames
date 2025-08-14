@@ -10,7 +10,7 @@ import (
 
 type FootballPlayerStat struct {
 	PlayerID   int64  `json:"player_id"`
-	PlayerName string `json:"name"`
+	PlayerName string `json:"player_name"`
 	TeamName   string `json:"team_name"`
 	StatValue  int    `json:"stat_value"`
 }

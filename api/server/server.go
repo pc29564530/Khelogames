@@ -172,8 +172,8 @@ func NewServer(config util.Config,
 	// sportRouter.POST("/addFootballGoalByPlayer", footballServer.UpdateFootballMatchScoreFunc)
 	sportRouter.GET("/getFootballStanding/:tournament_public_id", tournamentServer.GetFootballStandingFunc)
 	sportRouter.GET("/getCricketStanding/:tournament_public_id", tournamentServer.GetCricketStandingFunc)
-	sportRouter.PUT("/updateFootballStanding", tournamentServer.UpdateFootballStandingFunc)
-	sportRouter.PUT("/updateCricketStanding", tournamentServer.UpdateCricketStandingFunc)
+	// sportRouter.PUT("/updateFootballStanding", tournamentServer.UpdateFootballStandingFunc)
+	// sportRouter.PUT("/updateCricketStanding", tournamentServer.UpdateCricketStandingFunc)
 	//sportRouter.PUT("/updateTournamentDate/:tournament_public_id", tournamentServer.UpdateTournamentDateFunc)
 
 	sportRouter.POST("/createTournamentStanding", tournamentServer.CreateTournamentStandingFunc)
