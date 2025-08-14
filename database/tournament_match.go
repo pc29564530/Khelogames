@@ -371,8 +371,8 @@ type UpdateMatchStatusParams struct {
 	StatusCode string    `json:"status_code"`
 }
 
-func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID, startCode string) (models.Match, error) {
-	row := q.db.QueryRowContext(ctx, updateMatchStatus, matchPublicID, startCode)
+func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID, status string) (models.Match, error) {
+	row := q.db.QueryRowContext(ctx, updateMatchStatus, matchPublicID, status)
 	var i models.Match
 	err := row.Scan(
 		&i.ID,

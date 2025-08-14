@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"khelogames/database/models"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -872,7 +871,7 @@ JOIN update_bowler ubl ON ub.match_id = ubl.match_id AND ub.inning_number= ubl.i
 JOIN update_inning_score uis ON ub.match_id = uis.match_id AND ub.inning_number= uis.inning_number
 `
 
-func (q *Queries) UpdateNoBallsRuns(ctx *gin.Context, matchPublicID, bowlerPublicID, battingTeamPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
+func (q *Queries) UpdateNoBallsRuns(ctx context.Context, matchPublicID, bowlerPublicID, battingTeamPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
 	var bowler models.BowlerScore
 	var batsman models.BatsmanScore
 	var inningScore models.CricketScore

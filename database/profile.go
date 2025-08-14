@@ -122,7 +122,7 @@ type CreateProfileParams struct {
 	Location  string `json:"location"`
 }
 
-func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (models.UserProfiles, error) {
+func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (*models.UserProfiles, error) {
 	row := q.db.QueryRowContext(ctx, createProfile,
 		arg.UserID,
 		arg.Bio,
@@ -140,7 +140,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (m
 		&profile.CreatedAt,
 		&profile.UpdatedAt,
 	)
-	return profile, err
+	return &profile, err
 }
 
 type UpdateUserParams struct {

@@ -45,7 +45,7 @@ const createEmailSignUp = `
 	) RETURNING *;
 `
 
-func (q *Queries) CreateEmailSignUp(ctx context.Context, fullName, username, email, hashPassword string) (models.Users, error) {
+func (q *Queries) CreateEmailSignUp(ctx context.Context, fullName, username, email, hashPassword string) (*models.Users, error) {
 	var users models.Users
 	row := q.db.QueryRowContext(ctx, createEmailSignUp, fullName, username, email, hashPassword)
 	err := row.Scan(
@@ -65,5 +65,5 @@ func (q *Queries) CreateEmailSignUp(ctx context.Context, fullName, username, ema
 	if err != nil {
 		log.Printf("Failed to create gmail signup: %v", err)
 	}
-	return users, nil
+	return &users, nil
 }
