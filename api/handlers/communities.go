@@ -16,7 +16,6 @@ import (
 type createCommunitiesRequest struct {
 	CommunityName string `json:"communityName"`
 	Description   string `json:"description"`
-	CommunityType string `json:"communityType"`
 	AvatarUrl     string `json:"avatar_url"`
 	CoverImageUrl string `json:"cover_image_url"`
 }
@@ -42,7 +41,6 @@ func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 		Name:          req.CommunityName,
 		Slug:          utils.GenerateSlug(req.CommunityName),
 		Description:   req.Description,
-		CommunityType: req.CommunityType,
 		AvatarUrl:     req.AvatarUrl,
 		CoverImageUrl: req.CoverImageUrl,
 	}

@@ -17,7 +17,6 @@ INSERT INTO communities (
     name,
 	slug,
     description,
-    community_type,
 	is_active,
 	avatar_url,
 	cover_image_url,
@@ -26,7 +25,6 @@ INSERT INTO communities (
 ) 
 SELECT
 	userID.id,
-	$1,
 	$2,
 	$3,
 	$4,
@@ -44,7 +42,6 @@ type CreateCommunityParams struct {
 	Name          string    `json:"name"`
 	Slug          string    `json:"slug"`
 	Description   string    `json:"description"`
-	CommunityType string    `json:"community_type"`
 	AvatarUrl     string    `json:"avatar_url"`
 	CoverImageUrl string    `json:"cover_image_url"`
 }
@@ -55,7 +52,6 @@ func (q *Queries) CreateCommunity(ctx context.Context, arg CreateCommunityParams
 		arg.Name,
 		arg.Slug,
 		arg.Description,
-		arg.CommunityType,
 		arg.AvatarUrl,
 		arg.CoverImageUrl,
 	)
