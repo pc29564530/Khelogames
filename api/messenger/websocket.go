@@ -72,8 +72,6 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 	}
 	defer conn.Close()
 
-	h.logger.Debug("upgrade the websocket: ", conn)
-
 	h.mutex.Lock()
 	h.clients[conn] = true
 	h.mutex.Unlock()
@@ -129,10 +127,14 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 		defer tx.Rollback()
 
 		authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
+		receiverPublicID, err := uuid.Parse(message["receiver_public_id"].(string))
+		if err != nil {
+			h.logger.Error("Failed to parse to uuid: ", err)
+			return
+		}
 		arg := db.CreateNewMessageParams{
 			SenderID:   authToken.PublicID,
-			ReceiverID: message["receiver_public_id"].(uuid.UUID),
+			ReceiverID: receiverPublicID,
 			Content:    message["content"].(string),
 			MediaUrl:   message["media_url"].(string),
 			MediaType:  message["media_type"].(string),

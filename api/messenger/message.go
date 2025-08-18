@@ -59,16 +59,16 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 
 func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	messageUserName, err := s.store.GetUserByMessageSend(ctx, authPayload.PublicID)
+	messageUser, err := s.store.GetUserByMessageSend(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get user by message send: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
 
-	s.logger.Debug("get username by message sent: ", messageUserName)
+	s.logger.Debug("Get message by user: ", messageUser)
 
-	ctx.JSON(http.StatusAccepted, messageUserName)
+	ctx.JSON(http.StatusAccepted, messageUser)
 	return
 }
 
