@@ -250,7 +250,7 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transaction: ", err)
 	}
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"current_bowler": prevBowler,
@@ -662,7 +662,7 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin transcation: ", err)
+		s.logger.Error("Failed to begin transaction: ", err)
 		return
 	}
 
@@ -785,7 +785,7 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transaction: ", err)
 		return
 	}
 }
@@ -837,7 +837,7 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin transcation: ", err)
+		s.logger.Error("Failed to begin transaction: ", err)
 		return
 	}
 
@@ -963,7 +963,7 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transaction: ", err)
 		return
 	}
 }
@@ -1029,7 +1029,7 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("failed to begin transcation: ", err)
+		s.logger.Error("failed to begin transaction: ", err)
 		return
 	}
 
@@ -1203,7 +1203,7 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("failed to commit transcation: ", err)
+		s.logger.Error("failed to commit transaction: ", err)
 		return
 	}
 
@@ -1472,7 +1472,7 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 	}
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transaction: ", err)
 	}
 
 	nextPlayerData, err := s.store.GetPlayerByPublicID(ctx, nextBowlerPublicID)

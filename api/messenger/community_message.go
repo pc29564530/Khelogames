@@ -91,7 +91,7 @@ func (s *MessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
 func (s *MessageServer) GetCommunityByMessageFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to get community by message")
 
-	authPayload := ctx.MustGet(pkg.AuthorizationHeaderKey).(*token.Payload)
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	response, err := s.store.GetCommunityByMessage(ctx, authPayload.PublicID)
 	if err != nil {

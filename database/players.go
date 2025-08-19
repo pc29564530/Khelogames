@@ -3,10 +3,46 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
 )
+
+const getPlayerByProfilePublicID = `
+SELECT p.id, p.public_id, p.user_id, p.game_id, p.name, p.slug, p.short_name, p.media_url, p.positions, p.country, p.created_at, p.updated_at
+FROM players p
+JOIN user_profiles AS up ON up.user_id = p.user_id
+JOIN users AS u ON u.id = p.user_id
+WHERE up.public_id=$1
+`
+
+func (q *Queries) GetPlayerByProfile(ctx context.Context, profilePublicID uuid.UUID) (*models.Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerByProfilePublicID, profilePublicID)
+	var i models.Player
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.GameID,
+		&i.Name,
+		&i.Slug,
+		&i.ShortName,
+		&i.MediaUrl,
+		&i.Positions,
+		&i.Country,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Println("Failed to find the rows: ", err)
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &i, err
+}
 
 const getAllPlayer = `
 SELECT * FROM players
@@ -48,12 +84,11 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 	return items, nil
 }
 
-// Existing method - gets player by user's public ID
+// Existing method - gets player by public ID
 const getPlayer = `
 SELECT p.id, p.public_id, p.user_id, p.game_id, p.name, p.slug, p.short_name, p.media_url, p.positions, p.country, p.created_at, p.updated_at
 FROM players p
-JOIN users AS u ON u.id = p.user_id
-WHERE u.public_id=$1
+WHERE p.public_id=$1
 `
 
 func (q *Queries) GetPlayer(ctx context.Context, userPublicID uuid.UUID) (*models.Player, error) {

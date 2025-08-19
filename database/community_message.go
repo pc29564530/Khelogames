@@ -87,7 +87,7 @@ WHERE c.id IN (
 `
 
 func (q *Queries) GetCommunityByMessage(ctx context.Context, userPublicID uuid.UUID) ([]models.Communities, error) {
-	rows, err := q.db.QueryContext(ctx, getCommunityByMessage)
+	rows, err := q.db.QueryContext(ctx, getCommunityByMessage, userPublicID)
 	if err != nil {
 		return nil, err
 	}

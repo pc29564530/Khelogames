@@ -23,7 +23,7 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin the transcation: ", err)
+		s.logger.Error("Failed to begin the transaction: ", err)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transaction: ", err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin the transcation: ", err)
+		s.logger.Error("Failed to begin the transaction: ", err)
 		return
 	}
 

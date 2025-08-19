@@ -14,23 +14,22 @@ WITH userID AS (
 	SELECT * FROM users WHERE public_id = $1
 ),
 targetUserID AS (
-	SELECT * FROM users WHERE public_id = $2
+	SELECT * FROM user_profiles WHERE public_id = $2
 )
-
 INSERT INTO users_connections (
-    $1,
-    $2
+    user_id,
+    target_user_id
 ) 
 SELECT
 	userID.id,
-	targetUserID.id
+	targetUserID.user_id
 FROM userID, targetUserID
 RETURNING *;
 `
 
 // CreateUserConnections
-func (q *Queries) CreateUserConnections(ctx context.Context, userID, targetUserID uuid.UUID) (models.UsersConnections, error) {
-	row := q.db.QueryRowContext(ctx, createUserConnectionQuery, userID, targetUserID)
+func (q *Queries) CreateUserConnections(ctx context.Context, userPublicID, targetPublicID uuid.UUID) (models.UsersConnections, error) {
+	row := q.db.QueryRowContext(ctx, createUserConnectionQuery, userPublicID, targetPublicID)
 	var i models.UsersConnections
 	err := row.Scan(
 		&i.UserID,
@@ -58,19 +57,20 @@ func (q *Queries) DeleteUsersConnections(ctx context.Context, userID, targetUser
 
 const getAllFollower = `
 SELECT 
-	JOIN_BUILD_OBJECT(
-		'user_public_id', tu.public_id,
-			'profile', JOSN_BUILD_OBJECT(
-			'public_id', up.public_id,
-			'username', tu.username,
-			'full_name', tu.full_name,
-			'avatar_url', up.avatar_url,
-			)
-	)
+    JSON_BUILD_OBJECT(
+        'user_public_id', tu.public_id,
+        'profile', JSON_BUILD_OBJECT(
+            'id', up.id,
+            'public_id', up.public_id,
+            'username', tu.username,
+            'full_name', tu.full_name,
+            'avatar_url', up.avatar_url
+        )
+    )
 FROM users_connections uc
-JOIN users u ON u.id = uc.users_id
-JOIN users tu ON tu.id = uc.target_user_id
-JOIN users_profile up ON up.user_id = u.id
+JOIN users u ON u.id = uc.target_user_id
+JOIN users tu ON tu.id = uc.user_id
+JOIN user_profiles up ON up.user_id = tu.id
 WHERE u.public_id = $1;
 `
 
@@ -106,21 +106,22 @@ func (q *Queries) GetAllFollower(ctx context.Context, targetPublicID uuid.UUID) 
 }
 
 const getAllFollowing = `
-	SELECT 
-		JOIN_BUILD_OBJECT(
-			'user_public_id', tu.public_id,
-			 'profile', JOSN_BUILD_OBJECT(
-			 	'public_id', up.public_id,
-				'username', tu.username,
-				'full_name', tu.full_name,
-				'avatar_url', up.avatar_url,
-			 )
-		)
-	FROM users_connections uc
-	JOIN users u ON u.id = uc.users_id
-	JOIN users tu ON tu.id = uc.target_user_id
-	JOIN users_profile up ON up.user_id = u.id
-	WHERE u.public_id = $1;
+SELECT 
+    JSON_BUILD_OBJECT(
+        'user_public_id', tu.public_id,
+        'profile', JSON_BUILD_OBJECT(
+            'id', up.id,
+            'public_id', up.public_id,
+            'username', tu.username,
+            'full_name', tu.full_name,
+            'avatar_url', up.avatar_url
+        )
+    )
+FROM users_connections uc
+JOIN users u ON u.id = uc.user_id
+JOIN users tu ON tu.id = uc.target_user_id
+JOIN user_profiles up ON up.user_id = tu.id
+WHERE u.public_id = $1;
 `
 
 func (q *Queries) GetAllFollowing(ctx context.Context, userPublicID uuid.UUID) ([]map[string]interface{}, error) {
@@ -158,7 +159,7 @@ const isFollowingCheck = `
 SELECT COUNT(*) > 0
 FROM users_connections uc
 JOIN users follower ON follower.id = uc.user_id
-JOIN users following ON following.id = uc.target_user_id
+JOIN user_profiles following ON following.user_id = uc.target_user_id
 WHERE follower.public_id = $1
   AND following.public_id = $2;
 `

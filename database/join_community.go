@@ -34,8 +34,8 @@ func (q *Queries) AddJoinCommunity(ctx context.Context, communityID, userID uuid
 
 const getCommunityByUser = `
 SELECT c.* FROM join_community jc
-JOIN communities AS c ON jc.communityID = c.id
-JOIN users AS u ON jc.userID = u.id
+JOIN communities AS c ON jc.community_id = c.id
+JOIN users AS u ON jc.user_id = u.id
 WHERE u.public_id=$1
 ORDER BY id
 `

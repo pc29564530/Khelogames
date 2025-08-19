@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -77,5 +78,25 @@ const getTournamentParticipantsQuery = `
 `
 
 func (q *Queries) GetTournamentParticipants(ctx context.Context, tournamentPublicID uuid.UUID, entityType string) ([]map[string]interface{}, error) {
-	rows, err := q.db.QueryContext(ctx, getTournamentParticipantsQuery)
+	rows, err := q.db.QueryContext(ctx, getTournamentParticipantsQuery, tournamentPublicID, entityType)
+	if err != nil {
+		return nil, err
+	}
+	var tournamentParticipants []map[string]interface{}
+	for rows.Next() {
+		var participants map[string]interface{}
+		var jsonByte []byte
+		err := rows.Scan(&jsonByte)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(jsonByte, &participants)
+		if err != nil {
+			return nil, err
+		}
+
+		tournamentParticipants = append(tournamentParticipants, participants)
+	}
+	return tournamentParticipants, nil
 }
