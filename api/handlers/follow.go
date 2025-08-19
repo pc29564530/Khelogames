@@ -40,7 +40,6 @@ func (s *HandlersServer) CreateUserConnectionsFunc(ctx *gin.Context) {
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
 	follower, err := s.store.CreateUserConnections(ctx, authPayload.PublicID, publicID)
 	if err != nil {
 		s.logger.Error("Failed to create following: ", err)
@@ -61,7 +60,7 @@ func (s *HandlersServer) GetAllFollowerFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("successfully get ", follower)
+	s.logger.Debug("successfully get follower ", follower)
 	ctx.JSON(http.StatusOK, follower)
 	return
 }
@@ -74,7 +73,7 @@ func (s *HandlersServer) GetAllFollowingFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, (err))
 		return
 	}
-	s.logger.Debug("successfully get: ", follower)
+	s.logger.Debug("successfully get following: ", follower)
 
 	ctx.JSON(http.StatusOK, follower)
 	return
@@ -150,6 +149,6 @@ func (s *HandlersServer) IsFollowingFunc(ctx *gin.Context) {
 		return
 	}
 
-	s.logger.Info("Successfully checked following status")
+	s.logger.Info("Successfully checked following status: ", isFollowing)
 	ctx.JSON(http.StatusOK, gin.H{"is_following": isFollowing})
 }

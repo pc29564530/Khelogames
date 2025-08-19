@@ -57,6 +57,29 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 }
 
+func (s *PlayerServer) GetPlayerByProfilePublicIDFunc(ctx *gin.Context) {
+	var req struct {
+		ProfilePublicID string `uri:"profile_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+	profilePublicID, err := uuid.Parse(req.ProfilePublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse to uuid: ", err)
+		return
+	}
+
+	player, err := s.store.GetPlayerByProfile(ctx, profilePublicID)
+	if err != nil {
+		s.logger.Error("Failed to get player profile: ", err)
+		return
+	}
+	ctx.JSON(http.StatusAccepted, player)
+}
+
 func (s *PlayerServer) GetAllPlayerFunc(ctx *gin.Context) {
 
 	response, err := s.store.GetAllPlayer(ctx)
