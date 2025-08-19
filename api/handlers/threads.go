@@ -31,7 +31,7 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin transcation")
+		s.logger.Error("Failed to begin transaction")
 		return
 	}
 
@@ -77,7 +77,7 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit the transcation")
+		s.logger.Error("Failed to commit the transaction")
 		return
 	}
 

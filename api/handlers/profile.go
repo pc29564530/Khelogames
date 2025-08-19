@@ -154,7 +154,7 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin transcation: ", err)
+		s.logger.Error("Failed to begin transaction: ", err)
 		return
 	}
 
@@ -185,7 +185,7 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transaction: ", err)
 		return
 	}
 
