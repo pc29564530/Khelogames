@@ -184,6 +184,8 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateMatchResult", tournamentServer.UpdateMatchResultFunc)
 	sportRouter.PUT("/updateTournamentStatus/:tournament_public_id", tournamentServer.UpdateTournamentStatusFunc)
 	sportRouter.GET("/getMatchByMatchID/:match_public_id", handlersServer.GetMatchByMatchIDFunc)
+	sportRouter.GET("getTournamentParticipants", tournamentServer.GetTournamentParticipantsFunc)
+	sportRouter.POST("addTournamentParticipants", tournamentServer.AddTournamentParticipantsFunc)
 
 	//teams //teams database update completed
 	sportRouter.POST("/newTeams", teamsServer.AddTeam)
