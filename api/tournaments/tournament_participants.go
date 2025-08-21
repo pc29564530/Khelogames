@@ -35,6 +35,8 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 		return
 	}
 
+	var groupID *int32
+
 	participants, err := s.store.AddTournamentParticipants(ctx, tournamentPublicID, groupID, entityPublicID, req.EntityType, req.SeedNumber, req.Status)
 	if err != nil {
 		s.logger.Error("Failed to add tournament participants: ", err)
@@ -45,11 +47,10 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 
 func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
 	var req struct {
-		TournamentPublicID string `json:"tournament_public_id"`
-		EntityType         string `json:"entity_type"`
+		TournamentPublicID string `uri:"tournament_public_id"`
 	}
 
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusBadRequest, err)
@@ -62,7 +63,7 @@ func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
 		return
 	}
 
-	tournamentParticipants, err := s.store.GetTournamentParticipants(ctx, tournamentPublicID, req.EntityType)
+	tournamentParticipants, err := s.store.GetTournamentParticipants(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament participants: ", err)
 		return

@@ -342,11 +342,12 @@ type TournamentParticipants struct {
 	ID           int64     `json:"id"`
 	PublicID     uuid.UUID `json:"public_id"`
 	TournamentID int32     `json:"tournament_id"`
-	GroupID      int32     `json:"group_id"`
+	GroupID      *int32    `json:"group_id"`
 	EntityID     int32     `json:"entity_id"`   //team or player
 	EntityType   string    `json:"entity_type"` //team or player
-	SeedNumber   int       `json:"seed_number"`
+	SeedNumber   *int      `json:"seed_number"`
 	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:created_at`
 }
 
 type TeamPlayer struct {
