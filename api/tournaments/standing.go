@@ -9,9 +9,9 @@ import (
 )
 
 type createTournamentStandingRequest struct {
-	TournamentPublicID string `json:"tournament_public_id"`
 	GroupID            int32  `json:"group_id"`
 	TeamPublicID       string `json:"team_public_id"`
+	TournamentPublicID string `json:"tournament_public_id"`
 }
 
 func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
