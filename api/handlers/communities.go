@@ -27,11 +27,11 @@ func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.logger.Error("No row error: ", err)
-			ctx.JSON(http.StatusNotFound, (err))
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "No data found"})
 			return
 		}
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -49,7 +49,7 @@ func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 	communities, err := s.store.CreateCommunity(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to create community: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create community"})
 		return
 	}
 	s.logger.Debug("created community : ", communities)
@@ -88,7 +88,7 @@ func (s *HandlersServer) GetCommunityFunc(ctx *gin.Context) {
 	community, err := s.store.GetCommunity(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get community: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get community"})
 		return
 	}
 
@@ -102,7 +102,7 @@ func (s *HandlersServer) GetAllCommunitiesFunc(ctx *gin.Context) {
 	user, err := s.store.GetAllCommunities(ctx)
 	if err != nil {
 		s.logger.Error("Failed to  get communities: ", err)
-		ctx.JSON(http.StatusNotFound, (err))
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Failed to get communities"})
 		return
 	}
 	s.logger.Debug("get all community: ", user)
@@ -139,7 +139,7 @@ func (s *HandlersServer) GetCommunitiesMemberFunc(ctx *gin.Context) {
 	usersList, err := s.store.GetCommunitiesMember(ctx, communityPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get community member: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get community member"})
 		return
 	}
 	s.logger.Debug("get community member: ", usersList)
