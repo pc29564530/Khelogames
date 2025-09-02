@@ -9,18 +9,13 @@ import (
 
 const addJoinCommunity = `
 WITH communityID AS (
-	SELECT id FROM communities WHERE public_id = $1
+    SELECT * FROM communities WHERE public_id = $1
 ),
 userID AS (
-	SELECT id FROM users WHERE public_id = $2
+    SELECT * FROM users WHERE public_id = $2
 )
-INSERT INTO join_community (
-    communityID.id,
-    userID.id
-) 
-SELECT
-	$1,
-	$2
+INSERT INTO join_community (community_id, user_id)
+SELECT communityID.id, userID.id
 FROM communityID, userID
 RETURNING *;
 `
@@ -54,7 +49,9 @@ func (q *Queries) GetCommunityByUser(ctx context.Context, userPublicID uuid.UUID
 			&i.PublicID,
 			&i.UserID,
 			&i.Name,
+			&i.Slug,
 			&i.Description,
+			&i.CommunityType,
 			&i.IsActive,
 			&i.MemberCount,
 			&i.AvatarUrl,
