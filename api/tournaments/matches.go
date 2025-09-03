@@ -49,19 +49,17 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 }
 
 type createTournamentMatchRequest struct {
-	ID              int64   `json:"id"`
-	PublicID        string  `json:"public_id"`
-	TournamentID    int64   `json:"tournament_id"`
-	AwayTeamID      int64   `json:"away_team_id"`
-	HomeTeamID      int64   `json:"home_team_id"`
-	StartTimestamp  string  `json:"start_timestamp"`
-	EndTimestamp    string  `json:"end_timestamp"`
-	Type            string  `json:"type"`
-	StatusCode      string  `json:"status_code"`
-	Result          *int64  `json:"result"`
-	Stage           string  `json:"stage"`
-	KnockoutLevelID *int32  `json:"knockout_level_id"`
-	MatchFormat     *string `json:"match_format"`
+	TournamentPublicID string  `json:"tournament_public_id"`
+	AwayTeamPublicID   string  `json:"away_team_public_id"`
+	HomeTeamPublicID   string  `json:"home_team_public_id"`
+	StartTimestamp     string  `json:"start_timestamp"`
+	EndTimestamp       string  `json:"end_timestamp"`
+	Type               string  `json:"type"`
+	StatusCode         string  `json:"status_code"`
+	Result             *int64  `json:"result"`
+	Stage              string  `json:"stage"`
+	KnockoutLevelID    *int32  `json:"knockout_level_id"`
+	MatchFormat        *string `json:"match_format"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -83,6 +81,22 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	}
 
 	s.logger.Debug("bind the request: ", req)
+
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse tournament_public_id: ", err)
+		return
+	}
+	homeTeamPublicID, err := uuid.Parse(req.HomeTeamPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse home_team_public_id: ", err)
+		return
+	}
+	awayTeamPublicID, err := uuid.Parse(req.AwayTeamPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse away_team_public_id: ", err)
+		return
+	}
 
 	gameName := ctx.Param("sport")
 
@@ -113,17 +127,18 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	}
 
 	arg := db.NewMatchParams{
-		TournamentID:    req.TournamentID,
-		AwayTeamID:      req.AwayTeamID,
-		HomeTeamID:      req.HomeTeamID,
-		StartTimestamp:  startTimeStamp,
-		EndTimestamp:    endTimeStamp,
-		Type:            req.Type,
-		StatusCode:      req.StatusCode,
-		Result:          req.Result,
-		Stage:           req.Stage,
-		KnockoutLevelID: req.KnockoutLevelID,
-		MatchFormat:     &matchFormat,
+		TournamentPublicID: tournamentPublicID,
+		AwayTeamPublicID:   awayTeamPublicID,
+		HomeTeamPublicID:   homeTeamPublicID,
+		StartTimestamp:     startTimeStamp,
+		EndTimestamp:       endTimeStamp,
+		Type:               req.Type,
+		StatusCode:         req.StatusCode,
+		Result:             req.Result,
+		Stage:              req.Stage,
+		KnockoutLevelID:    req.KnockoutLevelID,
+		MatchFormat:        &matchFormat,
+		DayNumber:          nil,
 	}
 
 	s.logger.Debug("Create match params: ", arg)
@@ -137,19 +152,21 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	if gameName == "football" {
 
 		argAway := db.NewFootballScoreParams{
-			MatchID:    int32(response.ID),
-			TeamID:     int32(response.AwayTeamID),
-			FirstHalf:  0,
-			SecondHalf: 0,
-			Goals:      0,
+			MatchID:         int32(response.ID),
+			TeamID:          int32(response.AwayTeamID),
+			FirstHalf:       0,
+			SecondHalf:      0,
+			Goals:           0,
+			PenaltyShootOut: 0,
 		}
 
 		argHome := db.NewFootballScoreParams{
-			MatchID:    int32(response.HomeTeamID),
-			TeamID:     int32(response.HomeTeamID),
-			FirstHalf:  0,
-			SecondHalf: 0,
-			Goals:      0,
+			MatchID:         int32(response.ID),
+			TeamID:          int32(response.HomeTeamID),
+			FirstHalf:       0,
+			SecondHalf:      0,
+			Goals:           0,
+			PenaltyShootOut: 0,
 		}
 
 		_, err := s.store.NewFootballScore(ctx, argAway)
