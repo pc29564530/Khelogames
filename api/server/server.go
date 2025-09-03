@@ -97,7 +97,7 @@ func NewServer(config util.Config,
 		authRouter.POST("/createCommunity", handlersServer.CreateCommunitesFunc)
 		//authRouter.GET("/communities/:id", server.GetCommunitiesFunc)
 		authRouter.GET("/community/:public_id", handlersServer.GetCommunityFunc)
-		authRouter.GET("/get_all_communities", handlersServer.GetAllCommunitiesFunc)
+		authRouter.GET("/getAllCommunities", handlersServer.GetAllCommunitiesFunc)
 		authRouter.GET("/getCommunityByCommunityName/:communities_name", handlersServer.GetCommunityByCommunityNameFunc)
 		authRouter.POST("/create_thread", handlersServer.CreateThreadFunc)
 		authRouter.GET("/getThread/:public_id", handlersServer.GetThreadFunc)
