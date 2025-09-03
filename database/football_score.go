@@ -75,7 +75,7 @@ INSERT INTO football_score (
     second_half,
     goals,
 	penalty_shootout
-) VALUES ( $1, $2, $3, $4, $5)
+) VALUES ( $1, $2, $3, $4, $5, $6)
 RETURNING *
 `
 

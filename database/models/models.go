@@ -246,6 +246,7 @@ type Match struct {
 	Stage           string    `json:"stage"`
 	KnockoutLevelID *int32    `json:"KnockoutLevelID"`
 	MatchFormat     *string   `json:"MatchFormat"`
+	DayNumber       *int      `json:"DayNumber"`
 }
 
 type Message struct {
@@ -386,10 +387,10 @@ type Tournament struct {
 	GameID         int64     `json:"game_id"`
 	Name           string    `json:"name"`
 	Slug           string    `json:"slug"`
-	Description    string    `json:"description"`
+	Description    *string   `json:"description"`
 	Country        string    `json:"country"`
 	Status         string    `json:"status"`
-	Season         int       `json:"season"`
+	Season         *int      `json:"season"`
 	Level          string    `json:"level"`
 	StartTimestamp int64     `json:"start_timestamp"`
 	GroupCount     *int      `json:"group_count"`

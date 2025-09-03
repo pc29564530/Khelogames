@@ -9,20 +9,20 @@ import (
 
 const getMatchByTournamentPublicID = `
 WITH cricket_groups AS (
-    SELECT team_id, group_id
-    FROM cricket_standing
-	JOIN tournaments ON t.id = fs.tournament_id
+    SELECT cs.team_id, cs.group_id
+    FROM cricket_standing cs
+    JOIN tournaments t ON t.id = cs.tournament_id
     WHERE t.public_id = $1
 ),
 football_groups AS (
-    SELECT team_id, group_id
+    SELECT fs.team_id, fs.group_id
     FROM football_standing fs
-	JOIN tournaments ON t.id = fs.tournament_id
+    JOIN tournaments t ON t.id = fs.tournament_id
     WHERE t.public_id = $1
 )
 SELECT DISTINCT
     m.id,
-	m.public_id,
+    m.public_id,
     m.tournament_id,
     m.away_team_id,
     m.home_team_id,
@@ -32,17 +32,18 @@ SELECT DISTINCT
     m.status_code,
     m.result,
     m.stage,
-    CASE  WHEN m.stage = 'Knockout' THEN m.knockout_level_id
-		  ELSE NULL
-	END AS knockout_level_id,
+    CASE  
+        WHEN m.stage = 'Knockout' THEN m.knockout_level_id
+        ELSE NULL
+    END AS knockout_level_id,
     CASE
         WHEN m.stage = 'Group' AND g.name = 'cricket' THEN cg.group_id
         WHEN m.stage = 'Group' AND g.name = 'football' THEN fg.group_id
         ELSE NULL
     END AS group_id,
-	t1.id AS home_team_id,
-	t1.public_id AS home_team_public_id,
-	t1.user_id AS home_team_user_id,
+    t1.id AS home_team_id,
+    t1.public_id AS home_team_public_id,
+    t1.user_id AS home_team_user_id,
     t1.name AS home_team_name,
     t1.slug AS home_team_slug,
     t1.shortName AS home_team_shortName,
@@ -53,9 +54,9 @@ SELECT DISTINCT
     t1.type AS home_team_type,
     t1.player_count AS home_team_player_count,
     t1.game_id AS home_game_id,
-	t2.id AS away_team_id,
-	t2.public_id AS away_team_public_id,
-	t2.user_id AS away_team_user_id,
+    t2.id AS away_team_id,
+    t2.public_id AS away_team_public_id,
+    t2.user_id AS away_team_user_id,
     t2.name AS away_team_name,
     t2.slug AS away_team_slug,
     t2.shortName AS away_team_shortName,
@@ -65,14 +66,14 @@ SELECT DISTINCT
     t2.national AS away_team_national,
     t2.type AS away_team_type,
     t2.player_count AS away_team_player_count,
-    t1.game_id AS away_game_id
+    t2.game_id AS away_game_id
 FROM matches m
-LEFT JOIN teams AS t1 ON m.home_team_id = t1.id
-LEFT JOIN teams AS t2 ON m.away_team_id = t2.id
-JOIN games AS g ON g.id = t1.game_id
+LEFT JOIN teams t1 ON m.home_team_id = t1.id
+LEFT JOIN teams t2 ON m.away_team_id = t2.id
+JOIN games g ON g.id = t1.game_id
 LEFT JOIN cricket_groups cg ON cg.team_id = m.home_team_id OR cg.team_id = m.away_team_id
 LEFT JOIN football_groups fg ON fg.team_id = m.home_team_id OR fg.team_id = m.away_team_id
-LEFT JOIN groups AS gr ON gr.id = 
+LEFT JOIN groups gr ON gr.id = 
     CASE
         WHEN m.stage = 'Group' AND g.name = 'cricket' THEN cg.group_id
         WHEN m.stage = 'Group' AND g.name = 'football' THEN fg.group_id
@@ -262,7 +263,8 @@ INSERT INTO matches (
 	result,
 	stage,
 	knockout_level_id,
-	match_format
+	match_format,
+	day_number
 )
 SELECT 
 	tournamentID.id,
@@ -275,29 +277,31 @@ SELECT
 	$8,
 	$9,
 	$10,
-	$11
+	$11,
+	$12
 FROM tournamentID, awayTeamID, homeTeamID
 RETURNING *;`
 
 type NewMatchParams struct {
-	TournamentID    int64   `json:"tournament_id"`
-	AwayTeamID      int64   `json:"away_team_id"`
-	HomeTeamID      int64   `json:"home_team_id"`
-	StartTimestamp  int64   `json:"start_timestamp"`
-	EndTimestamp    int64   `json:"end_timestamp"`
-	Type            string  `json:"type"`
-	StatusCode      string  `json:"status_code"`
-	Result          *int64  `json:"result"`
-	Stage           string  `json:"stage"`
-	KnockoutLevelID *int32  `json:"knockout_level_id"`
-	MatchFormat     *string `json:"match_format"`
+	TournamentPublicID uuid.UUID `json:"tournament_id"`
+	AwayTeamPublicID   uuid.UUID `json:"away_team_id"`
+	HomeTeamPublicID   uuid.UUID `json:"home_team_id"`
+	StartTimestamp     int64     `json:"start_timestamp"`
+	EndTimestamp       int64     `json:"end_timestamp"`
+	Type               string    `json:"type"`
+	StatusCode         string    `json:"status_code"`
+	Result             *int64    `json:"result"`
+	Stage              string    `json:"stage"`
+	KnockoutLevelID    *int32    `json:"knockout_level_id"`
+	MatchFormat        *string   `json:"match_format"`
+	DayNumber          *int      `json:"day_number"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
 	row := q.db.QueryRowContext(ctx, newMatch,
-		arg.TournamentID,
-		arg.AwayTeamID,
-		arg.HomeTeamID,
+		arg.TournamentPublicID,
+		arg.AwayTeamPublicID,
+		arg.HomeTeamPublicID,
 		arg.StartTimestamp,
 		arg.EndTimestamp,
 		arg.Type,
@@ -306,6 +310,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		arg.Stage,
 		arg.KnockoutLevelID,
 		arg.MatchFormat,
+		arg.DayNumber,
 	)
 	var i models.Match
 	err := row.Scan(
@@ -322,6 +327,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		&i.Stage,
 		&i.KnockoutLevelID,
 		&i.MatchFormat,
+		&i.DayNumber,
 	)
 	return i, err
 }
