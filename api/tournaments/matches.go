@@ -149,41 +149,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, err)
 		return
 	}
-	if gameName == "football" {
 
-		argAway := db.NewFootballScoreParams{
-			MatchID:         int32(response.ID),
-			TeamID:          int32(response.AwayTeamID),
-			FirstHalf:       0,
-			SecondHalf:      0,
-			Goals:           0,
-			PenaltyShootOut: 0,
-		}
-
-		argHome := db.NewFootballScoreParams{
-			MatchID:         int32(response.ID),
-			TeamID:          int32(response.HomeTeamID),
-			FirstHalf:       0,
-			SecondHalf:      0,
-			Goals:           0,
-			PenaltyShootOut: 0,
-		}
-
-		_, err := s.store.NewFootballScore(ctx, argAway)
-		if err != nil {
-			s.logger.Error("Failed to add away score: ", err)
-			return
-		}
-
-		_, err = s.store.NewFootballScore(ctx, argHome)
-		if err != nil {
-			s.logger.Error("Failed to add home score: ", err)
-			return
-		}
-
-	} else if gameName == "cricket" {
-
-	}
 	s.logger.Debug("Successfully create match: ", response)
 	s.logger.Info("Successfully create match")
 
