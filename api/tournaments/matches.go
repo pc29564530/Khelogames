@@ -163,7 +163,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
 func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, gameID int64, s *TournamentServer) error {
 	if updatedMatchData.StatusCode == "in_progress" {
-		var penaltyShootOut int
+		var penaltyShootOut *int
 		argAway := db.NewFootballScoreParams{
 			MatchID:         int32(updatedMatchData.ID),
 			TeamID:          int32(updatedMatchData.AwayTeamID),

@@ -183,7 +183,7 @@ type FootballScore struct {
 	FirstHalf       int32     `json:"first_half"`
 	SecondHalf      int32     `json:"second_half"`
 	Goals           int       `json:"goals"`
-	PenaltyShootOut int       `json:"penalty_shootout"`
+	PenaltyShootOut *int      `json:"penalty_shootout"`
 }
 
 type FootballStatistics struct {
