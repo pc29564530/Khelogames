@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -378,6 +379,7 @@ type UpdateMatchStatusParams struct {
 }
 
 func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID, status string) (models.Match, error) {
+	fmt.Println("Update Match Status: ", matchPublicID)
 	row := q.db.QueryRowContext(ctx, updateMatchStatus, matchPublicID, status)
 	var i models.Match
 	err := row.Scan(
@@ -394,6 +396,7 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID
 		&i.Stage,
 		&i.KnockoutLevelID,
 		&i.MatchFormat,
+		&i.DayNumber,
 	)
 	return i, err
 }
