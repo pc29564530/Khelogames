@@ -179,7 +179,7 @@ func NewServer(config util.Config,
 	sportRouter.POST("/createTournamentStanding", tournamentServer.CreateTournamentStandingFunc)
 	sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
-	sportRouter.PUT("/updateMatchStatus", tournamentServer.UpdateMatchStatusFunc)
+	sportRouter.PUT("/updateMatchStatus/:match_public_id", tournamentServer.UpdateMatchStatusFunc)
 	sportRouter.PUT("/updateMatchResult", tournamentServer.UpdateMatchResultFunc)
 	sportRouter.PUT("/updateTournamentStatus/:tournament_public_id", tournamentServer.UpdateTournamentStatusFunc)
 	sportRouter.GET("/getMatchByMatchID/:match_public_id", handlersServer.GetMatchByMatchIDFunc)
