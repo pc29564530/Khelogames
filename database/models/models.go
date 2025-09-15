@@ -260,6 +260,8 @@ type Message struct {
 	IsSeen     bool      `json:"is_seen"`
 	IsDeleted  bool      `json:"is_deleted"`
 	CreatedAt  time.Time `json:"created_at"`
+	SentAt 	   time.Time `json:"sent_at"`
+	IsDelivered bool `json:"is_delivered"`
 }
 
 // type Messagemedium struct {
