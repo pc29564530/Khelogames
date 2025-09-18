@@ -26,9 +26,9 @@ INSERT INTO cricket_standing (
     points
 )
 SELECT 
-    tournamentID.tournament_id,
+    tournamentID.id,
     $2,
-    teamID.team_id,
+    teamID.id,
     $4,
     $5,
     $6,
