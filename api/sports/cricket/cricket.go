@@ -40,7 +40,7 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
+	_, err = s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -52,8 +52,8 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 	}
 
 	arg := db.NewCricketScoreParams{
-		MatchID:           int32(match.ID),
-		TeamID:            int32(team.ID),
+		MatchPublicID:     matchPublicID,
+		TeamPublicID:      teamPublicID,
 		InningNumber:      req.InningNumber,
 		Score:             0,
 		Wickets:           0,
