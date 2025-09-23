@@ -1,7 +1,6 @@
 package cricket
 
 import (
-	"khelogames/database/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,13 +18,13 @@ type Player struct {
 	Position   string `json:"position"`
 	MediaURL   string `json:"media_url"`
 	GameID     int64  `json:"game_id"`
+	OnBench    bool `json:"on_bench"`
 }
 
 type MatchSquadRequest struct {
 	MatchPublicID string   `json:"match_public_id"`
 	TeamPublicID  string   `json:"team_public_id"`
 	Player        []Player `json:"player"`
-	OnBench       []int64  `json:"on_bench"`
 }
 
 func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
@@ -51,22 +50,17 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 		return
 	}
 
-	benchMap := make(map[int64]bool)
-	for _, onBenchID := range req.OnBench {
-		benchMap[onBenchID] = true
-	}
 	var cricketSquad []map[string]interface{}
 	for _, player := range req.Player {
-		var squad models.CricketSquad
 		var err error
-		isBench := benchMap[player.ID]
 		playerPublicID, err := uuid.Parse(player.PublicID)
 		if err != nil {
 			s.logger.Error("Invalid UUID format", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 			return
 		}
-		squad, err = s.store.AddCricketSquad(ctx, matchPublicID, teamPublicID, playerPublicID, player.Position, isBench, false)
+		
+		squad, err := s.store.AddCricketSquad(ctx, matchPublicID, teamPublicID, playerPublicID, player.Position, player.OnBench, false)
 		if err != nil {
 			s.logger.Error("Failed to add cricket squad: ", err)
 			return
@@ -91,36 +85,44 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 }
 
 func (s *CricketServer) GetCricketMatchSquadFunc(ctx *gin.Context) {
+    // var reqUri struct {
+    //     MatchPublicID string `uri:"match_public_id"`
+    // }
+    // var reqJSON struct {
+    //     TeamPublicID string `json:"team_public_id"`
+    // }
 
-	var req struct {
-		MatchPublicID string `json: "match_public_id"`
-		TeamPublicID  string `json:"team_public_id"`
-	}
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind ", err)
-		return
-	}
+    // if err := ctx.ShouldBindUri(&reqUri); err != nil {
+    //     s.logger.Error("Failed to bind URI", err)
+    //     return
+    // }
 
-	matchPublicID, err := uuid.Parse(req.MatchPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
-	}
+    // if err := ctx.ShouldBindJSON(&reqJSON); err != nil {
+    //     s.logger.Error("Failed to bind JSON", err)
+    //     return
+    // }
 
-	teamPublicID, err := uuid.Parse(req.TeamPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
-	}
+	matchPublicIDStr := ctx.Query("match_public_id")
+	teamPublicIDStr := ctx.Query("team_public_id")
 
-	cricketSquad, err := s.store.GetCricketMatchSquad(ctx, matchPublicID, teamPublicID)
-	if err != nil {
-		s.logger.Error("Failed to get cricket squad: ", err)
-		return
-	}
+    matchPublicID, err := uuid.Parse(matchPublicIDStr)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID"})
+        return
+    }
 
-	ctx.JSON(http.StatusAccepted, cricketSquad)
+    teamPublicID, err := uuid.Parse(teamPublicIDStr)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid team UUID"})
+        return
+    }
+
+    cricketSquad, err := s.store.GetCricketMatchSquad(ctx, matchPublicID, teamPublicID)
+    if err != nil {
+        s.logger.Error("Failed to get cricket squad", err)
+        return
+    }
+
+    ctx.JSON(http.StatusOK, cricketSquad)
 }
+
