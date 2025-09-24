@@ -64,6 +64,7 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 		MatchPublicID:      matchPublicID,
 		TeamPublicID:       teamPublicID,
 		BatsmanPublicID:    batsmanPublicID,
+		InningNumber:       req.InningNumber,
 		Position:           req.Position,
 		RunsScored:         req.RunsScored,
 		BallsFaced:         req.BallsFaced,
@@ -72,7 +73,6 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 		BattingStatus:      req.BattingStatus,
 		IsStriker:          req.IsStriker,
 		IsCurrentlyBatting: req.IsCurrentlyBatting,
-		InningNumber:       req.InningNumber,
 	}
 
 	if strickerResponse != nil {
@@ -124,8 +124,6 @@ type addCricketBallScore struct {
 	Wickets            int32  `json:"wickets"`
 	Wide               int32  `json:"wide"`
 	NoBall             int32  `json:"no_ball"`
-	BowlingStatus      bool   `json:"bowling_status"`
-	IsCurrentBowler    bool   `json:"is_current_bowler"`
 	InningNumber       int    `json:"inning_number"`
 }
 
@@ -159,11 +157,14 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		return
 	}
 
-	prevBowlerPublicID, err := uuid.Parse(req.PrevBowlerPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
+	var prevBowlerPublicID uuid.UUID
+	if req.PrevBowlerPublicID != "" {
+		prevBowlerPublicID, err = uuid.Parse(req.PrevBowlerPublicID)
+		if err != nil {
+			s.logger.Error("Invalid UUID format", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			return
+		}
 	}
 
 	tx, err := s.store.BeginTx(ctx)
@@ -196,29 +197,29 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 			"team_id":           currentBowlerResponse.TeamID,
 			"bowler_id":         currentBowlerResponse.BowlerID,
 			"runs":              currentBowlerResponse.Runs,
+			"inning_number":     currentBowlerResponse.InningNumber,
 			"ball_number":       currentBowlerResponse.BallNumber,
 			"wide":              currentBowlerResponse.Wide,
 			"no_ball":           currentBowlerResponse.NoBall,
 			"wickets":           currentBowlerResponse.Wickets,
 			"bowling_status":    currentBowlerResponse.BowlingStatus,
 			"is_current_bowler": currentBowlerResponse.IsCurrentBowler,
-			"inning_number":     currentBowlerResponse.InningNumber,
 		}
 	}
 
 	arg := db.AddCricketBallParams{
-		MatchPublicID:   matchPublicID,
-		TeamPublicID:    teamPublicID,
-		BowlerPublicID:  bowlerPublicID,
-		BallNumber:      req.BallNumber,
-		Runs:            req.Runs,
-		Wickets:         req.Wickets,
-		Wide:            req.Wide,
-		NoBall:          req.NoBall,
-		BowlingStatus:   req.BowlingStatus,
-		IsCurrentBowler: req.IsCurrentBowler,
-		InningNumber:    req.InningNumber,
+		MatchPublicID:  matchPublicID,
+		TeamPublicID:   teamPublicID,
+		BowlerPublicID: bowlerPublicID,
+		InningNumber:   req.InningNumber,
+		BallNumber:     req.BallNumber,
+		Runs:           req.Runs,
+		Wickets:        req.Wickets,
+		Wide:           req.Wide,
+		NoBall:         req.NoBall,
 	}
+
+	fmt.Println("Arg; ", arg)
 
 	response, err := s.store.AddCricketBall(ctx, arg)
 	if err != nil {
@@ -285,6 +286,15 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to get players score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(teamPlayerScore) == 0 {
+		s.logger.Warn("No players score found for match and team")
+		ctx.JSON(http.StatusOK, gin.H{
+			"battingTeam": nil,
+			"innings":     nil,
+		})
 		return
 	}
 
@@ -380,27 +390,22 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 }
 
 type getCricketBowlersRequest struct {
-	MatchPublicID string `json:"match_public_id" form:"match_id"`
-	TeamPublicID  string `json:"team_public_id" form:"team_id"`
+	MatchPublicID string `json:"match_public_id"`
+	TeamPublicID  string `json:"team_public_id"`
 }
 
 func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
-	var req getCricketBowlersRequest
-	err := ctx.ShouldBindQuery(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind : ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	matchPublicIDString := ctx.Query("match_public_id")
+	teamPublicIDString := ctx.Query("team_public_id")
 
-	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	matchPublicID, err := uuid.Parse(matchPublicIDString)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	teamPublicID, err := uuid.Parse(teamPublicIDString)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})

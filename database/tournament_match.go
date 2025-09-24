@@ -216,7 +216,10 @@ func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID
 		&i.Stage,
 		&i.KnockoutLevelID,
 		&i.MatchFormat,
+
 		&i.HomeTeamID,
+		&i.HomeTeamPublicID,
+		&i.HomeTeamUserID,
 		&i.HomeTeamName,
 		&i.HomeTeamSlug,
 		&i.HomeTeamShortname,
@@ -227,7 +230,10 @@ func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID
 		&i.HomeTeamType,
 		&i.HomeTeamPlayerCount,
 		&i.HomeGameID,
+
 		&i.AwayTeamID,
+		&i.AwayTeamPublicID,
+		&i.AwayTeamUserID,
 		&i.AwayTeamName,
 		&i.AwayTeamSlug,
 		&i.AwayTeamShortname,

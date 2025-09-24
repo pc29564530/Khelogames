@@ -157,6 +157,8 @@ func NewServer(config util.Config,
 		authRouter.POST("/createUploadChunks", handlersServer.CreateUploadMediaFunc)
 		authRouter.POST("/completedChunkUpload", handlersServer.CompletedChunkUploadFunc)
 		//authRouter.PUT("/updateThreadCommentCount/:public_id", handlersServer.UpdateThreadCommentCountFunc)
+		authRouter.GET("/getPlayerByTeam/:team_public_id", teamsServer.GetPlayersByTeamFunc)
+		authRouter.GET("/getTeamByPlayer/:player_public_id", teamsServer.GetTeamsByPlayerFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	//tournament
@@ -205,7 +207,7 @@ func NewServer(config util.Config,
 	//football
 	// sportRouter.GET("/getFootballScore", footballServer.GetFootballScore)
 	sportRouter.POST("/addFootballIncidents", footballServer.AddFootballIncidents)
-	sportRouter.GET("/getFootballIncidents/:match_public_id", footballServer.GetFootballIncidents)
+	//sportRouter.GET("/getFootballIncidents/:match_public_id", footballServer.GetFootballIncidentsFunc)
 	sportRouter.POST("/addFootballIncidentsSubs", footballServer.AddFootballIncidentsSubs)
 	// sportRouter.PUT("/updateFootballFirstHalfScore", footballServer.UpdateFootballMatchScoreFirstHalfFunc)
 	// sportRouter.PUT("/updateFootballSecondHalfScore", footballServer.UpdateFootballMatchScoreSecondHalfFunc)
@@ -231,7 +233,7 @@ func NewServer(config util.Config,
 
 	//cricket
 	sportRouter.POST("/addCricketScore", cricketServer.AddCricketScoreFunc)
-	sportRouter.POST("/addCricketToss", cricketServer.AddCricketToss)
+	sportRouter.POST("/addCricketToss", cricketServer.AddCricketTossFunc)
 	sportRouter.GET("/getCricketToss/:match_public_id", cricketServer.GetCricketTossFunc)
 	// sportRouter.PUT("/updateCricketInning", cricketServer.UpdateCricketInningsFunc)
 	sportRouter.PUT("/updateCricketEndInning", cricketServer.UpdateCricketEndInningsFunc)
