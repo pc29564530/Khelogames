@@ -395,39 +395,29 @@ func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error
 }
 
 const getTeamByPlayer = `
-SELECT t.* FROM team_players tp
+SELECT JSON_BUILD_OBJECT(
+	'id', t.id, 'public_id', t.public_id, 'name', t.name, 'slug', t.slug, 'shortname',t.shortname,
+	'media_url', t.media_url, 'national', t.national, 'country', t.country, 'join_date', tp.join_date, 'leave_date', tp.leave_date 
+) FROM team_players tp
 JOIN teams AS t ON tp.team_id=t.id
 JOIN players AS p ON tp.player_id = p.id
-WHERE p.public_id=$1
+WHERE p.public_id=$1;
 `
 
-func (q *Queries) GetTeamByPlayer(ctx context.Context, playerPublicID uuid.UUID) ([]models.GetTeamByPlayer, error) {
+func (q *Queries) GetTeamByPlayer(ctx context.Context, playerPublicID uuid.UUID) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getTeamByPlayer, playerPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.GetTeamByPlayer
+	var items []map[string]interface{}
 	for rows.Next() {
-		var i models.GetTeamByPlayer
-		if err := rows.Scan(
-			&i.ID,
-			&i.PublicID,
-			&i.TeamID,
-			&i.Name,
-			&i.Slug,
-			&i.Shortname,
-			&i.Admin,
-			&i.MediaUrl,
-			&i.Gender,
-			&i.National,
-			&i.Country,
-			&i.Type,
-			&i.PlayerCount,
-			&i.GameID,
-		); err != nil {
+		var i map[string]interface{}
+		var jsonByte []byte
+		if err := rows.Scan(&jsonByte); err != nil {
 			return nil, err
 		}
+		err = json.Unmarshal(jsonByte, &i)
 		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
@@ -442,6 +432,7 @@ func (q *Queries) GetTeamByPlayer(ctx context.Context, playerPublicID uuid.UUID)
 const getTeamPlayers = `
 SELECT tp.* FROM team_players tp
 JOIN teams AS t ON t.id = tp.team_id
+JOIN players AS p ON p.id = tp.user_id
 WHERE t.public_id=$1
 `
 
@@ -787,11 +778,12 @@ func (q *Queries) UpdateTeamName(ctx context.Context, publicID uuid.UUID, name s
 
 const removePlayerFromTeam = `
 UPDATE team_players AS tp
-SET leave_date=$3
-FROM team_player_result tpr
-JOIN teams t ON t.id = tpr.team_id
-JOIN players p ON p.id = tpr.player_id
-WHERE t.public_id=$1 AND p.public_id=$2 AND t.id = tpr.team_id
+SET leave_date = $3
+FROM teams t, players p
+WHERE t.public_id = $1
+  AND p.public_id = $2
+  AND t.id = tp.team_id
+  AND p.id = tp.player_id
 RETURNING tp.*;
 `
 

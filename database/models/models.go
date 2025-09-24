@@ -250,18 +250,18 @@ type Match struct {
 }
 
 type Message struct {
-	ID         int64     `json:"id"`
-	PublicID   uuid.UUID `json:"public_id"`
-	SenderID   int32     `json:"sender_id"`
-	ReceiverID int32     `json:"receiver_id"`
-	Content    string    `json:"content"`
-	MediaUrl   string    `json:"media_url"`
-	MediaType  string    `json:"media_type"`
-	IsSeen     bool      `json:"is_seen"`
-	IsDeleted  bool      `json:"is_deleted"`
-	CreatedAt  time.Time `json:"created_at"`
-	SentAt 	   time.Time `json:"sent_at"`
-	IsDelivered bool `json:"is_delivered"`
+	ID          int64     `json:"id"`
+	PublicID    uuid.UUID `json:"public_id"`
+	SenderID    int32     `json:"sender_id"`
+	ReceiverID  int32     `json:"receiver_id"`
+	Content     string    `json:"content"`
+	MediaUrl    string    `json:"media_url"`
+	MediaType   string    `json:"media_type"`
+	IsSeen      bool      `json:"is_seen"`
+	IsDeleted   bool      `json:"is_deleted"`
+	CreatedAt   time.Time `json:"created_at"`
+	SentAt      time.Time `json:"sent_at"`
+	IsDelivered bool      `json:"is_delivered"`
 }
 
 // type Messagemedium struct {
@@ -481,11 +481,9 @@ type GetTeamByPlayer struct {
 	PublicID    uuid.UUID `json:"public_id"`
 	TeamID      int32     `json:"team_id"`
 	PlayerID    int32     `json:"player_id"`
-	CurrentTeam string    `json:"current_team"`
 	Name        string    `json:"name"`
 	Slug        string    `json:"slug"`
 	Shortname   string    `json:"shortname"`
-	Admin       string    `json:"admin"`
 	MediaUrl    string    `json:"media_url"`
 	Gender      string    `json:"gender"`
 	National    bool      `json:"national"`
