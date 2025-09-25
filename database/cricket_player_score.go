@@ -380,7 +380,7 @@ SELECT json_build_object(
     'score', w.score,
     'batsman_player', json_build_object(
         'id', bp.id,
-        'name', bp.player_name,
+        'name', bp.name,
         'slug', bp.slug,
         'shortName', bp.short_name,
         'position', bp.positions,
@@ -388,7 +388,7 @@ SELECT json_build_object(
     ),
     'bowler_player', json_build_object(
         'id', bowp.id,
-        'name', bowp.player_name,
+        'name', bowp.name,
         'slug', bowp.slug,
         'shortName', bowp.short_name,
         'position', bowp.positions,
@@ -397,7 +397,7 @@ SELECT json_build_object(
     'fielder_player', CASE 
         WHEN w.fielder_id IS NOT NULL THEN json_build_object(
             'id', fp.id,
-            'name', fp.player_name,
+            'name', fp.name,
             'slug', fp.slug,
             'shortName', fp.short_name,
             'position', fp.positions,
@@ -1755,8 +1755,7 @@ const getCurrentBatsmanQuery = `
 				'public_id', tm.public_id,
 				'name', tm.name, 
 				'slug', tm.slug, 
-				'short_name', tm.shortname, 
-				'admin', tm.admin, 
+				'short_name', tm.shortname,
 				'media_url', tm.media_url, 
 				'gender', tm.gender, 
 				'national', tm.national, 
@@ -1768,9 +1767,9 @@ const getCurrentBatsmanQuery = `
         	'batsman', JSON_AGG(
 				JSON_BUILD_OBJECT(
 					'id', bt.id, 
-					'public_id', bt.public_id
+					'public_id', bt.public_id,
 					'batsman_id', bt.batsman_id,
-					'player', JSON_BUILD_OBJECT('id',pl.id,'public_id',pl.public_id, 'name', pl.player_name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
+					'player', JSON_BUILD_OBJECT('id',pl.id,'public_id',pl.public_id, 'name', pl.name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
 					'position', bt.position, 
 					'runs_scored', bt.runs_scored, 
 					'balls_faced', bt.balls_faced, 
@@ -1782,38 +1781,28 @@ const getCurrentBatsmanQuery = `
 					'inning_number', bt.inning_number
 				)
         	)
-    	) AS team_data
+    	)
 	FROM batsman_score bt
 	JOIN players AS pl ON pl.id = bt.batsman_id
 	JOIN teams AS tm ON tm.id = bt.team_id
 	JOIN matches AS m ON m.id = bt.match_id
-	WHERE m.public_id = $1 AND t.public_id = $2 AND bt.inning_number= $3 AND bt.is_currently_batting = true
+	WHERE m.public_id = $1 AND tm.public_id = $2 AND bt.inning_number= $3 AND bt.is_currently_batting = true
 	GROUP BY tm.id;
 `
 
 func (q *Queries) GetCurrentBatsman(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (interface{}, error) {
-	rows, err := q.db.QueryContext(ctx, getCurrentBatsmanQuery, matchPublicID, teamPublicID, inningNumber)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	defer rows.Close()
+	row := q.db.QueryRowContext(ctx, getCurrentBatsmanQuery, matchPublicID, teamPublicID, inningNumber)
 
 	var jsonBytes []byte
-	if rows.Next() {
-		if err := rows.Scan(&jsonBytes); err != nil {
-			return nil, fmt.Errorf("failed to scan json data: %w", err)
-		}
+	if err := row.Scan(&jsonBytes); err != nil {
+		return nil, fmt.Errorf("failed to scan json data: %w", err)
 	}
 
 	var currentBatsman interface{}
 
-	err = json.Unmarshal(jsonBytes, &currentBatsman)
+	err := json.Unmarshal(jsonBytes, &currentBatsman)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal batsman: ", err)
+		return nil, fmt.Errorf("Failed to unmarshal bowler: ", err)
 	}
 
 	return currentBatsman, nil
@@ -1827,8 +1816,7 @@ const getCurrentBowlerQuery = `
 				'public_id', tm.public_id,
 				'name', tm.name, 
 				'slug', tm.slug, 
-				'short_name', tm.shortname, 
-				'admin', tm.admin, 
+				'short_name', tm.shortname,
 				'media_url', tm.media_url, 
 				'gender', tm.gender, 
 				'national', tm.national, 
@@ -1837,14 +1825,14 @@ const getCurrentBowlerQuery = `
 				'player_count', tm.player_count, 
 				'game_id', tm.game_id
 			),
-        	'bowler',
+        	'bowler', JSON_AGG(
 				JSON_BUILD_OBJECT(
 					'id', bl.id, 
 					'public_id', bl.public_id,
 					'match_id', bl.match_id,
 					'team_id', bl.team_id,
 					'bowler_id', bl.bowler_id,
-					'player', JSON_BUILD_OBJECT('id',pl.id,'public_id',pl.public_id, 'name', pl.player_name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
+					'player', JSON_BUILD_OBJECT('id',pl.id,'public_id',pl.public_id, 'name', pl.name, 'slug', pl.slug, 'short_name',pl.short_name, 'country', pl.country, 'positions', pl.positions, 'media_url', pl.media_url),
 					'runs', bl.runs, 
 					'ball_number', bl.ball_number, 
 					'wickets', bl.wickets, 
@@ -1852,14 +1840,16 @@ const getCurrentBowlerQuery = `
 					'no_ball', bl.no_ball,
 					'bowling_status', bl.bowling_status,
 					'is_current_bowler', bl.is_current_bowler,
-					'inning_number', bl.inning_number,
+					'inning_number', bl.inning_number
 				)
-    	) AS team_data
+			)
+    	)
 	FROM bowler_score bl
 	JOIN matches AS m ON m.id = bl.match_id
 	JOIN players AS pl ON pl.id = bl.bowler_id
 	JOIN teams AS tm ON tm.id = bl.team_id
-	WHERE m.public_id = $1 AND t.public_id = $2 AND AND bl.inning_number= $3 AND bl.is_current_bowler = true
+	WHERE m.public_id = $1 AND tm.public_id = $2 AND bl.inning_number= $3 AND bl.is_current_bowler = true
+	GROUP BY tm.id;
 `
 
 func (q *Queries) GetCurrentBowler(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (interface{}, error) {

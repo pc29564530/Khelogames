@@ -1,7 +1,6 @@
 package cricket
 
 import (
-	"fmt"
 	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
@@ -219,8 +218,6 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		NoBall:         req.NoBall,
 	}
 
-	fmt.Println("Arg; ", arg)
-
 	response, err := s.store.AddCricketBall(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add the cricket bowler data: ", gin.H{"error": err.Error()})
@@ -320,8 +317,6 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		battingTeamId = int64(teamPlayerScore[0].TeamID)
 		bowlingTeamId = int64(match["home_team_id"].(float64))
 	}
-	fmt.Println("Batting Team ID ", battingTeamId)
-	fmt.Println("Bowling Team ID: ", bowlingTeamId)
 
 	battingTeam, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
 	if err != nil {
@@ -445,8 +440,6 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		battingTeamId = int64(match["home_team_id"].(float64))
 		bowlingTeamId = team.ID
 	}
-
-	fmt.Println("Batting Team Id: ", battingTeamId)
 
 	bowlingTeam, err := s.store.GetTeamByID(ctx, bowlingTeamId)
 	if err != nil {
