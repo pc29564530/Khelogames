@@ -722,69 +722,49 @@ func (q *Queries) ToggleCricketStricker(ctx context.Context, matchPublicID uuid.
 }
 
 const updateWideRun = `
-	WITH update_bowler AS (
+	WITH get_match AS (
+		SELECT * FROM matches WHERE public_id = $1
+	),
+	get_bowler AS (
+		SELECT * FROM players WHERE public_id = $3
+	),
+	get_team AS (
+		SELECT * FROM teams WHERE public_id = $2
+	),
+	update_bowler AS (
 		UPDATE bowler_score
 		SET 
 			wide = wide + 1, 
-			runs = runs + $4
+			runs = runs + $4 + 1
 		WHERE 
-			m.public_id = $1 
-			AND p.public_id = $2 
-			AND t.public_id = (
-				SELECT CASE 
-					WHEN home_team_id = t.user_id THEN away_team_id 
-					ELSE home_team_id 
-				END AS bowler_team_id
-				FROM matches m
-				JOIN teams t ON t.public_id = $2
-				WHERE m.public_id = $1
-			) 
+			match_id = (SELECT id FROM get_match) 
+			AND bowler_id = (SELECT id FROM get_bowler) 
 			AND is_current_bowler = true 
-			AND inning_number= $5
+			AND inning_number = $5
 		RETURNING *
 	),
 	update_inning_score AS (
 		UPDATE cricket_score
-		SET 
+		SET
 			score = score + $4 + 1
-		FROM matches m, teams t
 		WHERE 
-			m.public_id = $1
-			AND t.public_id = $2
-			AND inning_number= $5
-		RETURNING *
-	),
-	update_batsman AS (
-		UPDATE batsman_score
-		SET 
-			runs_scored = runs_scored + $4
-		FROM matches m
-		WHERE 
-			m.public_id = $1 
-			AND is_striker = true 
-			AND inning_number= $5
+			match_id = (SELECT id FROM get_match)
+			AND team_id = (SELECT id FROM get_team)
+			AND inning_number = $5
 		RETURNING *
 	)
 	SELECT 
-		ub.*, 
+		bs.*,
 		ubl.*, 
 		uis.*
-	FROM update_batsman ub
+	FROM batsman_score bs
+	JOIN update_inning_score uis
+			ON bs.match_id = uis.match_id 
+			AND bs.inning_number = uis.inning_number
 	JOIN update_bowler ubl 
-		ON ub.match_id = ubl.match_id 
-		AND ub.inning_number= ubl.inning_number
-	JOIN update_inning_score uis 
-		ON ub.match_id = uis.match_id 
-		AND ub.inning_number= uis.inning_number
-	WHERE ubl.team_id = (
-		SELECT CASE 
-			WHEN home_team_id = $3 THEN away_team_id 
-			ELSE home_team_id 
-		END AS bowler_team_id
-		FROM matches m
-		JOIN teams t ON t.id 
-		WHERE m.public_id = $1 AND t.public_id = $2
-	);
+		ON bs.match_id = ubl.match_id 
+	AND bs.inning_number = ubl.inning_number
+	WHERE bs.match_id = (SELECT id FROM get_match) AND bs.team_id = (SELECT id FROM get_team) AND bs.inning_number = $5
 `
 
 func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeamPublicID, bowlerPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
@@ -837,7 +817,6 @@ func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeam
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
 	}
-
 	return &batsman, &bowler, &inningScore, nil
 }
 

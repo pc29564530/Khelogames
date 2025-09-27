@@ -669,7 +669,7 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	batsmanResponse, bowlerResponse, inningScore, err := s.store.UpdateWideRuns(ctx, matchPublicID, bowlerPublicID, battingTeamPublicID, req.RunsScored, req.InningNumber)
+	batsmanResponse, bowlerResponse, inningScore, err := s.store.UpdateWideRuns(ctx, matchPublicID, battingTeamPublicID, bowlerPublicID, req.RunsScored, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update wide: ", err)
 		return
