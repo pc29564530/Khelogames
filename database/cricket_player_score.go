@@ -1556,57 +1556,83 @@ func (q *Queries) UpdateInningEndStatusByPublicID(ctx context.Context, matchPubl
 }
 
 const updateInningScore = `
-	WITH update_batsman AS (
-		UPDATE batsman_score
-		SET runs_scored = runs_scored + $5,
-			balls_faced = balls_faced + 1,
-			fours = fours + CASE WHEN $5 = 4 THEN 1 ELSE 0 END,
-			sixes = sixes + CASE WHEN $5 = 6 THEN 1 ELSE 0 END
-		FROM bats_score bs
-		JOIN matches m ON m.id = bs.match_id
-		JOIN teams t ON t.id = bs.team_id
-		JOIN players p ON p.id = bs.batsman_id
-		WHERE m.public_id = $1 AND t.public_id = $2 AND p.public_id = $3 AND inning_number= $6
-		RETURNING *
-	),
-	get_bowling_team AS (
-		SELECT CASE
-			WHEN m.home_team_id = $2 THEN m.away_team_id 
-				ELSE m.home_team_id 
-			END AS bowler_team_id
-		FROM matches AS m WHERE id = $1
-	),
-	update_bowler AS (
-		UPDATE bowler_score
-		SET runs = runs + $5,
-			ball_number = ball_number + 1
-		FROM bowler_score bs
-		JOIN matches m ON m.id = bs.match_id
-		JOIN players p ON p.id = bs.bowler_id
-		WHERE m.public_id = $1 AND team_id = (SELECT bowler_team_id FROM get_bowling_team)  AND p.public_id = $4 AND inning_number= $6
-		RETURNING *
-	),
-	update_inning_score AS (
-		UPDATE cricket_score cs
-		SET score = score + $5,
-			overs = overs + 1
-		FROM match_score ms
-		JOIN matches m ON m.id = ms.match_id
-		JOIN teams t ON t.id = ms.team_id
-		WHERE m.public_id = $1 AND t.public_id = $2 AND inning_number = $6
-		RETURNING *
-	)
-	SELECT 
-		ub.*, 
-		ubl.*, 
-		uis.*
-	FROM update_batsman ub
-	JOIN update_bowler ubl ON ub.match_id = ubl.match_id AND ubl.team_id =  (SELECT bowler_team_id FROM get_bowling_team)
-		AND ub.inning_number= ubl.inning_number
-	JOIN update_inning_score uis ON ub.match_id = uis.match_id AND ub.team_id = uis.team_id AND ub.inning_number= ubl.inning_number;
+	WITH get_match AS (
+    SELECT id AS match_id, home_team_id, away_team_id
+    FROM matches
+    WHERE public_id = $1
+),
+get_batting_team AS (
+    SELECT id AS team_id
+    FROM teams
+    WHERE public_id = $2
+),
+get_batsman AS (
+    SELECT id AS batsman_id
+    FROM players
+    WHERE public_id = $3
+),
+get_bowler AS (
+    SELECT id AS bowler_id
+    FROM players
+    WHERE public_id = $4
+),
+get_bowling_team AS (
+    SELECT CASE
+        WHEN gm.home_team_id = (SELECT team_id FROM get_batting_team) THEN gm.away_team_id
+        ELSE gm.home_team_id
+    END AS team_id
+    FROM get_match gm
+),
+update_batsman AS (
+    UPDATE batsman_score
+    SET 
+        runs_scored = runs_scored + $5,
+        balls_faced = balls_faced + 1,
+        fours = fours + CASE WHEN $5 = 4 THEN 1 ELSE 0 END,
+        sixes = sixes + CASE WHEN $5 = 6 THEN 1 ELSE 0 END
+    WHERE match_id = (SELECT match_id FROM get_match)
+      AND team_id = (SELECT team_id FROM get_batting_team)
+      AND batsman_id = (SELECT batsman_id FROM get_batsman)
+      AND inning_number = $6
+    RETURNING *
+),
+update_bowler AS (
+    UPDATE bowler_score
+    SET 
+        runs = runs + $5,
+        ball_number = ball_number + 1
+    WHERE match_id = (SELECT match_id FROM get_match)
+      AND team_id = (SELECT team_id FROM get_bowling_team)
+      AND bowler_id = (SELECT bowler_id FROM get_bowler)
+      AND inning_number = $6
+      AND $4 IS NOT NULL
+    RETURNING *
+),
+update_inning_score AS (
+    UPDATE cricket_score
+    SET 
+        score = score + $5,
+        overs = overs + 1
+    WHERE match_id = (SELECT match_id FROM get_match)
+      AND team_id = (SELECT team_id FROM get_batting_team)
+      AND inning_number = $6
+    RETURNING *
+)
+SELECT 
+    ub.*,
+    ubl.*,
+    uis.*
+FROM update_batsman ub
+LEFT JOIN update_bowler ubl ON TRUE
+JOIN update_inning_score uis ON TRUE
 `
 
 func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanTeamPublicID, batsmanPublicID, bowlerTeamID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
+	fmt.Println("Match Public Id: ", matchPublicID)
+	fmt.Println("BatsmTeam ID: ", batsmanTeamPublicID)
+	fmt.Println("Batsman ID: ", batsmanPublicID)
+	fmt.Println("Bowler ID; ", bowlerTeamID)
+	fmt.Println("Inning NUmber: ", inningNumber)
 	var batsman models.BatsmanScore
 	var bowler models.BowlerScore
 	var inningScore models.CricketScore
@@ -1618,6 +1644,7 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanT
 		&batsman.MatchID,
 		&batsman.TeamID,
 		&batsman.BatsmanID,
+		&batsman.InningNumber,
 		&batsman.Position,
 		&batsman.RunsScored,
 		&batsman.BallsFaced,
@@ -1626,12 +1653,12 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanT
 		&batsman.BattingStatus,
 		&batsman.IsStriker,
 		&batsman.IsCurrentlyBatting,
-		&batsman.InningNumber,
 		&bowler.ID,
 		&bowler.PublicID,
 		&bowler.MatchID,
 		&bowler.TeamID,
 		&bowler.BowlerID,
+		&bowler.InningNumber,
 		&bowler.BallNumber,
 		&bowler.Runs,
 		&bowler.Wickets,
@@ -1639,7 +1666,6 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanT
 		&bowler.NoBall,
 		&bowler.BowlingStatus,
 		&bowler.IsCurrentBowler,
-		&bowler.InningNumber,
 		&inningScore.ID,
 		&inningScore.PublicID,
 		&inningScore.MatchID,
@@ -1702,9 +1728,9 @@ func (q *Queries) UpdateBowlingBowlerStatus(ctx context.Context, matchPublicID, 
 }
 
 const getCurrentBattingBatsmanQuery = `
-	SELECT * FROM batsman_score b
-	JOIN matches ON m.id = b.match_id
-	JOIN teams ON t.id = b.team_id
+	SELECT b.* FROM batsman_score b
+	LEFT JOIN matches AS m ON m.id = b.match_id
+	LEFT JOIN teams AS t ON t.id = b.team_id
 	WHERE m.public_id=$1 AND t.public_id=$2 AND is_currently_batting=true AND inning_number= $3;
 `
 
@@ -1724,6 +1750,7 @@ func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchPublicID, t
 			&bat.MatchID,
 			&bat.TeamID,
 			&bat.BatsmanID,
+			&bat.InningNumber,
 			&bat.Position,
 			&bat.RunsScored,
 			&bat.BallsFaced,
@@ -1732,7 +1759,6 @@ func (q *Queries) GetCurrentBattingBatsman(ctx context.Context, matchPublicID, t
 			&bat.BattingStatus,
 			&bat.IsStriker,
 			&bat.IsCurrentlyBatting,
-			&bat.InningNumber,
 		)
 		if err != nil {
 			return nil, err
