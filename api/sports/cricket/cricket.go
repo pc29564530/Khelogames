@@ -40,7 +40,7 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
+	_, err = s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -52,8 +52,8 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 	}
 
 	arg := db.NewCricketScoreParams{
-		MatchID:           int32(match.ID),
-		TeamID:            int32(team.ID),
+		MatchPublicID:     matchPublicID,
+		TeamPublicID:      teamPublicID,
 		InningNumber:      req.InningNumber,
 		Score:             0,
 		Wickets:           0,
@@ -102,8 +102,17 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 	}
 
 	var matchDetail []map[string]interface{}
-	var groupMatches []map[string]interface{}
-	var knockoutRounds []map[string]interface{}
+	groupMatches := []map[string]interface{}{}
+	knockoutMatches := map[string][]map[string]interface{}{
+		"final":       {},
+		"semifinal":   {},
+		"quaterfinal": {},
+		"round_16":    {},
+		"round_32":    {},
+		"round_64":    {},
+		"round_128":   {},
+	}
+	leagueMatches := []map[string]interface{}{}
 
 	for _, match := range matches {
 		matchScore, err := s.store.GetCricketScores(ctx, int32(match.ID))
@@ -161,38 +170,24 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		if *match.Stage == "Group" {
 			groupMatches = append(groupMatches, matchMap)
 		} else if match.Stage != nil && *match.Stage == "Knockout" {
-			var roundName string
 			switch *match.KnockoutLevelID {
 			case 1:
-				roundName = "final"
+				knockoutMatches["final"] = append(knockoutMatches["final"], matchMap)
 			case 2:
-				roundName = "semifinal"
+				knockoutMatches["semifinal"] = append(knockoutMatches["semifinal"], matchMap)
 			case 3:
-				roundName = "quaterfinal"
+				knockoutMatches["quaterfinal"] = append(knockoutMatches["quaterfinal"], matchMap)
 			case 4:
-				roundName = "round_16"
+				knockoutMatches["round_16"] = append(knockoutMatches["round_16"], matchMap)
 			case 5:
-				roundName = "round_32"
+				knockoutMatches["round_32"] = append(knockoutMatches["round_32"], matchMap)
 			case 6:
-				roundName = "round_64"
+				knockoutMatches["round_64"] = append(knockoutMatches["round_64"], matchMap)
 			case 7:
-				roundName = "round_128"
+				knockoutMatches["round_128"] = append(knockoutMatches["round_128"], matchMap)
 			}
-			found := false
-			for i, round := range knockoutRounds {
-				if round["round"] == roundName {
-					round["matches"] = append(round["matches"].([]map[string]interface{}), matchMap)
-					knockoutRounds[i] = round
-					found = true
-					break
-				}
-			}
-			if !found {
-				knockoutRounds = append(knockoutRounds, map[string]interface{}{
-					"round":   roundName,
-					"matches": []map[string]interface{}{matchMap},
-				})
-			}
+		} else if *match.Stage == "League" {
+			leagueMatches = append(leagueMatches, matchMap)
 		}
 	}
 
@@ -211,7 +206,8 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"max_group_team":  tournament.MaxGroupTeam,
 		},
 		"group_stage":    groupMatches,
-		"knockout_stage": knockoutRounds,
+		"league_stage":   leagueMatches,
+		"knockout_stage": knockoutMatches,
 	})
 	return matchDetail
 }

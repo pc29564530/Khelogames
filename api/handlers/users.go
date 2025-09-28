@@ -39,7 +39,7 @@ func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 	s.logger.Debug("bind the reqeust: ", req)

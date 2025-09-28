@@ -28,9 +28,9 @@ INSERT INTO football_standing (
     points
 )
 SELECT 
-    tournamentID.tournament_id,
+    tournamentID.id,
     $2,
-    teamID.team_id,
+    teamID.id,
     $4,
     $5,
     $6,
@@ -83,7 +83,7 @@ const getFootballStanding = `
         WHEN EXISTS (
             SELECT 1
             FROM football_standing fs
-            JOIN tournament t ON t.id = fs.tournament_id
+            JOIN tournaments t ON t.id = fs.tournament_id
             WHERE t.public_id = $1
         ) THEN 
             JSON_AGG(
@@ -130,7 +130,6 @@ const getFootballStanding = `
                         'name', tm.name,
                         'slug', tm.slug,
                         'short_name', tm.shortname,
-                        'admin', tm.admin,
                         'media_url', tm.media_url,
                         'gender', tm.gender,
                         'national', tm.national,

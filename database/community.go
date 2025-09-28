@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -118,16 +120,11 @@ func (q *Queries) GetAllCommunities(ctx context.Context) ([]models.Communities, 
 
 const getCommunitiesMember = `
 SELECT
-	u.id 
-	up.public_id AS profile_public_id,
-	u.public_id AS user_public_id,
-	u.username AS username
-	up.full_name,
-	up.bio,
-	up.avatar_url
+	JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_id',p.user_id,  'username',u.username,  'full_name',u.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
 FROM join_community jc
 JOIN communities c ON jc.community_id = c.id
-JOIN users_profile up ON up.user_id = jc.user_id
+JOIN users u ON u.id = jc.user_id
+JOIN user_profiles p ON p.user_id = jc.user_id
 WHERE c.public_id = $1;
 `
 
@@ -142,17 +139,22 @@ type CommunityMember struct {
 	AvatarURL       string    `json:"avatar_url"`
 }
 
-func (q *Queries) GetCommunitiesMember(ctx context.Context, communityPublicID uuid.UUID) ([]CommunityMember, error) {
+func (q *Queries) GetCommunitiesMember(ctx context.Context, communityPublicID uuid.UUID) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getCommunitiesMember, communityPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CommunityMember
+	var items []map[string]interface{}
 	for rows.Next() {
-		var item CommunityMember
-		if err := rows.Scan(&item); err != nil {
+		var jsonByte []byte
+		var item map[string]interface{}
+		if err := rows.Scan(&jsonByte); err != nil {
 			return nil, err
+		}
+		err := json.Unmarshal(jsonByte, &item)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to unmarshal: ", err)
 		}
 		items = append(items, item)
 	}

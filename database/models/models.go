@@ -183,7 +183,7 @@ type FootballScore struct {
 	FirstHalf       int32     `json:"first_half"`
 	SecondHalf      int32     `json:"second_half"`
 	Goals           int       `json:"goals"`
-	PenaltyShootOut int       `json:"penalty_shootout"`
+	PenaltyShootOut *int      `json:"penalty_shootout"`
 }
 
 type FootballStatistics struct {
@@ -246,19 +246,22 @@ type Match struct {
 	Stage           string    `json:"stage"`
 	KnockoutLevelID *int32    `json:"KnockoutLevelID"`
 	MatchFormat     *string   `json:"MatchFormat"`
+	DayNumber       *int      `json:"DayNumber"`
 }
 
 type Message struct {
-	ID         int64     `json:"id"`
-	PublicID   uuid.UUID `json:"public_id"`
-	SenderID   int32     `json:"sender_id"`
-	ReceiverID int32     `json:"receiver_id"`
-	Content    string    `json:"content"`
-	MediaUrl   string    `json:"media_url"`
-	MediaType  string    `json:"media_type"`
-	IsSeen     bool      `json:"is_seen"`
-	IsDeleted  bool      `json:"is_deleted"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID          int64     `json:"id"`
+	PublicID    uuid.UUID `json:"public_id"`
+	SenderID    int32     `json:"sender_id"`
+	ReceiverID  int32     `json:"receiver_id"`
+	Content     string    `json:"content"`
+	MediaUrl    string    `json:"media_url"`
+	MediaType   string    `json:"media_type"`
+	IsSeen      bool      `json:"is_seen"`
+	IsDeleted   bool      `json:"is_deleted"`
+	CreatedAt   time.Time `json:"created_at"`
+	SentAt      time.Time `json:"sent_at"`
+	IsDelivered bool      `json:"is_delivered"`
 }
 
 // type Messagemedium struct {
@@ -342,11 +345,12 @@ type TournamentParticipants struct {
 	ID           int64     `json:"id"`
 	PublicID     uuid.UUID `json:"public_id"`
 	TournamentID int32     `json:"tournament_id"`
-	GroupID      int32     `json:"group_id"`
+	GroupID      *int32    `json:"group_id"`
 	EntityID     int32     `json:"entity_id"`   //team or player
 	EntityType   string    `json:"entity_type"` //team or player
-	SeedNumber   int       `json:"seed_number"`
+	SeedNumber   *int      `json:"seed_number"`
 	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:created_at`
 }
 
 type TeamPlayer struct {
@@ -385,10 +389,10 @@ type Tournament struct {
 	GameID         int64     `json:"game_id"`
 	Name           string    `json:"name"`
 	Slug           string    `json:"slug"`
-	Description    string    `json:"description"`
+	Description    *string   `json:"description"`
 	Country        string    `json:"country"`
 	Status         string    `json:"status"`
-	Season         int       `json:"season"`
+	Season         *int      `json:"season"`
 	Level          string    `json:"level"`
 	StartTimestamp int64     `json:"start_timestamp"`
 	GroupCount     *int      `json:"group_count"`
@@ -477,11 +481,9 @@ type GetTeamByPlayer struct {
 	PublicID    uuid.UUID `json:"public_id"`
 	TeamID      int32     `json:"team_id"`
 	PlayerID    int32     `json:"player_id"`
-	CurrentTeam string    `json:"current_team"`
 	Name        string    `json:"name"`
 	Slug        string    `json:"slug"`
 	Shortname   string    `json:"shortname"`
-	Admin       string    `json:"admin"`
 	MediaUrl    string    `json:"media_url"`
 	Gender      string    `json:"gender"`
 	National    bool      `json:"national"`

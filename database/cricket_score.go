@@ -255,24 +255,24 @@ RETURNING *;
 `
 
 type NewCricketScoreParams struct {
-	MatchID           int32  `json:"match_id"`
-	TeamID            int32  `json:"team_id"`
-	InningNumber      int    `json:"inning_number"`
-	Score             int32  `json:"score"`
-	Wickets           int32  `json:"wickets"`
-	Overs             int32  `json:"overs"`
-	RunRate           string `json:"run_rate"`
-	TargetRunRate     string `json:"target_run_rate"`
-	FollowOn          bool   `json:"follow_on"`
-	IsInningCompleted bool   `json:"is_inning_completed"`
-	Declared          bool   `json:"declared"`
+	MatchPublicID     uuid.UUID `json:"match_id"`
+	TeamPublicID      uuid.UUID `json:"team_id"`
+	InningNumber      int       `json:"inning_number"`
+	Score             int32     `json:"score"`
+	Wickets           int32     `json:"wickets"`
+	Overs             int32     `json:"overs"`
+	RunRate           string    `json:"run_rate"`
+	TargetRunRate     string    `json:"target_run_rate"`
+	FollowOn          bool      `json:"follow_on"`
+	IsInningCompleted bool      `json:"is_inning_completed"`
+	Declared          bool      `json:"declared"`
 }
 
 func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams) (models.CricketScore, error) {
 
 	row := q.db.QueryRowContext(ctx, newCricketScore,
-		arg.MatchID,
-		arg.TeamID,
+		arg.MatchPublicID,
+		arg.TeamPublicID,
 		arg.InningNumber,
 		arg.Score,
 		arg.Wickets,

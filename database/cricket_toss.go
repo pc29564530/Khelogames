@@ -44,11 +44,12 @@ func (q *Queries) AddCricketToss(ctx context.Context, matchPublicID uuid.UUID, t
 
 const getCricketToss = `
 SELECT 
-	JOIN_BUILD_OBJECT(
+	JSON_BUILD_OBJECT(
 		'id', ct.id, 'public_id', ct.public_id, 'match_id', ct.match_id, 'toss_decision', ct.toss_decision, 'toss_win', ct.toss_win,
-		'toss_won_team', JSON_BUILD_OBJECT('id', tm.id, 'public_id', tm.public_id, 'user_id', tm.user_id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id)
+		'toss_won_team', JSON_BUILD_OBJECT('id', tm.id, 'public_id', tm.public_id, 'user_id', tm.user_id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id)
 	)
 FROM cricket_toss ct
+JOIN teams tm ON tm.id = ct.toss_win
 JOIN matches m ON m.id = ct.match_id
 WHERE m.public_id=$1
 `

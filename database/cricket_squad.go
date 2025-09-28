@@ -37,11 +37,17 @@ SELECT
 	$5,
 	$6,
 	CURRENT_TIMESTAMP
-FROM matchPublicID, teamPublicID, playerPublicID
+FROM matchID, teamID, playerID
+WHERE NOT EXISTS (
+	SELECT 1 FROM cricket_squad cs
+	WHERE cs.match_id = matchID.id
+		AND cs.team_id = teamID.id
+		AND cs.player_id = playerID.id
+)
 RETURNING *;
 `
 
-func (q *Queries) AddCricketSquad(ctx context.Context, matchPublicID, teamPublicID, playerPublicID uuid.UUID, role string, OnBench, isCaptain bool) (models.CricketSquad, error) {
+func (q *Queries) AddCricketSquad(ctx context.Context, matchPublicID, teamPublicID, playerPublicID uuid.UUID, role string, OnBench, isCaptain bool) (*models.CricketSquad, error) {
 	row := q.db.QueryRowContext(ctx, addCricketSquad, matchPublicID, teamPublicID, playerPublicID, role, OnBench, isCaptain)
 	var i models.CricketSquad
 	err := row.Scan(
@@ -55,20 +61,26 @@ func (q *Queries) AddCricketSquad(ctx context.Context, matchPublicID, teamPublic
 		&i.IsCaptain,
 		&i.CreatedAT,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("player already exist")
+		}
+		return nil, err
+	}
+	return &i, err
 }
 
 const getCricketMatchSquad = `
 	SELECT 
 		JSON_AGG(
 			JSON_BUILD_OBJECT(
-				'id', cs.id, 'public_id', cs.public_id 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'role', cs.role, 
+				'id', cs.id, 'public_id', cs.public_id, 'match_id', cs.match_id, 'team_id', cs.team_id, 'player_id', cs.player_id, 'role', cs.role, 
 				'on_bench', cs.on_bench, 'is_captain', cs.is_captain, 'created_at', cs.created_at,
 				'player', JSON_BUILD_OBJECT(
 					'id',pl.id,
 					'public_id', pl.public_id,
 					'user_id', pl.user_id,
-					'name', pl.player_name, 
+					'name', pl.name, 
 					'slug', pl.slug, 
 					'short_name', pl.short_name, 
 					'country', pl.country, 
@@ -77,7 +89,7 @@ const getCricketMatchSquad = `
 				)
 			)
 		) AS teamSquad
-	FROM cricket_squad as cs
+	FROM cricket_squad cs
 	JOIN players AS pl ON pl.id = cs.player_id
 	JOIN teams AS t ON t.id = cs.team_id
 	JOIN matches AS m ON m.id = cs.match_id

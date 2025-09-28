@@ -81,13 +81,26 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	// Validate required fields
+	if req.UploadID == "" || req.TotalChunks <= 0 || req.MediaType == "" {
+		s.logger.Error("Missing required fields")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields"})
+		return
 	}
 
 	// Get the upload from the database
 	chunkDir := filepath.Join("/tmp/khelogames_tmp_uploads", req.UploadID)
 	// Create upload directory
 	finalDir := "/tmp/khelogames_media_uploads"
-	os.MkdirAll(finalDir, os.ModePerm)
+	if err := os.MkdirAll(finalDir, os.ModePerm); err != nil {
+		s.logger.Error("Failed to create final upload dir: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+		return
+	}
 
 	var finalPath string
 	mediaType := req.MediaType
@@ -95,6 +108,9 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		finalPath = filepath.Join(finalDir, req.UploadID+".jpg")
 	} else if mediaType == "video/mp4" || mediaType == "video/quicktime" || mediaType == "video/mkv" {
 		finalPath = filepath.Join(finalDir, req.UploadID+".mp4")
+	} else {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported media type"})
+		return
 	}
 
 	// Create the final file
@@ -102,8 +118,8 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to create file path: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create final file"})
+		return
 	}
-
 	defer finalFile.Close()
 
 	// Copy the chunks from the temporary directory to the final file
@@ -112,27 +128,37 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		chunkPath := filepath.Join(chunkDir, fmt.Sprintf("chunk_%d", i))
 		chunkFile, err := os.Open(chunkPath)
 		if err != nil {
-			s.logger.Error("Failed to open chunks: ", err)
+			s.logger.Error("Failed to open chunk: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open chunk"})
+			return
 		}
+
 		// Copy the chunk to the final file
-		io.Copy(finalFile, chunkFile)
+		if _, err := io.Copy(finalFile, chunkFile); err != nil {
+			s.logger.Error("Failed to copy chunk: ", err)
+			chunkFile.Close()
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to copy chunk"})
+			return
+		}
 
 		chunkFile.Close()
 	}
+
 	// Remove the temp chunks
-	_ = os.RemoveAll(chunkDir)
+	if err := os.RemoveAll(chunkDir); err != nil {
+		s.logger.Error("Failed to remove temp chunks: ", err)
+		// Continue even if cleanup fails, as the main operation succeeded
+	}
 
 	var fileExt string
 	if mediaType == "image/jpeg" || mediaType == "image/png" || mediaType == "image/jpg" {
 		fileExt = "jpg"
 	} else if mediaType == "video/mp4" || mediaType == "video/quicktime" || mediaType == "video/mkv" {
 		fileExt = "mp4"
-	} else {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported media type"})
-		return
 	}
-	// Return the final file path
+
+	// Return the final file path - use relative path or configurable base URL
+	// For now, use a relative path that can be served by a static file server
 	fileURL := fmt.Sprintf("http://192.168.1.3:8080/media/%s.%s", req.UploadID, fileExt)
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -140,5 +166,4 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		"file_url":  fileURL,
 		"upload_id": req.UploadID,
 	})
-
 }

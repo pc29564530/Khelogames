@@ -27,6 +27,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 		"round_64":    {},
 		"round_128":   {},
 	}
+	leagueMatches := []map[string]interface{}{}
 
 	for _, match := range matches {
 		homeTeamArg := db.GetFootballScoreParams{MatchID: match.ID, TeamID: int64(match.HomeTeamID)}
@@ -69,9 +70,10 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 
 		matchMap := map[string]interface{}{
 			"id":              match.ID,
-			"homeTeam":        map[string]interface{}{"id": match.HomeTeamID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount, "media_url": match.HomeTeamMediaUrl},
+			"public_id":       match.PublicID,
+			"homeTeam":        map[string]interface{}{"id": match.HomeTeamID, "public_id": match.HomeTeamPublicID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount, "media_url": match.HomeTeamMediaUrl},
 			"homeScore":       hScore,
-			"awayTeam":        map[string]interface{}{"id": match.AwayTeamID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount, "media_url": match.AwayTeamMediaUrl},
+			"awayTeam":        map[string]interface{}{"id": match.AwayTeamID, "public_id": match.AwayTeamPublicID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount, "media_url": match.AwayTeamMediaUrl},
 			"awayScore":       aScore,
 			"startTimeStamp":  match.StartTimestamp,
 			"endTimestamp":    match.EndTimestamp,
@@ -102,6 +104,8 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			case 7:
 				knockoutMatches["round_128"] = append(knockoutMatches["round_128"], matchMap)
 			}
+		} else if *match.Stage == "League" {
+			leagueMatches = append(leagueMatches, matchMap)
 		}
 	}
 	matchDetail = append(matchDetail, map[string]interface{}{
@@ -119,6 +123,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			"max_group_team":  tournament.MaxGroupTeam,
 		},
 		"group_stage":    groupMatches,
+		"league_stage":   leagueMatches,
 		"knockout_stage": knockoutMatches,
 	})
 

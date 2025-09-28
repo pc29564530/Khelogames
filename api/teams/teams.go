@@ -138,20 +138,11 @@ func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, rows)
 }
 
-type getTeamByPlayerRequest struct {
-	PlayerPublicID string `uri:"player_public_id`
-}
+func (s *TeamsServer) GetTeamsByPlayerFunc(ctx *gin.Context) {
 
-func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
-	var req getTeamByPlayerRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
-		return
-	}
+	playerPublicIDString := ctx.Param("player_public_id")
 
-	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
+	playerPublicID, err := uuid.Parse(playerPublicIDString)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
@@ -162,25 +153,8 @@ func (s *TeamsServer) GetTeamsByPlayer(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Failed to get club by sport: ", err)
 	}
-	var teamDetails []map[string]interface{}
-	for _, team := range response {
 
-		teamDetail := map[string]interface{}{
-			"id":         team.ID,
-			"public_id":  team.PublicID,
-			"name":       team.Name,
-			"gender":     team.Gender,
-			"media_url":  team.MediaUrl,
-			"short_name": team.Shortname,
-			"slug":       team.Slug,
-			"country":    team.Country,
-			"national":   team.National,
-		}
-		teamDetails = append(teamDetails, teamDetail)
-
-	}
-
-	ctx.JSON(http.StatusAccepted, teamDetails)
+	ctx.JSON(http.StatusAccepted, response)
 }
 
 type getPlayersByTeamRequest struct {

@@ -1,0 +1,94 @@
+status_codes:
+  - status_code: 299
+    description: started
+    type: Started
+  - status_code: 100
+    description: Ended
+    type: finished
+  - status_code: 101
+    description: Postponed
+    type: postponed
+  - status_code: 102
+    description: Cancelled
+    type: cancelled
+  - status_code: 103
+    description: Abandoned
+    type: abandoned
+  - status_code: 104
+    description: Interrupted
+    type: interrupted
+  - status_code: 105
+    description: Suspended
+    type: suspended
+  - status_code: 106
+    description: Delayed
+    type: delayed
+  - status_code: 200
+    description: In Progress
+    type: in_progress
+  - status_code: 201
+    description: Half-Time
+    type: half_time
+  - status_code: 202
+    description: Extra Time
+    type: extra_time
+  - status_code: 203
+    description: Penalty Shootout
+    type: penalty_shootout
+  - status_code: 204
+    description: Finished (AET)
+    type: finished_aet
+  - status_code: 205
+    description: Finished (PSO)
+    type: finished_pso
+  - status_code: 300
+    description: Not Started
+    type: not_started
+  - status_code: 301
+    description: Scheduled
+    type: scheduled
+  - status_code: 302
+    description: TBD
+    type: tbd
+  - status_code: 400
+    description: Awarded
+    type: awarded
+  - status_code: 401
+    description: Walkover
+    type: walkover
+  - status_code: 402
+    description: Void
+    type: void
+  - status_code: 403
+    description: Default
+    type: default
+  - status_code: 404
+    description: Forfeit
+    type: forfeit
+  - status_code: 405
+    description: Retired
+    type: retired
+  - status_code: 406
+    description: Disqualified
+    type: disqualified
+  - status_code: 407
+    description: No Contest
+    type: no_contest
+  - status_code: 408
+    description: Cancelled (Weather)
+    type: cancelled_weather
+  - status_code: 409
+    description: Postponed (Weather)
+    type: postponed_weather
+  - status_code: 410
+    description: Suspended (Weather)
+    type: suspended_weather
+  - status_code: 411
+    description: Abandoned (Weather)
+    type: abandoned_weather
+  - status_code: 412
+    description: Interrupted (Weather)
+    type: interrupted_weather
+  - status_code: 413
+    description: Delayed (Weather)
+    type: delayed_weather

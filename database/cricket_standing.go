@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"encoding/json"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -26,9 +25,9 @@ INSERT INTO cricket_standing (
     points
 )
 SELECT 
-    tournamentID.tournament_id,
+    tournamentID.id,
     $2,
-    teamID.team_id,
+    teamID.id,
     $4,
     $5,
     $6,
@@ -65,60 +64,94 @@ func (q *Queries) CreateCricketStanding(ctx context.Context, tournamentPublicID 
 	return &i, err
 }
 
-const getCricketStanding = `
+
+const getCricketStanding  = `
 	SELECT
-		JSON_BUILD_OBJECT(
-			'id', cs.id,
-			'public_id', cs.public_id,
-			'tournament_id', cs.tournament_id, 
-			'group_id', CASE
-                        WHEN cs.group_id IS NOT NULL THEN cs.group_id
-                        ELSE NULL
-                    END, 
-			'team_id', cs.team_id, 
-			'matches', COALESCE(cs.matches,0), 
-			'wins', COALESCE(cs.wins,0), 
-			'loss', COALESCE(cs.loss,0), 
-			'draw', COALESCE(cs.draw,0), 
-			'point', COALESCE(cs.points,0),
-			'details', JSON_BUILD_OBJECT(
-				'tournament', JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status_code', t.status_code, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_teams, 'stage', t.stage, 'has_knockout', t.has_knockout),
-				'group', CASE WHEN g.id IS NOT NULL THEN JSON_BUILD_OBJECT('id', g.id, 'name', g.name) ELSE NULL END,
-				'teams', JSON_BUILD_OBJECT('id', tm.id, 'public_id', tm.public_id, 'user_id', tm.user_id, 'name', tm.name, 'slug', tm.slug, 'short_name', tm.shortname, 'admin', tm.admin, 'media_url', tm.media_url, 'gender', tm.gender, 'national', tm.national, 'country', tm.country, 'type', tm.type, 'player_count', tm.player_count, 'game_id', tm.game_id)
+	CASE
+		WHEN EXISTS (
+			SELECT 1
+			FROM cricket_standing cs
+			JOIN tournaments t ON t.id = cs.tournament_id
+			WHERE t.public_id = $1
+		) THEN 
+			JSON_AGG(
+				JSON_BUILD_OBJECT(
+					'id', cs.id,
+					'public_id', cs.public_id,
+					'tournament_id', cs.tournament_id,
+					'group_id', CASE
+						WHEN cs.group_id IS NOT NULL THEN cs.group_id
+						ELSE NULL
+					END,
+					'team_id', cs.team_id,
+					'matches', cs.matches,
+					'wins', cs.wins,
+					'loss', cs.loss,
+					'draw', cs.draw,
+					'points', cs.points,
+					'tournament', JSON_BUILD_OBJECT(
+						'id', t.id,
+						'public_id', t.public_id,
+						'user_id', t.user_id,
+						'name', t.name,
+						'slug', t.slug,
+						'country', t.country,
+						'status', t.status,
+						'level', t.level,
+						'start_timestamp', t.start_timestamp,
+						'game_id', t.game_id
+					),
+					'group', CASE 
+						WHEN g.id IS NOT NULL THEN JSON_BUILD_OBJECT(
+							'id', g.id,
+							'name', g.name
+						) 
+						ELSE NULL 
+					END,
+					'teams', JSON_BUILD_OBJECT(
+						'id', tm.id,
+						'public_id', tm.public_id,
+						'user_id', tm.user_id,
+						'name', tm.name,
+						'slug', tm.slug,
+						'short_name', tm.shortname,
+						'media_url', tm.media_url,
+						'gender', tm.gender,
+						'national', tm.national,
+						'country', tm.country,
+						'type', tm.type,
+						'player_count', tm.player_count,
+						'game_id', tm.game_id
+					)
+				)
 			)
-		) AS standing_data
+			ELSE NULL
+		END AS standing_data
 	FROM cricket_standing cs
 	LEFT JOIN groups g ON cs.group_id = g.id
 	JOIN tournaments t ON t.id = cs.tournament_id
 	JOIN teams tm ON cs.team_id = tm.id
-	WHERE t.public_id = $1
+	WHERE t.public_id = $1;
 `
 
 type GetCricketStandingR struct {
 	StandingData interface{} `json:"standing_data"`
 }
 
-func (q *Queries) GetCricketStanding(ctx context.Context, tournamentPublicID uuid.UUID) (*[]GetCricketStandingR, error) {
+func (q *Queries) GetCricketStanding(ctx context.Context, tournamentPublicID uuid.UUID) (*GetCricketStandingR, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketStanding, tournamentPublicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var standings []GetCricketStandingR
-	if rows.Next() {
-		var standing GetCricketStandingR
-		var jsonData []byte
-		if err := rows.Scan(
-			&jsonData,
-		); err != nil {
-			return nil, err
-		}
+	var standings GetCricketStandingR
 
-		err = json.Unmarshal(jsonData, &standing.StandingData)
-		if err != nil {
+	if rows.Next() {
+		if err := rows.Scan(&standings.StandingData); err != nil {
 			return nil, err
 		}
-		standings = append(standings, standing)
+	} else {
+		return nil, nil
 	}
 	return &standings, nil
 }

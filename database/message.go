@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -14,7 +15,7 @@ WITH senderID AS (
     SELECT id FROM users WHERE public_id = $1
 ),
 receiverID AS (
-    SELECT user_id FROM user_profiles WHERE public_id = $2
+    SELECT id FROM users WHERE public_id = $2
 )
 INSERT INTO message (
     sender_id,
@@ -22,15 +23,17 @@ INSERT INTO message (
     content,
     media_url,
     media_type,
-    created_at
+    created_at,
+	sent_at
 )
 SELECT 
     senderID.id,
-    receiverID.user_id,
+    receiverID.id,
     $3,
     $4,
     $5,
-    CURRENT_TIMESTAMP
+    CURRENT_TIMESTAMP,
+	$6
 FROM senderID, receiverID
 RETURNING *;
 `
@@ -41,6 +44,7 @@ type CreateNewMessageParams struct {
 	Content    string    `json:"content"`
 	MediaUrl   string    `json:"media_url"`
 	MediaType  string    `json:"media_type"`
+	SentAt     time.Time `json:"sent_at"`
 }
 
 func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessageParams) (models.Message, error) {
@@ -50,6 +54,7 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 		arg.Content,
 		arg.MediaUrl,
 		arg.MediaType,
+		arg.SentAt,
 	)
 	var i models.Message
 	err := row.Scan(
@@ -63,6 +68,8 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 		&i.IsSeen,
 		&i.IsDeleted,
 		&i.CreatedAt,
+		&i.SentAt,
+		&i.IsDelivered,
 	)
 	return i, err
 }
@@ -92,6 +99,8 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (m
 		&i.IsSeen,
 		&i.IsDeleted,
 		&i.CreatedAt,
+		&i.SentAt,
+		&i.IsDelivered,
 	)
 	return i, err
 }
@@ -121,7 +130,9 @@ SELECT JSON_BUILD_OBJECT(
 	'media_type', m.media_type,
 	'is_seen', m.is_seen,
 	'is_deleted', m.is_deleted,
-	'created_at', m.created_at
+	'created_at', m.created_at,
+	'sent_at', m.sent_at,
+	'is_delivered', m.is_delivered
 )
 FROM message m
 JOIN users sender   ON sender.id = m.sender_id

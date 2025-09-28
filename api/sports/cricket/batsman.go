@@ -2,43 +2,45 @@ package cricket
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 func (s *CricketServer) GetCurrentBatsmanFunc(ctx *gin.Context) {
-	var req struct {
-		MatchPublicID string `json: "match_public_id"`
-		TeamPublicID  string `json:"team_public_id"`
-		InningNumber  int    `json:"inning_number"`
-	}
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind ", err)
-		return
-	}
 
-	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	matchPublicIDStr := ctx.Query("match_public_id")
+	teamPublicIDStr := ctx.Query("team_public_id")
+	inningNumberStr := ctx.Query("inning_number")
+
+	matchPublicID, err := uuid.Parse(matchPublicIDStr)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	teamPublicID, err := uuid.Parse(teamPublicIDStr)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	currentBatsmansResponse, err := s.store.GetCurrentBatsman(ctx, matchPublicID, teamPublicID, req.InningNumber)
+	inningNumber, err := strconv.Atoi(inningNumberStr)
+	if err != nil {
+		s.logger.Error("Failed to parse to int: ", err)
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	currentBatsmansResponse, err := s.store.GetCurrentBatsman(ctx, matchPublicID, teamPublicID, inningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get current batsman score : ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"team": currentBatsmansResponse.(map[string]interface{})["team"], "batting": currentBatsmansResponse.(map[string]interface{})["batsman"]})
+	ctx.JSON(http.StatusAccepted, currentBatsmansResponse)
 }

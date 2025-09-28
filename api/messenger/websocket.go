@@ -10,6 +10,7 @@ import (
 	"khelogames/util"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -132,12 +133,21 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 			h.logger.Error("Failed to parse to uuid: ", err)
 			return
 		}
+
+		sentAtStr := message["sent_at"].(string) // e.g. "2025-09-14T12:30:00Z"
+		sentAt, err := time.Parse(time.RFC3339, sentAtStr)
+		if err != nil {
+			h.logger.Warn("invalid sent_at format, using now() instead")
+			sentAt = time.Now()
+		}
+				
 		arg := db.CreateNewMessageParams{
 			SenderID:   authToken.PublicID,
 			ReceiverID: receiverPublicID,
 			Content:    message["content"].(string),
 			MediaUrl:   message["media_url"].(string),
 			MediaType:  message["media_type"].(string),
+			SentAt: sentAt,
 		}
 
 		h.logger.Debug("create new message params: ", arg)

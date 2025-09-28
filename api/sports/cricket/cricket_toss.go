@@ -1,6 +1,7 @@
 package cricket
 
 import (
+	"fmt"
 	db "khelogames/database"
 	"net/http"
 
@@ -14,7 +15,7 @@ type addCricketTossRequest struct {
 	TossWin       string `json:"toss_win"`
 }
 
-func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
+func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 	var req addCricketTossRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -59,9 +60,16 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 			teamID = match.HomeTeamID
 		}
 	}
+	team, err := s.store.GetTeamByID(ctx, int64(teamID))
+	if err != nil {
+		s.logger.Error("Failed to get team by id: ", err)
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
 	inningR := db.NewCricketScoreParams{
-		MatchID:           int32(response.MatchID),
-		TeamID:            int32(teamID),
+		MatchPublicID:     matchPublicID,
+		TeamPublicID:      team.PublicID,
 		InningNumber:      1,
 		Score:             0,
 		Wickets:           0,
@@ -107,19 +115,19 @@ func (s *CricketServer) AddCricketToss(ctx *gin.Context) {
 }
 
 type getTossRequest struct {
-	MatchPublicID string `uri:"match_id" form:"match_id"`
+	MatchPublicID string `uri:"match_public_id"`
 }
 
 func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 
 	var req getTossRequest
-	err := ctx.ShouldBindQuery(&req)
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind cricket toss : ", err)
 		ctx.JSON(http.StatusBadGateway, err)
 		return
 	}
-
+	fmt.Println("Match PUblic ID: ", req.MatchPublicID)
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
@@ -157,6 +165,12 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 		return
 	}
 
+	tossDecision, ok := cricketToss["toss_decision"].(string)
+	if !ok {
+		s.logger.Error("Invalid toss_decision format")
+		return
+	}
+
 	tossDetails := map[string]interface{}{
 
 		"tossWonTeam": map[string]interface{}{
@@ -172,7 +186,7 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"player_count": tossWonTeam.PlayerCount,
 			"game_id":      tossWonTeam.GameID,
 		},
-		"tossDecision": cricketToss["toss_decision"].(map[string]string),
+		"tossDecision": tossDecision,
 	}
 
 	s.logger.Debug("toss won team details: ", tossDetails)

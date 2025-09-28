@@ -11,19 +11,19 @@ import (
 
 const addFootballSquad = `
 WITH matchID AS (
-	SELECT * FROM matches WHERE id = $1
+	SELECT * FROM matches WHERE public_id = $1
 ),
 teamID AS (
-	SELECT * FROM teams WHERE id = $2
+	SELECT * FROM teams WHERE public_id = $2
 ),
 playerID AS (
-	SELECT * FROM players WHERE id = $3
+	SELECT * FROM players WHERE public_id = $3
 )
 INSERT INTO football_squad (
     match_id,
     team_id,
     player_id,
-	is_substitute,
+	is_substitute
 )
 SELECT 
 	matchID.id,
@@ -59,7 +59,7 @@ const getFootballMatchSquad = `
 				'id',pl.id,
 				'public_id', pl.public_id,
 				'user_id',pl.user_Id,
-				'name', pl.player_name, 
+				'name', pl.name, 
 				'slug', pl.slug, 
 				'short_name', pl.short_name, 
 				'country', pl.country, 

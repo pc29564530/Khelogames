@@ -75,7 +75,7 @@ INSERT INTO football_score (
     second_half,
     goals,
 	penalty_shootout
-) VALUES ( $1, $2, $3, $4, $5)
+) VALUES ( $1, $2, $3, $4, $5, $6)
 RETURNING *
 `
 
@@ -85,7 +85,7 @@ type NewFootballScoreParams struct {
 	FirstHalf       int   `json:"first_half"`
 	SecondHalf      int   `json:"second_half"`
 	Goals           int   `json:"goals"`
-	PenaltyShootOut int   `json:"penalty_shootout"`
+	PenaltyShootOut *int  `json:"penalty_shootout"`
 }
 
 func (q *Queries) NewFootballScore(ctx context.Context, arg NewFootballScoreParams) (models.FootballScore, error) {

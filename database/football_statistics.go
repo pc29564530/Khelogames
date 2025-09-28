@@ -8,13 +8,6 @@ import (
 )
 
 const createFootballStatistics = `
-WITH resolved_ids AS (
-  SELECT 
-    m.id AS match_id,
-    t.id AS team_id
-  FROM matches m, teams t
-  WHERE m.public_id = $1 AND t.public_id = $2
-)
 INSERT INTO football_statistics (
     match_id,
     team_id,
@@ -26,13 +19,9 @@ INSERT INTO football_statistics (
     free_kicks,
     yellow_cards,
     red_cards
-)
-SELECT 
-    r.match_id,
-    r.team_id,
-    $3, $4, $5, $6, $7, $8, $9, $10
-FROM resolved_ids r
-RETURNING *;
+) VALUES (
+	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+) RETURNING *;
 `
 
 type CreateFootballStatisticsParams struct {
