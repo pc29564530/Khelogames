@@ -53,7 +53,7 @@ const listMatchesQuery = `
                         'goals', fs_home.goals,
                         'penalty_shootout', fs_home.penalty_shootout
                     )
-                WHEN g.name = 'cricket' THEN cricket_home_scores.scores
+                WHEN g.name = 'cricket' THEN cricket_home_scores
                 ELSE NULL
             END,
 
@@ -84,7 +84,7 @@ const listMatchesQuery = `
                         'goals', fs_away.goals,
                         'penalty_shootout', fs_away.penalty_shootout
                     )
-                WHEN g.name = 'cricket' THEN cricket_away_scores.scores
+                WHEN g.name = 'cricket' THEN cricket_away_scores
                 ELSE NULL
             END,
 
@@ -134,7 +134,7 @@ const listMatchesQuery = `
                 'is_inning_completed', cs.is_inning_completed,
                 'declared', cs.declared
             ) ORDER BY cs.inning_number
-        ) AS scores
+        )
         FROM cricket_score cs
         WHERE cs.match_id = m.id AND cs.team_id = ht.id
     ) AS cricket_home_scores ON true
@@ -157,7 +157,7 @@ const listMatchesQuery = `
                 'is_inning_completed', cs.is_inning_completed,
                 'declared', cs.declared
             ) ORDER BY cs.inning_number
-        ) AS scores
+        )
         FROM cricket_score cs
         WHERE cs.match_id = m.id AND cs.team_id = at.id
     ) AS cricket_away_scores ON true
@@ -324,21 +324,7 @@ WHERE m.public_id = $1 AND t.game_id = $2;
 `
 
 const getMatchModelByPublicIdQuery = `
-    SELECT 
-        id,
-        public_id,
-        user_id,
-        tournament_id,
-        away_team_id,
-        home_team_id,
-        start_timestamp,
-        end_timestamp,
-        type,
-        status_code,
-        result,
-        stage,
-        knockout_level_id,
-        match_format
+    SELECT *
     FROM matches
     WHERE public_id = $1;
 `
@@ -418,6 +404,7 @@ func (q *Queries) GetMatchModelByPublicId(ctx context.Context, public_id uuid.UU
 		&match.Stage,
 		&match.KnockoutLevelID,
 		&match.MatchFormat,
+		&match.DayNumber,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("Match model not found with public_id: %s", public_id)
