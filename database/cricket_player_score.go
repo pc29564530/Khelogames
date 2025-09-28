@@ -1359,7 +1359,8 @@ WITH update_inning_number AS (
 ),
 update_batsman AS (
 	UPDATE batsman_score
-	SET is_striker = false
+	SET is_striker = false,
+		is_currently_batting = false
 	WHERE match_id = $1 AND team_id = $2 AND is_striker = true AND inning_number= $3
 	RETURNING *
 ),
@@ -1383,7 +1384,7 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 	var batsmanScore models.BatsmanScore
 	var bowler models.BowlerScore
 
-	row := q.db.QueryRowContext(ctx, updateInningEndStatus, matchID, batsmanTeamID)
+	row := q.db.QueryRowContext(ctx, updateInningEndStatus, matchID, batsmanTeamID, inningNumber)
 
 	err := row.Scan(
 		&inningScore.ID,
