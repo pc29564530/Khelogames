@@ -103,7 +103,8 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 		}
 
 		h.logger.Debug("unmarshal message successfully ", message)
-		err = h.rabbitChan.Publish(
+		err = h.rabbitChan.PublishWithContext(
+			ctx,
 			"",
 			"message",
 			false,
@@ -140,14 +141,14 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 			h.logger.Warn("invalid sent_at format, using now() instead")
 			sentAt = time.Now()
 		}
-				
+
 		arg := db.CreateNewMessageParams{
 			SenderID:   authToken.PublicID,
 			ReceiverID: receiverPublicID,
 			Content:    message["content"].(string),
 			MediaUrl:   message["media_url"].(string),
 			MediaType:  message["media_type"].(string),
-			SentAt: sentAt,
+			SentAt:     sentAt,
 		}
 
 		h.logger.Debug("create new message params: ", arg)
