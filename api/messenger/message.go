@@ -51,7 +51,7 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 	s.logger.Debug("get message by receiver: ", messageContent)
 
 	broadcastMessage := fmt.Sprintf("User: %s retrieved messages from %s", authToken.PublicID, req.ReceiverPublicID)
-	s.broadcast <- []byte(broadcastMessage)
+	s.messageBroadCast <- []byte(broadcastMessage)
 
 	ctx.JSON(http.StatusAccepted, messageContent)
 	return

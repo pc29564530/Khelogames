@@ -3,6 +3,7 @@ package messenger
 import (
 	"encoding/json"
 	"fmt"
+	cricket "khelogames/api/sports/cricket"
 	db "khelogames/database"
 
 	"khelogames/pkg"
@@ -30,13 +31,30 @@ func StartRabbitMQ(config util.Config) (*ampq.Connection, *ampq.Channel, error) 
 	return rabbitConn, rabbitChan, nil
 }
 
-func (s *MessageServer) StartWebSocketHub() {
+func (s *MessageServer) StartMessageHub() {
 	for {
 		select {
-		case message := <-s.broadcast:
+		case message := <-s.messageBroadCast:
 			s.mutex.Lock()
 			for client := range s.clients {
 				err := client.WriteMessage(websocket.TextMessage, message)
+				if err != nil {
+					delete(s.clients, client)
+					client.Close()
+				}
+			}
+			s.mutex.Unlock()
+		}
+	}
+}
+
+func (s *MessageServer) StartCricketScoreHub() {
+	for {
+		select {
+		case cricketScore := <-s.scoreBroadCast:
+			s.mutex.Lock()
+			for client := range s.clients {
+				err := client.WriteMessage(websocket.TextMessage, cricketScore)
 				if err != nil {
 					delete(s.clients, client)
 					client.Close()
@@ -103,6 +121,15 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 		}
 
 		h.logger.Debug("unmarshal message successfully ", message)
+		fmt.Println("Message Type: ", message["type"])
+		switch message["type"] {
+		case "CREATE_MESSAGE":
+			getMessageHub(h, ctx, msg, message["payload"].(map[string]interface{}))
+		case "UPDATE_SCORE":
+			getCricketScoreHub(h, ctx, msg, message)
+
+		}
+
 		err = h.rabbitChan.PublishWithContext(
 			ctx,
 			"",
@@ -128,40 +155,7 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 
 		defer tx.Rollback()
 
-		authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-		receiverPublicID, err := uuid.Parse(message["receiver_public_id"].(string))
-		if err != nil {
-			h.logger.Error("Failed to parse to uuid: ", err)
-			return
-		}
-
-		sentAtStr := message["sent_at"].(string) // e.g. "2025-09-14T12:30:00Z"
-		sentAt, err := time.Parse(time.RFC3339, sentAtStr)
-		if err != nil {
-			h.logger.Warn("invalid sent_at format, using now() instead")
-			sentAt = time.Now()
-		}
-
-		arg := db.CreateNewMessageParams{
-			SenderID:   authToken.PublicID,
-			ReceiverID: receiverPublicID,
-			Content:    message["content"].(string),
-			MediaUrl:   message["media_url"].(string),
-			MediaType:  message["media_type"].(string),
-			SentAt:     sentAt,
-		}
-
-		h.logger.Debug("create new message params: ", arg)
-
-		_, err = h.store.CreateNewMessage(ctx, arg)
-		if err != nil {
-			h.logger.Error("unable to store new message: ", err)
-			return
-		}
-
-		h.logger.Info("successfully created a new message")
-
-		h.broadcast <- msg
+		h.messageBroadCast <- msg
 
 		h.logger.Debug("Successfully broad cast message")
 
@@ -171,4 +165,110 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 			return
 		}
 	}
+}
+
+func getMessageHub(h *MessageServer, ctx *gin.Context, msg []byte, message map[string]interface{}) {
+	err := h.rabbitChan.PublishWithContext(
+		ctx,
+		"",
+		"message",
+		false,
+		false,
+		ampq.Publishing{
+			ContentType: "application/json",
+			Body:        msg,
+		},
+	)
+
+	if err != nil {
+		h.logger.Error("unable to publish message to rabbitchannel: ", err)
+		return
+	}
+
+	authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	fmt.Println("Receiver Id: ", message["receiver_public_id"])
+	receiverPublicID, err := uuid.Parse(message["receiver_public_id"].(string))
+	if err != nil {
+		h.logger.Error("Failed to parse to uuid: ", err)
+		return
+	}
+
+	sentAtStr := message["sent_at"].(string) // e.g. "2025-09-14T12:30:00Z"
+	sentAt, err := time.Parse(time.RFC3339, sentAtStr)
+	if err != nil {
+		h.logger.Warn("invalid sent_at format, using now() instead")
+		sentAt = time.Now()
+	}
+
+	arg := db.CreateNewMessageParams{
+		SenderID:   authToken.PublicID,
+		ReceiverID: receiverPublicID,
+		Content:    message["content"].(string),
+		MediaUrl:   message["media_url"].(string),
+		MediaType:  message["media_type"].(string),
+		SentAt:     sentAt,
+	}
+
+	h.logger.Debug("create new message params: ", arg)
+
+	_, err = h.store.CreateNewMessage(ctx, arg)
+	if err != nil {
+		h.logger.Error("unable to store new message: ", err)
+		return
+	}
+
+	h.logger.Info("successfully created a new message")
+
+	h.messageBroadCast <- msg
+
+	h.logger.Debug("Successfully broad cast message")
+
+}
+
+func getCricketScoreHub(h *MessageServer, ctx *gin.Context, msg []byte, message map[string]interface{}) {
+	err := h.rabbitChan.PublishWithContext(
+		ctx,
+		"",
+		"message",
+		false,
+		false,
+		ampq.Publishing{
+			ContentType: "application/json",
+			Body:        msg,
+		},
+	)
+
+	if err != nil {
+		h.logger.Error("unable to publish message to rabbitchannel: ", err)
+		return
+	}
+
+	fmt.Println("Line no 246: ")
+
+	cricketServer := cricket.NewCricketServer(h.store, h.logger)
+
+	var cricketData map[string]interface{}
+
+	switch message["payload"].(map[string]interface{})["event_type"].(string) {
+	case "normal":
+		cricketData = cricketServer.UpdateInningScoreWS(ctx, message["payload"].(map[string]interface{}))
+	case "wide":
+		cricketData = cricketServer.UpdateWideBallWS(ctx, message["payload"].(map[string]interface{}))
+	case "no_ball":
+		cricketData = cricketServer.UpdateNoBallsRunsWS(ctx, message["payload"].(map[string]interface{}))
+	case "wicket":
+		cricketData = cricketServer.AddCricketWicketsWS(ctx, message["payload"].(map[string]interface{}))
+	}
+
+	// cricketData := cricketServer.UpdateInningScoreWS(ctx, message["payload"].(map[string]interface{}))
+
+	fmt.Println("Cricket Data: ", cricketData)
+
+	h.logger.Info("successfully created a update score")
+
+	scoreByte, _ := json.Marshal(cricketData)
+
+	h.scoreBroadCast <- scoreByte
+
+	h.logger.Debug("Successfully broad cast score")
 }
