@@ -118,10 +118,10 @@ func (q *Queries) GetCricketScore(ctx context.Context, matchID, teamID int32) (m
 
 // Get cricket score by inning
 const getCricketScoreByInning = `
-	SELECT * FROM cricket_score cs
+	SELECT cs.* FROM cricket_score cs
 	JOIN matches m ON m.id = cs.match_id
 	JOIN teams t ON t.id = cs.team_id
-	WHERE m.public_id=$1 AND AND t.public_id=$2 AND cs.inning_number=$3
+	WHERE m.public_id=$1 AND t.public_id=$2 AND cs.inning_number=$3
 `
 
 func (q *Queries) GetCricketScoreByInning(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (models.CricketScore, error) {
