@@ -71,7 +71,8 @@ func main() {
 	}
 
 	// Channel for broadcasting messages to WebSocket clients
-	broadcast := make(chan []byte)
+	messageBroadCast := make(chan []byte)
+	scoredBroadCast := make(chan []byte)
 
 	// Initialize HTTP servers and handlers
 	authServer := auth.NewAuthServer(store, log, tokenMaker, config)
@@ -81,7 +82,7 @@ func main() {
 
 	teamsServer := teams.NewTeamsServer(store, log, tokenMaker, config)
 	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config)
-	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, broadcast, upgrader, rabbitChan, log)
+	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log)
 	playerServer := players.NewPlayerServer(store, log, tokenMaker, config)
 	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config)
 	// Initialize Gin router
