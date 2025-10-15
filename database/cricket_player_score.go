@@ -94,9 +94,9 @@ func (q *Queries) AddCricketBall(ctx context.Context, arg AddCricketBallParams) 
 }
 
 const getCricketStricker = `
-	SELECT * FROM batsman_score b
-	JOIN matches m ON m.id = b.match_id
-	JOIN teams t ON t.id = b.team_id
+	SELECT b.* FROM batsman_score b
+	LEFT JOIN matches m ON m.id = b.match_id
+	LEFT JOIN teams t ON t.id = b.team_id
 	WHERE m.public_id=$1 AND t.public_id=$2 AND is_currently_batting=true AND is_striker=true AND b.inning_number= $3;
 `
 
@@ -110,6 +110,7 @@ func (q *Queries) GetCricketStricker(ctx context.Context, matchPublicID, teamPub
 		&i.BatsmanID,
 		&i.TeamID,
 		&i.MatchID,
+		&i.InningNumber,
 		&i.Position,
 		&i.RunsScored,
 		&i.BallsFaced,
@@ -118,7 +119,6 @@ func (q *Queries) GetCricketStricker(ctx context.Context, matchPublicID, teamPub
 		&i.BattingStatus,
 		&i.IsStriker,
 		&i.IsCurrentlyBatting,
-		&i.InningNumber,
 	)
 
 	if err != nil {
@@ -813,6 +813,7 @@ func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeam
 		&inningScore.FollowOn,
 		&inningScore.IsInningCompleted,
 		&inningScore.Declared,
+		&inningScore.InningStatus,
 	)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
@@ -898,61 +899,13 @@ func (q *Queries) UpdateNoBallsRuns(ctx context.Context, matchPublicID, bowlerPu
 		&inningScore.FollowOn,
 		&inningScore.IsInningCompleted,
 		&inningScore.Declared,
+		&inningScore.InningStatus,
 	)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
 	}
 
 	return &batsman, &bowler, &inningScore, nil
-}
-
-type BattingScore struct {
-	ID                 int64     `json:"id"`
-	PublicID           uuid.UUID `json:"public_id"`
-	MatchID            int32     `json:"match_id"`
-	TeamID             int32     `json:"team_id"`
-	BatsmanID          int32     `json:"batsman_id"`
-	InningNumber       int       `json:"inning_number"`
-	Position           string    `json:"position"`
-	RunsScored         int32     `json:"runs_scored"`
-	BallsFaced         int32     `json:"balls_faced"`
-	Fours              int32     `json:"fours"`
-	Sixes              int32     `json:"sixes"`
-	BattingStatus      bool      `json:"batting_status"`
-	IsStriker          bool      `json:"is_striker"`
-	IsCurrentlyBatting bool      `json:"is_currently_batting"`
-}
-
-type BowlingScore struct {
-	ID              int64     `json:"id"`
-	PublicID        uuid.UUID `json:"public_id"`
-	MatchID         int32     `json:"match_id"`
-	TeamID          int32     `json:"team_id"`
-	BowlerID        int32     `json:"bowler_id"`
-	InningNumber    int       `json:"inning_number"`
-	BallNumber      int32     `json:"ball_number"`
-	Runs            int32     `json:"runs"`
-	Wickets         int32     `json:"wickets"`
-	Wide            int32     `json:"wide"`
-	NoBall          int32     `json:"no_ball"`
-	BowlingStatus   bool      `json:"bowling_status"`
-	IsCurrentBowler bool      `json:"is_current_bowler"`
-}
-
-type InningScore struct {
-	ID                int64     `json:"id"`
-	PublicID          uuid.UUID `json:"public_id"`
-	MatchID           int32     `json:"match_id"`
-	TeamID            int32     `json:"team_id"`
-	InningNumber      int       `json:"inning_number"`
-	Score             int       `json:"score"`
-	Wickets           int       `json:"wickets"`
-	Overs             int       `json:"overs"`
-	RunRate           string    `json:"run_rate"`
-	TargetRunRate     string    `json:"target_run_rate"`
-	FollowOn          bool      `json:"follow_on"`
-	IsInningCompleted bool      `json:"is_inning_completed"`
-	Declared          bool      `json:"declared"`
 }
 
 // Enhance about the no ball_number
@@ -1110,6 +1063,7 @@ func (q *Queries) AddCricketWicket(ctx context.Context, matchPublicID, teamPubli
 		&inningScore.FollowOn,
 		&inningScore.IsInningCompleted,
 		&inningScore.Declared,
+		&inningScore.InningStatus,
 		&wickets.ID,
 		&wickets.MatchID,
 		&wickets.TeamID,
@@ -1326,6 +1280,7 @@ func (q *Queries) AddCricketWicketWithBowlType(ctx context.Context, matchPublicI
 		&inningScore.FollowOn,
 		&inningScore.IsInningCompleted,
 		&inningScore.Declared,
+		&inningScore.InningStatus,
 		&wickets.ID,
 		&wickets.PublicID,
 		&wickets.MatchID,
@@ -1354,6 +1309,7 @@ const updateInningEndStatus = `
 WITH update_inning_number AS (
 	UPDATE cricket_score
 	SET is_inning_completed = true
+		inning_status = 'completed'
 	WHERE match_id = $1 AND team_id = $2 AND inning_number= $3
 	RETURNING *
 ),
@@ -1400,6 +1356,7 @@ func (q *Queries) UpdateInningEndStatus(ctx context.Context, matchID, batsmanTea
 		&inningScore.FollowOn,
 		&inningScore.IsInningCompleted,
 		&inningScore.Declared,
+		&inningScore.InningStatus,
 		&batsmanScore.ID,
 		&batsmanScore.PublicID,
 		&batsmanScore.MatchID,
@@ -1448,7 +1405,8 @@ WITH resolve_ids AS (
 ),
 update_inning_number AS (
     UPDATE cricket_score cs
-    SET is_inning_completed = true
+    SET is_inning_completed = true,
+		inning_status = 'completed'
     FROM resolve_ids ri
     WHERE cs.match_id = ri.match_id 
       AND cs.team_id = ri.team_id 
@@ -1466,7 +1424,8 @@ update_inning_number AS (
         cs.target_run_rate AS ui_target_run_rate,
         cs.follow_on AS ui_follow_on,
         cs.is_inning_completed AS ui_is_inning_completed,
-        cs.declared AS ui_declared
+        cs.declared AS ui_declared,
+		cs.inning_status AS ui_inning_status
 ),
 update_batsman AS (
     UPDATE batsman_score bs
@@ -1554,6 +1513,7 @@ func (q *Queries) UpdateInningEndStatusByPublicID(ctx context.Context, matchPubl
 		&inningScore.FollowOn,
 		&inningScore.IsInningCompleted,
 		&inningScore.Declared,
+		&inningScore.InningStatus,
 		&batsmanScore.ID,
 		&batsmanScore.PublicID,
 		&batsmanScore.MatchID,
@@ -1720,6 +1680,7 @@ func (q *Queries) UpdateInningScore(ctx context.Context, matchPublicID, batsmanT
 		&inningScore.FollowOn,
 		&inningScore.IsInningCompleted,
 		&inningScore.Declared,
+		&inningScore.InningStatus,
 	)
 
 	if err != nil {

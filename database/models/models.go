@@ -68,6 +68,7 @@ type CricketScore struct {
 	IsInningCompleted bool      `json:"is_inning_completed"`
 	FollowOn          bool      `json:"follow_on"`
 	Declared          bool      `json:"declared"`
+	InningStatus      string    `json:"inning_status"`
 }
 
 type CricketToss struct {
@@ -610,4 +611,14 @@ type CricketPlayerStats struct {
 	FiveWickets    int       `json:"five_wickets"`
 	CreatedAT      time.Time `json:"created_at"`
 	UpdatedAT      time.Time `json:"updated_at"`
+}
+
+type CricketMatchInningDetails struct {
+	ID            int64     `json:"id"`
+	MatchID       int32     `json:"match_id"`
+	BatsmanTeamID int32     `json:"batsman_team_id"`
+	BowlerTeamID  int32     `json:"bowler_team_id"`
+	InningNumber  int       `json:"inning_number"`
+	InningStatus  string    `json:"inning_status"`
+	LastUpdated   time.Time `json:"last_updated"`
 }

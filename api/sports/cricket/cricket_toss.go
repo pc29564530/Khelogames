@@ -79,6 +79,7 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 		FollowOn:          false,
 		IsInningCompleted: false,
 		Declared:          false,
+		InningStatus:      "not_started",
 	}
 
 	responseScore, err := s.store.NewCricketScore(ctx, inningR)
@@ -108,6 +109,7 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 			"follow_on":           responseScore.FollowOn,
 			"is_inning_completed": responseScore.IsInningCompleted,
 			"declared":            responseScore.Declared,
+			"inning_status":       responseScore.InningStatus,
 		},
 		"team": teams,
 	})

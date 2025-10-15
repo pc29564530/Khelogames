@@ -3,9 +3,7 @@ package messenger
 import (
 	"encoding/json"
 	"fmt"
-	cricket "khelogames/api/sports/cricket"
 	db "khelogames/database"
-	"khelogames/database/models"
 
 	"khelogames/pkg"
 	"khelogames/token"
@@ -150,11 +148,108 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 	}
 }
 
+func (s *MessageServer) StartRabbitMQConsumer(queueName string) {
+	msgs, err := s.rabbitChan.Consume(
+		queueName,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		s.logger.Fatal("Failed to register consumer: ", err)
+		return
+	}
+	fmt.Println("QueueName: ", queueName)
+
+	s.logger.Infof("Starting RabbitMQ consumer for queue: %s", queueName)
+
+	go func() {
+		for msg := range msgs {
+			var message map[string]interface{}
+			err := json.Unmarshal(msg.Body, &message)
+			if err != nil {
+				s.logger.Error("Failed to unmarshal RabbitMQ message: ", err)
+				continue
+			}
+
+			messageType, ok := message["type"].(string)
+			if !ok {
+				s.logger.Error("Message type not found or invalid")
+				continue
+			}
+
+			switch queueName {
+			case "chatHub":
+				if messageType == "CREATE_MESSAGE" {
+					s.messageBroadCast <- msg.Body
+					s.logger.Debug("Broadcasted chat message")
+				}
+			case "scoreHub":
+				switch messageType {
+				case "ADD_BATSMAN", "ADD_BOWLER", "INNING_STATUS", "UPDATE_SCORE":
+					s.scoreBroadCast <- msg.Body
+					s.logger.Info("Broadcast score update: ", msg.Body)
+				default:
+					s.logger.Warn("Unknown score message type: %s", messageType)
+				}
+			default:
+				s.logger.Warnf("Unknown queue: %s", queueName)
+			}
+		}
+	}()
+}
+
+func (s *MessageServer) BroadcastCricketEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error {
+	content := map[string]interface{}{
+		"type":    eventType,
+		"payload": payload,
+	}
+
+	//Log before marshalling
+	s.logger.Infof("[BroadcastCricketEvent] Preparing broadcast for eventType=%s", eventType)
+	s.logger.Debugf("[BroadcastCricketEvent] Raw payload: %#v", payload)
+
+	body, err := json.Marshal(content)
+	if err != nil {
+		s.logger.Errorf("failed to marshal message: %v", err)
+		return err
+	}
+
+	//Log size and body preview
+	s.logger.Infof("[BroadcastCricketEvent] Marshaled JSON size: %d bytes", len(body))
+	s.logger.Debugf("[BroadcastCricketEvent] Marshaled JSON: %s", string(body))
+
+	//Verify JSON validity before send
+	var check map[string]interface{}
+	if err := json.Unmarshal(body, &check); err != nil {
+		s.logger.Errorf("[BroadcastCricketEvent] Invalid JSON generated: %v", err)
+		return err
+	}
+
+	//Non-empty check
+	if len(body) == 0 {
+		s.logger.Warn("[BroadcastCricketEvent] Skipping empty broadcast body")
+		return fmt.Errorf("Error empty body")
+	}
+
+	//Send to channel
+	select {
+	case s.scoreBroadCast <- body:
+		s.logger.Infof("[BroadcastCricketEvent] Sent to scoreBroadCast successfully (len=%d)", len(s.scoreBroadCast))
+	default:
+		s.logger.Warn("[BroadcastCricketEvent] scoreBroadCast channel is full or blocked — message dropped")
+	}
+	return nil
+}
+
 func getMessageHub(h *MessageServer, ctx *gin.Context, msg []byte, message map[string]interface{}) {
 	err := h.rabbitChan.PublishWithContext(
 		ctx,
 		"",
-		"message",
+		"chatHub",
 		false,
 		false,
 		ampq.Publishing{
@@ -212,7 +307,7 @@ func getCricketScoreHub(h *MessageServer, ctx *gin.Context, msg []byte, message 
 	err := h.rabbitChan.PublishWithContext(
 		ctx,
 		"",
-		"message",
+		"scoreHub",
 		false,
 		false,
 		ampq.Publishing{
@@ -226,25 +321,24 @@ func getCricketScoreHub(h *MessageServer, ctx *gin.Context, msg []byte, message 
 		return
 	}
 
-	fmt.Println("Line no 246: ")
-
-	cricketServer := cricket.NewCricketServer(h.store, h.logger)
+	if h.cricketUpdater == nil {
+		h.logger.Error("cricket updater not initialized")
+		return
+	}
 
 	var cricketData map[string]interface{}
 	var inningStatus string
 
 	switch message["payload"].(map[string]interface{})["event_type"].(string) {
 	case "normal":
-		cricketData, inningStatus = cricketServer.UpdateInningScoreWS(ctx, message["payload"].(map[string]interface{}))
+		cricketData, inningStatus = h.cricketUpdater.UpdateInningScoreWS(ctx, message["payload"].(map[string]interface{}))
 	case "wide":
-		cricketData = cricketServer.UpdateWideBallWS(ctx, message["payload"].(map[string]interface{}))
+		cricketData = h.cricketUpdater.UpdateWideBallWS(ctx, message["payload"].(map[string]interface{}))
 	case "no_ball":
-		cricketData = cricketServer.UpdateNoBallsRunsWS(ctx, message["payload"].(map[string]interface{}))
+		cricketData = h.cricketUpdater.UpdateNoBallsRunsWS(ctx, message["payload"].(map[string]interface{}))
 	case "wicket":
-		cricketData = cricketServer.AddCricketWicketsWS(ctx, message["payload"].(map[string]interface{}))
+		cricketData = h.cricketUpdater.AddCricketWicketsWS(ctx, message["payload"].(map[string]interface{}))
 	}
-
-	// cricketData := cricketServer.UpdateInningScoreWS(ctx, message["payload"].(map[string]interface{}))
 
 	fmt.Println("Cricket Data: ", cricketData)
 
@@ -253,191 +347,18 @@ func getCricketScoreHub(h *MessageServer, ctx *gin.Context, msg []byte, message 
 	scoreByte, _ := json.Marshal(cricketData)
 
 	h.scoreBroadCast <- scoreByte
-
-	fmt.Println("Inning Status 274: ", inningStatus)
-
-	h.logger.Debug("Successfully broad cast score")
+	fmt.Println("Ining Stauts: ", inningStatus)
 
 	if inningStatus == "completed" {
-		fmt.Println("Message: ", message)
-		content := message["payload"].(map[string]interface{})
-		matchPublicID, err := uuid.Parse(content["match_public_id"].(string))
-		if err != nil {
-			h.logger.Error("Invalid match UUID format", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
-			return
-		}
-
-		batsmanTeamPublicID, err := uuid.Parse(content["batsman_team_public_id"].(string))
-		if err != nil {
-			h.logger.Error("Invalid batsman team UUID format", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
-			return
-		}
-
-		fmt.Println("Message Data: ", content["bowler_public_id"].(string))
-		bowlerPublicID, err := uuid.Parse(content["bowler_public_id"].(string))
-		if err != nil {
-			h.logger.Error("Invalid bowler UUID format", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
-			return
-		}
-		inningNumber := int(content["inning_number"].(float64))
-
-		currBatsman, err := h.store.GetCurrentBattingBatsman(ctx, matchPublicID, batsmanTeamPublicID, inningNumber)
-		if err != nil {
-			h.logger.Error("Faield to end the inning ")
-		}
-
-		var strikerResponse models.BatsmanScore
-		var nonStrikerResponse models.BatsmanScore
-
-		for _, curr := range currBatsman {
-			if curr.IsStriker {
-				strikerResponse = curr
-			} else {
-				nonStrikerResponse = curr
-			}
-		}
-		fmt.Println("Lien no 309")
-
-		inningScore, _, bowlerResponse, err := h.store.UpdateInningEndStatusByPublicID(ctx, matchPublicID, batsmanTeamPublicID, inningNumber)
-		if err != nil {
-			h.logger.Error("Faield to end the inning ")
-		}
-		fmt.Println("INNING SCORE: ", inningScore)
-		fmt.Println("BowlerResoponse; ", bowlerResponse)
-
-		strikerPlayerData, err := h.store.GetPlayerByID(ctx, int64(strikerResponse.BatsmanID))
-		if err != nil {
-			h.logger.Error("Failed to get striker player: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get striker data"})
-			return
-		}
-
-		nonStrikerPlayerData, err := h.store.GetPlayerByID(ctx, int64(nonStrikerResponse.BatsmanID))
-		if err != nil {
-			h.logger.Error("Failed to get non-striker player: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get non-striker data"})
-			return
-		}
-
-		bowlerPlayerData, err := h.store.GetPlayerByPublicID(ctx, bowlerPublicID)
-		if err != nil {
-			h.logger.Error("Failed to get bowler player: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bowler data"})
-			return
-		}
-
-		// Build response objects
-		striker := map[string]interface{}{
-			"player": map[string]interface{}{
-				"id":        strikerPlayerData.ID,
-				"public_id": strikerPlayerData.PublicID,
-				"name":      strikerPlayerData.Name,
-				"slug":      strikerPlayerData.Slug,
-				"shortName": strikerPlayerData.ShortName,
-				"position":  strikerPlayerData.Positions,
-			},
-			"id":                   strikerResponse.ID,
-			"public_id":            strikerResponse.PublicID,
-			"match_id":             strikerResponse.MatchID,
-			"team_id":              strikerResponse.TeamID,
-			"batsman_id":           strikerResponse.BatsmanID,
-			"runs_scored":          strikerResponse.RunsScored,
-			"balls_faced":          strikerResponse.BallsFaced,
-			"fours":                strikerResponse.Fours,
-			"sixes":                strikerResponse.Sixes,
-			"batting_status":       strikerResponse.BattingStatus,
-			"is_striker":           strikerResponse.IsStriker,
-			"is_currently_batting": strikerResponse.IsCurrentlyBatting,
-			"inning_number":        strikerResponse.InningNumber,
-		}
-
-		nonStriker := map[string]interface{}{
-			"player": map[string]interface{}{
-				"id":        nonStrikerPlayerData.ID,
-				"public_id": nonStrikerPlayerData.PublicID,
-				"name":      nonStrikerPlayerData.Name,
-				"slug":      nonStrikerPlayerData.Slug,
-				"shortName": nonStrikerPlayerData.ShortName,
-				"position":  nonStrikerPlayerData.Positions,
-			},
-			"id":                   nonStrikerResponse.ID,
-			"public_id":            nonStrikerResponse.PublicID,
-			"match_id":             nonStrikerResponse.MatchID,
-			"team_id":              nonStrikerResponse.TeamID,
-			"batsman_id":           nonStrikerResponse.BatsmanID,
-			"runs_scored":          nonStrikerResponse.RunsScored,
-			"balls_faced":          nonStrikerResponse.BallsFaced,
-			"fours":                nonStrikerResponse.Fours,
-			"sixes":                nonStrikerResponse.Sixes,
-			"batting_status":       nonStrikerResponse.BattingStatus,
-			"is_striker":           nonStrikerResponse.IsStriker,
-			"is_currently_batting": nonStrikerResponse.IsCurrentlyBatting,
-			"inning_number":        nonStrikerResponse.InningNumber,
-		}
-
-		bowler := map[string]interface{}{
-			"player": map[string]interface{}{
-				"id":        bowlerPlayerData.ID,
-				"public_id": bowlerPlayerData.PublicID,
-				"name":      bowlerPlayerData.Name,
-				"slug":      bowlerPlayerData.Slug,
-				"shortName": bowlerPlayerData.ShortName,
-				"position":  bowlerPlayerData.Positions,
-			},
-			"id":                bowlerResponse.ID,
-			"public_id":         bowlerResponse.PublicID,
-			"match_id":          bowlerResponse.MatchID,
-			"team_id":           bowlerResponse.TeamID,
-			"bowler_id":         bowlerResponse.BowlerID,
-			"ball_number":       bowlerResponse.BallNumber,
-			"runs":              bowlerResponse.Runs,
-			"wide":              bowlerResponse.Wide,
-			"no_ball":           bowlerResponse.NoBall,
-			"wickets":           bowlerResponse.Wickets,
-			"bowling_status":    bowlerResponse.BowlingStatus,
-			"is_current_bowler": bowlerResponse.IsCurrentBowler,
-			"inning_number":     bowlerResponse.InningNumber,
-		}
-		inningPayload := map[string]interface{}{
-			"id":                  inningScore.ID,
-			"public_id":           inningScore.PublicID,
-			"match_id":            inningScore.MatchID,
-			"team_id":             inningScore.TeamID,
-			"inning_number":       inningScore.InningNumber,
-			"score":               inningScore.Score,
-			"wickets":             inningScore.Wickets,
-			"overs":               inningScore.Overs,
-			"run_rate":            inningScore.RunRate,
-			"target_run_rate":     inningScore.TargetRunRate,
-			"follow_on":           inningScore.FollowOn,
-			"is_inning_completed": inningScore.IsInningCompleted,
-			"declared":            inningScore.Declared,
-		}
-
-		data := map[string]interface{}{
-			"type": "INNING_STATUS",
-			"payload": map[string]interface{}{
-				"striker":       striker,
-				"non_striker":   nonStriker,
-				"bowler":        bowler,
-				"inning_score":  inningPayload,
-				"inning_status": "completed",
-			},
-		}
-
-		fmt.Println("Line no 446: Status; ", inningStatus)
-
+		data := h.cricketUpdater.UpdateCricketInningStatusWS(ctx, message["payload"].(map[string]interface{}))
+		fmt.Println("Inning Status Completed Dta: ", data)
+		var inningStatusByte []byte
 		inningStatusByte, err := json.Marshal(data)
 		if err != nil {
 			h.logger.Error("Failed to marshal :", err)
 			return
 		}
-
 		h.scoreBroadCast <- inningStatusByte
-
 	}
 
 }

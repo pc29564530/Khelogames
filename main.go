@@ -25,6 +25,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -58,6 +59,8 @@ func main() {
 	if err != nil {
 		log.Fatal("cannot start RabbitMQ:", err)
 	}
+	_, _ = rabbitChan.QueueDeclare("chatHub", true, false, false, false, nil)
+	_, _ = rabbitChan.QueueDeclare("scoreHub", true, false, false, false, nil)
 	defer rabbitConn.Close()
 
 	// Define clients map for WebSocket connections
@@ -74,17 +77,27 @@ func main() {
 	messageBroadCast := make(chan []byte)
 	scoredBroadCast := make(chan []byte)
 
+	cricketServer := cricket.NewCricketServer(store, log, rabbitChan, nil)
+
 	// Initialize HTTP servers and handlers
 	authServer := auth.NewAuthServer(store, log, tokenMaker, config)
 	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config)
 	footballServer := football.NewFootballServer(store, log)
-	cricketServer := cricket.NewCricketServer(store, log)
 
 	teamsServer := teams.NewTeamsServer(store, log, tokenMaker, config)
 	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config)
-	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log)
+
+	// Create messenger server with cricket server as both updater and broadcaster
+	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log, cricketServer, nil)
 	playerServer := players.NewPlayerServer(store, log, tokenMaker, config)
 	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config)
+	cricketServer.SetScoreBroadcaster(messengerServer)
+
+	go messengerServer.StartRabbitMQConsumer("scoreHub")
+	go messengerServer.StartRabbitMQConsumer("chatHub")
+	go messengerServer.StartMessageHub()
+	go messengerServer.StartCricketScoreHub()
+
 	// Initialize Gin router
 	router := gin.Default()
 	server, err := server.NewServer(config,
