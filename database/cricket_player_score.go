@@ -10,6 +10,49 @@ import (
 	"github.com/google/uuid"
 )
 
+const updateCricketInningsStatus = `
+WITH resolve_ids AS (
+  SELECT 
+    m.id AS match_id, 
+    t.id AS team_id
+  FROM matches m, teams t
+  WHERE m.public_id = $1 AND t.public_id = $2
+)
+UPDATE cricket_score
+SET inning_status = 'in_progress'
+WHERE match_id = (SELECT match_id FROM resolve_ids)
+  AND team_id = (SELECT team_id FROM resolve_ids)
+  AND inning_number = $3
+RETURNING *;
+`
+
+func (q *Queries) UpdateCricketInningsStatus(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (*models.CricketScore, error) {
+	row := q.db.QueryRowContext(ctx, updateCricketInningsStatus, matchPublicID, teamPublicID, inningNumber)
+	var i models.CricketScore
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.MatchID,
+		&i.TeamID,
+		&i.InningNumber,
+		&i.Score,
+		&i.Wickets,
+		&i.Overs,
+		&i.RunRate,
+		&i.TargetRunRate,
+		&i.FollowOn,
+		&i.IsInningCompleted,
+		&i.Declared,
+		&i.InningStatus,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan: ", err)
+	}
+
+	return &i, nil
+
+}
+
 const addCricketBall = `
 WITH resolve_ids AS (
 	SELECT 

@@ -11,6 +11,77 @@ import (
 	"github.com/google/uuid"
 )
 
+func (s *CricketServer) UpdateCricketInningStatusFunc(ctx *gin.Context) {
+
+	var req struct {
+		MatchPublicID string `json:"match_public_id"`
+		TeamPublicID  string `json:"team_public_id"`
+		InningNumber  int    `json:"inning_number"`
+	}
+
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	// matchPublicIDString := ctx.Query("match_public_id")
+	// teamPublicIDString := ctx.Query("team_public_id")
+	// inningNumberString := ctx.Query("inning_number")
+
+	// inningNumber, err := strconv.Atoi(inningNumberString)
+	// if err != nil {
+	// 	s.logger.Error("Failed to parse to int: ", err)
+	// }
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	inningStatus, err := s.store.UpdateCricketInningsStatus(ctx, matchPublicID, teamPublicID, req.InningNumber)
+	if err != nil {
+		s.logger.Error("Failed to update inning status: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var inningData map[string]interface{}
+	inningData = map[string]interface{}{
+		"id":                  inningStatus.ID,
+		"public_id":           inningStatus.PublicID,
+		"match_id":            inningStatus.MatchID,
+		"team_id":             inningStatus.TeamID,
+		"inning_number":       inningStatus.InningNumber,
+		"score":               inningStatus.Score,
+		"overs":               inningStatus.Overs,
+		"inning_status":       inningStatus.InningStatus,
+		"is_inning_completed": inningStatus.IsInningCompleted,
+		"declared":            inningStatus.Declared,
+		"follow_on":           inningStatus.FollowOn,
+		"target_run_rate":     inningStatus.TargetRunRate,
+		"run_rate":            inningStatus.RunRate,
+	}
+
+	ctx.JSON(http.StatusAccepted, inningStatus)
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "INNING_STATUS", inningData)
+		if err != nil {
+			s.logger.Error("Failed to broadcast cricket event: ", err)
+		}
+	}
+
+}
+
 type addCricketBatScore struct {
 	MatchPublicID      string `json:"match_public_id"`
 	TeamPublicID       string `json:"team_public_id"`
