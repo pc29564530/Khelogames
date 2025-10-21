@@ -82,7 +82,7 @@ func main() {
 	// Initialize HTTP servers and handlers
 	authServer := auth.NewAuthServer(store, log, tokenMaker, config)
 	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config)
-	footballServer := football.NewFootballServer(store, log)
+	footballServer := football.NewFootballServer(store, log, nil)
 
 	teamsServer := teams.NewTeamsServer(store, log, tokenMaker, config)
 	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config)
@@ -92,6 +92,7 @@ func main() {
 	playerServer := players.NewPlayerServer(store, log, tokenMaker, config)
 	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config)
 	cricketServer.SetScoreBroadcaster(messengerServer)
+	footballServer.SetScoreBroadcaster(messengerServer)
 
 	go messengerServer.StartRabbitMQConsumer("scoreHub")
 	go messengerServer.StartRabbitMQConsumer("chatHub")

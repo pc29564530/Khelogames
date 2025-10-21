@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -22,20 +24,58 @@ INSERT INTO football_substitutions_player (
     player_in_id,
     player_out_id
 )
-SELECT incidentID.id, playerInID.id, playerOutID.id FROM incidentID, playerInID, playerOutID	
+SELECT
+	JSON_BUILD_OBJECT (
+		'incident_id': incidentID.id,
+		'player_in', JSON_BUILD_OBJECT(
+			'id', playerInID.id,
+			'public_id', playerInID.public_id,
+			'user_id', playerInID.user_id,
+			'game_id', playerInID.game_id,
+			'name', playerInID.name,
+			'slug', playerInID.slug,
+			'short_name', playerInID.ShortName,
+			'media_url', playerInID.media_url,
+			'positions', playerInID.positions,
+			'country', playerInID.country,
+			'created_at', playerInID.created_at,
+			'updated_at', playerInID.updated_at
+		),
+		'player_out', JSON_BUILD_OBJECT(
+				'id', playerOutID.id,
+				'public_id', playerOutID.public_id,
+				'user_id', playerOutID.user_id,
+				'game_id', playerOutID.game_id,
+				'name', playerOutID.name,
+				'slug', playerOutID.slug,
+				'short_name', playerOutID.ShortName,
+				'media_url', playerOutID.media_url,
+				'positions', playerOutID.positions,
+				'country', playerOutID.country,
+				'created_at', playerOutID.created_at,
+				'updated_at', playerOutID.updated_at
+		
+		)
+    )
+FROM incidentID, playerInID, playerOutID	
 RETURNING *;
 `
 
-func (q *Queries) ADDFootballSubsPlayer(ctx context.Context, incidentPublicID, playerInPublicID, playerOutPublicID uuid.UUID) (models.FootballSubstitutionsPlayer, error) {
+func (q *Queries) ADDFootballSubsPlayer(ctx context.Context, incidentPublicID, playerInPublicID, playerOutPublicID uuid.UUID) (*map[string]interface{}, error) {
 	row := q.db.QueryRowContext(ctx, addFootballSubsPlayer, incidentPublicID, playerInPublicID, playerOutPublicID)
-	var i models.FootballSubstitutionsPlayer
-	err := row.Scan(
-		&i.ID,
-		&i.IncidentID,
-		&i.PlayerInID,
-		&i.PlayerOutID,
-	)
-	return i, err
+	var i map[string]interface{}
+	var jsonByte []byte
+
+	err := row.Scan(&jsonByte)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan: ", err)
+	}
+
+	err = json.Unmarshal(jsonByte, &i)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal: ", err)
+	}
+	return &i, err
 }
 
 const addFootballIncidentPlayer = `
@@ -49,15 +89,43 @@ INSERT INTO football_incident_player (
     incident_id,
     player_id
 )
-SELECT incidentID.id, playerID.id FROM incidentID, playerID
+SELECT
+	JSON_BUILD_OBJECT(
+		'incident_id', incidentID.id,
+		'player', JSON_BUILD_OBJECT(
+			'id', playerID.id,
+			'public_id', playerID.public_id,
+			'user_id', playerID.user_id,
+			'game_id', playerID.game_id,
+			'name', playerID.name,
+			'slug', playerID.slug,
+			'short_name', playerID.ShortName,
+			'media_url', playerID.media_url,
+			'positions', playerID.positions,
+			'country', playerID.country,
+			'created_at', playerID.created_at,
+			'updated_at', playerID.updated_at
+		),
+	)
+FROM incidentID, playerID
 RETURNING *;
 `
 
-func (q *Queries) AddFootballIncidentPlayer(ctx context.Context, incidentPublicID, playerPublicID uuid.UUID) (models.FootballIncidentPlayer, error) {
+func (q *Queries) AddFootballIncidentPlayer(ctx context.Context, incidentPublicID, playerPublicID uuid.UUID) (*map[string]interface{}, error) {
 	row := q.db.QueryRowContext(ctx, addFootballIncidentPlayer, incidentPublicID, playerPublicID)
-	var i models.FootballIncidentPlayer
-	err := row.Scan(&i.ID, &i.IncidentID, &i.PlayerID)
-	return i, err
+	var i map[string]interface{}
+	var jsonByte []byte
+
+	err := row.Scan(&jsonByte)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan: ", err)
+	}
+
+	err = json.Unmarshal(jsonByte, &i)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal: ", err)
+	}
+	return &i, err
 }
 
 const createFootballIncidents = `
@@ -144,10 +212,10 @@ SELECT
     fi.incident_time, 
     fi.description, 
     fi.penalty_shootout_scored,
-	fi.tournament_id,
     NULL AS players
 FROM 
     football_incidents fi
+LEFT JOIN matches AS m ON  m.id = fi.match_id
 WHERE 
     m.public_id = $1 AND 
     (fi.periods = 'half_time' OR fi.periods = 'full_time' OR fi.periods = 'extra_time')
@@ -166,16 +234,18 @@ SELECT
     CASE
         WHEN fi.incident_type = 'substitutions' THEN 
             JSON_BUILD_OBJECT(
-                'player_in', JSON_BUILD_OBJECT('id',player_in.id, 'public_id', player_in.public_id, 'user_id', player_in.user_id, 'name', player_in.player_name, 'slug', player_in.slug, 'short_name',player_in.short_name, 'country', player_in.country, 'positions', player_in.positions, 'media_url', player_in.media_url ),
-                'player_out', JSON_BUILD_OBJECT('id',player_out.id, 'public_id', player_out.public_id, 'user_id', player_out.user_id, 'name', player_out.player_name, 'slug', player_out.slug, 'short_name',player_out.short_name, 'country', player_out.country, 'positions', player_out.positions, 'media_url', player_out.media_url)
+                'player_in', JSON_BUILD_OBJECT('id',player_in.id, 'public_id', player_in.public_id, 'user_id', player_in.user_id, 'name', player_in.name, 'slug', player_in.slug, 'short_name',player_in.short_name, 'country', player_in.country, 'positions', player_in.positions, 'media_url', player_in.media_url ),
+                'player_out', JSON_BUILD_OBJECT('id',player_out.id, 'public_id', player_out.public_id, 'user_id', player_out.user_id, 'name', player_out.name, 'slug', player_out.slug, 'short_name',player_out.short_name, 'country', player_out.country, 'positions', player_out.positions, 'media_url', player_out.media_url)
             )
         ELSE
             JSON_BUILD_OBJECT(
-                'player', JSON_BUILD_OBJECT('id',player_incident.id,'public_id', player_incident.public_id, 'user_id', player_incident.user_id, 'name', player_incident.player_name, 'slug', player_incident.slug, 'short_name',player_incident.short_name, 'country', player_incident.country, 'positions', player_incident.positions, 'media_url', player_incident.media_url)
+                'player', JSON_BUILD_OBJECT('id',player_incident.id,'public_id', player_incident.public_id, 'user_id', player_incident.user_id, 'name', player_incident.name, 'slug', player_incident.slug, 'short_name',player_incident.short_name, 'country', player_incident.country, 'positions', player_incident.positions, 'media_url', player_incident.media_url)
             )
     END AS players
 FROM 
     football_incidents fi
+LEFT JOIN
+	matches AS m ON m.id = fi.match_id 
 LEFT JOIN 
     football_incident_player AS fip ON fip.incident_id=fi.id
 LEFT JOIN 
@@ -186,7 +256,6 @@ LEFT JOIN
     players AS player_in ON player_in.id = fis.player_in_id
 LEFT JOIN 
     players AS player_out ON player_out.id = fis.player_out_id
-JOIN matches AS m ON m.id = fi.match_id
 WHERE 
     m.public_id = $1 AND 
     (fi.periods IS NULL OR fi.periods NOT IN ('half_time', 'full_time', 'extra_time'))

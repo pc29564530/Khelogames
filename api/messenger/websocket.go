@@ -202,6 +202,49 @@ func (s *MessageServer) StartRabbitMQConsumer(queueName string) {
 	}()
 }
 
+func (s *MessageServer) BroadcastFootballEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error {
+	content := map[string]interface{}{
+		"type":    eventType,
+		"payload": payload,
+	}
+
+	//Log before marshalling
+	s.logger.Infof("[BroadcastFootballEvent] Preparing broadcast for eventType=%s", eventType)
+	s.logger.Debugf("[BroadcastFootballEvent] Raw payload: %#v", payload)
+
+	body, err := json.Marshal(content)
+	if err != nil {
+		s.logger.Errorf("failed to marshal message: %v", err)
+		return err
+	}
+
+	//Log size and body preview
+	s.logger.Infof("[BroadcastFootballEvent] Marshaled JSON size: %d bytes", len(body))
+	s.logger.Debugf("[BroadcastFootballEvent] Marshaled JSON: %s", string(body))
+
+	//Verify JSON validity before send
+	var check map[string]interface{}
+	if err := json.Unmarshal(body, &check); err != nil {
+		s.logger.Errorf("[BroadcastFootballEvent] Invalid JSON generated: %v", err)
+		return err
+	}
+
+	//Non-empty check
+	if len(body) == 0 {
+		s.logger.Warn("[BroadcastFootballEvent] Skipping empty broadcast body")
+		return fmt.Errorf("Error empty body")
+	}
+
+	//Send to channel
+	select {
+	case s.scoreBroadCast <- body:
+		s.logger.Infof("[BroadcastFootballEvent] Sent to scoreBroadCast successfully (len=%d)", len(s.scoreBroadCast))
+	default:
+		s.logger.Warn("[BroadcastFootballEvent] scoreBroadCast channel is full or blocked — message dropped")
+	}
+	return nil
+}
+
 func (s *MessageServer) BroadcastCricketEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error {
 	content := map[string]interface{}{
 		"type":    eventType,
