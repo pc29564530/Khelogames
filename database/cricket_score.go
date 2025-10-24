@@ -112,16 +112,17 @@ func (q *Queries) GetCricketScore(ctx context.Context, matchID, teamID int32) (m
 		&i.FollowOn,
 		&i.IsInningCompleted,
 		&i.Declared,
+		&i.InningStatus,
 	)
 	return i, err
 }
 
 // Get cricket score by inning
 const getCricketScoreByInning = `
-	SELECT * FROM cricket_score cs
+	SELECT cs.* FROM cricket_score cs
 	JOIN matches m ON m.id = cs.match_id
 	JOIN teams t ON t.id = cs.team_id
-	WHERE m.public_id=$1 AND AND t.public_id=$2 AND cs.inning_number=$3
+	WHERE m.public_id=$1 AND t.public_id=$2 AND cs.inning_number=$3
 `
 
 func (q *Queries) GetCricketScoreByInning(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (models.CricketScore, error) {
@@ -141,6 +142,7 @@ func (q *Queries) GetCricketScoreByInning(ctx context.Context, matchPublicID, te
 		&i.FollowOn,
 		&i.IsInningCompleted,
 		&i.Declared,
+		&i.InningStatus,
 	)
 	return i, err
 }
@@ -169,6 +171,7 @@ func (q *Queries) GetCricketScoreByPublicID(ctx context.Context, matchPublicID, 
 		&i.FollowOn,
 		&i.IsInningCompleted,
 		&i.Declared,
+		&i.InningStatus,
 	)
 	return i, err
 }
@@ -203,6 +206,7 @@ func (q *Queries) GetCricketScores(ctx context.Context, matchID int32) ([]models
 			&i.FollowOn,
 			&i.IsInningCompleted,
 			&i.Declared,
+			&i.InningStatus,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("Not able to scan row: %w", err)
@@ -236,7 +240,8 @@ INSERT INTO cricket_score (
     target_run_rate,
 	follow_on,
 	is_inning_completed,
-	declared
+	declared,
+	inning_status
 )
 SELECT 
 	matchID.id,
@@ -249,7 +254,8 @@ SELECT
 	CAST($8 AS numeric(5,2)),
 	$9,
 	$10,
-	$11
+	$11,
+	$12
 FROM matchID, teamID
 RETURNING *;
 `
@@ -266,6 +272,7 @@ type NewCricketScoreParams struct {
 	FollowOn          bool      `json:"follow_on"`
 	IsInningCompleted bool      `json:"is_inning_completed"`
 	Declared          bool      `json:"declared"`
+	InningStatus      string    `json:"inning_status"`
 }
 
 func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams) (models.CricketScore, error) {
@@ -282,6 +289,7 @@ func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams
 		arg.FollowOn,
 		arg.IsInningCompleted,
 		arg.Declared,
+		arg.InningStatus,
 	)
 	var i models.CricketScore
 	err := row.Scan(
@@ -298,6 +306,7 @@ func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams
 		&i.FollowOn,
 		&i.IsInningCompleted,
 		&i.Declared,
+		&i.InningStatus,
 	)
 	return i, err
 }
@@ -329,6 +338,7 @@ func (q *Queries) UpdateCricketInnings(ctx context.Context, matchPublicID, teamP
 		&i.FollowOn,
 		&i.IsInningCompleted,
 		&i.Declared,
+		&i.InningStatus,
 	)
 	return i, err
 }
@@ -364,6 +374,7 @@ func (q *Queries) UpdateCricketOvers(ctx context.Context, matchPublicID, teamPub
 		&i.FollowOn,
 		&i.IsInningCompleted,
 		&i.Declared,
+		&i.InningStatus,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -410,6 +421,7 @@ func (q *Queries) UpdateCricketScore(ctx context.Context, arg UpdateCricketScore
 		&i.FollowOn,
 		&i.IsInningCompleted,
 		&i.Declared,
+		&i.InningStatus,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

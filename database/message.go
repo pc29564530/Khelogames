@@ -15,7 +15,7 @@ WITH senderID AS (
     SELECT id FROM users WHERE public_id = $1
 ),
 receiverID AS (
-    SELECT id FROM users WHERE public_id = $2
+    SELECT user_id FROM user_profiles WHERE public_id = $2
 )
 INSERT INTO message (
     sender_id,
@@ -28,7 +28,7 @@ INSERT INTO message (
 )
 SELECT 
     senderID.id,
-    receiverID.id,
+    receiverID.user_id,
     $3,
     $4,
     $5,

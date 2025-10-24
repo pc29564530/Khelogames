@@ -2,6 +2,7 @@ package cricket
 
 import (
 	"context"
+	"fmt"
 	db "khelogames/database"
 	"khelogames/database/models"
 	"net/http"
@@ -63,6 +64,7 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		FollowOn:          req.FollowOn,
 		IsInningCompleted: false,
 		Declared:          false,
+		InningStatus:      "not_started",
 	}
 
 	responseScore, err := s.store.NewCricketScore(ctx, arg)
@@ -70,6 +72,7 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusNoContent, err)
 		return
 	}
+	fmt.Println("Inning Line no 74: ", responseScore)
 
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"inning": gin.H{
@@ -86,6 +89,7 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 			"follow_on":           responseScore.FollowOn,
 			"is_inning_completed": responseScore.IsInningCompleted,
 			"declared":            responseScore.Declared,
+			"inning_status":       responseScore.InningStatus,
 		},
 		"team": team,
 	})

@@ -86,14 +86,19 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 
 	s.logger.Info("successfully created the incident: ", incidents)
 
+	var playerData map[string]interface{}
+	var incidentData map[string]interface{}
+
 	if incidents.IncidentType != "period" {
 
-		_, err = s.store.AddFootballIncidentPlayer(ctx, incidents.PublicID, playerPublicID)
+		data, err := s.store.AddFootballIncidentPlayer(ctx, incidents.PublicID, playerPublicID)
 		if err != nil {
 			tx.Rollback()
 			s.logger.Error("Failed to create football incidents: ", err)
 			return
 		}
+
+		playerData = *data
 
 		statsUpdate := GetStatisticsUpdateFromIncident(incidents.IncidentType)
 
@@ -116,46 +121,135 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 			s.logger.Error("Failed to update statistics: ", err)
 			return
 		}
-	}
 
-	//Handle goals, penalty_shootout and penalty
-	switch incidents.IncidentType {
-	case "goal", "penalty":
-		if incidents.Periods == "first_half" {
-			argGoalScore := db.UpdateFirstHalfScoreParams{
-				FirstHalf: 1,
-				MatchID:   incidents.MatchID,
-				TeamID:    *incidents.TeamID,
-			}
+		//Handle goals, penalty_shootout and penalty
+		switch incidents.IncidentType {
+		case "goal", "penalty":
+			if incidents.Periods == "first_half" {
+				argGoalScore := db.UpdateFirstHalfScoreParams{
+					FirstHalf: 1,
+					MatchID:   incidents.MatchID,
+					TeamID:    *incidents.TeamID,
+				}
 
-			_, err := s.store.UpdateFirstHalfScore(ctx, argGoalScore)
-			if err != nil {
-				tx.Rollback()
-				s.logger.Error("Failed to update football score: ", err)
-				return
-			}
-		} else if incidents.Periods == "second_half" {
-			argGoalScore := db.UpdateSecondHalfScoreParams{
-				SecondHalf: 1,
-				MatchID:    incidents.MatchID,
-				TeamID:     *incidents.TeamID,
-			}
+				firstHalfData, err := s.store.UpdateFirstHalfScore(ctx, argGoalScore)
+				if err != nil {
+					tx.Rollback()
+					s.logger.Error("Failed to update football score: ", err)
+					return
+				}
 
-			_, err := s.store.UpdateSecondHalfScore(ctx, argGoalScore)
-			if err != nil {
-				tx.Rollback()
-				s.logger.Error("Failed to update football score: ", err)
-				return
+				firstHalf := map[string]interface{}{
+					"id":               firstHalfData.ID,
+					"public_id":        firstHalfData.PublicID,
+					"match_id":         firstHalfData.MatchID,
+					"team_id":          firstHalfData.TeamID,
+					"first_half":       firstHalfData.FirstHalf,
+					"second_half":      firstHalfData.SecondHalf,
+					"penalty_shootout": firstHalfData.PenaltyShootOut,
+				}
+
+				if s.scoreBroadcaster != nil {
+					err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_FOOTBALL_SCORE", firstHalf)
+					if err != nil {
+						s.logger.Error("Failed to broadcast cricket event: ", err)
+					}
+				}
+			} else if incidents.Periods == "second_half" {
+				argGoalScore := db.UpdateSecondHalfScoreParams{
+					SecondHalf: 1,
+					MatchID:    incidents.MatchID,
+					TeamID:     *incidents.TeamID,
+				}
+
+				secondHalfData, err := s.store.UpdateSecondHalfScore(ctx, argGoalScore)
+				if err != nil {
+					tx.Rollback()
+					s.logger.Error("Failed to update football score: ", err)
+					return
+				}
+
+				secondHalf := map[string]interface{}{
+					"id":               secondHalfData.ID,
+					"public_id":        secondHalfData.PublicID,
+					"match_id":         secondHalfData.MatchID,
+					"team_id":          secondHalfData.TeamID,
+					"first_half":       secondHalfData.FirstHalf,
+					"second_half":      secondHalfData.SecondHalf,
+					"penalty_shootout": secondHalfData.PenaltyShootOut,
+				}
+
+				if s.scoreBroadcaster != nil {
+					err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_FOOTBALL_SCORE", secondHalf)
+					if err != nil {
+						s.logger.Error("Failed to broadcast cricket event: ", err)
+					}
+				}
+			}
+		case "penalty_shootout":
+			if incidents.PenaltyShootoutScored {
+				penaltyData, err := s.store.UpdatePenaltyShootoutScore(ctx, incidents.MatchID, *incidents.TeamID)
+				if err != nil {
+					tx.Rollback()
+					s.logger.Error("Failed to update penalty shootout score: ", err)
+					return
+				}
+				penaltyShootout := map[string]interface{}{
+					"id":               penaltyData.ID,
+					"public_id":        penaltyData.PublicID,
+					"match_id":         penaltyData.MatchID,
+					"team_id":          penaltyData.TeamID,
+					"first_half":       penaltyData.FirstHalf,
+					"second_half":      penaltyData.SecondHalf,
+					"penalty_shootout": penaltyData.PenaltyShootOut,
+				}
+				if s.scoreBroadcaster != nil {
+					err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_FOOTBALL_SCORE", penaltyShootout)
+					if err != nil {
+						s.logger.Error("Failed to broadcast cricket event: ", err)
+					}
+				}
 			}
 		}
-	case "penalty_shootout":
-		if incidents.PenaltyShootoutScored {
-			_, err := s.store.UpdatePenaltyShootoutScore(ctx, incidents.MatchID, *incidents.TeamID)
-			if err != nil {
-				tx.Rollback()
-				s.logger.Error("Failed to update penalty shootout score: ", err)
-				return
-			}
+
+		incidentData = map[string]interface{}{
+			"id":                      incidents.ID,
+			"public_id":               incidents.PublicID,
+			"match_id":                incidents.MatchID,
+			"team_id":                 incidents.TeamID,
+			"periods":                 incidents.Periods,
+			"incident_type":           incidents.IncidentType,
+			"incident_time":           incidents.IncidentTime,
+			"description":             incidents.Description,
+			"penalty_shootout_scored": incidents.PenaltyShootoutScored,
+			"tournament_id":           incidents.TournamentID,
+			"created_at":              incidents.CreatedAt,
+			"player": map[string]interface{}{
+				"id":         playerData["id"],
+				"public_id":  playerData["public_id"],
+				"user_id":    playerData["user_id"],
+				"name":       playerData["name"],
+				"slug":       playerData["slug"],
+				"short_name": playerData["short_name"],
+				"positions":  playerData["positions"],
+				"country":    playerData["country"],
+				"media_url":  playerData["media_url"],
+			},
+		}
+
+	} else {
+		incidentData = map[string]interface{}{
+			"id":                      incidents.ID,
+			"public_id":               incidents.PublicID,
+			"match_id":                incidents.MatchID,
+			"team_id":                 incidents.TeamID,
+			"periods":                 incidents.Periods,
+			"incident_type":           incidents.IncidentType,
+			"incident_time":           incidents.IncidentTime,
+			"description":             incidents.Description,
+			"penalty_shootout_scored": incidents.PenaltyShootoutScored,
+			"tournament_id":           incidents.TournamentID,
+			"created_at":              incidents.CreatedAt,
 		}
 	}
 
@@ -169,7 +263,13 @@ func (s *FootballServer) AddFootballIncidents(ctx *gin.Context) {
 
 	s.logger.Info("successfully update the add football incident ")
 
-	ctx.JSON(http.StatusAccepted, incidents)
+	ctx.JSON(http.StatusAccepted, incidentData)
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "ADD_FOOTBALL_INCIDENT", incidentData)
+		if err != nil {
+			s.logger.Error("Failed to broadcast cricket event: ", err)
+		}
+	}
 }
 
 type addFootballIncidentsSubsRequest struct {
@@ -242,10 +342,28 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		return
 	}
 
-	_, err = s.store.ADDFootballSubsPlayer(ctx, incidents.PublicID, playerInPublicID, playerOutPublicID)
+	data, err := s.store.ADDFootballSubsPlayer(ctx, incidents.PublicID, playerInPublicID, playerOutPublicID)
 	if err != nil {
 		s.logger.Error("Failed to create football incidents: ", err)
 		return
+	}
+
+	subsData := *data
+
+	incidentData := map[string]interface{}{
+		"id":                      incidents.ID,
+		"public_id":               incidents.PublicID,
+		"match_id":                incidents.MatchID,
+		"team_id":                 incidents.TeamID,
+		"periods":                 incidents.Periods,
+		"incident_type":           incidents.IncidentType,
+		"incident_time":           incidents.IncidentTime,
+		"description":             incidents.Description,
+		"penalty_shootout_scored": incidents.PenaltyShootoutScored,
+		"tournament_id":           incidents.TournamentID,
+		"created_at":              incidents.CreatedAt,
+		"player_in":               subsData["player_id"],
+		"player_out":              subsData["player_out"],
 	}
 
 	err = tx.Commit()
@@ -255,15 +373,21 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, incidents)
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "ADD_FOOTBALL_SUB_INCIDENT", incidentData)
+		if err != nil {
+			s.logger.Error("Failed to broadcast cricket event: ", err)
+		}
+	}
 }
 
 type getFootballIncidentsRequest struct {
-	MatchPublicID string `json:"match_public_id" form:"match_public_id"`
+	MatchPublicID string `uri:"match_public_id" form:"match_public_id"`
 }
 
-func (s *FootballServer) GetFootballIncidents(ctx *gin.Context) {
+func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 	var req getFootballIncidentsRequest
-	err := ctx.ShouldBindQuery(&req)
+	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		return
