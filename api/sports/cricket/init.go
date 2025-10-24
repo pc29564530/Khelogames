@@ -13,12 +13,6 @@ type CricketServer struct {
 	logger           *logger.Logger
 	rabbitChan       *ampq.Channel
 	scoreBroadcaster shared.ScoreBroadcaster
-
-	// Helper components
-	// errorHandler    *ErrorHandler
-	// playerHelper    *PlayerHelper
-	// scoreCalculator *ScoreCalculator
-	// broadcastHelper *BroadcastHelper
 }
 
 func NewCricketServer(store *db.Store, logger *logger.Logger, rabbitChan *ampq.Channel, scoreBroadcaster shared.ScoreBroadcaster) *CricketServer {
@@ -29,14 +23,12 @@ func NewCricketServer(store *db.Store, logger *logger.Logger, rabbitChan *ampq.C
 		scoreBroadcaster: scoreBroadcaster,
 	}
 
-	// Initialize helper components
-	// server.errorHandler = NewErrorHandler(logger)
-	// server.playerHelper = NewPlayerHelper(store, logger)
-	// server.scoreCalculator = NewScoreCalculator(logger)
-	// server.broadcastHelper = NewBroadcastHelper(scoreBroadcaster, logger)
-
 	return server
 }
 
+func (s *CricketServer) SetScoreBroadcaster(broadcaster shared.ScoreBroadcaster) {
+	s.scoreBroadcaster = broadcaster
+}
+
 // Ensure CricketServer implements the shared interfaces
-// var _ shared.CricketScoreUpdater = (*CricketServer)(nil)
+var _ shared.CricketScoreUpdater = (*CricketServer)(nil)

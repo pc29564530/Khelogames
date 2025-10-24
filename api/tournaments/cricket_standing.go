@@ -1,8 +1,8 @@
 package tournaments
 
 import (
-	"net/http"
 	"encoding/json"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -63,18 +63,18 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		}
 
 		standingsData = append(standingsData, map[string]interface{}{
-			"tournament":      dataMap["tournament"],
-			"group":           dataMap["group"],
-			"teams":           dataMap["teams"],
-			"tournament_id":   dataMap["torunament_id"],
-			"group_id":        dataMap["group_id"],
-			"id":              dataMap["id"],
-			"public_id":       dataMap["public_id"],
-			"matches":         dataMap["matches"],
-			"wins":            dataMap["wins"],
-			"loss":            dataMap["loss"],
-			"draw":            dataMap["draw"],
-			"points":          dataMap["points"],
+			"tournament":    dataMap["tournament"],
+			"group":         dataMap["group"],
+			"teams":         dataMap["teams"],
+			"tournament_id": dataMap["torunament_id"],
+			"group_id":      dataMap["group_id"],
+			"id":            dataMap["id"],
+			"public_id":     dataMap["public_id"],
+			"matches":       dataMap["matches"],
+			"wins":          dataMap["wins"],
+			"loss":          dataMap["loss"],
+			"draw":          dataMap["draw"],
+			"points":        dataMap["points"],
 		})
 	}
 
@@ -86,14 +86,14 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 		if standing["group_id"] == nil {
 			ind := -1
 			groupData[int64(ind)] = append(groupData[int64(ind)], map[string]interface{}{
-				"teams":           standing["teams"],
-				"id":              standing["id"],
-				"public_id":       standing["public_id"],
-				"matches":         standing["matches"],
-				"wins":            standing["wins"],
-				"loss":            standing["loss"],
-				"draw":            standing["draw"],
-				"points":          standing["points"],
+				"teams":     standing["teams"],
+				"id":        standing["id"],
+				"public_id": standing["public_id"],
+				"matches":   standing["matches"],
+				"wins":      standing["wins"],
+				"loss":      standing["loss"],
+				"draw":      standing["draw"],
+				"points":    standing["points"],
 			})
 		} else {
 			groupID := standing["group_id"]
@@ -101,14 +101,14 @@ func (s *TournamentServer) GetCricketStandingFunc(ctx *gin.Context) {
 
 			// Append standings data to groupData by groupID
 			groupData[int64(grpID)] = append(groupData[int64(grpID)], map[string]interface{}{
-				"teams":           standing["teams"],
-				"id":              standing["id"],
-				"public_id":       standing["public_id"],
-				"matches":         standing["matches"],
-				"wins":            standing["wins"],
-				"loss":            standing["loss"],
-				"draw":            standing["draw"],
-				"points":          standing["points"],
+				"teams":     standing["teams"],
+				"id":        standing["id"],
+				"public_id": standing["public_id"],
+				"matches":   standing["matches"],
+				"wins":      standing["wins"],
+				"loss":      standing["loss"],
+				"draw":      standing["draw"],
+				"points":    standing["points"],
 			})
 
 			// Set the group name if not already visited
