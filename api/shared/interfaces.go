@@ -11,6 +11,7 @@ import (
 type ScoreBroadcaster interface {
 	BroadcastCricketEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
 	BroadcastFootballEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
+	BroadcastTournamentEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
 }
 
 // CricketScoreUpdater defines the interface for updating cricket scores

@@ -85,7 +85,7 @@ func main() {
 	footballServer := football.NewFootballServer(store, log, nil)
 
 	teamsServer := teams.NewTeamsServer(store, log, tokenMaker, config)
-	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config)
+	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config, nil)
 
 	// Create messenger server with cricket server as both updater and broadcaster
 	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log, cricketServer, nil)
@@ -93,6 +93,7 @@ func main() {
 	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config)
 	cricketServer.SetScoreBroadcaster(messengerServer)
 	footballServer.SetScoreBroadcaster(messengerServer)
+	tournamentServer.SetScoreBroadcaster(messengerServer)
 
 	go messengerServer.StartRabbitMQConsumer("scoreHub")
 	go messengerServer.StartRabbitMQConsumer("chatHub")

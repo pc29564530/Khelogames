@@ -290,7 +290,8 @@ LEFT JOIN LATERAL (
             'target_run_rate', cs.target_run_rate,
             'follow_on', cs.follow_on,
             'is_inning_completed', cs.is_inning_completed,
-            'declared', cs.declared
+            'declared', cs.declared,
+            'inning_status', cs.inning_status
         ) ORDER BY cs.inning_number
     ) AS scores
     FROM cricket_score cs
@@ -313,7 +314,8 @@ LEFT JOIN LATERAL (
             'target_run_rate', cs.target_run_rate,
             'follow_on', cs.follow_on,
             'is_inning_completed', cs.is_inning_completed,
-            'declared', cs.declared
+            'declared', cs.declared,
+            'inning_status', cs.inning_status
         ) ORDER BY cs.inning_number
     ) AS scores
     FROM cricket_score cs

@@ -2,6 +2,7 @@ package tournaments
 
 import (
 	"fmt"
+	"khelogames/api/shared"
 	db "khelogames/database"
 	"khelogames/database/models"
 	"khelogames/util"
@@ -39,8 +40,8 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 		s.logger.Error("Failed to get tournament match: ", err)
 		return
 	}
-
-	checkSportServer := util.NewCheckSport(s.store, s.logger)
+	var scoreBraodcaster shared.ScoreBroadcaster
+	checkSportServer := util.NewCheckSport(s.store, s.logger, scoreBraodcaster)
 	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, tournamentPublicID)
 
 	s.logger.Info("successfully  get the tournament match: ", matchDetailsWithScore)
@@ -173,10 +174,27 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 			PenaltyShootOut: penaltyShootOut,
 		}
 
-		_, err := s.store.NewFootballScore(ctx, argAway)
+		awayScoreData, err := s.store.NewFootballScore(ctx, argAway)
 		if err != nil {
 			s.logger.Error("unable to add the football match score: ", err)
 			return err
+		}
+
+		awayScore := map[string]interface{}{
+			"id":               awayScoreData.ID,
+			"public_id":        awayScoreData.PublicID,
+			"match_id":         awayScoreData.MatchID,
+			"team_id":          awayScoreData.TeamID,
+			"first_half":       awayScoreData.FirstHalf,
+			"second_half":      awayScoreData.SecondHalf,
+			"penalty_shootout": awayScoreData.PenaltyShootOut,
+		}
+
+		if s.scoreBroadcaster != nil {
+			err := s.scoreBroadcaster.BroadcastTournamentEvent(ctx, "ADD_FOOTBALL_SCORE", awayScore)
+			if err != nil {
+				s.logger.Error("Failed to broadcast cricket event: ", err)
+			}
 		}
 
 		argHome := db.NewFootballScoreParams{
@@ -188,10 +206,27 @@ func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, g
 			PenaltyShootOut: penaltyShootOut,
 		}
 
-		_, err = s.store.NewFootballScore(ctx, argHome)
+		homeScoreData, err := s.store.NewFootballScore(ctx, argHome)
 		if err != nil {
 			s.logger.Error("unable to add the football match score: ", err)
 			return err
+		}
+
+		homeScore := map[string]interface{}{
+			"id":               homeScoreData.ID,
+			"public_id":        homeScoreData.PublicID,
+			"match_id":         homeScoreData.MatchID,
+			"team_id":          homeScoreData.TeamID,
+			"first_half":       homeScoreData.FirstHalf,
+			"second_half":      homeScoreData.SecondHalf,
+			"penalty_shootout": homeScoreData.PenaltyShootOut,
+		}
+
+		if s.scoreBroadcaster != nil {
+			err := s.scoreBroadcaster.BroadcastTournamentEvent(ctx, "ADD_FOOTBALL_SCORE", homeScore)
+			if err != nil {
+				s.logger.Error("Failed to broadcast cricket event: ", err)
+			}
 		}
 
 		argStatisticsHome := db.CreateFootballStatisticsParams{
@@ -376,16 +411,33 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 			}
 		}
 	}
-	//should we directly send the updated result and and use the redux to update in frontend
-	// Fetch updated match
-	match, err := s.store.GetMatchByPublicId(ctx, matchPublicID, gameID.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch match"})
-		return
+
+	updateMatch := map[string]interface{}{
+		"id":                updatedMatchData.ID,
+		"public_id":         updatedMatchData.PublicID,
+		"tournament_id":     updatedMatchData.TournamentID,
+		"home_team_id":      updatedMatchData.HomeTeamID,
+		"away_team_id":      updatedMatchData.AwayTeamID,
+		"status_code":       updatedMatchData.StatusCode,
+		"match_format":      updatedMatchData.MatchFormat,
+		"stage":             updatedMatchData.Stage,
+		"day_number":        updatedMatchData.DayNumber,
+		"type":              updatedMatchData.Type,
+		"end_timestamp":     updatedMatchData.EndTimestamp,
+		"start_timestamp":   updatedMatchData.StartTimestamp,
+		"knockout_level_id": updatedMatchData.KnockoutLevelID,
+		"result":            updatedMatchData.Result,
+	}
+
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_MATCH_STATUS", updateMatch)
+		if err != nil {
+			s.logger.Error("Failed to broadcast cricket event: ", err)
+		}
 	}
 
 	s.logger.Info("successfully updated the match status")
-	ctx.JSON(http.StatusAccepted, match)
+	ctx.JSON(http.StatusAccepted, updateMatch)
 }
 
 type updateMatchResultRequest struct {

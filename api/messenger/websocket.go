@@ -288,6 +288,49 @@ func (s *MessageServer) BroadcastCricketEvent(ctx *gin.Context, eventType string
 	return nil
 }
 
+func (s *MessageServer) BroadcastTournamentEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error {
+	content := map[string]interface{}{
+		"type":    eventType,
+		"payload": payload,
+	}
+
+	//Log before marshalling
+	s.logger.Infof("[BroadcastTournamentEvent] Preparing broadcast for eventType=%s", eventType)
+	s.logger.Debugf("[BroadcastTournamentEvent] Raw payload: %#v", payload)
+
+	body, err := json.Marshal(content)
+	if err != nil {
+		s.logger.Errorf("failed to marshal message: %v", err)
+		return err
+	}
+
+	//Log size and body preview
+	s.logger.Infof("[BroadcastTournamentEvent] Marshaled JSON size: %d bytes", len(body))
+	s.logger.Debugf("[BroadcastTournamentEvent] Marshaled JSON: %s", string(body))
+
+	//Verify JSON validity before send
+	var check map[string]interface{}
+	if err := json.Unmarshal(body, &check); err != nil {
+		s.logger.Errorf("[BroadcastTournamentEvent] Invalid JSON generated: %v", err)
+		return err
+	}
+
+	//Non-empty check
+	if len(body) == 0 {
+		s.logger.Warn("[BroadcastTournamentEvent] Skipping empty broadcast body")
+		return fmt.Errorf("Error empty body")
+	}
+
+	//Send to channel
+	select {
+	case s.scoreBroadCast <- body:
+		s.logger.Infof("[BroadcastTournamentEvent] Sent to scoreBroadCast successfully (len=%d)", len(s.scoreBroadCast))
+	default:
+		s.logger.Warn("[BroadcastTournamentEvent] scoreBroadCast channel is full or blocked — message dropped")
+	}
+	return nil
+}
+
 func getMessageHub(h *MessageServer, ctx *gin.Context, msg []byte, message map[string]interface{}) {
 	err := h.rabbitChan.PublishWithContext(
 		ctx,

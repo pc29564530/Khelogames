@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -378,11 +380,6 @@ WHERE public_id=$1
 RETURNING *
 `
 
-type UpdateMatchStatusParams struct {
-	PublicID   uuid.UUID `json:"public_id"`
-	StatusCode string    `json:"status_code"`
-}
-
 func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID, status string) (models.Match, error) {
 	row := q.db.QueryRowContext(ctx, updateMatchStatus, matchPublicID, status)
 	var i models.Match
@@ -402,6 +399,12 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID
 		&i.MatchFormat,
 		&i.DayNumber,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.Match{}, fmt.Errorf("Failed to get data", err)
+		}
+		return models.Match{}, fmt.Errorf("Failed to scan: ", err)
+	}
 	return i, err
 }
 
