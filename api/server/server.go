@@ -237,9 +237,9 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getCricketToss/:match_public_id", cricketServer.GetCricketTossFunc)
 	// sportRouter.PUT("/updateCricketInning", cricketServer.UpdateCricketInningsFunc)
 	sportRouter.PUT("/updateCricketEndInning", cricketServer.UpdateCricketEndInningsFunc)
-	sportRouter.PUT("/updateCricketNoBall", cricketServer.UpdateNoBallsRunsFunc)
-	sportRouter.PUT("/updateCricketWide", cricketServer.UpdateWideBallFunc)
-	sportRouter.PUT("/updateCricketRegularScore", cricketServer.UpdateInningScoreFunc)
+	// sportRouter.PUT("/updateCricketNoBall", cricketServer.UpdateNoBallsRunsFunc)
+	// sportRouter.PUT("/updateCricketWide", cricketServer.UpdateWideBallFunc)
+	// sportRouter.PUT("/updateCricketRegularScore", cricketServer.UpdateInningScoreFunc)
 	sportRouter.GET("/getCurrentBatsman", cricketServer.GetCurrentBatsmanFunc)
 	sportRouter.GET("/getCurrentBowler", cricketServer.GetCurrentBowlerFunc)
 	//squad
@@ -267,7 +267,7 @@ func NewServer(config util.Config,
 	// sportRouter.PUT("/updateCricketBat", cricketServer.UpdateCricketBatScoreFunc)
 	// sportRouter.PUT("/updateCricketBall", cricketServer.UpdateCricketBallFunc)
 	sportRouter.GET("/getCricketWickets", cricketServer.GetCricketWicketsFunc)
-	sportRouter.POST("/wickets", cricketServer.AddCricketWicketsFunc)
+	// sportRouter.POST("/wickets", cricketServer.AddCricketWicketsFunc)
 	sportRouter.PUT("/updateBowlingBowlerStatus", cricketServer.UpdateBowlingBowlerFunc)
 
 	server.router = router
@@ -275,7 +275,7 @@ func NewServer(config util.Config,
 }
 
 func (server *Server) Start(address string) error {
-	go server.messageServer.StartWebSocketHub()
+	// go server.messageServer.StartWebSocketHub()
 	return server.router.Run(address)
 }
 
