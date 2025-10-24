@@ -30,6 +30,23 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 	return
 }
 
+func (s *HandlersServer) GetLiveMatchesFunc(ctx *gin.Context) {
+
+	sport := ctx.Param("sport")
+	game, err := s.store.GetGamebyName(ctx, sport)
+	if err != nil {
+		s.logger.Error("Failed to get game by name: ", err)
+		return
+	}
+	response, err := s.store.GetLiveMatches(ctx, game.ID)
+	if err != nil {
+		s.logger.Error("Failed to get matches by game: ", err)
+		return
+	}
+	ctx.JSON(http.StatusAccepted, response)
+	return
+}
+
 func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 	var req struct {
 		MatchPublicID string `uri:"match_public_id"`
