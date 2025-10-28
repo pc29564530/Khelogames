@@ -2,6 +2,7 @@ package tournaments
 
 import (
 	"fmt"
+	"khelogames/api/orchestrator"
 	"khelogames/api/shared"
 	db "khelogames/database"
 	"khelogames/database/models"
@@ -41,7 +42,7 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 		return
 	}
 	var scoreBraodcaster shared.ScoreBroadcaster
-	checkSportServer := util.NewCheckSport(s.store, s.logger, scoreBraodcaster)
+	checkSportServer := orchestrator.NewCheckSport(s.store, s.logger, scoreBraodcaster)
 	matchDetailsWithScore := checkSportServer.CheckSport(sports, matches, tournamentPublicID)
 
 	s.logger.Info("successfully  get the tournament match: ", matchDetailsWithScore)
@@ -66,7 +67,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin transcation: ", err)
+		s.logger.Error("Failed to begin transactions: ", err)
 		return
 	}
 
@@ -155,7 +156,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transactions: ", err)
 		return
 	}
 
@@ -372,45 +373,51 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		return
 	}
 
-	// Update match status
-	updatedMatchData, err := s.store.UpdateMatchStatus(ctx, matchPublicID, req.StatusCode)
+	updatedMatchData, err := s.txStore.UpdateMatchStatusTx(ctx, matchPublicID, req.StatusCode, gameID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to update match status"})
+		s.logger.Error("Failed to update match status: ", err)
 		return
 	}
 
-	// Handle status-specific logic
-	switch updatedMatchData.StatusCode {
-	case "finished":
-		if gameID.Name == "football" {
-			if _, err := s.store.AddORUpdateFootballPlayerStats(ctx, matchPublicID); err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update player stats"})
-				return
-			}
-			if err := updateFootballStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update football score"})
-				return
-			}
-		} else if gameID.Name == "cricket" {
-			if err := updateCricketStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update cricket score"})
-				return
-			}
-		}
+	// // Update match status
+	// updatedMatchData, err := s.store.UpdateMatchStatus(ctx, matchPublicID, req.StatusCode)
+	// if err != nil {
+	// 	ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to update match status"})
+	// 	return
+	// }
 
-	case "in_progress":
-		if gameID.Name == "football" {
-			if err := updateFootballStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize football score"})
-				return
-			}
-		} else if gameID.Name == "cricket" {
-			if err := updateCricketStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize cricket score"})
-				return
-			}
-		}
-	}
+	// // Handle status-specific logic
+	// switch updatedMatchData.StatusCode {
+	// case "finished":
+	// 	if gameID.Name == "football" {
+	// 		if _, err := s.store.AddORUpdateFootballPlayerStats(ctx, matchPublicID); err != nil {
+	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update player stats"})
+	// 			return
+	// 		}
+	// 		if err := updateFootballStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
+	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update football score"})
+	// 			return
+	// 		}
+	// 	} else if gameID.Name == "cricket" {
+	// 		if err := updateCricketStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
+	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update cricket score"})
+	// 			return
+	// 		}
+	// 	}
+
+	// case "in_progress":
+	// 	if gameID.Name == "football" {
+	// 		if err := updateFootballStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
+	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize football score"})
+	// 			return
+	// 		}
+	// 	} else if gameID.Name == "cricket" {
+	// 		if err := updateCricketStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
+	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize cricket score"})
+	// 			return
+	// 		}
+	// 	}
+	// }
 
 	updateMatch := map[string]interface{}{
 		"id":                updatedMatchData.ID,

@@ -1,9 +1,9 @@
 package sports
 
 import (
+	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/logger"
-	"khelogames/token"
 	"khelogames/util"
 )
 

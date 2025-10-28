@@ -2,9 +2,9 @@ package players
 
 import (
 	"fmt"
+	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/pkg"
-	"khelogames/token"
 	"khelogames/util"
 	"net/http"
 

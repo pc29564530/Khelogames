@@ -2,7 +2,6 @@ package cricket
 
 import (
 	"fmt"
-	db "khelogames/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -38,80 +37,31 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 		return
 	}
 
-	response, err := s.store.AddCricketToss(ctx, matchPublicID, req.TossDecision, tossWin)
+	inningResponse, tossWinTeam, tossDecision, err := s.txStore.AddCricketTossTx(ctx, matchPublicID, req.TossDecision, tossWin)
 	if err != nil {
-		s.logger.Error("Failed to add cricket match toss : ", err)
-		ctx.JSON(http.StatusNotFound, err)
-		return
-	}
-
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
-	if err != nil {
-		s.logger.Error("Failed to get the match by id: ", err)
-		return
-	}
-	var teamID int32
-	if req.TossDecision == "batting" {
-		teamID = response.TossWin
-	} else {
-		if match.HomeTeamID != response.TossWin {
-			teamID = match.AwayTeamID
-		} else {
-			teamID = match.HomeTeamID
-		}
-	}
-	team, err := s.store.GetTeamByID(ctx, int64(teamID))
-	if err != nil {
-		s.logger.Error("Failed to get team by id: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-
-	inningR := db.NewCricketScoreParams{
-		MatchPublicID:     matchPublicID,
-		TeamPublicID:      team.PublicID,
-		InningNumber:      1,
-		Score:             0,
-		Wickets:           0,
-		Overs:             0,
-		RunRate:           "0.00",
-		TargetRunRate:     "0.00",
-		FollowOn:          false,
-		IsInningCompleted: false,
-		Declared:          false,
-		InningStatus:      "not_started",
-	}
-
-	responseScore, err := s.store.NewCricketScore(ctx, inningR)
-	if err != nil {
-		s.logger.Error("Failed to add the team score: ", err)
-		return
-	}
-
-	teams, err := s.store.GetTeamByID(ctx, int64(response.TossWin))
-	if err != nil {
-		s.logger.Error("Failed to get team by id: ", err)
+		s.logger.Error("Failed to add cricket toss: ", err)
 		return
 	}
 
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"inning": gin.H{
-			"id":                  responseScore.ID,
-			"public_id":           responseScore.PublicID,
-			"match_id":            responseScore.MatchID,
-			"team_id":             responseScore.TeamID,
-			"inning_number":       responseScore.InningNumber,
-			"score":               responseScore.Score,
-			"wickets":             responseScore.Wickets,
-			"overs":               responseScore.Overs,
-			"run_rate":            responseScore.RunRate,
-			"target_run_rate":     responseScore.TargetRunRate,
-			"follow_on":           responseScore.FollowOn,
-			"is_inning_completed": responseScore.IsInningCompleted,
-			"declared":            responseScore.Declared,
-			"inning_status":       responseScore.InningStatus,
+			"id":                  inningResponse.ID,
+			"public_id":           inningResponse.PublicID,
+			"match_id":            inningResponse.MatchID,
+			"team_id":             inningResponse.TeamID,
+			"inning_number":       inningResponse.InningNumber,
+			"score":               inningResponse.Score,
+			"wickets":             inningResponse.Wickets,
+			"overs":               inningResponse.Overs,
+			"run_rate":            inningResponse.RunRate,
+			"target_run_rate":     inningResponse.TargetRunRate,
+			"follow_on":           inningResponse.FollowOn,
+			"is_inning_completed": inningResponse.IsInningCompleted,
+			"declared":            inningResponse.Declared,
+			"inning_status":       inningResponse.InningStatus,
 		},
-		"team": teams,
+		"team":          tossWinTeam,
+		"toss_decision": tossDecision,
 	})
 	return
 }

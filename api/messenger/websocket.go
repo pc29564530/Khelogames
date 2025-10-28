@@ -1,12 +1,13 @@
 package messenger
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	db "khelogames/database"
 
+	"khelogames/core/token"
 	"khelogames/pkg"
-	"khelogames/token"
 	"khelogames/util"
 	"net/http"
 	"strings"
@@ -132,7 +133,7 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 
 		tx, err := h.store.BeginTx(ctx)
 		if err != nil {
-			h.logger.Error("Failed to begin transcation: ", err)
+			h.logger.Error("Failed to begin transactions: ", err)
 			return
 		}
 
@@ -142,7 +143,7 @@ func (h *MessageServer) HandleWebSocket(ctx *gin.Context) {
 
 		err = tx.Commit()
 		if err != nil {
-			h.logger.Error("Failed to commit the transcation: ", err)
+			h.logger.Error("Failed to commit the transactions: ", err)
 			return
 		}
 	}
@@ -331,7 +332,7 @@ func (s *MessageServer) BroadcastTournamentEvent(ctx *gin.Context, eventType str
 	return nil
 }
 
-func getMessageHub(h *MessageServer, ctx *gin.Context, msg []byte, message map[string]interface{}) {
+func getMessageHub(h *MessageServer, ctx context.Context, msg []byte, message map[string]interface{}) {
 	err := h.rabbitChan.PublishWithContext(
 		ctx,
 		"",
@@ -348,8 +349,8 @@ func getMessageHub(h *MessageServer, ctx *gin.Context, msg []byte, message map[s
 		h.logger.Error("unable to publish message to rabbitchannel: ", err)
 		return
 	}
-
-	authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	var routeContext *gin.Context
+	authToken := routeContext.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	fmt.Println("Receiver Id: ", message["receiver_public_id"])
 	receiverPublicID, err := uuid.Parse(message["receiver_public_id"].(string))
 	if err != nil {

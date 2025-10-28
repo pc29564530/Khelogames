@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"khelogames/core/token"
 	"khelogames/pkg"
-	"khelogames/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

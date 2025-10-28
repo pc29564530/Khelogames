@@ -2,9 +2,9 @@ package messenger
 
 import (
 	shared "khelogames/api/shared"
+	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/logger"
-	"khelogames/token"
 	"sync"
 
 	"github.com/gorilla/websocket"

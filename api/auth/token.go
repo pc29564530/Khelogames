@@ -3,13 +3,11 @@ package auth
 import (
 	"database/sql"
 	"fmt"
-	db "khelogames/database"
 	"khelogames/util"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type renewAccessTokenRequest struct {
@@ -40,6 +38,8 @@ func (s *AuthServer) RenewAccessTokenFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired refresh token"})
 		return
 	}
+
+	s.logger.Info("Refresh Payload: ", refreshPayload)
 
 	s.logger.Debug(fmt.Sprintf("verify refresh token: %v", refreshPayload))
 
@@ -99,50 +99,4 @@ func (s *AuthServer) RenewAccessTokenFunc(ctx *gin.Context) {
 		"AccessToken":          accessToken,
 		"AccessTokenExpiresAt": accessPayload.ExpiredAt,
 	})
-}
-
-func CreateNewToken(ctx *gin.Context, publicID uuid.UUID, userID int32, s *AuthServer, tx *sql.Tx) map[string]interface{} {
-
-	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
-		publicID,
-		userID,
-		s.config.AccessTokenDuration,
-	)
-	if err != nil {
-		s.logger.Error("Failed to create access token: ", err)
-		return nil
-	}
-	s.logger.Debug("created a accesstoken: ", accessToken)
-
-	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
-		publicID,
-		userID,
-		s.config.RefreshTokenDuration,
-	)
-	if err != nil {
-		s.logger.Error("Failed to create refresh token: ", err)
-		return nil
-	}
-
-	s.logger.Debug("created a refresh token: ", refreshToken)
-
-	session, err := s.store.CreateSessions(ctx, db.CreateSessionsParams{
-		UserID:       int32(userID),
-		RefreshToken: refreshToken,
-		UserAgent:    ctx.Request.UserAgent(),
-		ClientIp:     ctx.ClientIP(),
-	})
-
-	if err != nil {
-		s.logger.Error("Failed to create session: ", err)
-		return nil
-	}
-
-	return map[string]interface{}{
-		"accessToken":    accessToken,
-		"accessPayload":  accessPayload,
-		"refreshToken":   refreshToken,
-		"refreshPayload": refreshPayload,
-		"session":        session,
-	}
 }

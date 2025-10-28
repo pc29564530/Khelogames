@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"khelogames/core/token"
 	"khelogames/pkg"
-	"khelogames/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,22 +34,15 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	// Get auth payload
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	// Add user to join_community table
-	communityUser, err := s.store.AddJoinCommunity(ctx, communityPublicID, authPayload.PublicID)
+	communityUser, err := s.txStore.AddJoinCommunityTx(ctx.Request.Context(), communityPublicID, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to join community: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to join community"})
 		return
 	}
+
 	s.logger.Debug("Successfully joined community: ", communityUser)
 
-	// Increment member count
-	err = s.store.IncrementCommunityMemberCount(ctx, communityPublicID)
-	if err != nil {
-		s.logger.Error("Failed to increment member count: ", err)
-	}
-
-	// Return result
 	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully joined", "member": communityUser})
 }
 

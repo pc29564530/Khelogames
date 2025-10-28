@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"database/sql"
+	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/pkg"
-	"khelogames/token"
 	"net/http"
 
 	utils "khelogames/util"

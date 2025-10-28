@@ -9,10 +9,12 @@ import (
 	"khelogames/api/sports/cricket"
 	"khelogames/api/sports/football"
 	"khelogames/api/teams"
+	apiToken "khelogames/api/token"
 	"khelogames/api/tournaments"
+	"khelogames/core/token"
+	coreToken "khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/logger"
-	"khelogames/token"
 	util "khelogames/util"
 	"net/http"
 
@@ -30,7 +32,7 @@ type Server struct {
 
 func NewServer(config util.Config,
 	store *db.Store,
-	tokenMaker token.Maker,
+	tokenMaker coreToken.Maker,
 	logger *logger.Logger,
 	authServer *auth.AuthServer,
 	handlersServer *handlers.HandlersServer,
@@ -43,6 +45,7 @@ func NewServer(config util.Config,
 	playersServer *players.PlayerServer,
 	sportsServer *sports.SportsServer,
 	router *gin.Engine,
+	tokenServer *apiToken.TokenServer,
 ) (*Server, error) {
 
 	server := &Server{
@@ -64,7 +67,7 @@ func NewServer(config util.Config,
 		// public.POST("/send_otp", authServer.Otp)
 		// public.POST("/users", handlersServer.CreateUserFunc)
 		public.DELETE("/removeSession/:public_id", authServer.DeleteSessionFunc)
-		public.POST("/tokens/renew_access", authServer.RenewAccessTokenFunc)
+		public.POST("/tokens/renew_access", tokenServer.RenewAccessTokenFunc)
 		// public.GET("/user/:username", handlersServer.GetUsersFunc)
 		public.GET("/getProfile/:public_id", handlersServer.GetProfileFunc)
 		public.GET("/getProfileByPublicID/:profile_public_id", handlersServer.GetProfileByPublicIDFunc)
@@ -269,6 +272,8 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getCricketWickets", cricketServer.GetCricketWicketsFunc)
 	// sportRouter.POST("/wickets", cricketServer.AddCricketWicketsFunc)
 	sportRouter.PUT("/updateBowlingBowlerStatus", cricketServer.UpdateBowlingBowlerFunc)
+
+	sportRouter.GET("/getLiveMatches", handlersServer.GetLiveMatchesFunc)
 
 	server.router = router
 	return server, nil

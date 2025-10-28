@@ -2,9 +2,9 @@ package tournaments
 
 import (
 	"encoding/json"
+	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/pkg"
-	"khelogames/token"
 	"khelogames/util"
 	"net/http"
 
@@ -41,7 +41,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
-		s.logger.Error("Failed to begin transcation: ", err)
+		s.logger.Error("Failed to begin transactions: ", err)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		s.logger.Error("Failed to commit transcation: ", err)
+		s.logger.Error("Failed to commit transactions: ", err)
 		return
 	}
 

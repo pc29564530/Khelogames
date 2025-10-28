@@ -2,9 +2,9 @@ package messenger
 
 import (
 	"fmt"
+	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/pkg"
-	"khelogames/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

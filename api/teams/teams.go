@@ -1,9 +1,9 @@
 package teams
 
 import (
+	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/pkg"
-	"khelogames/token"
 
 	"khelogames/util"
 	"net/http"

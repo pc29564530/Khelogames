@@ -3,8 +3,8 @@ package handlers
 import (
 	"database/sql"
 
+	"khelogames/core/token"
 	"khelogames/pkg"
-	"khelogames/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

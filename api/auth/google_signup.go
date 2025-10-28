@@ -2,14 +2,14 @@ package auth
 
 import (
 	"fmt"
+
+	"khelogames/core/token"
 	"khelogames/database/models"
-	"khelogames/token"
+
 	utils "khelogames/util"
 	"net/http"
 	"os"
 	"strings"
-
-	db "khelogames/database"
 
 	"github.com/gin-gonic/gin"
 
@@ -149,22 +149,16 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	// Generate username
 	username := GenerateUsername(email)
 
-	// Create the user in database
-	userSignUp, err := s.store.CreateGoogleSignUp(ctx, name, username, email, googleID)
+	_, userSignUp, tokens, err := s.txStore.CreateGoogleSignUpTx(
+		ctx,
+		s.config,
+		name,
+		username,
+		email,
+		googleID,
+		req.AvatarURL)
 	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create google signup: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to create account",
-		})
-		return
-	}
-
-	// Create tokens and session
-	tokens := CreateNewToken(ctx, userSignUp.PublicID, int32(userSignUp.ID), s, tx)
-	if tokens == nil {
-		// Error already handled in CreateNewToken
+		s.logger.Error("Failed google signup transaction: ", err)
 		return
 	}
 
@@ -174,35 +168,7 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	refreshToken := tokens["refreshToken"].(string)
 	refreshPayload := tokens["refreshPayload"].(*token.Payload)
 
-	// Create user profile
-	arg := db.CreateProfileParams{
-		UserID:    int32(userSignUp.ID),
-		Bio:       "",
-		AvatarUrl: req.AvatarURL, // Use the avatar URL from request
-	}
-
-	_, err = s.store.CreateProfile(ctx, arg)
-	if err != nil {
-		tx.Rollback()
-		s.logger.Error("Failed to create profile: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to create profile",
-		})
-		return
-	}
-
 	s.logger.Info("Successfully created user_profile")
-
-	// Commit transaction
-	if err := tx.Commit(); err != nil {
-		s.logger.Error("Failed to commit transaction: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to create account",
-		})
-		return
-	}
 
 	s.logger.Info("Successfully created Google sign-up for: ", email)
 	ctx.JSON(http.StatusCreated, gin.H{

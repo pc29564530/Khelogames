@@ -3,15 +3,16 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
-	"os"
-
 	"khelogames/api/auth"
 	"khelogames/api/handlers"
 	"khelogames/api/players"
 	"khelogames/api/sports"
 	"khelogames/api/teams"
+	apiToken "khelogames/api/token"
+	"khelogames/api/transactions"
+	coreToken "khelogames/core/token"
+	"net/http"
+	"os"
 
 	"khelogames/api/messenger"
 	"khelogames/api/server"
@@ -20,7 +21,6 @@ import (
 	"khelogames/api/tournaments"
 	db "khelogames/database"
 	"khelogames/logger"
-	"khelogames/token"
 	"khelogames/util"
 
 	"github.com/gin-gonic/gin"
@@ -39,6 +39,7 @@ func init() {
 
 func main() {
 	newLogger := logger.NewLogger()
+	log := logger.NewLogger()
 
 	config, _ := util.LoadConfig(".")
 
@@ -47,13 +48,14 @@ func main() {
 		log.Fatal("cannot connect to db:", err)
 	}
 	store := db.NewStore(conn)
-	log := logger.NewLogger()
 
-	tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
+	tokenMaker, err := coreToken.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
 		log.Errorf("cannot create token maker: ", err)
 		os.Exit(1)
 	}
+
+	txStore := transactions.NewStore(conn, &tokenMaker, log, nil)
 
 	rabbitConn, rabbitChan, err := messenger.StartRabbitMQ(config)
 	if err != nil {
@@ -77,18 +79,19 @@ func main() {
 	messageBroadCast := make(chan []byte)
 	scoredBroadCast := make(chan []byte)
 
-	cricketServer := cricket.NewCricketServer(store, log, rabbitChan, nil)
+	cricketServer := cricket.NewCricketServer(store, log, rabbitChan, nil, txStore)
 
 	// Initialize HTTP servers and handlers
-	authServer := auth.NewAuthServer(store, log, tokenMaker, config)
-	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config)
-	footballServer := football.NewFootballServer(store, log, nil)
+	authServer := auth.NewAuthServer(store, log, tokenMaker, config, txStore)
+	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config, txStore)
+	footballServer := football.NewFootballServer(store, log, nil, txStore)
 
 	teamsServer := teams.NewTeamsServer(store, log, tokenMaker, config)
-	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config, nil)
+	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config, nil, txStore)
+	tokenServer := apiToken.NewTokenServer(store, log, tokenMaker, config)
 
 	// Create messenger server with cricket server as both updater and broadcaster
-	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log, cricketServer, nil)
+	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log, nil, nil)
 	playerServer := players.NewPlayerServer(store, log, tokenMaker, config)
 	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config)
 	cricketServer.SetScoreBroadcaster(messengerServer)
@@ -116,6 +119,7 @@ func main() {
 		playerServer,
 		sportsServer,
 		router,
+		tokenServer,
 	)
 	if err != nil {
 		newLogger.Error("Server creation failed", err)

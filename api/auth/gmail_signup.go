@@ -1,9 +1,8 @@
 package auth
 
 import (
-	db "khelogames/database"
+	"khelogames/core/token"
 	"khelogames/database/models"
-	"khelogames/token"
 	utils "khelogames/util"
 	"net/http"
 
@@ -59,18 +58,20 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 	// Generate username
 	username := GenerateUsername(req.Email)
 
-	// Create the user in database
-	userSignUp, err := s.store.CreateEmailSignUp(ctx, req.FullName, username, req.Email, hashPassword)
+	_, userSignUp, tokens, err := s.txStore.CreateEmailSignUpTx(ctx, s.config, s.store,
+		req.FullName,
+		username,
+		req.Email,
+		hashPassword)
+
 	if err != nil {
-		s.logger.Error("Failed to create email signup: ", err)
+		s.logger.Errorf("Failed to create new account: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "Failed to create account. Please try again.",
 		})
 		return
 	}
-	//create a token using user id
-	tokens := CreateNewToken(ctx, userSignUp.PublicID, int32(userSignUp.ID), s, tx)
 
 	session := tokens["session"].(*models.Session)
 	accessToken := tokens["accessToken"].(string)
@@ -85,21 +86,6 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 			"success": false,
 			"message": "Failed to create account. Please try again.",
 		})
-		return
-	}
-
-	s.logger.Info("Successfully created email sign-up for: ", req.Email)
-
-	arg := db.CreateProfileParams{
-		UserID:    int32(userSignUp.ID),
-		Bio:       "",
-		AvatarUrl: "",
-	}
-
-	_, err = s.store.CreateProfile(ctx, arg)
-	if err != nil {
-		s.logger.Error("Failed to create profile: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 

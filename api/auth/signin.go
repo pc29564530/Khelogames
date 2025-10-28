@@ -1,16 +1,20 @@
 package auth
 
 import (
+	"khelogames/core/token"
+	"khelogames/database"
 	"khelogames/database/models"
-	"khelogames/token"
-	utils "khelogames/util"
+	"khelogames/util"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/api/idtoken"
 )
 
 func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
+	userAgent := ctx.Request.UserAgent()
+	clientIP := ctx.ClientIP()
 	var req struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -39,7 +43,7 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		return
 	}
 
-	err = utils.CheckPassword(req.Password, *existingUser.HashPassword)
+	err = util.CheckPassword(req.Password, *existingUser.HashPassword)
 	s.logger.Info("Existing User Password: ", *existingUser.HashPassword)
 	s.logger.Info("New Sign In : ", req.Password)
 	if err != nil {
@@ -52,7 +56,19 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 	}
 
 	//create a token using user id
-	tokens := CreateNewToken(ctx, existingUser.PublicID, int32(existingUser.ID), s, tx)
+	tokens, err := token.CreateNewToken(ctx,
+		s.store,
+		s.tokenMaker,
+		int32(existingUser.ID),
+		existingUser.PublicID,
+		s.config.RefreshTokenDuration,
+		s.config.AccessTokenDuration,
+		userAgent,
+		clientIP)
+	if err != nil {
+		s.logger.Errorf("Failed to create new token: ", err)
+		return
+	}
 
 	session := tokens["session"].(*models.Session)
 	accessToken := tokens["accessToken"].(string)
@@ -80,6 +96,13 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 }
 
 func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
+	var ct *gin.Context
+	var maker token.Maker
+	var refreshDuration time.Duration
+	var accessDuration time.Duration
+	var st *database.Store
+	userAgent := ct.Request.UserAgent()
+	clientIP := ct.ClientIP()
 	googleOauthConfig := getGoogleOauthConfig()
 	var req getGoogleLoginRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -121,8 +144,11 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 		return
 	}
 	//create a token using user id
-	tokens := CreateNewToken(ctx, existingUser.PublicID, int32(existingUser.ID), s, tx)
-
+	tokens, err := token.CreateNewToken(ctx, st, maker, int32(existingUser.ID), existingUser.PublicID, refreshDuration, accessDuration, userAgent, clientIP)
+	if err != nil {
+		s.logger.Errorf("Failed to create new token: ", err)
+		return
+	}
 	session := tokens["session"].(models.Session)
 	accessToken := tokens["accessToken"].(string)
 	accessPayload := tokens["accessPayload"].(*token.Payload)
