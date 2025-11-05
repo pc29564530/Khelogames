@@ -180,7 +180,7 @@ func (q *Queries) GetMessageByReceiver(ctx context.Context, arg GetMessageByRece
 		}
 		items = append(items, item)
 	}
-	fmt.Println("Message Items; ", items)
+	// fmt.Println("Message Items; ", items)
 	if err := rows.Close(); err != nil {
 		return nil, err
 	}

@@ -1,7 +1,6 @@
 package messenger
 
 import (
-	"fmt"
 	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/pkg"
@@ -48,13 +47,7 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 		return
 	}
 
-	s.logger.Debug("get message by receiver: ", messageContent)
-
-	broadcastMessage := fmt.Sprintf("User: %s retrieved messages from %s", authToken.PublicID, req.ReceiverPublicID)
-	s.messageBroadCast <- []byte(broadcastMessage)
-
 	ctx.JSON(http.StatusAccepted, messageContent)
-	return
 }
 
 func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
@@ -69,7 +62,6 @@ func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 	s.logger.Debug("Get message by user: ", messageUser)
 
 	ctx.JSON(http.StatusAccepted, messageUser)
-	return
 }
 
 func (s *MessageServer) DeleteScheduleMessageFunc(ctx *gin.Context) {

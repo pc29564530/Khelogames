@@ -22,8 +22,12 @@ func NewTournamentServer(store *db.Store, logger *logger.Logger, tokenMaker toke
 	return &TournamentServer{store: store, logger: logger, tokenMaker: tokenMaker, config: config, scoreBroadcaster: scoreBroadcaster, txStore: txStore}
 }
 
-func (s *TournamentServer) SetScoreBroadcaster(broadcaster shared.ScoreBroadcaster) {
-	s.scoreBroadcaster = broadcaster
+func (s *TournamentServer) SetScoreBroadcaster(b shared.ScoreBroadcaster) {
+	s.scoreBroadcaster = b
+}
+
+func (s *TournamentServer) GetScoreBroadcaster() shared.ScoreBroadcaster {
+	return s.scoreBroadcaster
 }
 
 var _ shared.ScoreBroadcaster

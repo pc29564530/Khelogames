@@ -23,4 +23,8 @@ func (s *FootballServer) SetScoreBroadcaster(broadcaster shared.ScoreBroadcaster
 	s.scoreBroadcaster = broadcaster
 }
 
+func (s *FootballServer) GetScoreBroadcaster() shared.ScoreBroadcaster {
+	return s.scoreBroadcaster
+}
+
 var _ shared.ScoreBroadcaster

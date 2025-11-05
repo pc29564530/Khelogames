@@ -18,13 +18,13 @@ func (store *SQLStore) AddCricketTossTx(ctx context.Context, matchPublicID uuid.
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
 		// Create user
-		response, err := store.AddCricketToss(ctx, matchPublicID, tossDescision, tossWinPublicID)
+		response, err := q.AddCricketToss(ctx, matchPublicID, tossDescision, tossWinPublicID)
 		if err != nil {
 			store.logger.Error("Failed to add cricket match toss : ", err)
 			return err
 		}
 
-		match, err := store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+		match, err := q.GetTournamentMatchByMatchID(ctx, matchPublicID)
 		if err != nil {
 			store.logger.Error("Failed to get the match by id: ", err)
 			return err
@@ -40,7 +40,7 @@ func (store *SQLStore) AddCricketTossTx(ctx context.Context, matchPublicID uuid.
 				teamID = match.HomeTeamID
 			}
 		}
-		team, err := store.GetTeamByID(ctx, int64(teamID))
+		team, err := q.GetTeamByID(ctx, int64(teamID))
 		if err != nil {
 			store.logger.Error("Failed to get team by id: ", err)
 			return err
@@ -61,7 +61,7 @@ func (store *SQLStore) AddCricketTossTx(ctx context.Context, matchPublicID uuid.
 			InningStatus:      "not_started",
 		}
 
-		newScore, err = store.NewCricketScore(ctx, inningR)
+		newScore, err = q.NewCricketScore(ctx, inningR)
 		if err != nil {
 			store.logger.Error("Failed to add the team score: ", err)
 			return err
@@ -82,13 +82,13 @@ func (store *SQLStore) AddCricketBowerTx(ctx context.Context,
 		var err error
 
 		if prevBowlerPublicID != prevBowlerID {
-			prevBowlerResponse, err := store.UpdateBowlingBowlerStatus(ctx, matchPublicID, bowlerPublicID, prevBowlerPublicID, inningNumber)
+			prevBowlerResponse, err := q.UpdateBowlingBowlerStatus(ctx, matchPublicID, bowlerPublicID, prevBowlerPublicID, inningNumber)
 			if err != nil {
 				store.logger.Error("Failed to update current bowler status: ", err)
 				return err
 			}
 
-			playerData, err := store.GetPlayerByPublicID(ctx, bowlerPublicID)
+			playerData, err := q.GetPlayerByPublicID(ctx, bowlerPublicID)
 			if err != nil {
 				store.logger.Error("Failed to get Player: ", err)
 			}
@@ -122,7 +122,7 @@ func (store *SQLStore) AddCricketBowerTx(ctx context.Context,
 			NoBall:         0,
 		}
 
-		currentBowlerResponse, err = store.AddCricketBall(ctx, arg)
+		currentBowlerResponse, err = q.AddCricketBall(ctx, arg)
 		if err != nil {
 			store.logger.Error("Failed to add the cricket bowler data: ", gin.H{"error": err.Error()})
 			return err
@@ -132,7 +132,7 @@ func (store *SQLStore) AddCricketBowerTx(ctx context.Context,
 	return currentBowlerResponse, prevBowler, err
 }
 
-func (store *SQLStore) UpdateCricketNoBallTx(ctx context.Context, matchPublicID, bowlerPublicID, battingTeamPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, []models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
+func (store *SQLStore) UpdateCricketNoBallTx(ctx context.Context, matchPublicID, bowlerPublicID, battingTeamPublicID, batsmanPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, []models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
 	var bowlerScore *models.BowlerScore
 	var inningScore *models.CricketScore
 	var batsmanScore *models.BatsmanScore
@@ -142,19 +142,19 @@ func (store *SQLStore) UpdateCricketNoBallTx(ctx context.Context, matchPublicID,
 		var err error
 
 		// Create user
-		batsmanScore, bowlerScore, inningScore, err = store.UpdateNoBallsRuns(ctx, matchPublicID, bowlerPublicID, battingTeamPublicID, runsScored, inningNumber)
+		batsmanScore, bowlerScore, inningScore, err = q.UpdateNoBallsRuns(ctx, matchPublicID, battingTeamPublicID, bowlerPublicID, runsScored, inningNumber)
 		if err != nil {
 			store.logger.Error("Failed to update no_ball: ", err)
 			return err
 		}
 
 		if bowlerScore.BallNumber%6 == 0 && runsScored%2 == 0 {
-			currentBatsman, err = store.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
+			currentBatsman, err = q.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
 			if err != nil {
 				store.logger.Error("Failed to update stricker: ", err)
 			}
 		} else if bowlerScore.BallNumber%6 != 0 && runsScored%2 != 0 {
-			currentBatsman, err = store.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
+			currentBatsman, err = q.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
 			if err != nil {
 				store.logger.Error("Failed to update stricker: ", err)
 			}
@@ -174,18 +174,18 @@ func (store *SQLStore) UpdateWideRunsTx(ctx context.Context, matchPublicID, bowl
 		var err error
 
 		// Create user
-		batsmanScore, bowlerScore, inningScore, err = store.UpdateWideRuns(ctx, matchPublicID, bowlerPublicID, battingTeamPublicID, runsScored, inningNumber)
+		batsmanScore, bowlerScore, inningScore, err = q.UpdateWideRuns(ctx, matchPublicID, battingTeamPublicID, bowlerPublicID, runsScored, inningNumber)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to update wide runs: ", err)
 		}
 
 		if bowlerScore.BallNumber%6 == 0 && runsScored%2 == 0 {
-			currentBatsman, err = store.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
+			currentBatsman, err = q.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
 			if err != nil {
 				store.logger.Error("Failed to update stricker: ", err)
 			}
 		} else if bowlerScore.BallNumber%6 != 0 && runsScored%2 != 0 {
-			currentBatsman, err = store.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
+			currentBatsman, err = q.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
 			if err != nil {
 				store.logger.Error("Failed to update stricker: ", err)
 			}
@@ -205,7 +205,7 @@ func (store *SQLStore) UpdateCricketEndInningTx(ctx context.Context, matchID, ba
 		var err error
 
 		// Create user
-		inningScore, batsmanScore, bowlerScore, err = store.UpdateInningEndStatus(ctx, matchID, batsmanTeamID, inningNumber)
+		inningScore, batsmanScore, bowlerScore, err = q.UpdateInningEndStatus(ctx, matchID, batsmanTeamID, inningNumber)
 		if err != nil {
 			return err
 		}
@@ -224,7 +224,7 @@ func (store *SQLStore) AddCricketBallTx(ctx context.Context, matchPublicID, team
 		var prevBowlerEmptyString string
 
 		if prevBowlerEmptyString != prevBowlerPublicIDString {
-			prevBowler, err = store.UpdateBowlingBowlerStatus(ctx, matchPublicID, teamPublicID, bowlerPublicID, inningNumber)
+			prevBowler, err = q.UpdateBowlingBowlerStatus(ctx, matchPublicID, teamPublicID, bowlerPublicID, inningNumber)
 			if err != nil {
 				return err
 			}
@@ -242,7 +242,7 @@ func (store *SQLStore) AddCricketBallTx(ctx context.Context, matchPublicID, team
 			NoBall:         noBall,
 		}
 
-		currentbowler, err = store.AddCricketBall(ctx, arg)
+		currentbowler, err = q.AddCricketBall(ctx, arg)
 		if err != nil {
 			store.logger.Error("Failed to add the cricket bowler data: ", gin.H{"error": err.Error()})
 			return err
@@ -274,38 +274,38 @@ func (store *SQLStore) AddCricketWicketTx(ctx context.Context,
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
 		if bowlType != nil {
-			outBatsmanResponse, notOutBatsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err = store.AddCricketWicketWithBowlType(ctx, matchPublicID, battingTeamID, batsmanPublicID, bowlerPublicID, wicketNumber, wicketType, ballNumber, &fielderPublicID, inningScore.Score, *bowlType, inningNumber)
+			outBatsmanResponse, notOutBatsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err = q.AddCricketWicketWithBowlType(ctx, matchPublicID, battingTeamID, batsmanPublicID, bowlerPublicID, wicketNumber, wicketType, ballNumber, &fielderPublicID, inningScore.Score, *bowlType, inningNumber)
 			if err != nil {
 				store.logger.Error("failed to add cricket wicket with bowl type: ", err)
 			}
 		} else {
-			outBatsmanResponse, notOutBatsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err = store.AddCricketWicket(ctx, matchPublicID, battingTeamID, batsmanPublicID, bowlerPublicID, int(inningScore.Wickets), wicketType, int(inningScore.Overs), fielderPublicID, inningScore.Score, runsScored, inningNumber)
+			outBatsmanResponse, notOutBatsmanResponse, bowlerResponse, inningScoreResponse, wicketResponse, err = q.AddCricketWicket(ctx, matchPublicID, battingTeamID, batsmanPublicID, bowlerPublicID, int(inningScore.Wickets), wicketType, int(inningScore.Overs), fielderPublicID, inningScore.Score, runsScored, inningNumber)
 			if err != nil {
 				store.logger.Error("failed to add cricket wicket: ", err)
 				return err
 			}
 		}
 
-		matchData, err := store.GetMatchModelByPublicId(ctx, matchPublicID)
+		matchData, err := q.GetMatchModelByPublicId(ctx, matchPublicID)
 		if err != nil {
 			store.logger.Error("failed to get match: ", err)
 			return err
 		}
 
 		if inningScoreResponse.Wickets == 10 {
-			inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = store.UpdateInningEndStatus(ctx, int32(matchData.ID), notOutBatsmanResponse.TeamID, inningNumber)
+			inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = q.UpdateInningEndStatus(ctx, int32(matchData.ID), notOutBatsmanResponse.TeamID, inningNumber)
 			if err != nil {
 				store.logger.Error("failed to update inning_numberscore: ", err)
 				return err
 			}
 		} else if *matchData.MatchFormat == "T20" && inningScoreResponse.Overs/6 == 20 {
-			inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = store.UpdateInningEndStatus(ctx, int32(matchData.ID), notOutBatsmanResponse.TeamID, inningNumber)
+			inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = q.UpdateInningEndStatus(ctx, int32(matchData.ID), notOutBatsmanResponse.TeamID, inningNumber)
 			if err != nil {
 				store.logger.Error("failed to update inning_numberscore: ", err)
 				return err
 			}
 		} else if *matchData.MatchFormat == "ODI" && inningScoreResponse.Overs/6 == 50 {
-			inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = store.UpdateInningEndStatus(ctx, int32(matchData.ID), notOutBatsmanResponse.TeamID, inningNumber)
+			inningScoreResponse, notOutBatsmanResponse, bowlerResponse, err = q.UpdateInningEndStatus(ctx, int32(matchData.ID), notOutBatsmanResponse.TeamID, inningNumber)
 			if err != nil {
 				store.logger.Error("failed to update inning_numberscore: ", err)
 				return err
@@ -313,7 +313,7 @@ func (store *SQLStore) AddCricketWicketTx(ctx context.Context,
 		}
 
 		if toggleStriker {
-			notOut, err := store.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
+			notOut, err := q.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
 			if err != nil {
 				store.logger.Error("failed to toggle batsman: ", err)
 				return err
@@ -322,7 +322,7 @@ func (store *SQLStore) AddCricketWicketTx(ctx context.Context,
 		}
 		currentBatsman = notOutBatsmanResponse
 		if bowlerResponse.BallNumber%6 == 0 {
-			currentBatsmanResponse, err := store.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
+			currentBatsmanResponse, err := q.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
 			if err != nil {
 				store.logger.Error("Failed to update stricker: ", err)
 			}
@@ -340,13 +340,13 @@ func (store *SQLStore) UpdateBowlingBowlerStatusTx(ctx context.Context, matchPub
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
 
-		currentBowlerResponse, err = store.UpdateBowlingBowlerStatus(ctx, matchPublicID, teamPublicID, currentBowlerPublicID, inningNumber)
+		currentBowlerResponse, err = q.UpdateBowlingBowlerStatus(ctx, matchPublicID, teamPublicID, currentBowlerPublicID, inningNumber)
 		if err != nil {
 			store.logger.Error("Failed to update current bowler status: ", err)
 			return err
 		}
 
-		nextBowlerResponse, err = store.UpdateBowlingBowlerStatus(ctx, matchPublicID, teamPublicID, nextBowlerPublicID, inningNumber)
+		nextBowlerResponse, err = q.UpdateBowlingBowlerStatus(ctx, matchPublicID, teamPublicID, nextBowlerPublicID, inningNumber)
 		if err != nil {
 			store.logger.Error("Failed to update next bowler status: ", err)
 			return err
@@ -359,7 +359,7 @@ func (store *SQLStore) UpdateBowlingBowlerStatusTx(ctx context.Context, matchPub
 
 func (store *SQLStore) AddCricketSquadTx(ctx context.Context, playerData []map[string]interface{}, matchPublicID uuid.UUID, teamPublicID uuid.UUID, playerPublicID uuid.UUID) ([]map[string]interface{}, error) {
 	var cricketSquad []map[string]interface{}
-	err := store.execTx(ctx, func(*database.Queries) error {
+	err := store.execTx(ctx, func(q *database.Queries) error {
 		for _, player := range playerData {
 			var err error
 			playerPublicID, err := uuid.Parse(player["public_id"].(string))
@@ -368,7 +368,7 @@ func (store *SQLStore) AddCricketSquadTx(ctx context.Context, playerData []map[s
 				return fmt.Errorf("Invalid UUID format: ", err)
 			}
 
-			squad, err := store.AddCricketSquad(ctx, matchPublicID, teamPublicID, playerPublicID, player["position"].(string), player["on_bench"].(bool), false)
+			squad, err := q.AddCricketSquad(ctx, matchPublicID, teamPublicID, playerPublicID, player["position"].(string), player["on_bench"].(bool), false)
 			if err != nil {
 				return fmt.Errorf("Failed to add cricket squad: ", err)
 			}

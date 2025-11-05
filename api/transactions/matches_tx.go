@@ -12,11 +12,11 @@ import (
 
 // Update match status transaction
 func (store *SQLStore) UpdateMatchStatusTx(ctx *gin.Context, matchPublicID uuid.UUID, statusCode string, gameID models.Game) (models.Match, error) {
-	var match models.Match
+	var updatedMatchData models.Match
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
-		updatedMatchData, err := store.UpdateMatchStatus(ctx, matchPublicID, statusCode)
+		updatedMatchData, err = q.UpdateMatchStatus(ctx, matchPublicID, statusCode)
 		if err != nil {
 			store.logger.Error("Unable to update match status: ", err)
 			return err
@@ -26,35 +26,35 @@ func (store *SQLStore) UpdateMatchStatusTx(ctx *gin.Context, matchPublicID uuid.
 		switch updatedMatchData.StatusCode {
 		case "finished":
 			if gameID.Name == "football" {
-				if _, err := store.AddORUpdateFootballPlayerStats(ctx, matchPublicID); err != nil {
+				if _, err := q.AddORUpdateFootballPlayerStats(ctx, matchPublicID); err != nil {
 					return fmt.Errorf("Faile to update player stats: ", err)
 				}
-				if err := UpdateFootballStatusCode(ctx, updatedMatchData, gameID.ID, store); err != nil {
+				if err := UpdateFootballStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
 					return fmt.Errorf("Failed to update football status code: ", err)
 				}
 			} else if gameID.Name == "cricket" {
-				if err := UpdateCricketStatusCode(ctx, updatedMatchData, gameID.ID, store); err != nil {
+				if err := UpdateCricketStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
 					return fmt.Errorf("Failed to update cricket status code: ", err)
 				}
 			}
 
 		case "in_progress":
 			if gameID.Name == "football" {
-				if err := UpdateFootballStatusCode(ctx, updatedMatchData, gameID.ID, store); err != nil {
+				if err := UpdateFootballStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
 					return fmt.Errorf("Failed to initialize the football score: ", err)
 				}
 			} else if gameID.Name == "cricket" {
-				if err := UpdateCricketStatusCode(ctx, updatedMatchData, gameID.ID, store); err != nil {
+				if err := UpdateCricketStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
 					return fmt.Errorf("Failed to initialize the cricket score: ", err)
 				}
 			}
 		}
 		return err
 	})
-	return match, err
+	return updatedMatchData, err
 }
 
-func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match, gameID int64, store *SQLStore) error {
+func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match, gameID int64, q *database.Queries, store *SQLStore) error {
 	var ct *gin.Context
 	if updatedMatchData.StatusCode == "in_progress" {
 		var penaltyShootOut *int
@@ -67,7 +67,7 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match
 			PenaltyShootOut: penaltyShootOut,
 		}
 
-		awayScoreData, err := store.NewFootballScore(ctx, argAway)
+		awayScoreData, err := q.NewFootballScore(ctx, argAway)
 		if err != nil {
 			store.logger.Error("unable to add the football match score: ", err)
 			return err
@@ -99,7 +99,7 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match
 			PenaltyShootOut: penaltyShootOut,
 		}
 
-		homeScoreData, err := store.NewFootballScore(ctx, argHome)
+		homeScoreData, err := q.NewFootballScore(ctx, argHome)
 		if err != nil {
 			store.logger.Error("unable to add the football match score: ", err)
 			return err
@@ -148,13 +148,13 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match
 			RedCards:        0,
 		}
 
-		_, err = store.CreateFootballStatistics(ctx, argStatisticsHome)
+		_, err = q.CreateFootballStatistics(ctx, argStatisticsHome)
 		if err != nil {
 			store.logger.Error("Failed to add the football statistics: ", err)
 			return err
 		}
 
-		_, err = store.CreateFootballStatistics(ctx, argStatisticsAway)
+		_, err = q.CreateFootballStatistics(ctx, argStatisticsAway)
 		if err != nil {
 			store.logger.Error("Failed to add the football statistics: ", err)
 			return err
@@ -165,7 +165,7 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match
 			TeamID:  int64(updatedMatchData.AwayTeamID),
 		}
 
-		awayScore, err := store.GetFootballScore(ctx, argAway)
+		awayScore, err := q.GetFootballScore(ctx, argAway)
 		if err != nil {
 			store.logger.Error("Failed to get away score: ", err)
 			return err
@@ -176,20 +176,20 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match
 			TeamID:  int64(updatedMatchData.HomeTeamID),
 		}
 
-		homeScore, err := store.GetFootballScore(ctx, argHome)
+		homeScore, err := q.GetFootballScore(ctx, argHome)
 		if err != nil {
 			store.logger.Error("Failed to get away score: ", err)
 			return err
 		}
 
 		if awayScore.Goals > homeScore.Goals {
-			_, err := store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
+			_, err := q.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
 			if err != nil {
 				store.logger.Error("Failed to update match result: ", err)
 				return err
 			}
 		} else if homeScore.Goals > awayScore.Goals {
-			_, err := store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
+			_, err := q.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
 			if err != nil {
 				store.logger.Error("Failed to update match result: ", err)
 				return err
@@ -199,29 +199,29 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match
 	return nil
 }
 
-func UpdateCricketStatusCode(ctx context.Context, updatedMatchData models.Match, gameID int64, store *SQLStore) error {
+func UpdateCricketStatusCode(ctx context.Context, updatedMatchData models.Match, gameID int64, q *database.Queries, store *SQLStore) error {
 	if updatedMatchData.StatusCode == "finished" {
 
-		awayScore, err := store.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
+		awayScore, err := q.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
 		if err != nil {
 			store.logger.Error("Failed to get away score: ", err)
 			return err
 		}
 
-		homeScore, err := store.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
+		homeScore, err := q.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
 		if err != nil {
 			store.logger.Error("Failed to get away score: ", err)
 			return err
 		}
 
 		if awayScore.Score > homeScore.Score {
-			_, err := store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
+			_, err := q.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
 			if err != nil {
 				store.logger.Error("Failed to update match result: ", err)
 				return err
 			}
 		} else if homeScore.Score > awayScore.Score {
-			_, err := store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
+			_, err := q.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
 			if err != nil {
 				store.logger.Error("Failed to update match result: ", err)
 				return err

@@ -54,7 +54,6 @@ func (store *SQLStore) CreateEmailSignUpTx(ctx *gin.Context, config util.Config,
 }
 
 func (store *SQLStore) CreateGoogleSignUpTx(ctx *gin.Context, config util.Config, name, username, email, googleID string, avatarUrl string) (models.UserProfiles, models.Users, map[string]interface{}, error) {
-	var st *database.Store
 	accessDuration := config.AccessTokenDuration
 	refreshDuration := config.RefreshTokenDuration
 	clientIP := ctx.ClientIP()
@@ -65,13 +64,13 @@ func (store *SQLStore) CreateGoogleSignUpTx(ctx *gin.Context, config util.Config
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
 
-		userSignUp, err = store.CreateGoogleSignUp(ctx, name, username, email, googleID)
+		userSignUp, err = q.CreateGoogleSignUp(ctx, name, username, email, googleID)
 		if err != nil {
 			return fmt.Errorf("Failed to create google signup: ", err)
 		}
 
 		// Create tokens and session
-		tokens, err = coreToken.CreateNewToken(ctx, st, *store.tokenMaker, int32(userSignUp.ID), userSignUp.PublicID, accessDuration, refreshDuration, ctx.Request.UserAgent(), clientIP)
+		tokens, err = coreToken.CreateNewTokenTx(ctx, q, *store.tokenMaker, int32(userSignUp.ID), userSignUp.PublicID, accessDuration, refreshDuration, ctx.Request.UserAgent(), clientIP)
 		if err != nil {
 			return fmt.Errorf("Failed to create new token: ", err)
 		}
@@ -83,7 +82,7 @@ func (store *SQLStore) CreateGoogleSignUpTx(ctx *gin.Context, config util.Config
 			AvatarUrl: avatarUrl,
 		}
 
-		profile, err = store.CreateProfile(ctx, arg)
+		profile, err = q.CreateProfile(ctx, arg)
 		if err != nil {
 			store.logger.Error("Failed to create profile: ", err)
 			return err

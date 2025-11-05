@@ -807,8 +807,7 @@ const updateWideRun = `
 	JOIN update_bowler ubl 
 		ON bs.match_id = ubl.match_id 
 	AND bs.inning_number = ubl.inning_number
-	WHERE bs.match_id = (SELECT id FROM get_match) AND bs.team_id = (SELECT id FROM get_team) AND bs.inning_number = $5
-`
+	WHERE bs.match_id = (SELECT id FROM get_match) AND bs.team_id = (SELECT id FROM get_team) AND bs.inning_number = $5 AND bs.is_striker = true`
 
 func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeamPublicID, bowlerPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
 	var bowler models.BowlerScore
@@ -865,43 +864,67 @@ func (q *Queries) UpdateWideRuns(ctx context.Context, matchPublicID, battingTeam
 }
 
 const updateNoBallRun = `
-WITH update_bowler AS (
-	UPDATE bowler_score
-	SET no_ball = no_ball + 1, 
-		runs = runs + 1 + $4
-	FROM matches m, bowler bw
-	WHERE m.public_id = $1 AND bw.public_id = $2 AND is_current_bowler = true  AND inning_number= $5
-	RETURNING *
-),
-update_inning_score AS (
-	UPDATE cricket_score
-	SET score = score + 1
-	FROM matches m, teams t
-	WHERE m.public_id = $1 AND t.public_id = $3 AND inning_number= $5
-	RETURNING *
-),
-update_batsman AS (
-	UPDATE batsman_score
-	SET runs_scored = runs_scored + $4
-	FROM matches m
-	WHERE m.public_id = $1 AND is_striker = true AND inning_number= $5
-	RETURNING *
-)
-SELECT 
-	ub.*, 
-	ubl.*, 
-	uis.*
-FROM update_batsman ub
-JOIN update_bowler ubl ON ub.match_id = ubl.match_id AND ub.inning_number= ubl.inning_number
-JOIN update_inning_score uis ON ub.match_id = uis.match_id AND ub.inning_number= uis.inning_number
+	WITH get_match AS (
+		SELECT * FROM matches WHERE public_id = $1
+	),
+	get_bowler AS (
+		SELECT * FROM players WHERE public_id = $3
+	),
+	get_team AS (
+		SELECT * FROM teams WHERE public_id = $2
+	),
+	update_bowler AS (
+		UPDATE bowler_score
+		SET 
+			no_ball = no_ball + 1, 
+			runs = runs + $4 + 1
+		WHERE 
+			match_id = (SELECT id FROM get_match) 
+			AND bowler_id = (SELECT id FROM get_bowler) 
+			AND is_current_bowler = true 
+			AND inning_number = $5
+		RETURNING *
+	),
+	update_inning_score AS (
+		UPDATE cricket_score
+		SET
+			score = score + $4 + 1
+		WHERE 
+			match_id = (SELECT id FROM get_match)
+			AND team_id = (SELECT id FROM get_team)
+			AND inning_number = $5
+		RETURNING *
+	)
+	SELECT 
+		bs.*,
+		ubl.*, 
+		uis.*
+	FROM batsman_score bs
+	JOIN update_inning_score uis
+			ON bs.match_id = uis.match_id 
+			AND bs.inning_number = uis.inning_number
+	JOIN update_bowler ubl 
+		ON bs.match_id = ubl.match_id 
+	AND bs.inning_number = ubl.inning_number
+	WHERE bs.match_id = (SELECT id FROM get_match) AND bs.team_id = (SELECT id FROM get_team) AND bs.inning_number = $5 AND is_striker = true
 `
 
-func (q *Queries) UpdateNoBallsRuns(ctx context.Context, matchPublicID, bowlerPublicID, battingTeamPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
+func (q *Queries) UpdateNoBallsRuns(ctx context.Context, matchPublicID, battingTeamPublicID, bowlerPublicID uuid.UUID, runsScored int32, inningNumber int) (*models.BatsmanScore, *models.BowlerScore, *models.CricketScore, error) {
 	var bowler models.BowlerScore
 	var batsman models.BatsmanScore
 	var inningScore models.CricketScore
-	row := q.db.QueryRowContext(ctx, updateNoBallRun, matchPublicID, bowlerPublicID, battingTeamPublicID, runsScored, inningNumber)
-	err := row.Scan(
+
+	rows, err := q.db.QueryContext(ctx, updateNoBallRun, matchPublicID, battingTeamPublicID, bowlerPublicID, runsScored, inningNumber)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, nil, nil, fmt.Errorf("no rows returned - check if striker exists and updates succeeded")
+	}
+
+	err = rows.Scan(
 		&batsman.ID,
 		&batsman.PublicID,
 		&batsman.MatchID,
@@ -945,7 +968,7 @@ func (q *Queries) UpdateNoBallsRuns(ctx context.Context, matchPublicID, bowlerPu
 		&inningScore.InningStatus,
 	)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to exec query: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
 	return &batsman, &bowler, &inningScore, nil

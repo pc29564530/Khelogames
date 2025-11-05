@@ -5,23 +5,19 @@ import (
 	"khelogames/api/transactions"
 	db "khelogames/database"
 	"khelogames/logger"
-
-	ampq "github.com/rabbitmq/amqp091-go"
 )
 
 type CricketServer struct {
 	store            *db.Store
 	logger           *logger.Logger
-	rabbitChan       *ampq.Channel
 	scoreBroadcaster shared.ScoreBroadcaster
 	txStore          *transactions.SQLStore
 }
 
-func NewCricketServer(store *db.Store, logger *logger.Logger, rabbitChan *ampq.Channel, scoreBroadcaster shared.ScoreBroadcaster, txStore *transactions.SQLStore) *CricketServer {
+func NewCricketServer(store *db.Store, logger *logger.Logger, scoreBroadcaster shared.ScoreBroadcaster, txStore *transactions.SQLStore) *CricketServer {
 	server := &CricketServer{
 		store:            store,
 		logger:           logger,
-		rabbitChan:       rabbitChan,
 		scoreBroadcaster: scoreBroadcaster,
 		txStore:          txStore,
 	}
@@ -33,5 +29,12 @@ func (s *CricketServer) SetScoreBroadcaster(broadcaster shared.ScoreBroadcaster)
 	s.scoreBroadcaster = broadcaster
 }
 
+// GetScoreBroadcaster returns the assigned ScoreBroadcaster
+func (s *CricketServer) GetScoreBroadcaster() shared.ScoreBroadcaster {
+	return s.scoreBroadcaster
+}
+
 // Ensure CricketServer implements the shared interfaces
-var _ shared.CricketScoreUpdater = (*CricketServer)(nil)
+// var _ shared.CricketScoreUpdater
+
+var _ shared.ScoreBroadcaster

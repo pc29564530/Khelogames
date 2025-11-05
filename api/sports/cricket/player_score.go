@@ -650,39 +650,55 @@ type updateCricketPlayerStatsRequest struct {
 // 	InningNumber        int    `json:"inning_number"`
 // }
 
-func (s *CricketServer) UpdateWideBallWS(ctx *gin.Context, message map[string]interface{}) (data map[string]interface{}) {
-	matchPublicID, err := uuid.Parse(message["match_public_id"].(string))
+func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
+	var req struct {
+		MatchPublicID       string `json:"match_public_id"`
+		BattingTeamPublicID string `json:"batting_team_public_id"`
+		BatsmanPublicID     string `json:"batsman_public_id"`
+		BowlerPublicID      string `json:"bowler_public_id"`
+		RunsScored          int    `json:"runs_scored"`
+		InningNumber        int    `json:"inning_number"`
+	}
+
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	batsmanPublicID, err := uuid.Parse(message["batsman_public_id"].(string))
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		s.logger.Error("Invalid match UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
 		return
 	}
 
-	bowlerPublicID, err := uuid.Parse(message["bowler_public_id"].(string))
+	batsmanTeamPublicID, err := uuid.Parse(req.BattingTeamPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		s.logger.Error("Invalid batsman team UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
 		return
 	}
 
-	battingTeamPublicID, err := uuid.Parse(message["batting_team_public_id"].(string))
+	batsmanPublicID, err := uuid.Parse(req.BatsmanPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		s.logger.Error("Invalid batsman UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman UUID format"})
 		return
 	}
 
-	runsScored := int32(message["runs_scored"].(float64))
-	inningNumber := int(message["inning_number"].(float64))
+	bowlerPublicID, err := uuid.Parse(req.BowlerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid bowler UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
+		return
+	}
 
-	batsmanResponse, currentBatsman, bowlerResponse, inningScore, err := s.txStore.UpdateWideRunsTx(ctx, matchPublicID, battingTeamPublicID, bowlerPublicID, runsScored, inningNumber)
+	runsScored := req.RunsScored
+	inningNumber := req.InningNumber
+
+	batsmanResponse, currentBatsman, bowlerResponse, inningScore, err := s.txStore.UpdateWideRunsTx(ctx, matchPublicID, bowlerPublicID, batsmanTeamPublicID, int32(runsScored), inningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update wide: ", err)
 		return
@@ -777,14 +793,23 @@ func (s *CricketServer) UpdateWideBallWS(ctx *gin.Context, message map[string]in
 		"is_current_bowler": bowlerResponse.IsCurrentBowler,
 	}
 
-	// ctx.JSON(http.StatusOK, gin.H{
-	// 	"striker_batsman":     batsman,
-	// 	"non_striker_batsman": nonStriker,
-	// 	"bowler":              bowler,
-	// 	"inning_score":        inningScore,
-	// })
+	payload := map[string]interface{}{
+		"striker_batsman":     batsman,
+		"non_striker_batsman": nonStriker,
+		"bowler":              bowler,
+		"inning_score":        inningScore,
+		"event_type":          "wide",
+	}
 
-	data = map[string]interface{}{
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "UPDATE_SCORE", payload)
+		if err != nil {
+			s.logger.Error("Failed to broadcast cricket wide ball: ", err)
+			return
+		}
+	}
+
+	data := map[string]interface{}{
 		"type": "UPDATE_SCORE",
 		"payload": map[string]interface{}{
 			"striker_batsman":     batsman,
@@ -794,42 +819,58 @@ func (s *CricketServer) UpdateWideBallWS(ctx *gin.Context, message map[string]in
 			"event_type":          "wide",
 		},
 	}
-	return data
+	ctx.JSON(http.StatusAccepted, data)
 }
 
-func (s *CricketServer) UpdateNoBallsRunsWS(ctx *gin.Context, message map[string]interface{}) (data map[string]interface{}) {
-	matchPublicID, err := uuid.Parse(message["match_public_id"].(string))
+func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
+	var req struct {
+		MatchPublicID       string `json:"match_public_id"`
+		BattingTeamPublicID string `json:"batting_team_public_id"`
+		BatsmanPublicID     string `json:"batsman_public_id"`
+		BowlerPublicID      string `json:"bowler_public_id"`
+		RunsScored          int    `json:"runs_scored"`
+		InningNumber        int    `json:"inning_number"`
+	}
+
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		s.logger.Error("Failed to bind: ", err)
 		return
 	}
 
-	batsmanPublicID, err := uuid.Parse(message["batsman_public_id"].(string))
+	fmt.Println("Req No Ball: ", req)
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		s.logger.Error("Invalid match UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
 		return
 	}
 
-	bowlerPublicID, err := uuid.Parse(message["bowler_public_id"].(string))
+	battingTeamPublicID, err := uuid.Parse(req.BattingTeamPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		s.logger.Error("Invalid batsman team UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
 		return
 	}
 
-	battingTeamPublicID, err := uuid.Parse(message["batting_team_public_id"].(string))
+	batsmanPublicID, err := uuid.Parse(req.BatsmanPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		s.logger.Error("Invalid batsman UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman UUID format"})
 		return
 	}
 
-	runsScored := int32(message["runs_scored"].(float64))
-	inningNumber := int(message["inning_number"].(float64))
+	bowlerPublicID, err := uuid.Parse(req.BowlerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid bowler UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
+		return
+	}
 
-	batsmanResponse, currentBatsman, bowlerResponse, inningScore, err := s.txStore.UpdateCricketNoBallTx(ctx, matchPublicID, bowlerPublicID, battingTeamPublicID, runsScored, inningNumber)
+	runsScored := req.RunsScored
+	inningNumber := req.InningNumber
+
+	batsmanResponse, currentBatsman, bowlerResponse, inningScore, err := s.txStore.UpdateCricketNoBallTx(ctx, matchPublicID, bowlerPublicID, battingTeamPublicID, batsmanPublicID, int32(runsScored), inningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update no_ball: ", err)
 		return
@@ -927,7 +968,23 @@ func (s *CricketServer) UpdateNoBallsRunsWS(ctx *gin.Context, message map[string
 		"inning_number":     bowlerResponse.InningNumber,
 	}
 
-	data = map[string]interface{}{
+	payload := map[string]interface{}{
+		"striker_batsman":     batsman,
+		"non_striker_batsman": nonStriker,
+		"bowler":              bowler,
+		"inning_score":        inningScore,
+		"event_type":          "no_ball",
+	}
+
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "UPDATE_SCORE", payload)
+		if err != nil {
+			s.logger.Error("Failed to broadcast noball: ", err)
+			return
+		}
+	}
+
+	data := map[string]interface{}{
 		"type": "UPDATE_SCORE",
 		"payload": map[string]interface{}{
 			"striker_batsman":     batsman,
@@ -937,52 +994,73 @@ func (s *CricketServer) UpdateNoBallsRunsWS(ctx *gin.Context, message map[string
 			"event_type":          "no_ball",
 		},
 	}
-	return data
+	ctx.JSON(http.StatusAccepted, data)
 }
 
-func (s *CricketServer) AddCricketWicketsWS(ctx *gin.Context, message map[string]interface{}) (data map[string]interface{}) {
-	matchPublicID, err := uuid.Parse(message["match_public_id"].(string))
+func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
+
+	var req struct {
+		MatchPublicID       string `json:"match_public_id"`
+		BattingTeamPublicID string `json:"batting_team_public_id"`
+		BatsmanPublicID     string `json:"batsman_public_id"`
+		BowlerPublicID      string `json:"bowler_public_id"`
+		FielderPublicID     string `json:"fielder_public_id"`
+		RunsScored          int    `json:"runs_scored"`
+		InningNumber        int    `json:"inning_number"`
+		WicketNumber        int    `json:"wicket_number"`
+		BallNumber          int    `json:"ball_number"`
+		WicketType          string `json:"wicket_type"`
+		BowlType            string `json:"bowl_type"`
+		ToggleStriker       bool   `json:"toggle_striker"`
+	}
+
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	battingTeamID, err := uuid.Parse(message["batting_team_id"].(string))
+	battingTeamID, err := uuid.Parse(req.BattingTeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	batsmanPublicID, err := uuid.Parse(message["batsman_public_id"].(string))
+	batsmanPublicID, err := uuid.Parse(req.BatsmanPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	bowlerPublicID, err := uuid.Parse(message["bowler_public_id"].(string))
+	bowlerPublicID, err := uuid.Parse(req.BowlerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	fielderPublicID, err := uuid.Parse(message["fielder_public_id"].(string))
+	fielderPublicID, err := uuid.Parse(req.FielderPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
-	runsScored := int(message["runs_scored"].(float64))
-	inningNumber := int(message["inning_number"].(float64))
-	wicketNumber := int(message["wicket_number"].(float64))
-	ballNumber := int(message["ball_number"].(float64))
-	wicketType := message["wicket_type"].(string)
-	bowlType := message["bowl_type"].(*string)
-	toggleStriker := message["toggle_striker"].(bool)
+	runsScored := int(req.RunsScored)
+	inningNumber := int(req.InningNumber)
+	wicketNumber := int(req.WicketNumber)
+	ballNumber := int(req.BallNumber)
+	wicketType := req.WicketType
+	toggleStriker := req.ToggleStriker
 
 	cricketScore, err := s.store.GetCricketScoreByInning(ctx, matchPublicID, battingTeamID, inningNumber)
 	if err != nil {
@@ -1005,7 +1083,7 @@ func (s *CricketServer) AddCricketWicketsWS(ctx *gin.Context, message map[string
 		ballNumber,
 		fielderPublicID,
 		cricketScore,
-		bowlType,
+		&req.BowlType,
 		int32(runsScored),
 		inningNumber,
 		toggleStriker,
@@ -1119,7 +1197,25 @@ func (s *CricketServer) AddCricketWicketsWS(ctx *gin.Context, message map[string
 		"inning_number":  wicketResponse.InningNumber,
 	}
 
-	data = map[string]interface{}{
+	payload := map[string]interface{}{
+		"out_batsman":     outBatsmanScore,
+		"not_out_batsman": notOutBatsmanScore,
+		"bowler":          bowler,
+		"inning_score":    inningScoreResponse,
+		"wickets":         wickets,
+		"match":           matchData,
+		"event_type":      "wicket",
+	}
+
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "UPDATE_SCORE", payload)
+		if err != nil {
+			s.logger.Error("Failed to broadcast cricket add wicket: ", err)
+			return
+		}
+	}
+
+	data := map[string]interface{}{
 		"type": "UPDATE_SCORE",
 		"payload": map[string]interface{}{
 			"out_batsman":     outBatsmanScore,
@@ -1131,46 +1227,60 @@ func (s *CricketServer) AddCricketWicketsWS(ctx *gin.Context, message map[string
 			"event_type":      "wicket",
 		},
 	}
-	return data
+	ctx.JSON(http.StatusAccepted, data)
 }
 
-func (s *CricketServer) UpdateInningScoreWS(ctx *gin.Context, message map[string]interface{}) (data map[string]interface{}, inningStatus string) {
-	fmt.Println("Line no 1222: ", message)
+func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
+
+	var req struct {
+		MatchPublicID       string `json:"match_public_id"`
+		BatsmanTeamPublicID string `json:"batsman_team_public_id"`
+		BatsmanPublicID     string `json:"batsman_public_id"`
+		BowlerPublicID      string `json:"bowler_public_id"`
+		RunsScored          int    `json:"runs_scored"`
+		InningNumber        int    `json:"inning_number"`
+	}
+
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
 
 	// Parse UUIDs
-	matchPublicID, err := uuid.Parse(message["match_public_id"].(string))
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid match UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
 		return
 	}
 
-	batsmanTeamPublicID, err := uuid.Parse(message["batsman_team_public_id"].(string))
+	batsmanTeamPublicID, err := uuid.Parse(req.BatsmanTeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid batsman team UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
 		return
 	}
 
-	batsmanPublicID, err := uuid.Parse(message["batsman_public_id"].(string))
+	batsmanPublicID, err := uuid.Parse(req.BatsmanPublicID)
 	if err != nil {
 		s.logger.Error("Invalid batsman UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman UUID format"})
 		return
 	}
 
-	bowlerPublicID, err := uuid.Parse(message["bowler_public_id"].(string))
+	bowlerPublicID, err := uuid.Parse(req.BowlerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid bowler UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
 		return
 	}
 
-	runsScored := int(message["runs_scored"].(float64))
-	inningNumber := int(message["inning_number"].(float64))
+	runsScored := req.RunsScored
+	inningNumber := req.InningNumber
 
 	// Check if inning is already completed to prevent repeated updates
-	cricketScore, err := s.store.GetCricketScoreByInning(ctx, matchPublicID, batsmanTeamPublicID, inningNumber)
+	cricketScore, err := s.store.GetCricketScoreByInning(ctx, matchPublicID, batsmanTeamPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get cricket score: ", err)
 		return
@@ -1272,18 +1382,21 @@ func (s *CricketServer) UpdateInningScoreWS(ctx *gin.Context, message map[string
 	}
 
 	// Determine event type
-	inningStatus = "in_progress"
+	inningStatus := "in_progress"
 	if inningsCompleted {
 		inningStatus = "completed"
 	}
 
 	// Fetch player details
+	fmt.Println("Striker Response: ", strikerResponse)
 	strikerPlayerData, err := s.store.GetPlayerByID(ctx, int64(strikerResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get striker player: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get striker data"})
 		return
 	}
+
+	fmt.Println("Non Striker Response: ", nonStrikerResponse)
 
 	nonStrikerPlayerData, err := s.store.GetPlayerByID(ctx, int64(nonStrikerResponse.BatsmanID))
 	if err != nil {
@@ -1348,6 +1461,9 @@ func (s *CricketServer) UpdateInningScoreWS(ctx *gin.Context, message map[string
 		"inning_number":        nonStrikerResponse.InningNumber,
 	}
 
+	fmt.Println("Striker: ", striker)
+	fmt.Println("Non Striker: ", nonStriker)
+
 	bowler = map[string]interface{}{
 		"player": map[string]interface{}{
 			"id":        bowlerPlayerData.ID,
@@ -1388,7 +1504,23 @@ func (s *CricketServer) UpdateInningScoreWS(ctx *gin.Context, message map[string
 		"inning_status":       inningScore.InningStatus,
 	}
 
-	data = map[string]interface{}{
+	inningData := map[string]interface{}{
+		"striker_batsman":     striker,
+		"non_striker_batsman": nonStriker,
+		"bowler":              bowler,
+		"inning_score":        inningPayload,
+		"event_type":          "normal",
+	}
+
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "UPDATE_SCORE", inningData)
+		if err != nil {
+			s.logger.Error("Failed to broadcast update score: ", err)
+			return
+		}
+	}
+
+	data := map[string]interface{}{
 		"type": "UPDATE_SCORE",
 		"payload": map[string]interface{}{
 			"striker_batsman":     striker,
@@ -1399,36 +1531,46 @@ func (s *CricketServer) UpdateInningScoreWS(ctx *gin.Context, message map[string
 		},
 	}
 
-	fmt.Println("Response data: ", data)
-	return data, inningStatus
+	ctx.JSON(http.StatusAccepted, data)
+
+	if inningStatus == "Completed" {
+		s.UpdateCricketInningStatusWS(ctx, matchPublicID, batsmanTeamPublicID, batsmanPublicID, bowlerPublicID, inningNumber)
+	}
+
+	// fmt.Println("Response data: ", data)
+	// return data, inningStatus
 }
 
-func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, message map[string]interface{}) map[string]interface{} {
+func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, matchPublicID, batsmanTeamPublicID, batsmanPublicID, bowlerPublicID uuid.UUID, inningNumber int) {
 
-	content := message
-	matchPublicID, err := uuid.Parse(content["match_public_id"].(string))
-	if err != nil {
-		s.logger.Error("Invalid match UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
-	}
+	// content := message
+	// matchPublicID, err := uuid.Parse(content["match_public_id"].(string))
+	// if err != nil {
+	// 	s.logger.Error("Invalid match UUID format", err)
+	// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
+	// 	return
+	// }
 
-	batsmanTeamPublicID, err := uuid.Parse(content["batsman_team_public_id"].(string))
-	if err != nil {
-		s.logger.Error("Invalid batsman team UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
-	}
+	// batsmanTeamPublicID, err := uuid.Parse(content["batsman_team_public_id"].(string))
+	// if err != nil {
+	// 	s.logger.Error("Invalid batsman team UUID format", err)
+	// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
+	// 	return
+	// }
 
-	fmt.Println("Message Data: ", content["bowler_public_id"].(string))
-	bowlerPublicID, err := uuid.Parse(content["bowler_public_id"].(string))
-	if err != nil {
-		s.logger.Error("Invalid bowler UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
-	}
-	inningNumber := int(content["inning_number"].(float64))
+	// fmt.Println("Message Data: ", content["bowler_public_id"].(string))
+	// bowlerPublicID, err := uuid.Parse(content["bowler_public_id"].(string))
+	// if err != nil {
+	// 	s.logger.Error("Invalid bowler UUID format", err)
+	// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
+	// 	return
+	// }
+	// inningNumber := int(content["inning_number"].(float64))
 
 	currBatsman, err := s.store.GetCurrentBattingBatsman(ctx, matchPublicID, batsmanTeamPublicID, inningNumber)
 	if err != nil {
-		s.logger.Error("Faield to end the inning ")
+		s.logger.Error("Faield to end the inning ", err)
+		return
 	}
 
 	var strikerResponse models.BatsmanScore
@@ -1558,6 +1700,15 @@ func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, message ma
 		"inning_status":       inningScore.InningStatus,
 	}
 
+	payload := map[string]interface{}{
+		"striker":       striker,
+		"non_striker":   nonStriker,
+		"bowler":        bowler,
+		"inning_score":  inningPayload,
+		"inning_status": "completed",
+		"event_type":    "normal",
+	}
+
 	data := map[string]interface{}{
 		"type": "INNING_STATUS",
 		"payload": map[string]interface{}{
@@ -1566,9 +1717,18 @@ func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, message ma
 			"bowler":        bowler,
 			"inning_score":  inningPayload,
 			"inning_status": "completed",
+			"event_type":    "normal",
 		},
 	}
-	return data
+
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "INNING_STATUS", payload)
+		if err != nil {
+			s.logger.Error("Failed to broadcast update score: ", err)
+			return
+		}
+	}
+	ctx.JSON(http.StatusAccepted, data)
 }
 
 func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {

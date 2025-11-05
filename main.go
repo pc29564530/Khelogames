@@ -11,6 +11,7 @@ import (
 	apiToken "khelogames/api/token"
 	"khelogames/api/transactions"
 	coreToken "khelogames/core/token"
+	"khelogames/hub"
 	"net/http"
 	"os"
 
@@ -57,7 +58,7 @@ func main() {
 
 	txStore := transactions.NewStore(conn, &tokenMaker, log, nil)
 
-	rabbitConn, rabbitChan, err := messenger.StartRabbitMQ(config)
+	rabbitConn, rabbitChan, err := hub.StartRabbitMQ(config)
 	if err != nil {
 		log.Fatal("cannot start RabbitMQ:", err)
 	}
@@ -74,12 +75,14 @@ func main() {
 			return true
 		},
 	}
+	subscriber := make(map[string]map[*hub.Client]bool)
+	hub := hub.NewHub(store, log, upgrader, rabbitChan, tokenMaker, nil, nil, subscriber)
 
 	// Channel for broadcasting messages to WebSocket clients
 	messageBroadCast := make(chan []byte)
 	scoredBroadCast := make(chan []byte)
 
-	cricketServer := cricket.NewCricketServer(store, log, rabbitChan, nil, txStore)
+	cricketServer := cricket.NewCricketServer(store, log, nil, txStore)
 
 	// Initialize HTTP servers and handlers
 	authServer := auth.NewAuthServer(store, log, tokenMaker, config, txStore)
@@ -91,17 +94,21 @@ func main() {
 	tokenServer := apiToken.NewTokenServer(store, log, tokenMaker, config)
 
 	// Create messenger server with cricket server as both updater and broadcaster
-	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log, nil, nil)
+	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log, nil)
 	playerServer := players.NewPlayerServer(store, log, tokenMaker, config)
 	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config)
-	cricketServer.SetScoreBroadcaster(messengerServer)
-	footballServer.SetScoreBroadcaster(messengerServer)
-	tournamentServer.SetScoreBroadcaster(messengerServer)
+	tournamentServer.SetScoreBroadcaster(hub)
+	cricketServer.SetScoreBroadcaster(hub)
+	footballServer.SetScoreBroadcaster(hub)
 
-	go messengerServer.StartRabbitMQConsumer("scoreHub")
-	go messengerServer.StartRabbitMQConsumer("chatHub")
-	go messengerServer.StartMessageHub()
-	go messengerServer.StartCricketScoreHub()
+	fmt.Printf("Cricket broadcaster pointer: %p\n", cricketServer.GetScoreBroadcaster())
+	fmt.Printf("Football broadcaster pointer: %p\n", footballServer.GetScoreBroadcaster())
+	fmt.Printf("Messenger server pointer:    %p\n", messengerServer)
+	fmt.Printf("Tournament broadcaster pointer: %p\n", tournamentServer.GetScoreBroadcaster())
+
+	go hub.StartRabbitMQConsumer("scoreHub")
+	go hub.StartRabbitMQConsumer("chatHub")
+	// go hub.StartMessageHub()
 
 	// Initialize Gin router
 	router := gin.Default()
@@ -120,6 +127,7 @@ func main() {
 		sportsServer,
 		router,
 		tokenServer,
+		hub,
 	)
 	if err != nil {
 		newLogger.Error("Server creation failed", err)

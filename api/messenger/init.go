@@ -12,30 +12,28 @@ import (
 )
 
 type MessageServer struct {
-	store            *db.Store
-	tokenMaker       token.Maker
-	upgrader         websocket.Upgrader
-	clients          map[*websocket.Conn]bool
-	messageBroadCast chan []byte
-	scoreBroadCast   chan []byte
-	rabbitChan       *ampq.Channel
-	mutex            sync.Mutex
-	logger           *logger.Logger
-	cricketUpdater   shared.CricketScoreUpdater
-	scoreBroadcaster shared.ScoreBroadcaster
+	store              *db.Store
+	tokenMaker         token.Maker
+	upgrader           websocket.Upgrader
+	clients            map[*websocket.Conn]bool
+	messageBroadCast   chan []byte
+	scoreBroadCast     chan []byte
+	rabbitChan         *ampq.Channel
+	mutex              sync.Mutex
+	logger             *logger.Logger
+	messageBroadcaster shared.MessageBroadcaster
 }
 
-func NewMessageServer(store *db.Store, tokenMaker token.Maker, clients map[*websocket.Conn]bool, messageBroadCast chan []byte, scoreBroadCast chan []byte, upgrader websocket.Upgrader, rabbitChan *ampq.Channel, logger *logger.Logger, cricketUpdater shared.CricketScoreUpdater, scoreBroadcaster shared.ScoreBroadcaster) *MessageServer {
+func NewMessageServer(store *db.Store, tokenMaker token.Maker, clients map[*websocket.Conn]bool, messageBroadCast chan []byte, scoreBroadCast chan []byte, upgrader websocket.Upgrader, rabbitChan *ampq.Channel, logger *logger.Logger, messageBroadCaster shared.MessageBroadcaster) *MessageServer {
 	return &MessageServer{
-		store:            store,
-		tokenMaker:       tokenMaker,
-		upgrader:         upgrader,
-		clients:          clients,
-		messageBroadCast: messageBroadCast,
-		scoreBroadCast:   scoreBroadCast,
-		rabbitChan:       rabbitChan,
-		logger:           logger,
-		cricketUpdater:   cricketUpdater,
-		scoreBroadcaster: scoreBroadcaster,
+		store:              store,
+		tokenMaker:         tokenMaker,
+		upgrader:           upgrader,
+		clients:            clients,
+		messageBroadCast:   messageBroadCast,
+		scoreBroadCast:     scoreBroadCast,
+		rabbitChan:         rabbitChan,
+		logger:             logger,
+		messageBroadcaster: messageBroadCaster,
 	}
 }

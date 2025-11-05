@@ -7,11 +7,15 @@ import (
 	ampq "github.com/rabbitmq/amqp091-go"
 )
 
-// ScoreBroadcaster defines the interface for broadcasting cricket score updates
+// ScoreBroadcaster defines the interface for broadcasting different score updates
 type ScoreBroadcaster interface {
 	BroadcastCricketEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
 	BroadcastFootballEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
 	BroadcastTournamentEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
+}
+
+type MessageBroadcaster interface {
+	BroadcastMessageEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
 }
 
 // CricketScoreUpdater defines the interface for updating cricket scores
