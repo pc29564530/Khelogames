@@ -300,3 +300,37 @@ func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 		"bowler":  bowler,
 	})
 }
+
+func (s *CricketServer) GetCricketCurrentInningFunc(ctx *gin.Context) {
+	var req struct {
+		MatchPublicID string `uri:"match_public_id"`
+	}
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse: ", err)
+		return
+	}
+
+	cricketInning, err := s.store.GetCricketCurrentInning(ctx, matchPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get current inning and status: ", err)
+		return
+	}
+
+	batTeam, err := s.store.GetTeamByID(ctx, int64(cricketInning.TeamID))
+	if err != nil {
+		s.logger.Error("Failed to get team by id: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"inning":       cricketInning,
+		"batting_team": batTeam,
+	})
+}

@@ -5,7 +5,6 @@ import (
 	"khelogames/api/orchestrator"
 	"khelogames/api/shared"
 	db "khelogames/database"
-	"khelogames/database/models"
 	"khelogames/util"
 	"net/http"
 	"strings"
@@ -163,182 +162,6 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, response)
 }
 
-func updateFootballStatusCode(ctx *gin.Context, updatedMatchData models.Match, gameID int64, s *TournamentServer) error {
-	if updatedMatchData.StatusCode == "in_progress" {
-		var penaltyShootOut *int
-		argAway := db.NewFootballScoreParams{
-			MatchID:         int32(updatedMatchData.ID),
-			TeamID:          int32(updatedMatchData.AwayTeamID),
-			FirstHalf:       0,
-			SecondHalf:      0,
-			Goals:           0,
-			PenaltyShootOut: penaltyShootOut,
-		}
-
-		awayScoreData, err := s.store.NewFootballScore(ctx, argAway)
-		if err != nil {
-			s.logger.Error("unable to add the football match score: ", err)
-			return err
-		}
-
-		awayScore := map[string]interface{}{
-			"id":               awayScoreData.ID,
-			"public_id":        awayScoreData.PublicID,
-			"match_id":         awayScoreData.MatchID,
-			"team_id":          awayScoreData.TeamID,
-			"first_half":       awayScoreData.FirstHalf,
-			"second_half":      awayScoreData.SecondHalf,
-			"penalty_shootout": awayScoreData.PenaltyShootOut,
-		}
-
-		if s.scoreBroadcaster != nil {
-			err := s.scoreBroadcaster.BroadcastTournamentEvent(ctx, "ADD_FOOTBALL_SCORE", awayScore)
-			if err != nil {
-				s.logger.Error("Failed to broadcast cricket event: ", err)
-			}
-		}
-
-		argHome := db.NewFootballScoreParams{
-			MatchID:         int32(updatedMatchData.ID),
-			TeamID:          int32(updatedMatchData.HomeTeamID),
-			FirstHalf:       0,
-			SecondHalf:      0,
-			Goals:           0,
-			PenaltyShootOut: penaltyShootOut,
-		}
-
-		homeScoreData, err := s.store.NewFootballScore(ctx, argHome)
-		if err != nil {
-			s.logger.Error("unable to add the football match score: ", err)
-			return err
-		}
-
-		homeScore := map[string]interface{}{
-			"id":               homeScoreData.ID,
-			"public_id":        homeScoreData.PublicID,
-			"match_id":         homeScoreData.MatchID,
-			"team_id":          homeScoreData.TeamID,
-			"first_half":       homeScoreData.FirstHalf,
-			"second_half":      homeScoreData.SecondHalf,
-			"penalty_shootout": homeScoreData.PenaltyShootOut,
-		}
-
-		if s.scoreBroadcaster != nil {
-			err := s.scoreBroadcaster.BroadcastTournamentEvent(ctx, "ADD_FOOTBALL_SCORE", homeScore)
-			if err != nil {
-				s.logger.Error("Failed to broadcast cricket event: ", err)
-			}
-		}
-
-		argStatisticsHome := db.CreateFootballStatisticsParams{
-			MatchID:         int32(updatedMatchData.ID),
-			TeamID:          int32(updatedMatchData.HomeTeamID),
-			ShotsOnTarget:   0,
-			TotalShots:      0,
-			CornerKicks:     0,
-			Fouls:           0,
-			GoalkeeperSaves: 0,
-			FreeKicks:       0,
-			YellowCards:     0,
-			RedCards:        0,
-		}
-
-		argStatisticsAway := db.CreateFootballStatisticsParams{
-			MatchID:         int32(updatedMatchData.ID),
-			TeamID:          int32(updatedMatchData.AwayTeamID),
-			ShotsOnTarget:   0,
-			TotalShots:      0,
-			CornerKicks:     0,
-			Fouls:           0,
-			GoalkeeperSaves: 0,
-			FreeKicks:       0,
-			YellowCards:     0,
-			RedCards:        0,
-		}
-
-		_, err = s.store.CreateFootballStatistics(ctx, argStatisticsHome)
-		if err != nil {
-			s.logger.Error("Failed to add the football statistics: ", err)
-			return err
-		}
-
-		_, err = s.store.CreateFootballStatistics(ctx, argStatisticsAway)
-		if err != nil {
-			s.logger.Error("Failed to add the football statistics: ", err)
-			return err
-		}
-	} else if updatedMatchData.StatusCode == "finished" {
-		argAway := db.GetFootballScoreParams{
-			MatchID: updatedMatchData.ID,
-			TeamID:  int64(updatedMatchData.AwayTeamID),
-		}
-
-		awayScore, err := s.store.GetFootballScore(ctx, argAway)
-		if err != nil {
-			s.logger.Error("Failed to get away score: ", err)
-			return err
-		}
-
-		argHome := db.GetFootballScoreParams{
-			MatchID: updatedMatchData.ID,
-			TeamID:  int64(updatedMatchData.HomeTeamID),
-		}
-
-		homeScore, err := s.store.GetFootballScore(ctx, argHome)
-		if err != nil {
-			s.logger.Error("Failed to get away score: ", err)
-			return err
-		}
-
-		if awayScore.Goals > homeScore.Goals {
-			_, err := s.store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
-			if err != nil {
-				s.logger.Error("Failed to update match result: ", err)
-				return err
-			}
-		} else if homeScore.Goals > awayScore.Goals {
-			_, err := s.store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
-			if err != nil {
-				s.logger.Error("Failed to update match result: ", err)
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func updateCricketStatusCode(ctx *gin.Context, updatedMatchData models.Match, gameID int64, s *TournamentServer) error {
-	if updatedMatchData.StatusCode == "finished" {
-
-		awayScore, err := s.store.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
-		if err != nil {
-			s.logger.Error("Failed to get away score: ", err)
-			return err
-		}
-
-		homeScore, err := s.store.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
-		if err != nil {
-			s.logger.Error("Failed to get away score: ", err)
-			return err
-		}
-
-		if awayScore.Score > homeScore.Score {
-			_, err := s.store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
-			if err != nil {
-				s.logger.Error("Failed to update match result: ", err)
-				return err
-			}
-		} else if homeScore.Score > awayScore.Score {
-			_, err := s.store.UpdateMatchResult(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.HomeTeamID))
-			if err != nil {
-				s.logger.Error("Failed to update match result: ", err)
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 type updateStatusRequest struct {
 	StatusCode string `json:"status_code"`
 }
@@ -379,46 +202,6 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		return
 	}
 
-	// // Update match status
-	// updatedMatchData, err := s.store.UpdateMatchStatus(ctx, matchPublicID, req.StatusCode)
-	// if err != nil {
-	// 	ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to update match status"})
-	// 	return
-	// }
-
-	// // Handle status-specific logic
-	// switch updatedMatchData.StatusCode {
-	// case "finished":
-	// 	if gameID.Name == "football" {
-	// 		if _, err := s.store.AddORUpdateFootballPlayerStats(ctx, matchPublicID); err != nil {
-	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update player stats"})
-	// 			return
-	// 		}
-	// 		if err := updateFootballStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
-	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update football score"})
-	// 			return
-	// 		}
-	// 	} else if gameID.Name == "cricket" {
-	// 		if err := updateCricketStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
-	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update cricket score"})
-	// 			return
-	// 		}
-	// 	}
-
-	// case "in_progress":
-	// 	if gameID.Name == "football" {
-	// 		if err := updateFootballStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
-	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize football score"})
-	// 			return
-	// 		}
-	// 	} else if gameID.Name == "cricket" {
-	// 		if err := updateCricketStatusCode(ctx, updatedMatchData, gameID.ID, s); err != nil {
-	// 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize cricket score"})
-	// 			return
-	// 		}
-	// 	}
-	// }
-
 	updateMatch := map[string]interface{}{
 		"id":                updatedMatchData.ID,
 		"public_id":         updatedMatchData.PublicID,
@@ -437,9 +220,9 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 	}
 
 	if s.scoreBroadcaster != nil {
-		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_MATCH_STATUS", updateMatch)
+		err := s.scoreBroadcaster.BroadcastTournamentEvent(ctx, "UPDATE_MATCH_STATUS", updateMatch)
 		if err != nil {
-			s.logger.Error("Failed to broadcast cricket event: ", err)
+			s.logger.Error("Failed to broadcast tournament match event: ", err)
 		}
 	}
 

@@ -431,3 +431,38 @@ func (q *Queries) UpdateCricketScore(ctx context.Context, arg UpdateCricketScore
 	}
 	return &i, err
 }
+
+const getCricketCurrentInning = `
+	SELECT cs.* FROM cricket_score cs
+	LEFT JOIN matches AS m ON m.id = cs.match_id
+	WHERE m.public_id=$1 AND cs.is_inning_completed = false AND (cs.inning_status='not_started' OR cs.inning_status='in_progress')
+	ORDER BY inning_number DESC;
+`
+
+func (q *Queries) GetCricketCurrentInning(ctx context.Context, matchPublicID uuid.UUID) (*models.CricketScore, error) {
+	row := q.db.QueryRowContext(ctx, getCricketCurrentInning, matchPublicID)
+	var i models.CricketScore
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.MatchID,
+		&i.TeamID,
+		&i.InningNumber,
+		&i.Score,
+		&i.Wickets,
+		&i.Overs,
+		&i.RunRate,
+		&i.TargetRunRate,
+		&i.IsInningCompleted,
+		&i.FollowOn,
+		&i.Declared,
+		&i.InningStatus,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &i, err
+}
