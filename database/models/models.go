@@ -164,7 +164,7 @@ type FootballIncident struct {
 	TeamID                *int32    `json:"team_id"`
 	Periods               string    `json:"periods"`
 	IncidentType          string    `json:"incident_type"`
-	IncidentTime          int64     `json:"incident_time"`
+	IncidentTime          int       `json:"incident_time"`
 	Description           string    `json:"description"`
 	PenaltyShootoutScored bool      `json:"penalty_shootout_scored"`
 	CreatedAt             int64     `json:"created_at"`

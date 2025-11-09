@@ -53,3 +53,12 @@ func (store *SQLStore) execTx(ctx context.Context, fn func(*database.Queries) er
 
 	return tx.Commit()
 }
+
+func (s *SQLStore) SetScoreBroadcaster(broadcaster shared.ScoreBroadcaster) {
+	s.scoreBroadcaster = broadcaster
+}
+
+// Ensure CricketServer implements the shared interfaces
+// var _ shared.CricketScoreUpdater
+
+var _ shared.ScoreBroadcaster

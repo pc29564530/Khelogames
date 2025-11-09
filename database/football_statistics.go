@@ -98,12 +98,12 @@ func (q *Queries) GetFootballStatistics(ctx context.Context, matchPublicID, team
 const updateFootballStatistics = `
 UPDATE football_statistics
 SET 
-    shots_on_target = shots_on_target + $2,
-    total_shots = total_shots + $3,
-    corner_kicks = corner_kicks + $4,
-    fouls = fouls + $5,
-    goalkeeper_saves = goalkeeper_saves + $6,
-    free_kicks = free_kicks + $7,
+    shots_on_target = shots_on_target + $3,
+    total_shots = total_shots + $4,
+    corner_kicks = corner_kicks + $5,
+    fouls = fouls + $6,
+    goalkeeper_saves = goalkeeper_saves + $7,
+    free_kicks = free_kicks + $8,
     yellow_cards = yellow_cards + $9,
     red_cards = red_cards + $10
 WHERE match_id = $1 AND team_id = $2

@@ -178,7 +178,7 @@ func (q *Queries) GetCricketScoreByPublicID(ctx context.Context, matchPublicID, 
 
 const getCricketScores = `
 SELECT * FROM cricket_score
-WHERE m.match_id = $1
+WHERE match_id = $1
 ORDER BY inning_number;
 `
 

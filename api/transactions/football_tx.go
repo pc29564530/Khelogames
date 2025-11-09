@@ -3,6 +3,7 @@ package transactions
 import (
 	footballhelper "khelogames/api/sports/football_helper"
 	"khelogames/database"
+	"khelogames/database/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,7 +13,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 	var incidentData map[string]interface{}
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
-		incidents, err := store.CreateFootballIncidents(ctx, arg)
+		incidents, err := q.CreateFootballIncidents(ctx, arg)
 		if err != nil {
 			store.logger.Error("Failed to create football incidents: ", err)
 			return err
@@ -20,17 +21,21 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 
 		store.logger.Info("successfully created the incident: ", incidents)
 
-		var playerData map[string]interface{}
-
+		var playerData *models.Player
+		incidentID := incidents.ID
 		if incidents.IncidentType != "period" {
 
-			data, err := store.AddFootballIncidentPlayer(ctx, incidents.PublicID, playerPublicID)
+			addedPlayer, err := q.AddFootballIncidentPlayer(ctx, incidentID, playerPublicID)
 			if err != nil {
-				store.logger.Error("Failed to create football incidents: ", err)
+				store.logger.Error("Failed to add football incidents player: ", err)
 				return err
 			}
 
-			playerData = *data
+			playerData, err = q.GetPlayerByID(ctx, int64(addedPlayer.PlayerID))
+			if err != nil {
+				store.logger.Error("Failed to add get player: ", err)
+				return err
+			}
 
 			statsUpdate := footballhelper.GetStatisticsUpdateFromIncident(incidents.IncidentType)
 
@@ -47,7 +52,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 				RedCards:        statsUpdate.RedCards,
 			}
 
-			_, err = store.UpdateFootballStatistics(ctx, statsArg)
+			_, err = q.UpdateFootballStatistics(ctx, statsArg)
 			if err != nil {
 				store.logger.Error("Failed to update statistics: ", err)
 				return err
@@ -63,7 +68,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						TeamID:    *incidents.TeamID,
 					}
 
-					firstHalfData, err := store.UpdateFirstHalfScore(ctx, argGoalScore)
+					firstHalfData, err := q.UpdateFirstHalfScore(ctx, argGoalScore)
 					if err != nil {
 						store.logger.Error("Failed to update football score: ", err)
 						return err
@@ -76,6 +81,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						"team_id":          firstHalfData.TeamID,
 						"first_half":       firstHalfData.FirstHalf,
 						"second_half":      firstHalfData.SecondHalf,
+						"goals":            firstHalfData.Goals,
 						"penalty_shootout": firstHalfData.PenaltyShootOut,
 					}
 
@@ -92,7 +98,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						TeamID:     *incidents.TeamID,
 					}
 
-					secondHalfData, err := store.UpdateSecondHalfScore(ctx, argGoalScore)
+					secondHalfData, err := q.UpdateSecondHalfScore(ctx, argGoalScore)
 					if err != nil {
 						store.logger.Error("Failed to update football score: ", err)
 						return err
@@ -105,6 +111,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						"team_id":          secondHalfData.TeamID,
 						"first_half":       secondHalfData.FirstHalf,
 						"second_half":      secondHalfData.SecondHalf,
+						"goals":            secondHalfData.Goals,
 						"penalty_shootout": secondHalfData.PenaltyShootOut,
 					}
 
@@ -117,7 +124,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 				}
 			case "penalty_shootout":
 				if incidents.PenaltyShootoutScored {
-					penaltyData, err := store.UpdatePenaltyShootoutScore(ctx, incidents.MatchID, *incidents.TeamID)
+					penaltyData, err := q.UpdatePenaltyShootoutScore(ctx, incidents.MatchID, *incidents.TeamID)
 					if err != nil {
 						store.logger.Error("Failed to update penalty shootout score: ", err)
 						return err
@@ -129,6 +136,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						"team_id":          penaltyData.TeamID,
 						"first_half":       penaltyData.FirstHalf,
 						"second_half":      penaltyData.SecondHalf,
+						"goals":            penaltyData.Goals,
 						"penalty_shootout": penaltyData.PenaltyShootOut,
 					}
 					if store.scoreBroadcaster != nil {
@@ -138,7 +146,17 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						}
 					}
 				}
+			default:
+				store.logger.Errorf("Failed to found the incident type ")
 			}
+
+			currentMatch, err := q.GetMatchByPublicId(ctx, arg.MatchPublicID, 1)
+			if err != nil {
+				store.logger.Error("Failed to get match by public id: ", err)
+			}
+
+			homeScore := currentMatch["homeScore"].(map[string]interface{})
+			awayScore := currentMatch["awayScore"].(map[string]interface{})
 
 			incidentData = map[string]interface{}{
 				"id":                      incidents.ID,
@@ -153,15 +171,21 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 				"tournament_id":           incidents.TournamentID,
 				"created_at":              incidents.CreatedAt,
 				"player": map[string]interface{}{
-					"id":         playerData["id"],
-					"public_id":  playerData["public_id"],
-					"user_id":    playerData["user_id"],
-					"name":       playerData["name"],
-					"slug":       playerData["slug"],
-					"short_name": playerData["short_name"],
-					"positions":  playerData["positions"],
-					"country":    playerData["country"],
-					"media_url":  playerData["media_url"],
+					"id":         playerData.ID,
+					"public_id":  playerData.PublicID,
+					"user_id":    playerData.UserID,
+					"name":       playerData.Name,
+					"slug":       playerData.Slug,
+					"short_name": playerData.Slug,
+					"positions":  playerData.Positions,
+					"country":    playerData.Country,
+					"media_url":  playerData.MediaUrl,
+				},
+				"awayScore": map[string]interface{}{
+					"goals": awayScore["goals"],
+				},
+				"homeScore": map[string]interface{}{
+					"goals": homeScore["goals"],
 				},
 			}
 
@@ -185,7 +209,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 	return incidentData, err
 }
 
-func (store *SQLStore) AddFootballIncidentsSubsTx(ctx *gin.Context, matchPublicID, teamPublicID uuid.UUID, periods, incidentType string, incidentTime int64, description string, playerInPublicID, playerOutPublicID uuid.UUID) (*map[string]interface{}, error) {
+func (store *SQLStore) AddFootballIncidentsSubsTx(ctx *gin.Context, matchPublicID, teamPublicID uuid.UUID, periods, incidentType string, incidentTime int, description string, playerInPublicID, playerOutPublicID uuid.UUID) (*map[string]interface{}, error) {
 	var incidentData map[string]interface{}
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error

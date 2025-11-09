@@ -100,6 +100,7 @@ func main() {
 	tournamentServer.SetScoreBroadcaster(hub)
 	cricketServer.SetScoreBroadcaster(hub)
 	footballServer.SetScoreBroadcaster(hub)
+	txStore.SetScoreBroadcaster(hub)
 
 	fmt.Printf("Cricket broadcaster pointer: %p\n", cricketServer.GetScoreBroadcaster())
 	fmt.Printf("Football broadcaster pointer: %p\n", footballServer.GetScoreBroadcaster())

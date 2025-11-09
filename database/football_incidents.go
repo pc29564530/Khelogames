@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -79,86 +80,69 @@ func (q *Queries) ADDFootballSubsPlayer(ctx context.Context, incidentPublicID, p
 }
 
 const addFootballIncidentPlayer = `
-WITH incidentID AS (
-	SELECT * FROM football_incidents WHERE public_id = $1
-),
-playerID AS (
-	SELECT * FROM players WHERE public_id = $2
+WITH playerID AS (
+	SELECT id FROM players WHERE public_id = $2
 )
 INSERT INTO football_incident_player (
     incident_id,
     player_id
 )
-SELECT
-	JSON_BUILD_OBJECT(
-		'incident_id', incidentID.id,
-		'player', JSON_BUILD_OBJECT(
-			'id', playerID.id,
-			'public_id', playerID.public_id,
-			'user_id', playerID.user_id,
-			'game_id', playerID.game_id,
-			'name', playerID.name,
-			'slug', playerID.slug,
-			'short_name', playerID.ShortName,
-			'media_url', playerID.media_url,
-			'positions', playerID.positions,
-			'country', playerID.country,
-			'created_at', playerID.created_at,
-			'updated_at', playerID.updated_at
-		),
-	)
-FROM incidentID, playerID
+SELECT $1, playerID.id FROM playerID
 RETURNING *;
 `
 
-func (q *Queries) AddFootballIncidentPlayer(ctx context.Context, incidentPublicID, playerPublicID uuid.UUID) (*map[string]interface{}, error) {
-	row := q.db.QueryRowContext(ctx, addFootballIncidentPlayer, incidentPublicID, playerPublicID)
-	var i map[string]interface{}
-	var jsonByte []byte
+func (q *Queries) AddFootballIncidentPlayer(ctx context.Context, incidentID int64, playerPublicID uuid.UUID) (models.FootballIncidentPlayer, error) {
+	fmt.Println("Incident ID: ", incidentID)
+	fmt.Println("Player ID: ", playerPublicID)
+	row := q.db.QueryRowContext(ctx, addFootballIncidentPlayer, incidentID, playerPublicID)
 
-	err := row.Scan(&jsonByte)
+	var i models.FootballIncidentPlayer
+	err := row.Scan(&i.ID, &i.IncidentID, &i.PlayerID)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan: ", err)
+		if err == sql.ErrNoRows {
+			return models.FootballIncidentPlayer{}, fmt.Errorf("Failed to add the incident player no row found: ", err)
+		}
 	}
-
-	err = json.Unmarshal(jsonByte, &i)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal: ", err)
-	}
-	return &i, err
+	return i, err
 }
 
 const createFootballIncidents = `
 WITH tournamentID AS (
-	SELECT * FROM tournaments WHERE public_id = $1
-)
+	SELECT id FROM tournaments WHERE public_id = $1
+),
 matchID AS (
-	SELECT * FROM matches WHERE public_id = $1
+	SELECT id FROM matches WHERE public_id = $2
 ),
 teamID AS (
-	SELECT * FROM teams WHERE public_id = $2
+	SELECT id FROM teams WHERE public_id = $3
 )
 INSERT INTO football_incidents (
-	tournament_id
+	tournament_id,
     match_id,
     team_id,
     periods,
     incident_type,
     incident_time,
     description,
-    penalty_shootout_scored,
+    penalty_shootout_scored
 )
 SELECT 
 	tournamentID.id,
 	matchID.id,
-	teamID.id,
+	CASE 
+        WHEN $5 = 'period' THEN NULL 
+        ELSE teamID.id 
+    END,
 	$4,
 	$5,
 	$6,
 	$7,
 	$8
-FROM tournamentID, matchID, teamID
+FROM tournamentID
+JOIN matchID ON TRUE
+LEFT JOIN teamID ON TRUE
 RETURNING *;
+
 `
 
 type CreateFootballIncidentsParams struct {
@@ -167,7 +151,7 @@ type CreateFootballIncidentsParams struct {
 	TeamPublicID          *uuid.UUID `json:"team_public_id"`
 	Periods               string     `json:"periods"`
 	IncidentType          string     `json:"incident_type"`
-	IncidentTime          int64      `json:"incident_time"`
+	IncidentTime          int        `json:"incident_time"`
 	Description           string     `json:"description"`
 	PenaltyShootoutScored bool       `json:"penalty_shootout_scored"`
 }
@@ -260,7 +244,7 @@ WHERE
     m.public_id = $1 AND 
     (fi.periods IS NULL OR fi.periods NOT IN ('half_time', 'full_time', 'extra_time'))
 ORDER BY 
-    incident_time DESC;
+    id ASC;
 `
 
 type GetFootballIncidentWithPlayerRow struct {
@@ -297,7 +281,6 @@ func (q *Queries) GetFootballIncidentWithPlayer(ctx context.Context, matchPublic
 			&i.IncidentTime,
 			&i.Description,
 			&i.PenaltyShootoutScored,
-			&i.TournamentID,
 			&i.Players,
 		); err != nil {
 			return nil, err

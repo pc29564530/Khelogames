@@ -14,6 +14,7 @@ import (
 	"khelogames/core/token"
 	coreToken "khelogames/core/token"
 	db "khelogames/database"
+	"khelogames/hub"
 	"khelogames/logger"
 	util "khelogames/util"
 	"net/http"
@@ -46,6 +47,7 @@ func NewServer(config util.Config,
 	sportsServer *sports.SportsServer,
 	router *gin.Engine,
 	tokenServer *apiToken.TokenServer,
+	hub *hub.Hub,
 ) (*Server, error) {
 
 	server := &Server{
@@ -90,7 +92,7 @@ func NewServer(config util.Config,
 		authRouter.GET("/isFollowing/:target_public_id", handlersServer.IsFollowingFunc)
 		// authRouter.GET("/checkConnection", handlersServer.CheckConnectionFunc)
 		authRouter.PUT("/updateProfile", handlersServer.UpdateProfileFunc)
-		authRouter.GET("/ws", messageServer.HandleWebSocket)
+		authRouter.GET("/ws", hub.HandleWebSocket)
 		authRouter.GET("/getAllGames", sportsServer.GetGamesFunc)
 		authRouter.GET("/getGame/:id", sportsServer.GetGameFunc)
 		authRouter.POST("/searchProfile", playersServer.SearchProfileFunc)
@@ -185,6 +187,7 @@ func NewServer(config util.Config,
 	sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
 	sportRouter.PUT("/updateMatchStatus/:match_public_id", tournamentServer.UpdateMatchStatusFunc)
+	sportRouter.GET("/getCricketCurrentInning/:match_public_id", cricketServer.GetCricketCurrentInningFunc)
 	sportRouter.PUT("/updateMatchResult", tournamentServer.UpdateMatchResultFunc)
 	sportRouter.PUT("/updateTournamentStatus/:tournament_public_id", tournamentServer.UpdateTournamentStatusFunc)
 	sportRouter.GET("/getMatchByMatchID/:match_public_id", handlersServer.GetMatchByMatchIDFunc)
@@ -209,8 +212,8 @@ func NewServer(config util.Config,
 
 	//football
 	// sportRouter.GET("/getFootballScore", footballServer.GetFootballScore)
-	sportRouter.POST("/addFootballIncidents", footballServer.AddFootballIncidents)
-	//sportRouter.GET("/getFootballIncidents/:match_public_id", footballServer.GetFootballIncidentsFunc)
+	sportRouter.POST("/addFootballIncidents", footballServer.AddFootballIncidentsFunc)
+	sportRouter.GET("/getFootballIncidents/:match_public_id", footballServer.GetFootballIncidentsFunc)
 	sportRouter.POST("/addFootballIncidentsSubs", footballServer.AddFootballIncidentsSubs)
 	// sportRouter.PUT("/updateFootballFirstHalfScore", footballServer.UpdateFootballMatchScoreFirstHalfFunc)
 	// sportRouter.PUT("/updateFootballSecondHalfScore", footballServer.UpdateFootballMatchScoreSecondHalfFunc)
@@ -240,9 +243,9 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getCricketToss/:match_public_id", cricketServer.GetCricketTossFunc)
 	// sportRouter.PUT("/updateCricketInning", cricketServer.UpdateCricketInningsFunc)
 	sportRouter.PUT("/updateCricketEndInning", cricketServer.UpdateCricketEndInningsFunc)
-	// sportRouter.PUT("/updateCricketNoBall", cricketServer.UpdateNoBallsRunsFunc)
-	// sportRouter.PUT("/updateCricketWide", cricketServer.UpdateWideBallFunc)
-	// sportRouter.PUT("/updateCricketRegularScore", cricketServer.UpdateInningScoreFunc)
+	sportRouter.PUT("/updateCricketNoBall", cricketServer.UpdateNoBallsRunsFunc)
+	sportRouter.PUT("/updateCricketWide", cricketServer.UpdateWideBallFunc)
+	sportRouter.PUT("/updateCricketRegularScore", cricketServer.UpdateInningScoreFunc)
 	sportRouter.GET("/getCurrentBatsman", cricketServer.GetCurrentBatsmanFunc)
 	sportRouter.GET("/getCurrentBowler", cricketServer.GetCurrentBowlerFunc)
 	//squad
@@ -270,7 +273,7 @@ func NewServer(config util.Config,
 	// sportRouter.PUT("/updateCricketBat", cricketServer.UpdateCricketBatScoreFunc)
 	// sportRouter.PUT("/updateCricketBall", cricketServer.UpdateCricketBallFunc)
 	sportRouter.GET("/getCricketWickets", cricketServer.GetCricketWicketsFunc)
-	// sportRouter.POST("/wickets", cricketServer.AddCricketWicketsFunc)
+	sportRouter.POST("/wickets", cricketServer.AddCricketWicketsFunc)
 	sportRouter.PUT("/updateBowlingBowlerStatus", cricketServer.UpdateBowlingBowlerFunc)
 
 	sportRouter.GET("/getLiveMatches", handlersServer.GetLiveMatchesFunc)

@@ -2,6 +2,7 @@ package football
 
 import (
 	"encoding/json"
+	"fmt"
 	db "khelogames/database"
 	"net/http"
 
@@ -16,7 +17,7 @@ type addFootballIncidentsRequest struct {
 	PlayerPublicID       string  `json:"player_public_id"`
 	Periods              string  `json:"periods"`
 	IncidentType         string  `json:"incident_type"`
-	IncidentTime         int64   `json:"incident_time"`
+	IncidentTime         int     `json:"incident_time"`
 	Description          string  `json:"description"`
 	PenaltShootoutScored bool    `json:"penalty_shootout_scored"`
 }
@@ -43,19 +44,30 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 		return
 	}
 
-	teamPublicID, err := uuid.Parse(*req.TeamPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
+	var teamPublicID uuid.UUID
+
+	if req.TeamPublicID != nil && *req.TeamPublicID != "" {
+		parsed, err := uuid.Parse(*req.TeamPublicID)
+		if err != nil {
+			s.logger.Error("Invalid UUID format", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid TeamPublicID UUID"})
+			return
+		}
+		teamPublicID = parsed
 	}
 
-	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
+	var playerPublicID uuid.UUID
+
+	if req.IncidentType != "periods" {
+		playerPublicID, err = uuid.Parse(req.PlayerPublicID)
+		if err != nil {
+			s.logger.Error("Invalid UUID format", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			return
+		}
 	}
+
+	fmt.Println("Player PUblic ID: ", playerPublicID)
 
 	arg := db.CreateFootballIncidentsParams{
 		TournamentPublicID:    tournamentPublicID,
@@ -75,7 +87,7 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 		return
 	}
 
-	s.logger.Info("successfully update the add football incident ")
+	s.logger.Info("successfully update the add football incident:  , incidentData")
 
 	ctx.JSON(http.StatusAccepted, incidentData)
 	if s.scoreBroadcaster != nil {
@@ -91,7 +103,7 @@ type addFootballIncidentsSubsRequest struct {
 	TeamPublicID      string `json:"team_public_id"`
 	Periods           string `json:"periods"`
 	IncidentType      string `json:"incident_type"`
-	IncidentTime      int64  `json:"incident_time"`
+	IncidentTime      int    `json:"incident_time"`
 	Description       string `json:"description"`
 	PlayerInPublicID  string `json:"player_in_public_id"`
 	PlayerOutPublicID string `json:"player_out_public_in"`
@@ -133,15 +145,6 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		return
 	}
 
-	// arg := db.CreateFootballIncidentsParams{
-	// 	MatchPublicID: matchPublicID,
-	// 	TeamPublicID:  &teamPublicID,
-	// 	Periods:       req.Periods,
-	// 	IncidentType:  req.IncidentType,
-	// 	IncidentTime:  req.IncidentTime,
-	// 	Description:   req.Description,
-	// }
-
 	incidentData, err := s.txStore.AddFootballIncidentsSubsTx(ctx,
 		matchPublicID,
 		teamPublicID,
@@ -152,36 +155,10 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		playerInPublicID,
 		playerOutPublicID,
 	)
-
-	// incidents, err := s.store.CreateFootballIncidents(ctx, arg)
-	// if err != nil {
-	// 	s.logger.Error("Failed to create football incidents: ", err)
-	// 	return
-	// }
-
-	// data, err := s.store.ADDFootballSubsPlayer(ctx, incidents.PublicID, playerInPublicID, playerOutPublicID)
-	// if err != nil {
-	// 	s.logger.Error("Failed to create football incidents: ", err)
-	// 	return
-	// }
-
-	// subsData := *data
-
-	// incidentData := map[string]interface{}{
-	// 	"id":                      incidents.ID,
-	// 	"public_id":               incidents.PublicID,
-	// 	"match_id":                incidents.MatchID,
-	// 	"team_id":                 incidents.TeamID,
-	// 	"periods":                 incidents.Periods,
-	// 	"incident_type":           incidents.IncidentType,
-	// 	"incident_time":           incidents.IncidentTime,
-	// 	"description":             incidents.Description,
-	// 	"penalty_shootout_scored": incidents.PenaltyShootoutScored,
-	// 	"tournament_id":           incidents.TournamentID,
-	// 	"created_at":              incidents.CreatedAt,
-	// 	"player_in":               subsData["player_id"],
-	// 	"player_out":              subsData["player_out"],
-	// }
+	if err != nil {
+		s.logger.Error("Failed to create football incidents transaction: ", err)
+		return
+	}
 
 	ctx.JSON(http.StatusAccepted, incidentData)
 	if s.scoreBroadcaster != nil {
@@ -226,18 +203,21 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 
 	var incidents []map[string]interface{}
 
+	// Initialize score counters outside the loop
+	homeGoals := 0
+	awayGoals := 0
+	homeTeamID := match.HomeTeamID
+	awayTeamID := match.AwayTeamID
+
 	for _, incident := range response {
 
-		var awayScore map[string]interface{}
-		var homeScore map[string]interface{}
-
 		if incident.IncidentType == "substitutions" {
-
 			var data map[string]interface{}
 			tt := (incident.Players).([]byte)
 			err := json.Unmarshal(tt, &data)
 			if err != nil {
 				s.logger.Error("unable to unmarshal incident player: ", err)
+				continue
 			}
 
 			playerInData := data["player_in"].(map[string]interface{})
@@ -264,8 +244,8 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 				},
 				"player_out": map[string]interface{}{
 					"id":         playerOutData["id"],
-					"public_id":  playerInData["public_id"],
-					"user_id":    playerInData["user_id"],
+					"public_id":  playerOutData["public_id"],
+					"user_id":    playerOutData["user_id"],
 					"name":       playerOutData["name"],
 					"slug":       playerOutData["slug"],
 					"short_name": playerOutData["short_name"],
@@ -274,7 +254,6 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 					"media_url":  playerOutData["media_url"],
 				},
 			}
-
 			incidents = append(incidents, incidentDataMap)
 
 		} else if incident.IncidentType == "penalty_shootout" {
@@ -283,6 +262,7 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 			err := json.Unmarshal(tt, &data)
 			if err != nil {
 				s.logger.Error("unable to unmarshal incident player: ", err)
+				continue
 			}
 
 			playerData := data["player"].(map[string]interface{})
@@ -307,26 +287,25 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 					"media_url":  playerData["media_url"],
 				},
 			}
-			if incident.IncidentType == "penalty_shootout" {
-				homefootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, incident.PublicID, matchPublicID, int32(match.HomeTeamID))
-				if err != nil {
-					s.logger.Error("unable to fetch the home score: ", err)
-				}
-				homeScore = map[string]interface{}{
+
+			homefootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, incident.PublicID, matchPublicID, int32(homeTeamID))
+			if err != nil {
+				s.logger.Error("unable to fetch the home score: ", err)
+			} else {
+				incidentDataMap["home_score"] = map[string]interface{}{
 					"goals": homefootballScore[0],
 				}
-				awayfootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, incident.PublicID, matchPublicID, int32(match.AwayTeamID))
-				if err != nil {
-					s.logger.Error("unable to fetch the home score: ", err)
-				}
-				awayScore = map[string]interface{}{
+			}
+
+			awayfootballScore, err := s.store.GetFootballShootoutScoreByTeam(ctx, incident.PublicID, matchPublicID, int32(awayTeamID))
+			if err != nil {
+				s.logger.Error("unable to fetch the away score: ", err)
+			} else {
+				incidentDataMap["away_score"] = map[string]interface{}{
 					"goals": awayfootballScore[0],
 				}
-
-				incidentDataMap["home_score"] = homeScore
-				incidentDataMap["away_score"] = awayScore
-
 			}
+
 			incidents = append(incidents, incidentDataMap)
 
 		} else if incident.IncidentType == "period" {
@@ -340,13 +319,23 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 				"description":   incident.Description,
 			}
 			incidents = append(incidents, incidentDataMap)
-		} else {
 
+		} else if incident.IncidentType == "goal" {
 			var data map[string]interface{}
 			tt := (incident.Players).([]byte)
 			err := json.Unmarshal(tt, &data)
 			if err != nil {
 				s.logger.Error("unable to unmarshal incident player: ", err)
+				continue
+			}
+
+			// Update score counters BEFORE creating the incident map
+			if incident.TeamID != nil {
+				if homeTeamID == *incident.TeamID {
+					homeGoals++
+				} else if awayTeamID == *incident.TeamID {
+					awayGoals++
+				}
 			}
 
 			playerData := data["player"].(map[string]interface{})
@@ -362,6 +351,48 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 				"player": map[string]interface{}{
 					"id":         playerData["id"],
 					"public_id":  playerData["public_id"],
+					"user_id":    playerData["user_id"],
+					"name":       playerData["name"],
+					"slug":       playerData["slug"],
+					"short_name": playerData["short_name"],
+					"positions":  playerData["positions"],
+					"country":    playerData["country"],
+					"media_url":  playerData["media_url"],
+				},
+				"home_score": map[string]interface{}{
+					"goals": homeGoals,
+				},
+				"away_score": map[string]interface{}{
+					"goals": awayGoals,
+				},
+			}
+
+			incidents = append(incidents, incidentDataMap)
+
+		} else {
+			// Handle other incident types (cards, etc.)
+			var data map[string]interface{}
+			tt := (incident.Players).([]byte)
+			err := json.Unmarshal(tt, &data)
+			if err != nil {
+				s.logger.Error("unable to unmarshal incident player: ", err)
+				continue
+			}
+
+			playerData := data["player"].(map[string]interface{})
+			incidentDataMap := map[string]interface{}{
+				"id":            incident.ID,
+				"public_id":     incident.PublicID,
+				"match_id":      incident.MatchID,
+				"team_id":       incident.TeamID,
+				"periods":       incident.Periods,
+				"incident_type": incident.IncidentType,
+				"incident_time": incident.IncidentTime,
+				"description":   incident.Description,
+				"player": map[string]interface{}{
+					"id":         playerData["id"],
+					"public_id":  playerData["public_id"],
+					"user_id":    playerData["user_id"],
 					"name":       playerData["name"],
 					"slug":       playerData["slug"],
 					"short_name": playerData["short_name"],
@@ -370,30 +401,9 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 					"media_url":  playerData["media_url"],
 				},
 			}
-			if incident.IncidentType == "goal" {
-				homefootballScore, err := s.store.GetFootballScoreByIncidentTime(ctx, int32(incident.ID), incident.MatchID, int32(match.HomeTeamID))
-				if err != nil {
-					s.logger.Error("unable to fetch the home score: ", err)
-				}
-				homeScore = map[string]interface{}{
-					"goals": homefootballScore[0],
-				}
-				awayfootballScore, err := s.store.GetFootballScoreByIncidentTime(ctx, int32(incident.ID), incident.MatchID, int32(match.HomeTeamID))
-				if err != nil {
-					s.logger.Error("unable to fetch the home score: ", err)
-				}
-				awayScore = map[string]interface{}{
-					"goals": awayfootballScore[0],
-				}
-				incidentDataMap["home_score"] = homeScore
-				incidentDataMap["away_score"] = awayScore
-
-			}
 			incidents = append(incidents, incidentDataMap)
 		}
 	}
-
-	var matchIncidents []map[string]interface{}
 
 	matchDetail := map[string]interface{}{
 		"id":              match.ID,
@@ -406,14 +416,12 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 		"end_timestamp":   match.EndTimestamp,
 		"type":            match.Type,
 	}
-	matchIncidents = append(matchIncidents, map[string]interface{}{
-		"match": matchDetail,
-	})
 
-	matchIncidents = append(matchIncidents, map[string]interface{}{
-		"incidents": incidents,
-	})
+	matchIncidents := []map[string]interface{}{
+		{"match": matchDetail},
+		{"incidents": incidents},
+	}
 
 	s.logger.Info("Successfully get match incidents")
-	ctx.JSON(http.StatusAccepted, matchIncidents)
+	ctx.JSON(http.StatusOK, matchIncidents)
 }
