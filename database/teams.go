@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"khelogames/database/models"
 	"log"
 
@@ -329,6 +330,7 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamPublicID uuid.UUID) (
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("Player: ", i)
 		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
@@ -778,7 +780,7 @@ func (q *Queries) UpdateTeamName(ctx context.Context, publicID uuid.UUID, name s
 
 const removePlayerFromTeam = `
 UPDATE team_players AS tp
-SET leave_date = $3
+SET leave_date = CASE WHEN $3 <> 0 THEN $3 ELSE NULL END
 FROM teams t, players p
 WHERE t.public_id = $1
   AND p.public_id = $2

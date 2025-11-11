@@ -26,6 +26,8 @@ const listMatchesQuery = `
             'stage', m.stage,
             'knockout_level_id', m.knockout_level_id,
             'match_format', m.match_format,
+            'day_number', m.day_number,
+            'sub_status', m.sub_status,
             'homeTeam', json_build_object(
                 'id', ht.id,
                 'public_id', ht.public_id,
@@ -181,6 +183,8 @@ SELECT
         'stage', m.stage,
         'knockout_level_id', m.knockout_level_id,
         'match_format', m.match_format,
+        'day_number', m.day_number,
+        'sub_status', m.sub_status,
 
         'homeTeam', json_build_object(
             'id', ht.id,
@@ -404,6 +408,7 @@ func (q *Queries) GetMatchModelByPublicId(ctx context.Context, public_id uuid.UU
 		&match.KnockoutLevelID,
 		&match.MatchFormat,
 		&match.DayNumber,
+		&match.SubStatus,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("Match model not found with public_id: %s", public_id)
@@ -432,6 +437,8 @@ const getLiveMatches = `
             'stage', m.stage,
             'knockout_level_id', m.knockout_level_id,
             'match_format', m.match_format,
+            'day_number', m.day_number,
+            'sub_status', m.sub_status,
             'homeTeam', json_build_object(
                 'id', ht.id,
                 'public_id', ht.public_id,
