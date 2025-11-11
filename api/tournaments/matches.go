@@ -139,6 +139,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		KnockoutLevelID:    req.KnockoutLevelID,
 		MatchFormat:        &matchFormat,
 		DayNumber:          nil,
+		SubStatus:          nil,
 	}
 
 	s.logger.Debug("Create match params: ", arg)
@@ -160,6 +161,68 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, response)
+}
+
+type updateMatchSubStatusRequest struct {
+	SubStatus string `json:"sub_status"`
+}
+
+func (s *TournamentServer) UpdateMatchSubStatusFunc(ctx *gin.Context) {
+	// Bind URI
+	var reqUri struct {
+		MatchPublicID string `uri:"match_public_id"`
+	}
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match ID"})
+		return
+	}
+
+	// Bind JSON
+	var req updateMatchSubStatusRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(reqUri.MatchPublicID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	updatedMatchData, err := s.store.UpdateMatchSubStatus(ctx, matchPublicID, req.SubStatus)
+	if err != nil {
+		s.logger.Error("Failed to update match status: ", err)
+		return
+	}
+
+	updateMatch := map[string]interface{}{
+		"id":                updatedMatchData.ID,
+		"public_id":         updatedMatchData.PublicID,
+		"tournament_id":     updatedMatchData.TournamentID,
+		"home_team_id":      updatedMatchData.HomeTeamID,
+		"away_team_id":      updatedMatchData.AwayTeamID,
+		"status_code":       updatedMatchData.StatusCode,
+		"sub_status":        updatedMatchData.SubStatus,
+		"match_format":      updatedMatchData.MatchFormat,
+		"stage":             updatedMatchData.Stage,
+		"day_number":        updatedMatchData.DayNumber,
+		"type":              updatedMatchData.Type,
+		"end_timestamp":     updatedMatchData.EndTimestamp,
+		"start_timestamp":   updatedMatchData.StartTimestamp,
+		"knockout_level_id": updatedMatchData.KnockoutLevelID,
+		"result":            updatedMatchData.Result,
+	}
+
+	if s.scoreBroadcaster != nil {
+		err := s.scoreBroadcaster.BroadcastTournamentEvent(ctx, "UPDATE_MATCH_SUB_STATUS", updateMatch)
+		if err != nil {
+			s.logger.Error("Failed to broadcast tournament match event: ", err)
+		}
+	}
+
+	s.logger.Info("successfully updated the match status")
+	ctx.JSON(http.StatusAccepted, updateMatch)
 }
 
 type updateStatusRequest struct {
@@ -209,6 +272,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		"home_team_id":      updatedMatchData.HomeTeamID,
 		"away_team_id":      updatedMatchData.AwayTeamID,
 		"status_code":       updatedMatchData.StatusCode,
+		"sub_status":        updatedMatchData.SubStatus,
 		"match_format":      updatedMatchData.MatchFormat,
 		"stage":             updatedMatchData.Stage,
 		"day_number":        updatedMatchData.DayNumber,

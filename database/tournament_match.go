@@ -38,6 +38,9 @@ SELECT DISTINCT
         WHEN m.stage = 'Knockout' THEN m.knockout_level_id
         ELSE NULL
     END AS knockout_level_id,
+	m.match_format,
+	m.day_number,
+	m.sub_status,
     CASE
         WHEN m.stage = 'Group' AND g.name = 'cricket' THEN cg.group_id
         WHEN m.stage = 'Group' AND g.name = 'football' THEN fg.group_id
@@ -100,6 +103,8 @@ type GetMatchByIDRow struct {
 	Stage               *string   `json:"stage"`
 	KnockoutLevelID     *int32    `json:"knockout_level_id"`
 	MatchFormat         string    `json:"match_format"`
+	DayNumber           *int      `json:"day_number"`
+	SubStatus           *string   `json:"sub_status"`
 	GroupID             *int64    `json:"group_id"`
 	HomeTeamPublicID    uuid.UUID `json:"home_team_public_id"`
 	HomeTeamUserID      int32     `json:"home_team_user_id"`
@@ -149,6 +154,9 @@ func (q *Queries) GetMatchByTournamentPublicID(ctx context.Context, tournamentPu
 			&i.Result,
 			&i.Stage,
 			&i.KnockoutLevelID,
+			&i.MatchFormat,
+			&i.DayNumber,
+			&i.SubStatus,
 			&i.GroupID,
 			&i.HomeTeamID,
 			&i.HomeTeamPublicID,
@@ -192,7 +200,7 @@ func (q *Queries) GetMatchByTournamentPublicID(ctx context.Context, tournamentPu
 
 const getMatchByMatchID = `
 SELECT
-    m.id, m.public_id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result, m.stage, m.knockout_level_id, COALESCE(m.match_format, '') AS match_format,
+    m.id, m.public_id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result, m.stage, m.knockout_level_id, COALESCE(m.match_format, '') AS match_format, m.day_number, m.sub_status,
     t1.id AS id, t1.public_id, t1.user_id, t1.name AS home_team_name, t1.slug AS home_team_slug, t1.shortName AS home_team_shortName, t1.media_url AS home_team_media_url, t1.gender AS home_team_gender, t1.country AS home_team_country, t1.national AS home_team_national, t1.type AS home_team_type, t1.player_count AS home_team_player_count, t1.game_id AS home_game_id,
     t2.id AS id,t2.public_id, t2.user_id, t2.name AS away_team_name, t2.slug AS away_team_slug, t2.shortName AS away_team_shortName, t2.media_url AS away_team_media_url, t2.gender AS away_team_gender, t2.country AS away_team_country, t2.national AS away_team_national, t2.type AS away_team_type, t2.player_count AS away_team_player_count, t1.game_id AS away_game_id
 FROM matches m
@@ -218,6 +226,8 @@ func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID
 		&i.Stage,
 		&i.KnockoutLevelID,
 		&i.MatchFormat,
+		&i.DayNumber,
+		&i.SubStatus,
 
 		&i.HomeTeamID,
 		&i.HomeTeamPublicID,
@@ -303,6 +313,7 @@ type NewMatchParams struct {
 	KnockoutLevelID    *int32    `json:"knockout_level_id"`
 	MatchFormat        *string   `json:"match_format"`
 	DayNumber          *int      `json:"day_number"`
+	SubStatus          *string   `json:"sub_status"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
@@ -319,6 +330,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		arg.KnockoutLevelID,
 		arg.MatchFormat,
 		arg.DayNumber,
+		arg.SubStatus,
 	)
 	var i models.Match
 	err := row.Scan(
@@ -336,6 +348,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		&i.KnockoutLevelID,
 		&i.MatchFormat,
 		&i.DayNumber,
+		&i.SubStatus,
 	)
 	return i, err
 }
@@ -369,6 +382,8 @@ func (q *Queries) UpdateMatchSchedule(ctx context.Context, matchPublicID uuid.UU
 		&i.Stage,
 		&i.KnockoutLevelID,
 		&i.MatchFormat,
+		&i.DayNumber,
+		&i.SubStatus,
 	)
 	return i, err
 }
@@ -398,6 +413,7 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID
 		&i.KnockoutLevelID,
 		&i.MatchFormat,
 		&i.DayNumber,
+		&i.SubStatus,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -436,6 +452,40 @@ func (q *Queries) UpdateMatchResult(ctx context.Context, matchID, resultID int32
 		&i.Stage,
 		&i.KnockoutLevelID,
 		&i.MatchFormat,
+		&i.DayNumber,
+		&i.SubStatus,
+	)
+	return i, err
+}
+
+const updateMatchSubStatus = `
+	UPDATE matches m
+	SET
+		sub_status = CASE WHEN m.status_code = 'in_progress' THEN $2 ELSE NULL
+		END 
+	WHERE m.public_id = $1
+	RETURNING *
+`
+
+func (q *Queries) UpdateMatchSubStatus(ctx context.Context, matchPublicID uuid.UUID, subStatus string) (models.Match, error) {
+	row := q.db.QueryRowContext(ctx, updateMatchSubStatus, matchPublicID, subStatus)
+	var i models.Match
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.TournamentID,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
+		&i.Result,
+		&i.Stage,
+		&i.KnockoutLevelID,
+		&i.MatchFormat,
+		&i.DayNumber,
+		&i.SubStatus,
 	)
 	return i, err
 }

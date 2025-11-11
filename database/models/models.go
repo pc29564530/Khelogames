@@ -245,9 +245,10 @@ type Match struct {
 	StatusCode      string    `json:"status_code"`
 	Result          *int32    `json:"match"`
 	Stage           string    `json:"stage"`
-	KnockoutLevelID *int32    `json:"KnockoutLevelID"`
-	MatchFormat     *string   `json:"MatchFormat"`
-	DayNumber       *int      `json:"DayNumber"`
+	KnockoutLevelID *int32    `json:"knockout_level_id"`
+	MatchFormat     *string   `json:"match_format"`
+	DayNumber       *int      `json:"day_number"`
+	SubStatus       *string   `json:"sub_status"`
 }
 
 type Message struct {
