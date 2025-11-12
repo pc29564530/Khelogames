@@ -425,13 +425,11 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID
 }
 
 const updateMatchResult = `
-UPDATE matches m
+UPDATE matches
 SET 
     result = $2,
-    status_code = 'finished',
-    end_timestamp = COALESCE(matches.end_timestamp, NOW()),
-    updated_at = NOW()
-WHERE m.id = $1
+    status_code = 'finished'
+WHERE id = $1
 RETURNING *
 `
 

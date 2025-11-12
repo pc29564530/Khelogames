@@ -64,8 +64,7 @@ func (q *Queries) CreateCricketStanding(ctx context.Context, tournamentPublicID 
 	return &i, err
 }
 
-
-const getCricketStanding  = `
+const getCricketStanding = `
 	SELECT
 	CASE
 		WHEN EXISTS (
@@ -157,68 +156,59 @@ func (q *Queries) GetCricketStanding(ctx context.Context, tournamentPublicID uui
 }
 
 const updateCricketStanding = `
-UPDATE Cricket_standing AS ts
+UPDATE cricket_standing AS ts
 SET 
-    score = COALESCE((
-        SELECT SUM(CASE 
-            WHEN ms.home_team_id = ts.team_id THEN cs.score
-            WHEN ms.away_team_id = ts.team_id THEN cs.score
-            ELSE 0
-        END)
-        FROM cricket_score AS cs
-        JOIN matches AS ms ON cs.match_id = ms.id
-        WHERE cs.team_id = ts.team_id
-    ), 0),
-    wickets = COALESCE((
-        SELECT SUM(CASE 
-            WHEN ms.home_team_id = ts.team_id THEN (
-                SELECT SUM(cs.goals) 
-                FROM cricket_score AS cs
-                WHERE cs.match_id = ms.id AND cs.team_id = ms.away_team_id
-            )
-            WHEN ms.away_team_id = ts.team_id THEN (
-                SELECT SUM(cs.score) 
-                FROM cricket_score AS cs
-                WHERE cs.match_id = ms.id AND cs.team_id = ms.home_team_id
-            )
-        END)
-        FROM matches AS ms
-        WHERE ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id
-    ), 0),
+	matches = (
+        SELECT COUNT(*)
+        FROM matches ms
+        LEFT JOIN cricket_score cs_home
+            ON cs_home.match_id = ms.id
+            AND cs_home.team_id = ms.home_team_id
+        LEFT JOIN football_score cs_away
+            ON cs_away.match_id = ms.id
+            AND cs_away.team_id = ms.away_team_id
+        WHERE (ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id)
+        AND ms.tournament_id = ts.tournament_id
+        AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
+        AND (ms.status_code) = 'finished'
+    ),
     wins = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms
-        LEFT JOIN cricket_score AS cs.home ON ms.id = cs.home.match_id AND ms.home_team_id = ts.team_id
-        LEFT JOIN cricket_score AS cs.away ON ms.id = cs.away.match_id AND ms.away_team_id = cs.away.team_id
-        WHERE (ms.home_team_id = ts.team_id AND cs.home.goals > cs.away.goals)
-        OR (ms.away_team_id = ts.team_id AND cs.away.goals > cs.home.goals)
+        LEFT JOIN cricket_score AS cs_home ON ms.id = cs_home.match_id AND ms.home_team_id = ts.team_id
+        LEFT JOIN cricket_score AS cs_away ON ms.id = cs_away.match_id AND ms.away_team_id = cs_away.team_id
+        WHERE ((ms.home_team_id = ts.team_id AND cs_home.score > cs_away.score)
+        OR (ms.away_team_id = ts.team_id AND cs_away.score > cs_home.score))
+		AND (ms.status_code) = 'finished'
     ), 0),
     loss = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms
-        LEFT JOIN cricket_score cs.home ON ms.id = cs.home.match_id AND ms.home_team_id = cs.home.team_id
-        LEFT JOIN cricket_score cs.away ON ms.id = cs.away.match_id AND ms.away_team_id = cs.away.team_id
-        WHERE (ms.home_team_id = ts.team_id AND cs.home.goals < cs.away.goals)
-        OR (ms.away_team_id = ts.team_id AND cs.away.goals < cs.home.goals)
+        LEFT JOIN cricket_score cs_home ON ms.id = cs_home.match_id AND ms.home_team_id = cs_home.team_id
+        LEFT JOIN cricket_score cs_away ON ms.id = cs_away.match_id AND ms.away_team_id = cs_away.team_id
+        WHERE ((ms.home_team_id = ts.team_id AND cs_home.score < cs_away.score)
+        OR (ms.away_team_id = ts.team_id AND cs_away.score < cs_home.score))
+		AND (ms.status_code) = 'finished'
     ), 0),
     draw = COALESCE((
         SELECT COUNT(*)
         FROM matches AS ms
-        LEFT JOIN cricket_score AS cs.home ON ms.id = cs.home.match_id AND ms.home_team_id = ts.team_id
-        LEFT JOIN cricket_score AS cs.away ON ms.id = cs.away.match_id AND ms.away_team_id = cs.away.team_id
-        WHERE (ms.home_team_id = ts.team_id AND cs.home.goals = cs.away.goals)
-        OR (ms.away_team_id = ts.team_id AND cs.away.goals = cs.home.goals)
+        LEFT JOIN cricket_score AS cs_home ON ms.id = cs_home.match_id AND ms.home_team_id = ts.team_id
+        LEFT JOIN cricket_score AS cs_away ON ms.id = cs_away.match_id AND ms.away_team_id = cs_away.team_id
+        WHERE ((ms.home_team_id = ts.team_id AND cs_home.score = cs_away.score)
+        OR (ms.away_team_id = ts.team_id AND cs_away.score = cs_home.score))
+		AND (ms.status_code) = 'finished'
     ), 0),
     points = ((wins * 3) + draw)
 WHERE ts.tournament_id = t.id
   AND ts.team_id = tm.id
-  AND t.public_id = $1
-  AND tm.public_id = $2
+  AND t.id = $1
+  AND tm.id = $2
 RETURNING *
 `
 
-func (q *Queries) UpdateCricketStanding(ctx context.Context, tournamentPublicID, teamPublicID uuid.UUID) (models.CricketStanding, error) {
-	row := q.db.QueryRowContext(ctx, updateCricketStanding, tournamentPublicID, teamPublicID)
+func (q *Queries) UpdateCricketStanding(ctx context.Context, tournamentID, teamID int32) (models.CricketStanding, error) {
+	row := q.db.QueryRowContext(ctx, updateCricketStanding, tournamentID, teamID)
 	var i models.CricketStanding
 	err := row.Scan(
 		&i.ID,

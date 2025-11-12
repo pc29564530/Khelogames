@@ -104,7 +104,7 @@ subs AS (
 	SELECT fsp.*, fi.incident_time
 	FROM football_substitutions_player fsp
 	JOIN football_incidents fi ON fi.id = fsp.incident_id
-	JOIN match_context mc ON fsp.match_id = mc.match_id
+	JOIN match_context mc ON fi.match_id = mc.match_id
 ),
 all_players AS (
 	SELECT fs.player_id, fs.is_substitute

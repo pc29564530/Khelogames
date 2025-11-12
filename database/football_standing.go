@@ -174,78 +174,132 @@ func (q *Queries) GetFootballStanding(ctx context.Context, tournamentPublicID uu
 const updateFootballStanding = `
 UPDATE football_standing AS ts
 SET 
-    goal_for = COALESCE((
-        SELECT SUM(CASE 
-            WHEN ms.home_team_id = ts.team_id THEN fs.goals
-            WHEN ms.away_team_id = ts.team_id THEN fs.goals
-            ELSE 0
-        END)
-        FROM football_score AS fs
-        JOIN matches AS ms ON fs.match_id = ms.id
-        WHERE fs.team_id = ts.team_id
-          AND ms.tournament_id = ts.tournament_id
-          AND (ms.stage = 'group' OR ms.stage = 'league')
-    ), 0),
-    goal_against = COALESCE((
-        SELECT SUM(CASE 
-            WHEN ms.home_team_id = ts.team_id THEN (
-                SELECT COALESCE(SUM(fs.goals), 0)
-                FROM football_score AS fs
-                WHERE fs.match_id = ms.id AND fs.team_id = ms.away_team_id
-            )
-            WHEN ms.away_team_id = ts.team_id THEN (
-                SELECT COALESCE(SUM(fs2.goals), 0)
-                FROM football_score AS fs2
-                WHERE fs2.match_id = ms.id AND fs2.team_id = ms.home_team_id
-            )
-        END)
-        FROM matches AS ms
+    matches = (
+        SELECT COUNT(*)
+        FROM matches ms
+        LEFT JOIN football_score fs_home 
+            ON fs_home.match_id = ms.id 
+            AND fs_home.team_id = ms.home_team_id
+        LEFT JOIN football_score fs_away 
+            ON fs_away.match_id = ms.id 
+            AND fs_away.team_id = ms.away_team_id
         WHERE (ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id)
           AND ms.tournament_id = ts.tournament_id
-          AND (ms.stage = 'group' OR ms.stage = 'league')
+         AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
+         AND (ms.status_code) = 'finished'
+    ),
+    goal_for = COALESCE((
+        SELECT SUM(CASE
+            WHEN ms.home_team_id = ts.team_id THEN fs_home.goals
+            WHEN ms.away_team_id = ts.team_id THEN fs_away.goals
+            ELSE 0
+        END)
+        FROM matches ms
+        LEFT JOIN football_score fs_home 
+            ON fs_home.match_id = ms.id 
+            AND fs_home.team_id = ms.home_team_id
+        LEFT JOIN football_score fs_away 
+            ON fs_away.match_id = ms.id 
+            AND fs_away.team_id = ms.away_team_id
+        WHERE (ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id)
+          AND ms.tournament_id = ts.tournament_id
+          AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
+          AND (ms.status_code) = 'finished'
     ), 0),
+
+    goal_against = COALESCE((
+        SELECT SUM(CASE
+            WHEN ms.home_team_id = ts.team_id THEN fs_away.goals
+            WHEN ms.away_team_id = ts.team_id THEN fs_home.goals
+            ELSE 0
+        END)
+        FROM matches ms
+        LEFT JOIN football_score fs_home 
+            ON fs_home.match_id = ms.id 
+            AND fs_home.team_id = ms.home_team_id
+        LEFT JOIN football_score fs_away 
+            ON fs_away.match_id = ms.id 
+            AND fs_away.team_id = ms.away_team_id
+        WHERE (ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id)
+          AND ms.tournament_id = ts.tournament_id
+          AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
+          (ms.status_code) = 'finished'
+    ), 0),
+
     goal_difference = COALESCE(goal_for, 0) - COALESCE(goal_against, 0),
+
     wins = COALESCE((
         SELECT COUNT(*)
-        FROM matches AS ms
-        LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = fs_home.team_id
-        LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
-        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals > fs_away.goals)
-           OR (ms.away_team_id = ts.team_id AND fs_away.goals > fs_home.goals)
-          AND ms.tournament_id = ts.tournament_id
-          AND (ms.stage = 'group' OR ms.stage = 'league')
+        FROM matches ms
+        LEFT JOIN football_score fs_home 
+            ON fs_home.match_id = ms.id 
+            AND fs_home.team_id = ms.home_team_id
+        LEFT JOIN football_score fs_away 
+            ON fs_away.match_id = ms.id 
+            AND fs_away.team_id = ms.away_team_id
+        WHERE
+        (
+            (ms.home_team_id = ts.team_id AND fs_home.goals > fs_away.goals)
+            OR
+            (ms.away_team_id = ts.team_id AND fs_away.goals > fs_home.goals)
+        )
+        AND ms.tournament_id = ts.tournament_id
+        AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
+        AND (ms.status_code) = 'finished'
     ), 0),
+
     loss = COALESCE((
         SELECT COUNT(*)
-        FROM matches AS ms
-        LEFT JOIN football_score fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = fs_home.team_id
-        LEFT JOIN football_score fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = fs_away.team_id
-        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals < fs_away.goals)
-           OR (ms.away_team_id = ts.team_id AND fs_away.goals < fs_home.goals)
-          AND ms.tournament_id = ts.tournament_id
-          AND (ms.stage = 'group' OR ms.stage = 'league')
+        FROM matches ms
+        LEFT JOIN football_score fs_home 
+            ON fs_home.match_id = ms.id 
+            AND fs_home.team_id = ms.home_team_id
+        LEFT JOIN football_score fs_away 
+            ON fs_away.match_id = ms.id 
+            AND fs_away.team_id = ms.away_team_id
+        WHERE
+        (
+            (ms.home_team_id = ts.team_id AND fs_home.goals < fs_away.goals)
+            OR
+            (ms.away_team_id = ts.team_id AND fs_away.goals < fs_home.goals)
+        )
+        AND ms.tournament_id = ts.tournament_id
+        AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
+        AND (ms.status_code) = 'finished'
     ), 0),
+
     draw = COALESCE((
         SELECT COUNT(*)
-        FROM matches AS ms
-        LEFT JOIN football_score AS fs_home ON ms.id = fs_home.match_id AND ms.home_team_id = ts.team_id
-        LEFT JOIN football_score AS fs_away ON ms.id = fs_away.match_id AND ms.away_team_id = ts.team_id
-        WHERE (ms.home_team_id = ts.team_id AND fs_home.goals = fs_away.goals)
-           OR (ms.away_team_id = ts.team_id AND fs_away.goals = fs_home.goals)
-          AND ms.tournament_id = ts.tournament_id
-          AND (ms.stage = 'group' OR ms.stage = 'league')
+        FROM matches ms
+        LEFT JOIN football_score fs_home 
+            ON fs_home.match_id = ms.id 
+            AND fs_home.team_id = ms.home_team_id
+        LEFT JOIN football_score fs_away 
+            ON fs_away.match_id = ms.id 
+            AND fs_away.team_id = ms.away_team_id
+        WHERE
+        (
+            (ms.home_team_id = ts.team_id AND fs_home.goals = fs_away.goals)
+            OR
+            (ms.away_team_id = ts.team_id AND fs_away.goals = fs_home.goals)
+        )
+        AND ms.tournament_id = ts.tournament_id
+        AND (ms.stage = 'group' OR ms.stage = 'league')
+        AND (ms.status_code) = 'finished'
     ), 0),
+
     points = ((wins * 3) + draw)
+
 FROM tournaments t, teams tm
 WHERE ts.tournament_id = t.id
   AND ts.team_id = tm.id
-  AND t.public_id = $1
-  AND tm.public_id = $2
-RETURNING *;
+  AND t.id = $1
+  AND tm.id = $2
+RETURNING ts.*;
 `
 
-func (q *Queries) UpdateFootballStanding(ctx context.Context, tournamentPublicID, teamPublicID uuid.UUID) (models.FootballStanding, error) {
-	row := q.db.QueryRowContext(ctx, updateFootballStanding, tournamentPublicID, teamPublicID)
+func (q *Queries) UpdateFootballStanding(ctx context.Context, tournamentID, teamID int64) (*models.FootballStanding, error) {
+	row := q.db.QueryRowContext(ctx, updateFootballStanding, tournamentID, teamID)
 	var i models.FootballStanding
 	err := row.Scan(
 		&i.ID,
@@ -253,6 +307,7 @@ func (q *Queries) UpdateFootballStanding(ctx context.Context, tournamentPublicID
 		&i.TournamentID,
 		&i.GroupID,
 		&i.TeamID,
+		&i.Matches,
 		&i.Wins,
 		&i.Loss,
 		&i.Draw,
@@ -261,5 +316,5 @@ func (q *Queries) UpdateFootballStanding(ctx context.Context, tournamentPublicID
 		&i.GoalDifference,
 		&i.Points,
 	)
-	return i, err
+	return &i, err
 }
