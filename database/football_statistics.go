@@ -123,18 +123,20 @@ type UpdateFootballStatisticsParams struct {
 	RedCards        int32 `json:"red_cards"`
 }
 
-func (q *Queries) UpdateFootballStatistics(ctx context.Context, arg UpdateFootballStatisticsParams) (models.FootballStatistics, error) {
+func (q *Queries) UpdateFootballStatistics(ctx context.Context,
+	matchID, teamID,
+	shotsOnTarget, totalShots, cornerKicks, fouls, goalKeeperSaves, freeKicks, yellowCards, redCards int32) (models.FootballStatistics, error) {
 	row := q.db.QueryRowContext(ctx, updateFootballStatistics,
-		arg.MatchID,
-		arg.TeamID,
-		arg.ShotsOnTarget,
-		arg.TotalShots,
-		arg.CornerKicks,
-		arg.Fouls,
-		arg.GoalkeeperSaves,
-		arg.FreeKicks,
-		arg.YellowCards,
-		arg.RedCards,
+		matchID,
+		teamID,
+		shotsOnTarget,
+		totalShots,
+		cornerKicks,
+		fouls,
+		goalKeeperSaves,
+		freeKicks,
+		yellowCards,
+		redCards,
 	)
 	var i models.FootballStatistics
 	err := row.Scan(

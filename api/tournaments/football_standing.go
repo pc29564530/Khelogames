@@ -76,7 +76,7 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 			"draw":            dataMap["draw"],
 			"goal_for":        dataMap["goal_for"],
 			"goal_against":    dataMap["goal_against"],
-			"goal_difference": dataMap["goalDifference"],
+			"goal_difference": dataMap["goal_difference"],
 			"points":          dataMap["points"],
 		})
 	}
@@ -150,44 +150,4 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, standings)
-}
-
-type updateFootballStandingRequest struct {
-	TournamentPublicID string `json:"tournament_public_id"`
-	TeamPublicID       string `json:"team_public_id"`
-}
-
-func (s *TournamentServer) UpdateFootballStandingFunc(ctx *gin.Context) {
-	var req updateFootballStandingRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusNotFound, err)
-		return
-	}
-	s.logger.Debug("bind the request: ", req)
-
-	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
-	}
-
-	teamPublicID, err := uuid.Parse(req.TeamPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
-	}
-
-	response, err := s.store.UpdateFootballStanding(ctx, tournamentPublicID, teamPublicID)
-	if err != nil {
-		s.logger.Error("Failed to update tournament standing: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-	s.logger.Debug("successfully tournament standing: ", response)
-	ctx.JSON(http.StatusAccepted, response)
-	return
 }

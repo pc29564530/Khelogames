@@ -6,9 +6,30 @@ import (
 	"khelogames/database"
 	"khelogames/database/models"
 
+	footballhelper "khelogames/api/sports/football_helper"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+// func footballhelper.GetInt32(v interface{}) int32 {
+// 	switch val := v.(type) {
+// 	case nil:
+// 		return 0
+// 	case int:
+// 		return int32(val)
+// 	case int32:
+// 		return val
+// 	case int64:
+// 		return int32(val)
+// 	case float32:
+// 		return int32(val)
+// 	case float64:
+// 		return int32(val)
+// 	default:
+// 		return 0
+// 	}
+// }
 
 // Update match status transaction
 func (store *SQLStore) UpdateMatchStatusTx(ctx *gin.Context, matchPublicID uuid.UUID, statusCode string, gameID models.Game) (models.Match, error) {
@@ -27,12 +48,66 @@ func (store *SQLStore) UpdateMatchStatusTx(ctx *gin.Context, matchPublicID uuid.
 		switch updatedMatchData.StatusCode {
 		case "finished":
 			if gameID.Name == "football" {
-				if _, err := q.AddORUpdateFootballPlayerStats(ctx, matchPublicID); err != nil {
-					return fmt.Errorf("Faile to update player stats: ", err)
+				_, err = q.AddORUpdateFootballPlayerStats(ctx, matchPublicID)
+				if err != nil {
+					return fmt.Errorf("Failed to update player stats: ", err)
 				}
 				if err := UpdateFootballStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
 					return fmt.Errorf("Failed to update football status code: ", err)
 				}
+
+				homeIncident, err := q.GetFootballIncidentByTeam(ctx, updatedMatchData.ID, updatedMatchData.HomeTeamID)
+				if err != nil {
+					return fmt.Errorf("Failed to football incident by team: ", err)
+				}
+
+				awayIncident, err := q.GetFootballIncidentByTeam(ctx, updatedMatchData.ID, updatedMatchData.AwayTeamID)
+				if err != nil {
+					return fmt.Errorf("Failed to football incident by team: ", err)
+				}
+
+				var homeCurrentStats map[string]interface{}
+				var awayCurrentStats map[string]interface{}
+				for _, incident := range *homeIncident {
+					homeCurrentStats = footballhelper.GetStatisticsUpdateFromIncident(homeCurrentStats, incident.IncidentType)
+				}
+
+				_, err = q.UpdateFootballStatistics(ctx,
+					int32(updatedMatchData.ID),
+					updatedMatchData.HomeTeamID,
+					footballhelper.GetInt32(homeCurrentStats["shot_on_target"]),
+					footballhelper.GetInt32(homeCurrentStats["total_shots"]),
+					footballhelper.GetInt32(homeCurrentStats["corner_kicks"]),
+					footballhelper.GetInt32(homeCurrentStats["fouls"]),
+					footballhelper.GetInt32(homeCurrentStats["goal_keeper_saves"]),
+					footballhelper.GetInt32(homeCurrentStats["free_kicks"]),
+					footballhelper.GetInt32(homeCurrentStats["yellow_cards"]),
+					footballhelper.GetInt32(homeCurrentStats["red_cards"]),
+				)
+				if err != nil {
+					return fmt.Errorf("Failed to update football statistics: ", err)
+				}
+
+				for _, incident := range *awayIncident {
+					awayCurrentStats = footballhelper.GetStatisticsUpdateFromIncident(awayCurrentStats, incident.IncidentType)
+				}
+
+				_, err = q.UpdateFootballStatistics(ctx,
+					int32(updatedMatchData.ID),
+					updatedMatchData.AwayTeamID,
+					footballhelper.GetInt32(awayCurrentStats["shot_on_target"]),
+					footballhelper.GetInt32(awayCurrentStats["total_shots"]),
+					footballhelper.GetInt32(awayCurrentStats["corner_kicks"]),
+					footballhelper.GetInt32(awayCurrentStats["fouls"]),
+					footballhelper.GetInt32(awayCurrentStats["goal_keeper_saves"]),
+					footballhelper.GetInt32(awayCurrentStats["free_kicks"]),
+					footballhelper.GetInt32(awayCurrentStats["yellow_cards"]),
+					footballhelper.GetInt32(awayCurrentStats["red_cards"]),
+				)
+				if err != nil {
+					return fmt.Errorf("Failed to update football statistics: ", err)
+				}
+
 			} else if gameID.Name == "cricket" {
 				if err := UpdateCricketStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
 					return fmt.Errorf("Failed to update cricket status code: ", err)

@@ -354,3 +354,39 @@ func (q *Queries) GetFootballShootoutScoreByTeam(ctx context.Context, incidentPu
 	}
 	return items, nil
 }
+
+const getFootballIncidentByTeam = `
+	SELECT *
+	FROM football_incidents fi
+	WHERE fi.match_id = $1 AND fi.team_id = $2;
+`
+
+func (q *Queries) GetFootballIncidentByTeam(ctx context.Context, matchID int64, teamID int32) (*[]models.FootballIncident, error) {
+	row, err := q.db.QueryContext(ctx, getFootballIncidentByTeam, matchID, teamID)
+	if err != nil {
+		return nil, err
+	}
+	var stats []models.FootballIncident
+	for row.Next() {
+		var stat models.FootballIncident
+		err := row.Scan(
+			&stat.ID,
+			&stat.PublicID,
+			&stat.MatchID,
+			&stat.TournamentID,
+			&stat.TeamID,
+			&stat.Periods,
+			&stat.IncidentType,
+			&stat.IncidentTime,
+			&stat.Description,
+			&stat.PenaltyShootoutScored,
+			&stat.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		stats = append(stats, stat)
+	}
+	return &stats, nil
+}

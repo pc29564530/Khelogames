@@ -1,67 +1,72 @@
 package footballutils
 
-type StatisticsUpdate struct {
-	Penalty         int32
-	ShotsOnTarget   int32
-	TotalShots      int32
-	CornerKicks     int32
-	Fouls           int32
-	GoalkeeperSaves int32
-	FreeKicks       int32
-	YellowCards     int32
-	RedCards        int32
+// Safe helper for number conversion
+func GetInt32(v interface{}) int32 {
+	switch val := v.(type) {
+	case nil:
+		return 0
+	case int:
+		return int32(val)
+	case int32:
+		return val
+	case int64:
+		return int32(val)
+	case float32:
+		return int32(val)
+	case float64:
+		return int32(val)
+	default:
+		return 0
+	}
 }
 
-func GetStatisticsUpdateFromIncident(incidentType string) StatisticsUpdate {
-	switch incidentType {
-	case "goal":
-		return StatisticsUpdate{
-			ShotsOnTarget: 1,
-			TotalShots:    1,
-		}
-	case "fouls":
-		return StatisticsUpdate{
-			Fouls:     1,
-			FreeKicks: 1,
-		}
-	case "yellow_cards":
-		return StatisticsUpdate{
-			YellowCards: 1,
-		}
-	case "red_cards":
-		return StatisticsUpdate{
-			RedCards: 1,
-		}
-	case "goalkeeper_saves":
-		return StatisticsUpdate{
-			GoalkeeperSaves: 1,
-			ShotsOnTarget:   1,
-			TotalShots:      1,
-		}
-	case "corner_kicks":
-		return StatisticsUpdate{
-			CornerKicks: 1,
-		}
-	case "total_shots":
-		return StatisticsUpdate{
-			TotalShots: 1,
-		}
-	case "shots_on_target":
-		return StatisticsUpdate{
-			ShotsOnTarget: 1,
-		}
-	case "penalty":
-		return StatisticsUpdate{
-			ShotsOnTarget: 1,
-			TotalShots:    1,
-		}
-	case "missed_penalty":
-		return StatisticsUpdate{
-			ShotsOnTarget:   1,
-			TotalShots:      1,
-			GoalkeeperSaves: 1,
-		}
-	default:
-		return StatisticsUpdate{}
+func GetStatisticsUpdateFromIncident(currentStats map[string]interface{}, incidentType string) map[string]interface{} {
+	if currentStats == nil {
+		currentStats = make(map[string]interface{})
 	}
+
+	switch incidentType {
+
+	case "goal":
+		currentStats["shots_on_target"] = GetInt32(currentStats["shots_on_target"]) + 1
+		currentStats["total_shots"] = GetInt32(currentStats["total_shots"]) + 1
+
+	case "shot_on_target":
+		currentStats["shots_on_target"] = GetInt32(currentStats["shots_on_target"]) + 1
+		currentStats["total_shots"] = GetInt32(currentStats["total_shots"]) + 1
+
+	case "foul":
+		currentStats["fouls"] = GetInt32(currentStats["fouls"]) + 1
+
+	case "corner_kick":
+		currentStats["corner_kicks"] = GetInt32(currentStats["corner_kicks"]) + 1
+
+	case "free_kick":
+		currentStats["free_kicks"] = GetInt32(currentStats["free_kicks"]) + 1
+
+	case "yellow_card":
+		currentStats["yellow_cards"] = GetInt32(currentStats["yellow_cards"]) + 1
+
+	case "red_card":
+		currentStats["red_cards"] = GetInt32(currentStats["red_cards"]) + 1
+
+	case "total_shot":
+		currentStats["total_shots"] = GetInt32(currentStats["total_shots"]) + 1
+
+	case "penalty":
+		currentStats["shots_on_target"] = GetInt32(currentStats["shots_on_target"]) + 1
+		currentStats["total_shots"] = GetInt32(currentStats["total_shots"]) + 1
+
+	case "missed_penalty":
+		currentStats["goal_keeper_saves"] = GetInt32(currentStats["goal_keeper_saves"]) + 1
+		currentStats["shots_on_target"] = GetInt32(currentStats["shots_on_target"]) + 1
+		currentStats["total_shots"] = GetInt32(currentStats["total_shots"]) + 1
+
+	case "goal_keeper_saves":
+		currentStats["goal_keeper_saves"] = GetInt32(currentStats["goal_keeper_saves"]) + 1
+		currentStats["shots_on_target"] = GetInt32(currentStats["shots_on_target"]) + 1
+		currentStats["total_shots"] = GetInt32(currentStats["total_shots"]) + 1
+	}
+
+	return currentStats
 }

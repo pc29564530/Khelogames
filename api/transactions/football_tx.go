@@ -1,7 +1,6 @@
 package transactions
 
 import (
-	footballhelper "khelogames/api/sports/football_helper"
 	"khelogames/database"
 	"khelogames/database/models"
 
@@ -34,27 +33,6 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 			playerData, err = q.GetPlayerByID(ctx, int64(addedPlayer.PlayerID))
 			if err != nil {
 				store.logger.Error("Failed to add get player: ", err)
-				return err
-			}
-
-			statsUpdate := footballhelper.GetStatisticsUpdateFromIncident(incidents.IncidentType)
-
-			statsArg := database.UpdateFootballStatisticsParams{
-				MatchID:         incidents.MatchID,
-				TeamID:          *incidents.TeamID,
-				ShotsOnTarget:   statsUpdate.ShotsOnTarget,
-				TotalShots:      statsUpdate.TotalShots,
-				CornerKicks:     statsUpdate.CornerKicks,
-				Fouls:           statsUpdate.Fouls,
-				GoalkeeperSaves: statsUpdate.GoalkeeperSaves,
-				FreeKicks:       statsUpdate.FreeKicks,
-				YellowCards:     statsUpdate.YellowCards,
-				RedCards:        statsUpdate.RedCards,
-			}
-
-			_, err = q.UpdateFootballStatistics(ctx, statsArg)
-			if err != nil {
-				store.logger.Error("Failed to update statistics: ", err)
 				return err
 			}
 

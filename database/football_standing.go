@@ -185,9 +185,10 @@ SET
             AND fs_away.team_id = ms.away_team_id
         WHERE (ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id)
           AND ms.tournament_id = ts.tournament_id
-         AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
-         AND (ms.status_code) = 'finished'
+          AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
+          AND ms.status_code = 'finished'
     ),
+
     goal_for = COALESCE((
         SELECT SUM(CASE
             WHEN ms.home_team_id = ts.team_id THEN fs_home.goals
@@ -204,7 +205,7 @@ SET
         WHERE (ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id)
           AND ms.tournament_id = ts.tournament_id
           AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
-          AND (ms.status_code) = 'finished'
+          AND ms.status_code = 'finished'
     ), 0),
 
     goal_against = COALESCE((
@@ -223,7 +224,7 @@ SET
         WHERE (ms.home_team_id = ts.team_id OR ms.away_team_id = ts.team_id)
           AND ms.tournament_id = ts.tournament_id
           AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
-          (ms.status_code) = 'finished'
+          AND ms.status_code = 'finished'   -- ✅ Added missing AND
     ), 0),
 
     goal_difference = COALESCE(goal_for, 0) - COALESCE(goal_against, 0),
@@ -245,7 +246,7 @@ SET
         )
         AND ms.tournament_id = ts.tournament_id
         AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
-        AND (ms.status_code) = 'finished'
+        AND ms.status_code = 'finished'
     ), 0),
 
     loss = COALESCE((
@@ -265,7 +266,7 @@ SET
         )
         AND ms.tournament_id = ts.tournament_id
         AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
-        AND (ms.status_code) = 'finished'
+        AND ms.status_code = 'finished'
     ), 0),
 
     draw = COALESCE((
@@ -284,8 +285,8 @@ SET
             (ms.away_team_id = ts.team_id AND fs_away.goals = fs_home.goals)
         )
         AND ms.tournament_id = ts.tournament_id
-        AND (ms.stage = 'group' OR ms.stage = 'league')
-        AND (ms.status_code) = 'finished'
+        AND (LOWER(ms.stage) = 'group' OR LOWER(ms.stage) = 'league')
+        AND ms.status_code = 'finished'
     ), 0),
 
     points = ((wins * 3) + draw)
