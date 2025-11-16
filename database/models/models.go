@@ -623,3 +623,16 @@ type CricketMatchInningDetails struct {
 	InningStatus  string    `json:"inning_status"`
 	LastUpdated   time.Time `json:"last_updated"`
 }
+
+type MatchHighlights struct {
+	ID           int64     `json:"id"`
+	PublicID     uuid.UUID `json:"public_id"`
+	UserID       int32     `json:"user_id"`
+	TournamentID int32     `json:"tournament_id"`
+	MatchID      int32     `json:"match_id"`
+	Title        string    `json:"title"`
+	Description  string    `json:"description"`
+	MediaURL     string    `json:"media_url"`
+	CreatedAT    time.Time `json:"created_at"`
+	UpdatedAT    time.Time `json:"updated_at"`
+}
