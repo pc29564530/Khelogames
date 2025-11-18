@@ -32,12 +32,14 @@ func NewPayload(publicID uuid.UUID, userID int32, duration time.Duration) (*Payl
 		return nil, err
 	}
 
+	issuedAt := time.Now().UTC()
+
 	payload := &Payload{
 		ID:        tokenID,
 		PublicID:  publicID,
 		UserID:    userID,
-		IssueAt:   time.Now(),
-		ExpiredAt: time.Now().Add(duration),
+		IssueAt:   issuedAt,
+		ExpiredAt: issuedAt.Add(duration),
 	}
 	return payload, nil
 }

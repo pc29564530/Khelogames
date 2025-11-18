@@ -35,6 +35,7 @@ func CreateNewToken(
 		RefreshToken: refreshToken,
 		UserAgent:    userAgent,
 		ClientIp:     clientIP,
+		ExpiresTime:  refreshPayload.ExpiredAt.UTC(),
 	})
 	if err != nil {
 		return nil, err
@@ -69,11 +70,14 @@ func CreateNewTokenTx(
 		return nil, err
 	}
 
+	expiresTime := refreshPayload.ExpiredAt.UTC()
+
 	session, err := q.CreateSessions(ctx, database.CreateSessionsParams{
 		UserID:       userID,
 		RefreshToken: refreshToken,
 		UserAgent:    userAgent,
 		ClientIp:     clientIP,
+		ExpiresTime:  expiresTime,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("session insert failed: %w", err)

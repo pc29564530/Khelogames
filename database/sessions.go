@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"khelogames/database/models"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -13,16 +14,17 @@ const createSessions = `
 INSERT INTO sessions (
     user_id, refresh_token, user_agent, client_ip, created_at, expires_at
 ) VALUES (
-    $1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '7 days'
+    $1, $2, $3, $4, CURRENT_TIMESTAMP, $5
 )
 RETURNING *;
 `
 
 type CreateSessionsParams struct {
-	UserID       int32  `json:"user_id"`
-	RefreshToken string `json:"refresh_token"`
-	UserAgent    string `json:"user_agent"`
-	ClientIp     string `json:"client_ip"`
+	UserID       int32     `json:"user_id"`
+	RefreshToken string    `json:"refresh_token"`
+	UserAgent    string    `json:"user_agent"`
+	ClientIp     string    `json:"client_ip"`
+	ExpiresTime  time.Time `json:"expire_time"`
 }
 
 func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) (*models.Session, error) {
@@ -31,6 +33,7 @@ func (q *Queries) CreateSessions(ctx context.Context, arg CreateSessionsParams) 
 		arg.RefreshToken,
 		arg.UserAgent,
 		arg.ClientIp,
+		arg.ExpiresTime,
 	)
 	var session models.Session
 	err := row.Scan(

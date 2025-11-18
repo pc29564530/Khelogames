@@ -61,8 +61,8 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		s.tokenMaker,
 		int32(existingUser.ID),
 		existingUser.PublicID,
-		s.config.RefreshTokenDuration,
 		s.config.AccessTokenDuration,
+		s.config.RefreshTokenDuration,
 		userAgent,
 		clientIP)
 	if err != nil {
@@ -143,8 +143,9 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 		})
 		return
 	}
+
 	//create a token using user id
-	tokens, err := token.CreateNewToken(ctx, st, maker, int32(existingUser.ID), existingUser.PublicID, refreshDuration, accessDuration, userAgent, clientIP)
+	tokens, err := token.CreateNewToken(ctx, st, maker, int32(existingUser.ID), existingUser.PublicID, accessDuration, refreshDuration, userAgent, clientIP)
 	if err != nil {
 		s.logger.Errorf("Failed to create new token: ", err)
 		return
