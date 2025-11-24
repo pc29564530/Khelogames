@@ -2,8 +2,10 @@ package cricket
 
 import (
 	"fmt"
+	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/database/models"
+	"khelogames/pkg"
 	"net/http"
 	"strconv"
 
@@ -45,6 +47,24 @@ func (s *CricketServer) UpdateCricketInningStatusFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(403, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -152,6 +172,24 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 		arg.IsStriker = true
 	}
 
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
+
 	response, err := s.store.AddCricketBatsScore(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add the cricket player score: ", gin.H{"error": err.Error()})
@@ -242,9 +280,28 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 			return
 		}
 	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
+
 	var newBowlerResponse models.BowlerScore
 	var prevBowler map[string]interface{}
-	newBowlerResponse, prevBowler, err = s.txStore.AddCricketBowerTx(ctx, matchPublicID, teamPublicID, bowlerPublicID, prevBowlerPublicID, req.InningNumber)
+	newBowlerResponse, prevBowler, err = s.txStore.AddCricketBlowerTx(ctx, matchPublicID, teamPublicID, bowlerPublicID, prevBowlerPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to add cricket bowler: ", err)
 		return
@@ -430,9 +487,27 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
+
 	gameName := ctx.Param("sport")
 
-	game, err := s.store.GetGamebyName(ctx, gameName)
+	_, err = s.store.GetGamebyName(ctx, gameName)
 	if err != nil {
 		s.logger.Error("Failed to get the game: ", gin.H{"error": err.Error()})
 		return
@@ -441,13 +516,6 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 	playerScore, err := s.store.GetCricketBalls(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get cricket bowler data : ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	match, err := s.store.GetMatchByPublicId(ctx, matchPublicID, game.ID)
-	if err != nil {
-		s.logger.Error("Failed to get player :", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -460,11 +528,11 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		return
 	}
 
-	if team.ID == int64(match["home_team_id"].(float64)) {
-		battingTeamId = int64(match["away_team_id"].(float64))
+	if team.ID == int64(match.HomeTeamID) {
+		battingTeamId = int64(match.AwayTeamID)
 		bowlingTeamId = team.ID
 	} else {
-		battingTeamId = int64(match["home_team_id"].(float64))
+		battingTeamId = int64(match.HomeTeamID)
 		bowlingTeamId = team.ID
 	}
 	fmt.Println("Batting Team ID: ", battingTeamId)
@@ -695,6 +763,24 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
+
 	runsScored := req.RunsScored
 	inningNumber := req.InningNumber
 
@@ -864,6 +950,24 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Invalid bowler UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -1065,6 +1169,24 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	cricketScore, err := s.store.GetCricketScoreByInning(ctx, matchPublicID, battingTeamID, inningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get cricket score: ", err)
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
 	}
 
 	var outBatsmanResponse *models.BatsmanScore
@@ -1292,6 +1414,24 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 
 	fmt.Println("Batsman: ", batsmanPublicID)
 	fmt.Println("Bowler: ", bowlerPublicID)
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
 
 	// Update inning score
 	batsmanResponse, bowlerResponse, inningScore, err := s.store.UpdateInningScore(
@@ -1567,6 +1707,24 @@ func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, matchPubli
 	// }
 	// inningNumber := int(content["inning_number"].(float64))
 
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
+
 	currBatsman, err := s.store.GetCurrentBattingBatsman(ctx, matchPublicID, batsmanTeamPublicID, inningNumber)
 	if err != nil {
 		s.logger.Error("Faield to end the inning ", err)
@@ -1771,6 +1929,24 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 

@@ -213,6 +213,17 @@ func (s *HandlersServer) UpdateCommunityByCommunityNameFunc(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	community, err := s.store.GetCommunity(ctx, publicID)
+	if err != nil {
+		s.logger.Error("Failed to get community: ", err)
+	}
+
+	if authPayload.UserID != community.UserID {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed"})
+		return
+	}
+
 	response, err := s.store.UpdateCommunityName(ctx, publicID, reqJSON.CommunityName)
 	if err != nil {
 		s.logger.Error("Failed to update the community name: ", err)
@@ -262,6 +273,17 @@ func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
 		}
 		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	community, err := s.store.GetCommunity(ctx, publicID)
+	if err != nil {
+		s.logger.Error("Failed to get community: ", err)
+	}
+
+	if authPayload.UserID != community.UserID {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed"})
 		return
 	}
 

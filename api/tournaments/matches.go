@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"khelogames/api/orchestrator"
 	"khelogames/api/shared"
+	"khelogames/core/token"
 	db "khelogames/database"
+	"khelogames/pkg"
 	"khelogames/util"
 	"net/http"
 	"strings"
@@ -126,6 +128,24 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		}
 	}
 
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(tournament.ID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
+
 	arg := db.NewMatchParams{
 		TournamentPublicID: tournamentPublicID,
 		AwayTeamPublicID:   awayTeamPublicID,
@@ -187,6 +207,24 @@ func (s *TournamentServer) UpdateMatchSubStatusFunc(ctx *gin.Context) {
 	matchPublicID, err := uuid.Parse(reqUri.MatchPublicID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -256,6 +294,24 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 	gameID, err := s.store.GetGamebyName(ctx, game)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Unknown sport"})
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -334,6 +390,19 @@ func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
+
 	response, err := s.store.UpdateMatchResult(ctx, int32(match.ID), int32(team.ID))
 	if err != nil {
 		s.logger.Error("Failed to update result: ", err)

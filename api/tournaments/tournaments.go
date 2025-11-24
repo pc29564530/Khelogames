@@ -39,14 +39,6 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin transactions: ", err)
-		return
-	}
-
-	defer tx.Rollback()
-
 	s.logger.Debug("Bind data: ", req)
 	timestamp := req.StartTimestamp
 
@@ -77,28 +69,10 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		IsPublic:       true,
 	}
 
-	newTournament, err := s.store.NewTournament(ctx, arg)
+	newTournament, err := s.txStore.AddNewTournamentTx(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to create tournament: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
-		return
-	}
-
-	// authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
-	// argAdmin := db.AddAdminParams{
-	// 	ContentID: newTournament.ID,
-	// 	Admin:     authPayload.UserID,
-	// }
-
-	// _, err = s.store.AddAdmin(ctx, argAdmin)
-	// if err != nil {
-	// 	s.logger.Error("Failed to add admin for the tournament: ", err)
-	// }
-
-	err = tx.Commit()
-	if err != nil {
-		s.logger.Error("Failed to commit transactions: ", err)
 		return
 	}
 
@@ -209,6 +183,19 @@ func (s *TournamentServer) UpdateTournamentDateFunc(ctx *gin.Context) {
 		StartTimestamp:     startTimeStamp,
 	}
 
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Match not found"})
+		return
+	}
+
+	if tournament.UserID != authPayload.UserID {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
+	}
+
 	response, err := s.store.UpdateTournamentDate(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to update tournament dates: ", err)
@@ -264,6 +251,19 @@ func (s *TournamentServer) UpdateTournamentStatusFunc(ctx *gin.Context) {
 	arg := db.UpdateTournamentStatusParams{
 		TournamentPublicID: tournamentPublicID,
 		Status:             statusCode,
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Match not found"})
+		return
+	}
+
+	if tournament.UserID != authPayload.UserID {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		return
 	}
 
 	updatedMatchData, err := s.store.UpdateTournamentStatus(ctx, arg)
@@ -325,4 +325,38 @@ func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, results)
+}
+
+func (s *TournamentServer) AddTournamentUserRolesFunc(ctx *gin.Context) {
+	var req struct {
+		TournamentPublicID string `json:"tournament_public_id"`
+		Role               string `json:"role"`
+	}
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind add tournament user roles: ", err)
+		ctx.JSON(http.StatusBadGateway, err)
+		return
+	}
+
+	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to parse uuid: ", err)
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get tournament: ", err)
+		return
+	}
+
+	newTournamentUserRoles, err := s.store.AddTournamentUserRoles(ctx, int32(tournament.ID), authPayload.UserID, req.Role)
+	if err != nil {
+		s.logger.Error("Failed to add new tournament user roles: ", err)
+		return
+	}
+	ctx.JSON(http.StatusAccepted, newTournamentUserRoles)
 }

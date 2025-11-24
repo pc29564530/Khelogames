@@ -1,6 +1,8 @@
 package tournaments
 
 import (
+	"khelogames/core/token"
+	"khelogames/pkg"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -32,6 +34,24 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 	entityPublicID, err := uuid.Parse(req.EntityPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse: ", err)
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(tournament.ID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this tournament participants"})
 		return
 	}
 

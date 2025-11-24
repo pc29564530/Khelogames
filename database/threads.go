@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"khelogames/database/models"
 	"log"
 
@@ -350,4 +351,32 @@ func (q *Queries) UpdateThreadCommentCount(ctx context.Context, publicID uuid.UU
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getThreadByPublicID = `
+	SELECT * FROM threads
+	WHERE public_id = $1
+`
+
+func (q *Queries) GetThreadByPublicID(ctx context.Context, threadPublicID uuid.UUID) (*models.Thread, error) {
+	rows := q.db.QueryRowContext(ctx, getThreadByPublicID, threadPublicID)
+	var thread *models.Thread
+	err := rows.Scan(
+		&thread.ID,
+		&thread.PublicID,
+		&thread.UserID,
+		&thread.CommunityID,
+		&thread.Title,
+		&thread.Content,
+		&thread.MediaUrl,
+		&thread.MediaType,
+		&thread.LikeCount,
+		&thread.CommentCount,
+		&thread.IsDeleted,
+		&thread.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get thread by public id: ", err)
+	}
+	return thread, nil
 }

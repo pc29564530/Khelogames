@@ -35,7 +35,33 @@ func (s *HandlersServer) CreateMatchMediaFunc(ctx *gin.Context) {
 		return
 	}
 
+	gameName := ctx.Param("sport")
+
+	game, err := s.store.GetGamebyName(ctx, gameName)
+	if err != nil {
+		s.logger.Error("Failed to get game: ", err)
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get tournament by match id: ", err)
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, match.TournamentID, authPayload.UserID)
+	if err != nil {
+		s.logger.Error("Failed to get tournament by user role: ", err)
+		return
+	}
+
+	if !isExists {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed"})
+		return
+	}
+
 	response, err := s.store.CreateMatchMedia(ctx, authPayload.UserID, matchPublicID, reqJSON.MediaURL, reqJSON.Title, reqJSON.Description)
 	if err != nil {
 		s.logger.Error("Failed to create match media: %w", err)
