@@ -169,6 +169,7 @@ func NewServer(config util.Config,
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	//tournament
+	sportRouter.POST("/createTournamentUserRole/:tournament_public_id", tournamentServer.AddTournamentUserRolesFunc)
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)
 	sportRouter.POST("/createTournament", tournamentServer.AddTournamentFunc)
 	//sportRouter.GET("/getTeamsByGroup", tournamentServer.GetTeamxsByGroupFunc)
@@ -187,7 +188,7 @@ func NewServer(config util.Config,
 	//sportRouter.PUT("/updateTournamentDate/:tournament_public_id", tournamentServer.UpdateTournamentDateFunc)
 
 	sportRouter.POST("/createTournamentStanding", tournamentServer.CreateTournamentStandingFunc)
-	sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
+	// sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
 	sportRouter.PUT("/updateMatchStatus/:match_public_id", tournamentServer.UpdateMatchStatusFunc)
 	sportRouter.GET("/getCricketCurrentInning/:match_public_id", cricketServer.GetCricketCurrentInningFunc)

@@ -62,6 +62,8 @@ type createTournamentMatchRequest struct {
 	Stage              string  `json:"stage"`
 	KnockoutLevelID    *int32  `json:"knockout_level_id"`
 	MatchFormat        *string `json:"match_format"`
+	DayNumber          *int    `json:"day_number"`
+	SubStatus          *string `json:"sub_status"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
@@ -159,7 +161,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		KnockoutLevelID:    req.KnockoutLevelID,
 		MatchFormat:        &matchFormat,
 		DayNumber:          nil,
-		SubStatus:          nil,
+		SubStatus:          req.SubStatus,
 	}
 
 	s.logger.Debug("Create match params: ", arg)

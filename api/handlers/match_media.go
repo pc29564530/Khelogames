@@ -37,7 +37,7 @@ func (s *HandlersServer) CreateMatchMediaFunc(ctx *gin.Context) {
 
 	gameName := ctx.Param("sport")
 
-	game, err := s.store.GetGamebyName(ctx, gameName)
+	_, err = s.store.GetGamebyName(ctx, gameName)
 	if err != nil {
 		s.logger.Error("Failed to get game: ", err)
 		return

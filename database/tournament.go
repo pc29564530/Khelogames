@@ -391,13 +391,12 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 }
 
 const addTournamentUserRoles = `
-	INSERT INTO (
-		tournament_id,
-		user_id
-		role
-	) VALUES (
-		$1, $2, $3
-	) RETURNING *;
+INSERT INTO tournament_user_roles (
+    tournament_id,
+    user_id,
+    role
+) VALUES ($1, $2, $3)
+RETURNING *;
 `
 
 func (q *Queries) AddTournamentUserRoles(ctx context.Context, tournamentID, userID int32, role string) (*models.TournamentUserRoles, error) {

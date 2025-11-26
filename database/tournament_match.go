@@ -282,7 +282,8 @@ INSERT INTO matches (
 	stage,
 	knockout_level_id,
 	match_format,
-	day_number
+	day_number,
+	sub_status
 )
 SELECT 
 	tournamentID.id,
@@ -296,7 +297,8 @@ SELECT
 	$9,
 	$10,
 	$11,
-	$12
+	$12,
+	$13
 FROM tournamentID, awayTeamID, homeTeamID
 RETURNING *;`
 
