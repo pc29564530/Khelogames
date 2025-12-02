@@ -10,7 +10,7 @@ type searchPlayerRequest struct {
 	Name string `json:"name"`
 }
 
-func (s *PlayerServer) SearchProfileFunc(ctx *gin.Context) {
+func (s *PlayerServer) SearchPlayerFunc(ctx *gin.Context) {
 	var req searchPlayerRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {

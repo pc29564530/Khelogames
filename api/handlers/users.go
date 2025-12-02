@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -86,4 +87,32 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 	}
 	s.logger.Debug("get the users list: ", userList)
 	ctx.JSON(http.StatusOK, userList)
+}
+
+type searchUserRequest struct {
+	Name string `json:"name"`
+}
+
+func (s *HandlersServer) SearchUserFunc(ctx *gin.Context) {
+	var req searchUserRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+	searchQuery := "%" + req.Name + "%"
+	fmt.Println("Search Query: ", searchQuery)
+
+	response, err := s.store.SearchUser(ctx, searchQuery)
+	if err != nil {
+		s.logger.Error("Failed to search team : ", err)
+		ctx.JSON(http.StatusInternalServerError, (err))
+		return
+	}
+
+	fmt.Println("Search: ", response)
+
+	ctx.JSON(http.StatusAccepted, response)
+	return
 }
