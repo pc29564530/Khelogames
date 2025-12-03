@@ -636,3 +636,10 @@ type MatchHighlights struct {
 	CreatedAT    time.Time `json:"created_at"`
 	UpdatedAT    time.Time `json:"updated_at"`
 }
+
+type TournamentUserRoles struct {
+	ID           int64  `json:"id"`
+	TournamentID int32  `json:"tournament_id"`
+	UserID       int32  `json:"user_id"`
+	Role         string `json:"role"`
+}

@@ -71,7 +71,7 @@ func (store *SQLStore) AddCricketTossTx(ctx context.Context, matchPublicID uuid.
 	return newScore, team, tossDescision, err
 }
 
-func (store *SQLStore) AddCricketBowerTx(ctx context.Context,
+func (store *SQLStore) AddCricketBlowerTx(ctx context.Context,
 	matchPublicID, teamPublicID, bowlerPublicID, prevBowlerPublicID uuid.UUID,
 	inningNumber int,
 ) (models.BowlerScore, map[string]interface{}, error) {

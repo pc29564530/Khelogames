@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -387,4 +388,47 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const addTournamentUserRoles = `
+INSERT INTO tournament_user_roles (
+    tournament_id,
+    user_id,
+    role
+) VALUES ($1, $2, $3)
+RETURNING *;
+`
+
+func (q *Queries) AddTournamentUserRoles(ctx context.Context, tournamentID, userID int32, role string) (*models.TournamentUserRoles, error) {
+	var i models.TournamentUserRoles
+	rows := q.db.QueryRowContext(ctx, addTournamentUserRoles, tournamentID, userID, role)
+	err := rows.Scan(
+		&i.ID,
+		&i.TournamentID,
+		&i.UserID,
+		&i.Role,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan tournament user role query: ", err)
+	}
+	return &i, nil
+}
+
+const getTournamentUserRoles = `
+    SELECT EXISTS(
+        SELECT 1 
+        FROM tournament_user_roles
+        WHERE tournament_id = $1 AND user_id = $2
+    );
+`
+
+func (q *Queries) GetTournamentUserRole(ctx context.Context, tournamentID, userID int32) (bool, error) {
+	var exists bool
+
+	err := q.db.QueryRowContext(ctx, getTournamentUserRoles, tournamentID, userID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check tournament user role: %w", err)
+	}
+
+	return exists, nil
 }

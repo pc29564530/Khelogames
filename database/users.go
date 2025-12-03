@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"khelogames/database/models"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -129,4 +130,73 @@ func (q *Queries) UpdateUser(ctx context.Context, userID int32, fullName string)
 		&users.UpdatedAt,
 	)
 	return users, err
+}
+
+type searchUserParam struct {
+	ID        int64     `json:"id"`
+	PublicID  uuid.UUID `json:"public_id"`
+	UserID    int32     `json:"user_id"`
+	UserName  string    `json:"username"`
+	FullName  string    `json:"full_name"`
+	Bio       string    `json:"bio"`
+	AvatarURL string    `json:"avatar_url"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+const searchUser = `
+SELECT
+	up.id AS id,
+	up.public_id AS public_id,
+	u.id AS user_id,
+	u.username AS username,
+	u.full_name AS full_name,
+	COALESCE(up.bio, '') AS bio,
+	COALESCE(up.avatar_url, '') AS avatar_url,
+	u.created_at AS created_at,
+	u.updated_at AS updated_at
+FROM users u
+LEFT JOIN user_profiles AS up ON u.id = up.user_id
+WHERE u.full_name ILIKE $1
+ORDER BY u.full_name
+LIMIT 10
+`
+
+func (q *Queries) SearchUser(ctx context.Context, searchTerm string) ([]searchUserParam, error) {
+	// Add wildcards for LIKE query
+	pattern := "%" + searchTerm + "%"
+
+	rows, err := q.db.QueryContext(ctx, searchUser, pattern)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []searchUserParam
+	for rows.Next() {
+		var i searchUserParam
+		if err := rows.Scan(
+			&i.ID,
+			&i.PublicID,
+			&i.UserID,
+			&i.UserName,
+			&i.FullName,
+			&i.Bio,
+			&i.AvatarURL,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
 }

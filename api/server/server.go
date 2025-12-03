@@ -95,7 +95,8 @@ func NewServer(config util.Config,
 		authRouter.GET("/ws", hub.HandleWebSocket)
 		authRouter.GET("/getAllGames", sportsServer.GetGamesFunc)
 		authRouter.GET("/getGame/:id", sportsServer.GetGameFunc)
-		authRouter.POST("/searchProfile", playersServer.SearchProfileFunc)
+		authRouter.POST("/search-player", playersServer.SearchPlayerFunc)
+		authRouter.POST("/search-user", handlersServer.SearchUserFunc)
 		authRouter.POST("/addJoinCommunity/:community_public_id", handlersServer.AddJoinCommunityFunc)
 		authRouter.GET("/getCommunityByUser", handlersServer.GetCommunityByUserFunc)
 		// authRouter.GET("/user_list", handlersServer.ListUsersFunc)
@@ -169,6 +170,7 @@ func NewServer(config util.Config,
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	//tournament
+	sportRouter.POST("/createTournamentUserRole/:tournament_public_id", tournamentServer.AddTournamentUserRolesFunc)
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)
 	sportRouter.POST("/createTournament", tournamentServer.AddTournamentFunc)
 	//sportRouter.GET("/getTeamsByGroup", tournamentServer.GetTeamxsByGroupFunc)
@@ -187,7 +189,7 @@ func NewServer(config util.Config,
 	//sportRouter.PUT("/updateTournamentDate/:tournament_public_id", tournamentServer.UpdateTournamentDateFunc)
 
 	sportRouter.POST("/createTournamentStanding", tournamentServer.CreateTournamentStandingFunc)
-	sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
+	// sportRouter.POST("/addTournamentTeam", tournamentServer.AddTournamentTeamFunc)
 	sportRouter.GET("/getTournamentByLevel", tournamentServer.GetTournamentByLevelFunc)
 	sportRouter.PUT("/updateMatchStatus/:match_public_id", tournamentServer.UpdateMatchStatusFunc)
 	sportRouter.GET("/getCricketCurrentInning/:match_public_id", cricketServer.GetCricketCurrentInningFunc)

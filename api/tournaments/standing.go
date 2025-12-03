@@ -1,7 +1,9 @@
 package tournaments
 
 import (
+	"khelogames/core/token"
 	"khelogames/database/models"
+	"khelogames/pkg"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +36,24 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get tournament: ", err)
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(tournament.ID), authPayload.UserID)
+	if err != nil {
+		s.logger.Error("Failed to get tournament by user role: ", err)
+		return
+	}
+
+	if !isExists {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": " You are not allowed to make change"})
 		return
 	}
 

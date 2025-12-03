@@ -2,6 +2,8 @@ package cricket
 
 import (
 	"fmt"
+	"khelogames/core/token"
+	"khelogames/pkg"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +36,24 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		return
+	}
+	if !isExists {
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 

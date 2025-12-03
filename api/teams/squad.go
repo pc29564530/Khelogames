@@ -1,7 +1,9 @@
 package teams
 
 import (
+	"khelogames/core/token"
 	db "khelogames/database"
+	"khelogames/pkg"
 	"khelogames/util"
 	"net/http"
 
@@ -42,6 +44,19 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 	startDate, err := util.ConvertTimeStamp(req.JoinDate)
 	if err != nil {
 		s.logger.Error("Failed to convert the timestamp to second ", err)
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get team by public id: ", err)
+		return
+	}
+
+	if team.UserID != authPayload.UserID {
+		ctx.JSON(http.StatusForbidden, "403 not match current user")
+		return
 	}
 
 	checkPlayerExist := s.store.GetTeamPlayer(ctx, teamPublicID, playerPublicID)
@@ -153,6 +168,18 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 	endDate, err := util.ConvertTimeStamp(req.LeaveDate)
 	if err != nil {
 		s.logger.Error("Failed to convert to second")
+		return
+	}
+
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
+	if err != nil {
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		return
+	}
+
+	if authPayload.UserID == int32(team.ID) {
+		ctx.JSON(403, gin.H{"error": "You do not own this team"})
 		return
 	}
 

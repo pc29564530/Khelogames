@@ -34,6 +34,17 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	// Get auth payload
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
+	community, err := s.store.GetCommunity(ctx, communityPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get community: ", err)
+		return
+	}
+
+	if community.UserID != authPayload.UserID {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed"})
+		return
+	}
+
 	communityUser, err := s.txStore.AddJoinCommunityTx(ctx.Request.Context(), communityPublicID, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to join community: ", err)
