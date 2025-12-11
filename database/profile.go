@@ -338,3 +338,30 @@ func (q *Queries) AddDocumentVerificationDetails(ctx context.Context, organizerI
 	}
 	return &documentVerification, nil
 }
+
+// Update profile location
+const updateProfileLocationQuery = `
+	UPDATE user_profiles
+	SET location_id = $2
+	WHERE public_id = $1
+	RETURNING *;
+`
+
+func (q *Queries) UpdateProfilesLocation(ctx context.Context, eventPublicID uuid.UUID, locationID int32) (*models.UserProfiles, error) {
+	var i models.UserProfiles
+	rows := q.db.QueryRowContext(ctx, updateProfileLocationQuery, eventPublicID, locationID)
+	err := rows.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.Bio,
+		&i.AvatarUrl,
+		&i.Location,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan update match location: ", err)
+	}
+	return &i, err
+}

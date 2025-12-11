@@ -167,6 +167,8 @@ func NewServer(config util.Config,
 		authRouter.GET("/getTeamByPlayer/:player_public_id", teamsServer.GetTeamsByPlayerFunc)
 		authRouter.POST("/uploadMatchMedia/:match_public_id", handlersServer.CreateMatchMediaFunc)
 		authRouter.GET("/getMatchMedia/:match_public_id", handlersServer.GetMatchMediaFunc)
+		authRouter.PUT("/update-user-location", handlersServer.UpdateUserLocationFunc)
+		authRouter.POST("/add-location", handlersServer.AddLocationFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	//tournament

@@ -432,3 +432,37 @@ func (q *Queries) GetTournamentUserRole(ctx context.Context, tournamentID, userI
 
 	return exists, nil
 }
+
+const updateTournamentLocaitonQuery = `
+	UPDATE tournaments
+	SET location_id = $2
+	WHERE public_id = $1
+	RETURNING *
+`
+
+func (q *Queries) UpdateTournamentLocation(ctx context.Context, eventPublicID uuid.UUID, locationID int64) (*models.Tournament, error) {
+	row := q.db.QueryRowContext(ctx, updateTournamentLocaitonQuery, eventPublicID, locationID)
+	var i models.Tournament
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.GameID,
+		&i.Name,
+		&i.Slug,
+		&i.Description,
+		&i.Country,
+		&i.Status,
+		&i.Season,
+		&i.Level,
+		&i.StartTimestamp,
+		&i.GroupCount,
+		&i.MaxGroupTeam,
+		&i.Stage,
+		&i.HasKnockout,
+		&i.IsPublic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}

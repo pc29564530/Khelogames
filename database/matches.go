@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"khelogames/database/models"
 	"log"
 
@@ -605,4 +606,38 @@ func (q *Queries) GetLiveMatches(ctx context.Context, game int64) ([]map[string]
 		liveMatches = append(liveMatches, liveMatch)
 	}
 	return liveMatches, nil
+}
+
+// Update match location
+const updateMatchLocationQuery = `
+	UPDATE matches
+	SET location_id = $2
+	WHERE public_id = $1
+	RETURNING *;
+`
+
+func (q *Queries) UpdateMatchLocation(ctx context.Context, eventPublicID uuid.UUID, locationID int32) (*models.Match, error) {
+	var i models.Match
+	rows := q.db.QueryRowContext(ctx, updateMatchLocationQuery, eventPublicID, locationID)
+	err := rows.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.TournamentID,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
+		&i.Result,
+		&i.Stage,
+		&i.KnockoutLevelID,
+		&i.MatchFormat,
+		&i.DayNumber,
+		&i.SubStatus,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan update match location: ", err)
+	}
+	return &i, err
 }

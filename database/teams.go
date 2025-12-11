@@ -818,3 +818,34 @@ func (q *Queries) GetTeamPlayer(ctx context.Context, teamPublicID, playerPublicI
 	}
 	return exists
 }
+
+const updateTeamLocationQuery = `
+	UPDATE teams
+	SET location_id = $2
+	WHERE public_id = $1
+	RETURNING *;
+`
+
+func (q *Queries) UpdateTeamLocation(ctx context.Context, eventPublicID uuid.UUID, locationID int32) (*models.Team, error) {
+	var i models.Team
+	rows := q.db.QueryRowContext(ctx, updateTeamLocationQuery, eventPublicID, locationID)
+	err := rows.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.Name,
+		&i.Slug,
+		&i.Shortname,
+		&i.MediaUrl,
+		&i.Gender,
+		&i.National,
+		&i.Country,
+		&i.Type,
+		&i.PlayerCount,
+		&i.GameID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan update team location: ", err)
+	}
+	return &i, err
+}

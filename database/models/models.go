@@ -643,3 +643,15 @@ type TournamentUserRoles struct {
 	UserID       int32  `json:"user_id"`
 	Role         string `json:"role"`
 }
+
+type Locations struct {
+	ID        int64     `json:"id"`
+	PublicID  uuid.UUID `json:"public_id"`
+	City      string    `json:"city"`
+	State     string    `json:"state"`
+	Country   string    `json:"country"`
+	Latitude  *float64  `json:"latitude"`
+	Longitude *float64  `json:"longitude"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
