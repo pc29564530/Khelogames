@@ -152,7 +152,7 @@ func NewServer(config util.Config,
 		// authRouter.PUT("/updateDeleteMessage", messageServer.UpdateDeleteMessageFunc)
 		authRouter.DELETE("/deleteScheduleMessage", messageServer.DeleteScheduleMessageFunc)
 		authRouter.DELETE("/deleteCommentByUser", handlersServer.DeleteCommentByUserFunc)
-		authRouter.DELETE("/deleteAdmin", handlersServer.DeleteAdminFunc)
+		// authRouter.DELETE("/deleteAdmin", handlersServer.DeleteAdminFunc)
 		authRouter.PUT("/updateCommunityByDescription/:community_public_id", handlersServer.UpdateCommunityByDescriptionFunc)
 		authRouter.PUT("/updateCommunityByCommunityName", handlersServer.UpdateCommunityByCommunityNameFunc)
 		authRouter.GET("/getRoles", handlersServer.GetRolesFunc)

@@ -32,7 +32,7 @@ func (s *HandlersServer) AddLocationFunc(ctx *gin.Context) {
 	}
 
 	//implement the tx for add location need to add the location id into the tournament, player, team
-	location, err := s.txStore.AddLocationTx(ctx, eventPublicID, req.LocationOF, req.City, req.State, req.Country, req.Latitude, req.Longitude)
+	location, err := s.txStore.AddLocationTx(ctx, req.LocationOF, eventPublicID, req.City, req.State, req.Country, req.Latitude, req.Longitude)
 	if err != nil {
 		s.logger.Error("Failed to add location: ", err)
 		return
@@ -59,7 +59,7 @@ func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 		return
 	}
 
-	location, err := s.store.UpdateUserLocation(ctx, profile.LocationID, req.Latitude, req.Longitude)
+	location, err := s.store.UpdateUserLocation(ctx, *profile.LocationID, req.Latitude, req.Longitude)
 	if err != nil {
 		s.logger.Error("Failed to update user location: ", err)
 		return

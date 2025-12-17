@@ -7,7 +7,7 @@ import (
 )
 
 const addLocation = `
-	INSERT INTO (
+	INSERT INTO locations (
 		city,
 		state,
 		country,
@@ -21,8 +21,8 @@ const addLocation = `
 `
 
 func (q *Queries) AddLocation(ctx context.Context, city, state, country string, latitude, longitude float64) (*models.Locations, error) {
-	row := q.db.QueryRowContext(ctx, city, state, country, latitude, longitude)
-	var i *models.Locations
+	row := q.db.QueryRowContext(ctx, addLocation, city, state, country, latitude, longitude)
+	i := &models.Locations{}
 	err := row.Scan(
 		&i.ID,
 		&i.PublicID,

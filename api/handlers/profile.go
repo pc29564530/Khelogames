@@ -3,11 +3,11 @@ package handlers
 import (
 	"fmt"
 	"khelogames/core/token"
-	db "khelogames/database"
 	"khelogames/database/models"
 	"khelogames/pkg"
 	"khelogames/util"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -140,6 +140,11 @@ type editProfileRequest struct {
 	FullName  string `json:"full_name"`
 	Bio       string `json:"bio"`
 	AvatarUrl string `json:"avatar_url,omitempty"`
+	City      string `json:"city"`
+	State     string `json:"state"`
+	Country   string `json:"country"`
+	Latitude  string `json:"latitude"`
+	Longitude string `json:"longitude"`
 }
 
 func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
@@ -152,45 +157,44 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 		return
 	}
 
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin transaction: ", err)
-		return
-	}
-
-	defer tx.Rollback()
-
 	s.logger.Debug("Request JSON bind successful: ", req)
 
+	fmt.Println("Latitude: ", req.Latitude)
+	fmt.Println("Longitude: ", req.Longitude)
+
+	latitude, err := strconv.ParseFloat(req.Latitude, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse to float: ", err)
+		return
+	}
+	longitude, err := strconv.ParseFloat(req.Longitude, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse to float: ", err)
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
-	arg := db.EditProfileParams{
-		PublicID:  authPayload.PublicID,
-		Bio:       req.Bio,
-		AvatarUrl: req.AvatarUrl,
-	}
-
-	updatedProfile, err := s.store.EditProfile(ctx, arg)
+	update, err := s.txStore.UpdateProfileTx(ctx, authPayload.PublicID, req.Bio, req.AvatarUrl, req.FullName, req.City, req.State, req.Country, latitude, longitude)
 	if err != nil {
-		s.logger.Error("Failed to update profile: ", err)
-		ctx.JSON(http.StatusNotAcceptable, err)
+		s.logger.Error("Failed to update profile transaction: ", err)
 		return
 	}
 
-	_, err = s.store.UpdateUser(ctx, int32(updatedProfile.UserID), req.FullName)
-	if err != nil {
-		s.logger.Error("Failed to update the user full name: ", err)
-		ctx.JSON(http.StatusNotAcceptable, err)
-	}
+	// updatedProfile, err := s.store.EditProfile(ctx, arg)
+	// if err != nil {
+	// 	s.logger.Error("Failed to update profile: ", err)
+	// 	ctx.JSON(http.StatusNotAcceptable, err)
+	// 	return
+	// }
 
-	err = tx.Commit()
-	if err != nil {
-		s.logger.Error("Failed to commit transaction: ", err)
-		return
-	}
+	// _, err = s.store.UpdateUser(ctx, int32(updatedProfile.UserID), req.FullName)
+	// if err != nil {
+	// 	s.logger.Error("Failed to update the user full name: ", err)
+	// 	ctx.JSON(http.StatusNotAcceptable, err)
+	// }
 
-	s.logger.Info("Successfully updated profile: ", updatedProfile)
-	ctx.JSON(http.StatusAccepted, updatedProfile)
+	s.logger.Info("Successfully updated profile: ", update)
+	ctx.JSON(http.StatusAccepted, update)
 	return
 }
 

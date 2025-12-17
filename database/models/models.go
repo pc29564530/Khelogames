@@ -301,14 +301,15 @@ type Player struct {
 }
 
 type UserProfiles struct {
-	ID        int64     `json:"id" db:"id"`
-	PublicID  uuid.UUID `json:"public_id" db:"public_id"`
-	UserID    int64     `json:"user_id" db:"user_id"`
-	Bio       string    `json:"bio" db:"bio"`
-	AvatarUrl string    `json:"avatar_url" db:"avatar_url"`
-	Location  string    `json:"location" db:"location"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID         int64     `json:"id" db:"id"`
+	PublicID   uuid.UUID `json:"public_id" db:"public_id"`
+	UserID     int64     `json:"user_id" db:"user_id"`
+	Bio        string    `json:"bio" db:"bio"`
+	AvatarUrl  string    `json:"avatar_url" db:"avatar_url"`
+	Location   string    `json:"location" db:"location"`
+	LocationID *int32    `json:"location_id" db:"location_id"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Session struct {
@@ -647,9 +648,9 @@ type TournamentUserRoles struct {
 type Locations struct {
 	ID        int64     `json:"id"`
 	PublicID  uuid.UUID `json:"public_id"`
-	City      string    `json:"city"`
-	State     string    `json:"state"`
-	Country   string    `json:"country"`
+	City      *string   `json:"city"`
+	State     *string   `json:"state"`
+	Country   *string   `json:"country"`
 	Latitude  *float64  `json:"latitude"`
 	Longitude *float64  `json:"longitude"`
 	CreatedAt time.Time `json:"created_at"`

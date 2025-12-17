@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (store *SQLStore) AddLocationTx(ctx *gin.Context, locationOF string, eventPublicID uuid.UUID, city, state, country string, latitude, longitude float64, gameID models.Game) (models.Locations, error) {
+func (store *SQLStore) AddLocationTx(ctx *gin.Context, locationOF string, eventPublicID uuid.UUID, city, state, country string, latitude, longitude float64) (models.Locations, error) {
 	var location *models.Locations
 
 	err := store.execTx(ctx, func(q *database.Queries) error {

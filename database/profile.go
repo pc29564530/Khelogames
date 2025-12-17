@@ -11,7 +11,7 @@ import (
 )
 
 const getProfileByPublicID = `
-SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
+SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.location, up.location_id, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
 LEFT JOIN users AS u ON u.id = up.user_id
 WHERE up.public_id = $1;
 `
@@ -27,6 +27,8 @@ func (q *Queries) GetProfileByPublicID(ctx context.Context, publicID uuid.UUID) 
 		&res.FullName,
 		&res.Bio,
 		&res.AvatarUrl,
+		&res.Location,
+		&res.LocationID,
 		&res.CreatedAT,
 		&res.UpdatedAT,
 	)
@@ -40,7 +42,7 @@ func (q *Queries) GetProfileByPublicID(ctx context.Context, publicID uuid.UUID) 
 }
 
 const getProfileByUserID = `
-SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
+SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.location, up.location_id, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
 LEFT JOIN users AS u ON u.id = up.user_id
 WHERE up.user_id = $1;
 `
@@ -57,6 +59,8 @@ func (q *Queries) GetProfileByUserID(ctx context.Context, userID int32) (*userPr
 		&res.FullName,
 		&res.Bio,
 		&res.AvatarUrl,
+		&res.Location,
+		&res.LocationID,
 		&res.CreatedAT,
 		&res.UpdatedAT,
 	)
@@ -107,11 +111,9 @@ INSERT INTO user_profiles (
     user_id,
     bio,
     avatar_url,
-	location,
-	created_at,
-	updated_at
+	location
 ) VALUES (
-    $1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    $1, $2, $3, $4
 ) RETURNING *
 `
 
@@ -137,6 +139,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (m
 		&profile.Bio,
 		&profile.AvatarUrl,
 		&profile.Location,
+		&profile.LocationID,
 		&profile.CreatedAt,
 		&profile.UpdatedAt,
 	)
@@ -151,15 +154,16 @@ type UpdateUserParams struct {
 // edit profile
 const editProfile = `
 UPDATE user_profiles
-SET avatar_url=$2, bio=$3
+SET avatar_url=$2, bio=$3, location_id=$4
 WHERE public_id=$1
-RETURNING *
+RETURNING id, public_id, user_id, bio, avatar_url, location, location_id, created_at, updated_at
 `
 
 type EditProfileParams struct {
-	PublicID  uuid.UUID `json:"public_id"`
-	AvatarUrl string    `json:"avatar_url"`
-	Bio       string    `json:"bio"`
+	PublicID   uuid.UUID `json:"public_id"`
+	AvatarUrl  string    `json:"avatar_url"`
+	Bio        string    `json:"bio"`
+	LocationID int32     `json:"location_id"`
 }
 
 func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (models.UserProfiles, error) {
@@ -167,6 +171,7 @@ func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (model
 		arg.PublicID,
 		arg.AvatarUrl,
 		arg.Bio,
+		arg.LocationID,
 	)
 	var profile models.UserProfiles
 	err := row.Scan(
@@ -176,26 +181,31 @@ func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (model
 		&profile.Bio,
 		&profile.AvatarUrl,
 		&profile.Location,
+		&profile.LocationID,
+		&profile.CreatedAt,
+		&profile.UpdatedAt,
 	)
 	return profile, err
 }
 
 const getProfile = `
-SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
+SELECT up.id AS id, up.public_id AS public_id, up.user_id, u.username AS username, u.full_name AS full_name, up.bio AS bio, up.avatar_url AS avatar_url, up.location, up.location_id, up.created_at AS created_at, up.updated_at AS updated_at FROM user_profiles up
 LEFT JOIN users AS u ON u.id = up.user_id
 WHERE u.public_id = $1;
 `
 
 type userProfile struct {
-	ID        int64     `json:"id"`
-	PublicID  uuid.UUID `json:"public_id"`
-	UserID    int32     `json:"user_id"`
-	Username  string    `json:"username"`
-	FullName  string    `json:"full_name"`
-	Bio       string    `json:"bio"`
-	AvatarUrl string    `json:"avatar_url"`
-	CreatedAT time.Time `json:"created_at"`
-	UpdatedAT time.Time `json:"updated_at"`
+	ID         int64     `json:"id"`
+	PublicID   uuid.UUID `json:"public_id"`
+	UserID     int32     `json:"user_id"`
+	Username   string    `json:"username"`
+	FullName   string    `json:"full_name"`
+	Bio        string    `json:"bio"`
+	AvatarUrl  string    `json:"avatar_url"`
+	Location   string    `json:"location"`
+	LocationID *int32    `json:"location_id"`
+	CreatedAT  time.Time `json:"created_at"`
+	UpdatedAT  time.Time `json:"updated_at"`
 }
 
 func (q *Queries) GetProfile(ctx context.Context, publicID uuid.UUID) (*userProfile, error) {
@@ -210,6 +220,8 @@ func (q *Queries) GetProfile(ctx context.Context, publicID uuid.UUID) (*userProf
 		&res.FullName,
 		&res.Bio,
 		&res.AvatarUrl,
+		&res.Location,
+		&res.LocationID,
 		&res.CreatedAT,
 		&res.UpdatedAT,
 	)
@@ -357,6 +369,7 @@ func (q *Queries) UpdateProfilesLocation(ctx context.Context, eventPublicID uuid
 		&i.Bio,
 		&i.AvatarUrl,
 		&i.Location,
+		&i.LocationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
