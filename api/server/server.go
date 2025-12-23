@@ -172,6 +172,7 @@ func NewServer(config util.Config,
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
 	//tournament
+	sportRouter.GET("/get-tournament-by-location", tournamentServer.GetTournamentByLocationFunc)
 	sportRouter.POST("/createTournamentUserRole/:tournament_public_id", tournamentServer.AddTournamentUserRolesFunc)
 	sportRouter.POST("/createTournamentMatch", tournamentServer.CreateTournamentMatch)
 	sportRouter.POST("/createTournament", tournamentServer.AddTournamentFunc)

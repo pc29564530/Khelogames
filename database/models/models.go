@@ -249,6 +249,7 @@ type Match struct {
 	MatchFormat     *string   `json:"match_format"`
 	DayNumber       *int      `json:"day_number"`
 	SubStatus       *string   `json:"sub_status"`
+	LocationID      *int32    `json:"location_id"`
 }
 
 type Message struct {
@@ -405,6 +406,7 @@ type Tournament struct {
 	IsPublic       bool      `json:"is_public"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
+	LocationID     *int32    `json:"location_id"`
 }
 
 type FootballStanding struct {

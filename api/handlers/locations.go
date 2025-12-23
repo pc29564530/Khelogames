@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"khelogames/core/token"
 	"khelogames/pkg"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -42,14 +44,27 @@ func (s *HandlersServer) AddLocationFunc(ctx *gin.Context) {
 
 func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 	var req struct {
-		Latitude  float64 `json:"latitude"`
-		Longitude float64 `json:"longitude"`
+		Latitude  string `json:"latitude"`
+		Longitude string `json:"longitude"`
 	}
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		return
 	}
+
+	latitude, err := strconv.ParseFloat(req.Latitude, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse to float: ", err)
+		return
+	}
+
+	longitude, err := strconv.ParseFloat(req.Longitude, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse to float: ", err)
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	// need to update location id to the profile
@@ -59,7 +74,10 @@ func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 		return
 	}
 
-	location, err := s.store.UpdateUserLocation(ctx, *profile.LocationID, req.Latitude, req.Longitude)
+	fmt.Println("Latitude: ", latitude)
+	fmt.Println("Longitude: ", longitude)
+
+	location, err := s.store.UpdateUserLocation(ctx, *profile.LocationID, latitude, longitude)
 	if err != nil {
 		s.logger.Error("Failed to update user location: ", err)
 		return

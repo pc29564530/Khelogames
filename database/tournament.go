@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
 
@@ -36,6 +37,7 @@ func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (models
 		&i.IsPublic,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -68,6 +70,7 @@ func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (models.Tourn
 		&i.IsPublic,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -105,6 +108,7 @@ func (q *Queries) GetTournaments(ctx context.Context) ([]models.Tournament, erro
 			&i.IsPublic,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.LocationID,
 		); err != nil {
 			return nil, err
 		}
@@ -153,6 +157,7 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level
 			&i.IsPublic,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.LocationID,
 		); err != nil {
 			return nil, err
 		}
@@ -168,8 +173,8 @@ func (q *Queries) GetTournamentsByLevel(ctx context.Context, gameID int64, level
 }
 
 const getTournamentsBySport = `
-SELECT 
-    g.id, g.name, g.min_players, JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status', t.status, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_teams, 'stage', t.stage, 'has_knockout', t.has_knockout) AS tournament_data
+SELECT
+ JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status', t.status, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_teams, 'stage', t.stage, 'has_knockout', t.has_knockout)
 FROM tournaments t
 JOIN games AS g ON g.id = t.game_id
 WHERE t.game_id=$1
@@ -182,32 +187,27 @@ type GetTournamentsBySportRow struct {
 	Tournament interface{} `json:"tournament_data"`
 }
 
-func (q *Queries) GetTournamentsBySport(ctx context.Context, gameID int64) ([]GetTournamentsBySportRow, error) {
+func (q *Queries) GetTournamentsBySport(ctx context.Context, gameID int64) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getTournamentsBySport, gameID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetTournamentsBySportRow
+	var tournaments []map[string]interface{}
 	for rows.Next() {
-		var i GetTournamentsBySportRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.MinPlayers,
-			&i.Tournament,
-		); err != nil {
-			return nil, err
+		var jsonByte []byte
+		var i map[string]interface{}
+		err := rows.Scan(&jsonByte)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to scan tournament: ", err)
 		}
-		items = append(items, i)
+		err = json.Unmarshal(jsonByte, &i)
+		if err != nil {
+			return nil, fmt.Errorf("Faile to unmarshal: ", err)
+		}
+		tournaments = append(tournaments, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+	return tournaments, err
 }
 
 const newTournament = `
@@ -229,7 +229,8 @@ INSERT INTO tournaments (
 	max_group_teams,
 	stage,
 	has_knockout,
-	is_public
+	is_public,
+	location_id
 ) 
 SELECT 
 	userID.id,
@@ -246,7 +247,8 @@ SELECT
 	$12,
 	$13,
 	$14,
-	$15
+	$15,
+	$16
 FROM userID	
 RETURNING *
 `
@@ -267,6 +269,7 @@ type NewTournamentParams struct {
 	Stage          string    `json:"stage"`
 	HasKnockout    bool      `json:"has_knockout"`
 	IsPublic       bool      `json:"is_public"`
+	LocationID     *int32    `json:"location_id"`
 }
 
 func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (models.Tournament, error) {
@@ -286,6 +289,7 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		arg.Stage,
 		arg.HasKnockout,
 		arg.IsPublic,
+		arg.LocationID,
 	)
 	var i models.Tournament
 	err := row.Scan(
@@ -306,8 +310,9 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		&i.Stage,
 		&i.HasKnockout,
 		&i.IsPublic,
-		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -347,6 +352,7 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		&i.IsPublic,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -386,6 +392,7 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 		&i.IsPublic,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -461,8 +468,43 @@ func (q *Queries) UpdateTournamentLocation(ctx context.Context, eventPublicID uu
 		&i.Stage,
 		&i.HasKnockout,
 		&i.IsPublic,
+		&i.LocationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return &i, err
+}
+
+const getTournamentLocaitonQuery = `
+SELECT JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'country', t.country, 'status', t.status, 'level', t.level, 'start_timestamp', t.start_timestamp, 'game_id', t.game_id, 'group_count', t.group_count, 'max_group_team', t.max_group_teams, 'stage', t.stage, 'has_knockout', t.has_knockout) AS tournament_data
+FROM tournaments t
+JOIN locations AS l ON t.location_id = l.id
+WHERE t.game_id = $1 
+  AND (
+    l.city = $2 
+    OR l.state = $3 
+    OR l.country = $4
+  )
+`
+
+func (q *Queries) GetTournamentByLocation(ctx context.Context, gameID int64, city, state, country string) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentLocaitonQuery, gameID, city, state, country)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to query : ", err)
+	}
+	var tournaments []map[string]interface{}
+	for rows.Next() {
+		var jsonByte []byte
+		var i map[string]interface{}
+		err := rows.Scan(&jsonByte)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to scan tournament: ", err)
+		}
+		err = json.Unmarshal(jsonByte, &i)
+		if err != nil {
+			return nil, fmt.Errorf("Faile to unmarshal: ", err)
+		}
+		tournaments = append(tournaments, i)
+	}
+	return tournaments, err
 }

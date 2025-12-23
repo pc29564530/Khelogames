@@ -1,7 +1,6 @@
 package tournaments
 
 import (
-	"encoding/json"
 	"khelogames/core/token"
 	db "khelogames/database"
 	"khelogames/pkg"
@@ -18,7 +17,6 @@ type getTournamentPublicIDRequest struct {
 
 type addTournamentRequest struct {
 	Name           string `json:"name"`
-	Country        string `json:"country"`
 	Status         string `json:"status"`
 	Level          string `json:"level"`
 	StartTimestamp string `json:"start_timestamp"`
@@ -27,6 +25,9 @@ type addTournamentRequest struct {
 	MaxGroupTeams  *int32 `json:"max_group_teams"`
 	Stage          string `json:"stage"`
 	HasKnockout    bool   `json:"has_knockout"`
+	City           string `json:"city"`
+	State          string `json:"state"`
+	Country        string `json:"country"`
 }
 
 func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
@@ -51,25 +52,22 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	arg := db.NewTournamentParams{
-		UserPublicID:   authPayload.PublicID,
-		Name:           req.Name,
-		Slug:           slug,
-		Description:    "",
-		Country:        req.Country,
-		Status:         req.Status,
-		Season:         1,
-		Level:          req.Level,
-		StartTimestamp: startTimeStamp,
-		GameID:         req.GameID,
-		GroupCount:     req.GroupCount,
-		MaxGroupTeams:  req.MaxGroupTeams,
-		Stage:          req.Stage,
-		HasKnockout:    req.HasKnockout,
-		IsPublic:       true,
-	}
-
-	newTournament, err := s.txStore.AddNewTournamentTx(ctx, arg)
+	tournament, err := s.txStore.AddNewTournamentTx(ctx,
+		authPayload,
+		req.Name,
+		slug,
+		req.Status,
+		req.Level,
+		startTimeStamp,
+		req.GameID,
+		req.GroupCount,
+		req.MaxGroupTeams,
+		req.Stage,
+		req.HasKnockout,
+		req.City,
+		req.State,
+		req.Country,
+	)
 	if err != nil {
 		s.logger.Error("Failed to create tournament: ", err)
 		ctx.JSON(http.StatusInternalServerError, err)
@@ -78,7 +76,7 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 
 	s.logger.Info("Successfully created the tournament")
 
-	ctx.JSON(http.StatusAccepted, newTournament)
+	ctx.JSON(http.StatusAccepted, tournament)
 	return
 }
 
@@ -289,7 +287,15 @@ func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
 		return
 	}
 
-	rows, err := s.store.GetTournamentsBySport(ctx, req.GameID)
+	gameName := ctx.Param("sport")
+
+	game, err := s.store.GetGamebyName(ctx, gameName)
+	if err != nil {
+		s.logger.Error("Failed to get game by name: ", err)
+		return
+	}
+
+	tournaments, err := s.store.GetTournamentsBySport(ctx, req.GameID)
 	if err != nil {
 		s.logger.Error("Failed to get the tournaments: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tournaments"})
@@ -297,30 +303,11 @@ func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
 	}
 
 	var results map[string]interface{}
-	var gameDetail map[string]interface{}
-	var tournaments []map[string]interface{}
-	for _, row := range rows {
-		gameDetail = map[string]interface{}{
-			"id":          row.ID,
-			"name":        row.Name,
-			"min_players": row.MinPlayers,
-		}
-		var tournament map[string]interface{}
-		tt := (row.Tournament).([]byte)
-		err := json.Unmarshal(tt, &tournament)
-		if err != nil {
-			s.logger.Error("Failed to unmarshal tournament data: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process tournament data"})
-			return
-		}
-
-		tournaments = append(tournaments, tournament)
-	}
 
 	results = map[string]interface{}{
-		"id":          gameDetail["id"],
-		"name":        gameDetail["name"],
-		"min_players": gameDetail["min_players"],
+		"id":          game.ID,
+		"name":        game.Name,
+		"min_players": game.MinPlayers,
 		"tournament":  tournaments,
 	}
 
@@ -359,4 +346,48 @@ func (s *TournamentServer) AddTournamentUserRolesFunc(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusAccepted, newTournamentUserRoles)
+}
+
+func (s *TournamentServer) GetTournamentByLocationFunc(ctx *gin.Context) {
+	// var req struct {
+	// 	City    string `json:"city"`
+	// 	State   string `json:"state"`
+	// 	Country string `json:"country"`
+	// }
+	// err := ctx.ShouldBindJSON(&req)
+	// if err != nil {
+	// 	s.logger.Error("Failed to bind: ", err)
+	// 	ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request parameters"})
+	// 	return
+	// }
+
+	city := ctx.Query("city")
+	state := ctx.Query("state")
+	country := ctx.Query("country")
+
+	gameName := ctx.Param("sport")
+
+	game, err := s.store.GetGamebyName(ctx, gameName)
+	if err != nil {
+		s.logger.Error("Failed to get game: ", err)
+		return
+	}
+
+	tournament, err := s.store.GetTournamentByLocation(ctx, game.ID, city, state, country)
+	if err != nil {
+		s.logger.Error("Failed to get the tournaments: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tournaments"})
+		return
+	}
+
+	var results map[string]interface{}
+
+	results = map[string]interface{}{
+		"id":          game.ID,
+		"name":        game.Name,
+		"min_players": game.MinPlayers,
+		"tournament":  tournament,
+	}
+
+	ctx.JSON(http.StatusOK, results)
 }

@@ -41,11 +41,10 @@ func (q *Queries) AddLocation(ctx context.Context, city, state, country string, 
 }
 
 const updateUserLocation = `
-	UPDATE location
-	SET (
+	UPDATE locations
+	SET
 		latitude = $2,
 		longitude = $3
-	)
 	WHERE id = $1
 	RETURNING *
 `

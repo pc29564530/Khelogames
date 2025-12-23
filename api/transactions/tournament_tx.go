@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"context"
+	"khelogames/core/token"
 	"khelogames/database"
 	"khelogames/database/models"
 
@@ -24,12 +25,57 @@ type NewTournamentParams struct {
 	Stage          string    `json:"stage"`
 	HasKnockout    bool      `json:"has_knockout"`
 	IsPublic       bool      `json:"is_public"`
+	LocationID     int32     `json:"location_id"`
 }
 
-func (s *SQLStore) AddNewTournamentTx(ctx context.Context, arg database.NewTournamentParams) (*models.Tournament, error) {
+func (s *SQLStore) AddNewTournamentTx(ctx context.Context,
+	authPayload *token.Payload,
+	name,
+	slug,
+	status,
+	level string,
+	startTimeStamp int64,
+	gameID *int64,
+	groupCount,
+	maxGroupTeams *int32,
+	stage string,
+	hasKnockout bool,
+	city,
+	state,
+	country string) (*models.Tournament, error) {
 	var newTournament models.Tournament
 	err := s.execTx(ctx, func(q *database.Queries) error {
 		var err error
+
+		var latitude float64
+		var longitude float64
+		location, err := q.AddLocation(ctx, city, state, country, latitude, longitude)
+		if err != nil {
+			s.logger.Error("Failed to add location: ", err)
+			return err
+		}
+
+		locationID := int32(location.ID)
+
+		arg := database.NewTournamentParams{
+			UserPublicID:   authPayload.PublicID,
+			Name:           name,
+			Slug:           slug,
+			Description:    "",
+			Country:        country,
+			Status:         status,
+			Season:         1,
+			Level:          level,
+			StartTimestamp: startTimeStamp,
+			GameID:         gameID,
+			GroupCount:     groupCount,
+			MaxGroupTeams:  maxGroupTeams,
+			Stage:          stage,
+			HasKnockout:    hasKnockout,
+			IsPublic:       true,
+			LocationID:     &locationID,
+		}
+
 		newTournament, err = q.NewTournament(ctx, arg)
 		if err != nil {
 			s.logger.Error("Failed to create tournament: ", err)
