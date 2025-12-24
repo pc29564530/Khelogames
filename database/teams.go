@@ -89,7 +89,8 @@ const getMatchesByTeam = `
 				'country', ht.country,
 				'type', ht.type,
 				'player_count', ht.player_count,
-				'game_id', ht.game_id
+				'game_id', ht.game_id,
+				'location_id', ht.location_id
 			),
 
 			'homeScore', CASE 
@@ -120,7 +121,8 @@ const getMatchesByTeam = `
 				'country', at.country,
 				'type', at.type,
 				'player_count', at.player_count,
-				'game_id', at.game_id
+				'game_id', at.game_id,
+				'location_id', at.location_id
 			),
 
 			'awayScore', CASE 
@@ -365,6 +367,7 @@ func (q *Queries) GetTeamByPublicID(ctx context.Context, publicID uuid.UUID) (mo
 		&i.Type,
 		&i.PlayerCount,
 		&i.GameID,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -392,6 +395,7 @@ func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error
 		&i.Type,
 		&i.PlayerCount,
 		&i.GameID,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -399,7 +403,7 @@ func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error
 const getTeamByPlayer = `
 SELECT JSON_BUILD_OBJECT(
 	'id', t.id, 'public_id', t.public_id, 'name', t.name, 'slug', t.slug, 'shortname',t.shortname,
-	'media_url', t.media_url, 'national', t.national, 'country', t.country, 'join_date', tp.join_date, 'leave_date', tp.leave_date 
+	'media_url', t.media_url, 'national', t.national, 'country', t.country, 'location_id', t.location_id, 'join_date', tp.join_date, 'leave_date', tp.leave_date
 ) FROM team_players tp
 JOIN teams AS t ON tp.team_id=t.id
 JOIN players AS p ON tp.player_id = p.id
@@ -488,6 +492,7 @@ func (q *Queries) GetTeams(ctx context.Context) ([]models.Team, error) {
 			&i.Type,
 			&i.PlayerCount,
 			&i.GameID,
+			&i.LocationID,
 		); err != nil {
 			return nil, err
 		}
@@ -503,7 +508,7 @@ func (q *Queries) GetTeams(ctx context.Context) ([]models.Team, error) {
 }
 
 const getTeamsBySport = `
-	SELECT  JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id)
+	SELECT  JSON_BUILD_OBJECT('id', t.id, 'public_id', t.public_id, 'user_id', t.user_id, 'name', t.name, 'slug', t.slug, 'short_name', t.shortname, 'media_url', t.media_url, 'gender', t.gender, 'national', t.national, 'country', t.country, 'type', t.type, 'player_count', t.player_count, 'game_id', t.game_id, 'location_id', t.location_id)
 	FROM teams t
 	JOIN games AS g ON g.id = t.game_id
 	WHERE t.game_id=$1
@@ -614,9 +619,10 @@ INSERT INTO teams (
     country,
     type,
     player_count,
-    game_id 
+    game_id,
+    location_id
 )
-SELECT 
+SELECT
 	userID.id,
 	$2,
 	$3,
@@ -627,7 +633,8 @@ SELECT
 	$8,
 	$9,
 	$10,
-	$11
+	$11,
+	$12
 FROM userID
 RETURNING *;
 `
@@ -644,6 +651,7 @@ type NewTeamsParams struct {
 	Type         string    `json:"type"`
 	PlayerCount  int32     `json:"player_count"`
 	GameID       int32     `json:"game_id"`
+	LocationID   *int32    `json:"location_id"`
 }
 
 func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team, error) {
@@ -659,6 +667,7 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team
 		arg.Type,
 		arg.PlayerCount,
 		arg.GameID,
+		arg.LocationID,
 	)
 	var i models.Team
 	err := row.Scan(
@@ -675,6 +684,7 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team
 		&i.Type,
 		&i.PlayerCount,
 		&i.GameID,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -741,6 +751,7 @@ func (q *Queries) UpdateMediaUrl(ctx context.Context, publicID uuid.UUID, mediaU
 		&i.Type,
 		&i.PlayerCount,
 		&i.GameID,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -774,6 +785,7 @@ func (q *Queries) UpdateTeamName(ctx context.Context, publicID uuid.UUID, name s
 		&i.Type,
 		&i.PlayerCount,
 		&i.GameID,
+		&i.LocationID,
 	)
 	return i, err
 }
@@ -843,6 +855,7 @@ func (q *Queries) UpdateTeamLocation(ctx context.Context, eventPublicID uuid.UUI
 		&i.Type,
 		&i.PlayerCount,
 		&i.GameID,
+		&i.LocationID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to scan update team location: ", err)

@@ -203,6 +203,7 @@ func NewServer(config util.Config,
 	sportRouter.POST("addTournamentParticipants", tournamentServer.AddTournamentParticipantsFunc)
 
 	//teams //teams database update completed
+	sportRouter.PUT("/update-team-location/:team_public_id", teamsServer.UpdateTeamLocationFunc)
 	sportRouter.POST("/newTeams", teamsServer.AddTeam)
 	//sportRouter.GET("/getTeam/:public_id", teamsServer.GetTeamFunc)
 	sportRouter.GET("/getTeams", teamsServer.GetTeamsFunc)

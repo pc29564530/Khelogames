@@ -2,8 +2,8 @@ package teams
 
 import (
 	"khelogames/core/token"
-	db "khelogames/database"
 	"khelogames/pkg"
+	"strconv"
 
 	"khelogames/util"
 	"net/http"
@@ -21,6 +21,10 @@ type addTeamsRequest struct {
 	Type        string `json:"type"`
 	PlayerCount int    `json:"player_count"`
 	GameID      int32  `json:"game_id"`
+	Latitude    string `json:"latitude"`
+	Longitude   string `json:"longitude"`
+	City        string `json:"city"`
+	State       string `json:"state"`
 }
 
 func (s *TeamsServer) AddTeam(ctx *gin.Context) {
@@ -31,43 +35,51 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 		return
 	}
 
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin transaction: ", err)
-		return
-	}
-
-	defer tx.Rollback()
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	slug := util.GenerateSlug(req.Name)
 	shortName := util.GenerateShortName(req.Name)
-	arg := db.NewTeamsParams{
-		UserPublicID: authPayload.PublicID,
-		Name:         req.Name,
-		Slug:         slug,
-		Shortname:    shortName,
-		MediaUrl:     req.MediaURL,
-		Gender:       req.Gender,
-		National:     false,
-		Country:      req.Country,
-		Type:         req.Type,
-		PlayerCount:  int32(req.PlayerCount),
-		GameID:       req.GameID,
+
+	var emptyString string
+	var latitude float64
+	var longitude float64
+
+	if req.Latitude != emptyString && req.Longitude != emptyString {
+		latitude, err = strconv.ParseFloat(req.Latitude, 64)
+		if err != nil {
+			s.logger.Error("Failed to parse to float: ", err)
+			return
+		}
+
+		longitude, err = strconv.ParseFloat(req.Longitude, 64)
+		if err != nil {
+			s.logger.Error("Failed to parse to float: ", err)
+			return
+		}
 	}
 
-	response, err := s.store.NewTeams(ctx, arg)
+	team, err := s.txStore.CreateTeamsTx(ctx,
+		authPayload.PublicID,
+		req.Name,
+		slug,
+		shortName,
+		req.MediaURL,
+		req.Gender,
+		false,
+		req.Type,
+		int32(req.PlayerCount),
+		req.GameID,
+		req.City,
+		req.State,
+		req.Country,
+		latitude,
+		longitude,
+	)
 	if err != nil {
-		s.logger.Error("Failed to create club: ", err)
+		s.logger.Error("Failed to create new team: ", err)
 		return
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		s.logger.Error("Failed to commit transaction: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, team)
 	return
 }
 
@@ -182,4 +194,50 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, players)
+}
+
+func (s *TeamsServer) UpdateTeamLocationFunc(ctx *gin.Context) {
+	var reqURI struct {
+		TeamPublicID string `json:"team_public_id"`
+	}
+	var reqJSON struct {
+		Latitude  string `json:"latitude"`
+		Longitude string `json:"longitude"`
+		City      string `json:"city"`
+		State     string `json:"state"`
+		Country   string `json:"country"`
+	}
+	err := ctx.ShouldBindUri(&reqURI)
+	if err != nil {
+		s.logger.Error("Failed to bind uri: ", err)
+		return
+	}
+	err = ctx.ShouldBindJSON(&reqJSON)
+	if err != nil {
+		s.logger.Error("Failed to bind json: ", err)
+		return
+	}
+
+	teamPublicID, err := uuid.Parse(reqURI.TeamPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	latitude, err := strconv.ParseFloat(reqJSON.Latitude, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse float: ", err)
+		return
+	}
+
+	longitude, err := strconv.ParseFloat(reqJSON.Longitude, 64)
+	if err != nil {
+		s.logger.Error("Failed to parse float: ", err)
+		return
+	}
+
+	team, err := s.txStore.UpdateTeamTx(ctx, teamPublicID, reqJSON.City, reqJSON.State, reqJSON.Country, latitude, longitude)
+
+	ctx.JSON(http.StatusAccepted, team)
 }

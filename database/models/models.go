@@ -343,6 +343,7 @@ type Team struct {
 	Type        string    `json:"type"`
 	PlayerCount int32     `json:"player_count"`
 	GameID      int64     `json:"game_id"`
+	LocationID  *int32    `json:"location_id"`
 }
 
 type TournamentParticipants struct {
@@ -442,13 +443,6 @@ type TournamentTeam struct {
 	TournamentID int32 `json:"tournament_id"`
 	TeamID       int32 `json:"team_id"`
 }
-
-// type Uploadmedium struct {
-// 	ID        int64     `json:"id"`
-// 	MediaUrl  string    `json:"media_url"`
-// 	MediaType string    `json:"media_type"`
-// 	SentAt    time.Time `json:"sent_at"`
-// }
 
 type Wicket struct {
 	ID            int64     `json:"id"`

@@ -89,7 +89,7 @@ func main() {
 	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config, txStore)
 	footballServer := football.NewFootballServer(store, log, nil, txStore)
 
-	teamsServer := teams.NewTeamsServer(store, log, tokenMaker, config)
+	teamsServer := teams.NewTeamsServer(store, log, tokenMaker, config, txStore)
 	tournamentServer := tournaments.NewTournamentServer(store, log, tokenMaker, config, nil, txStore)
 	tokenServer := apiToken.NewTokenServer(store, log, tokenMaker, config)
 
