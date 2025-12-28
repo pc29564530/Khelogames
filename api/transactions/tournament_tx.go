@@ -49,7 +49,8 @@ func (s *SQLStore) AddNewTournamentTx(ctx context.Context,
 
 		var latitude float64
 		var longitude float64
-		location, err := q.AddLocation(ctx, city, state, country, latitude, longitude)
+		var h3Index string
+		location, err := q.AddLocation(ctx, city, state, country, latitude, longitude, h3Index)
 		if err != nil {
 			s.logger.Error("Failed to add location: ", err)
 			return err

@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/uber/h3-go/v4"
 )
 
 // func footballhelper.GetInt32(v interface{}) int32 {
@@ -376,7 +377,15 @@ func (store *SQLStore) CreateMatchTx(
 	var match models.Match
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
-		location, err := q.AddLocation(ctx, city, state, country, latitude, longitude)
+		latLng := h3.NewLatLng(latitude, longitude)
+		cell, err := h3.LatLngToCell(latLng, 9)
+		if err != nil {
+			store.logger.Error("Unable to get cell of h3: ", err)
+			return err
+		}
+
+		h3Index := cell.String()
+		location, err := q.AddLocation(ctx, city, state, country, latitude, longitude, h3Index)
 		if err != nil {
 			store.logger.Error("Failed to new location: ", err)
 			return err

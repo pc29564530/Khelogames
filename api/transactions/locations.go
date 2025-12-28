@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/uber/h3-go/v4"
 )
 
 func (store *SQLStore) AddLocationTx(ctx *gin.Context, locationOF string, eventPublicID uuid.UUID, city, state, country string, latitude, longitude float64) (models.Locations, error) {
@@ -14,7 +15,16 @@ func (store *SQLStore) AddLocationTx(ctx *gin.Context, locationOF string, eventP
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
 
-		location, err = q.AddLocation(ctx, city, state, country, latitude, longitude)
+		latLng := h3.NewLatLng(latitude, longitude)
+		cell, err := h3.LatLngToCell(latLng, 9)
+		if err != nil {
+			store.logger.Error("Unable to get cell of h3: ", err)
+			return err
+		}
+
+		h3Index := cell.String()
+
+		location, err = q.AddLocation(ctx, city, state, country, latitude, longitude, h3Index)
 		if err != nil {
 			store.logger.Error("Unable to update match status: ", err)
 			return err

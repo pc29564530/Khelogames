@@ -172,9 +172,9 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to parse to float: ", err)
 		return
 	}
-
+	var h3Index string
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	update, err := s.txStore.UpdateProfileTx(ctx, authPayload.PublicID, req.Bio, req.AvatarUrl, req.FullName, req.City, req.State, req.Country, latitude, longitude)
+	update, err := s.txStore.UpdateProfileTx(ctx, authPayload.PublicID, req.Bio, req.AvatarUrl, req.FullName, req.City, req.State, req.Country, latitude, longitude, h3Index)
 	if err != nil {
 		s.logger.Error("Failed to update profile transaction: ", err)
 		return

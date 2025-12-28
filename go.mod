@@ -1,8 +1,8 @@
 module khelogames
 
-go 1.21.2
+go 1.23.0
 
-toolchain go1.21.2
+toolchain go1.23.10
 
 require (
 	github.com/gin-gonic/gin v1.9.1
@@ -49,6 +49,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tus/lockfile v1.2.0 // indirect
+	github.com/uber/h3-go/v4 v4.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0 // indirect
 	go.opentelemetry.io/otel v1.34.0 // indirect

@@ -7,6 +7,7 @@ import (
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
+	"github.com/uber/h3-go/v4"
 )
 
 func (store *SQLStore) CreateTeamsTx(ctx context.Context, userPublicID uuid.UUID, name, slug, shortName, mediaUrl, gender string,
@@ -23,12 +24,23 @@ func (store *SQLStore) CreateTeamsTx(ctx context.Context, userPublicID uuid.UUID
 		var err error
 		// Create user
 
+		latLng := h3.NewLatLng(latitude, longitude)
+		cell, err := h3.LatLngToCell(latLng, 9)
+		if err != nil {
+			store.logger.Error("Unable to get cell of h3: ", err)
+			return err
+		}
+
+		h3Index := cell.String()
+
 		location, err := q.AddLocation(ctx,
 			city,
 			state,
 			country,
 			latitude,
-			longitude)
+			longitude,
+			h3Index,
+		)
 		if err != nil {
 			return fmt.Errorf("Failed to add the location: ", err)
 		}
@@ -66,12 +78,23 @@ func (store *SQLStore) UpdateTeamTx(ctx context.Context, teamPublicID uuid.UUID,
 		var err error
 		// Create user
 
+		latLng := h3.NewLatLng(latitude, longitude)
+		cell, err := h3.LatLngToCell(latLng, 9)
+		if err != nil {
+			store.logger.Error("Unable to get cell of h3: ", err)
+			return err
+		}
+
+		h3Index := cell.String()
+
 		location, err := q.AddLocation(ctx,
 			city,
 			state,
 			country,
 			latitude,
-			longitude)
+			longitude,
+			h3Index,
+		)
 		if err != nil {
 			return fmt.Errorf("Failed to add the location: ", err)
 		}

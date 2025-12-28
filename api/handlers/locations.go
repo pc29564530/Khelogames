@@ -77,7 +77,8 @@ func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 	fmt.Println("Latitude: ", latitude)
 	fmt.Println("Longitude: ", longitude)
 
-	location, err := s.store.UpdateUserLocation(ctx, *profile.LocationID, latitude, longitude)
+	var h3Index string
+	location, err := s.store.UpdateUserLocation(ctx, *profile.LocationID, latitude, longitude, h3Index)
 	if err != nil {
 		s.logger.Error("Failed to update user location: ", err)
 		return
