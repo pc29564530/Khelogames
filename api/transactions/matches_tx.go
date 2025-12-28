@@ -134,6 +134,14 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match
 	var ct *gin.Context
 
 	if updatedMatchData.StatusCode == "in_progress" {
+
+		//update location locked
+		_, err := q.UpdateMatchLocationLocked(ctx, updatedMatchData.ID)
+		if err != nil {
+			store.logger.Error("Failed to update match location locked: ", err)
+			return err
+		}
+
 		var penaltyShootOut *int
 		argAway := database.NewFootballScoreParams{
 			MatchID:         int32(updatedMatchData.ID),
@@ -350,4 +358,56 @@ func UpdateCricketStatusCode(ctx context.Context, updatedMatchData models.Match,
 		}
 	}
 	return nil
+}
+
+func (store *SQLStore) CreateMatchTx(
+	ctx context.Context,
+	userPublicID int32,
+	latitude, longitude float64,
+	city, state, country string,
+	tournamentPublicID, awayTeamPublicID, homeTeamPublicID uuid.UUID,
+	startTimeStamp, endTimeStamp int64,
+	types, statusCode string,
+	result *int64,
+	stage string,
+	knockoutLevelID *int32,
+	matchFormat *string,
+	subStatus *string) (*models.Match, error) {
+	var match models.Match
+	err := store.execTx(ctx, func(q *database.Queries) error {
+		var err error
+		location, err := q.AddLocation(ctx, city, state, country, latitude, longitude)
+		if err != nil {
+			store.logger.Error("Failed to new location: ", err)
+			return err
+		}
+
+		locationID := int32(location.ID)
+
+		arg := database.NewMatchParams{
+			TournamentPublicID: tournamentPublicID,
+			AwayTeamPublicID:   awayTeamPublicID,
+			HomeTeamPublicID:   homeTeamPublicID,
+			StartTimestamp:     startTimeStamp,
+			EndTimestamp:       endTimeStamp,
+			Type:               types,
+			StatusCode:         statusCode,
+			Result:             result,
+			Stage:              stage,
+			KnockoutLevelID:    knockoutLevelID,
+			MatchFormat:        matchFormat,
+			DayNumber:          nil,
+			SubStatus:          subStatus,
+			LocationID:         locationID,
+			LocationLocked:     false,
+		}
+
+		match, err = q.NewMatch(ctx, arg)
+		if err != nil {
+			store.logger.Errorf("Failed to get new match: ", err)
+			return err
+		}
+		return err
+	})
+	return &match, err
 }

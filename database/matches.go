@@ -29,6 +29,8 @@ const listMatchesQuery = `
             'match_format', m.match_format,
             'day_number', m.day_number,
             'sub_status', m.sub_status,
+            'location_id', m.location_id,
+            'location_locked', m.location_locked,
             'homeTeam', json_build_object(
                 'id', ht.id,
                 'public_id', ht.public_id,
@@ -42,7 +44,8 @@ const listMatchesQuery = `
                 'country', ht.country,
                 'type', ht.type,
                 'player_count', ht.player_count,
-                'game_id', ht.game_id
+                'game_id', ht.game_id,
+                'location_id', ht.location_id
             ),
 
             'homeScore', CASE 
@@ -73,7 +76,8 @@ const listMatchesQuery = `
                 'country', at.country,
                 'type', at.type,
                 'player_count', at.player_count,
-                'game_id', at.game_id
+                'game_id', at.game_id,
+                'location_id', at.location_id
             ),
 
             'awayScore', CASE 
@@ -186,6 +190,8 @@ SELECT
         'match_format', m.match_format,
         'day_number', m.day_number,
         'sub_status', m.sub_status,
+        'location_id', m.location_id,
+        'location_locked', m.location_locked,
 
         'homeTeam', json_build_object(
             'id', ht.id,
@@ -200,7 +206,8 @@ SELECT
             'country', ht.country,
             'type', ht.type,
             'player_count', ht.player_count,
-            'game_id', ht.game_id
+            'game_id', ht.game_id,
+            'location_id', ht.location_id
         ),
 
         'homeScore', CASE 
@@ -230,7 +237,8 @@ SELECT
             'country', at.country,
             'type', at.type,
             'player_count', at.player_count,
-            'game_id', at.game_id
+            'game_id', at.game_id,
+            'location_id', at.location_id
         ),
 
         'awayScore', CASE 
@@ -410,6 +418,8 @@ func (q *Queries) GetMatchModelByPublicId(ctx context.Context, public_id uuid.UU
 		&match.MatchFormat,
 		&match.DayNumber,
 		&match.SubStatus,
+		&match.LocationID,
+		&match.LocationLocked,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("Match model not found with public_id: %s", public_id)
@@ -440,6 +450,7 @@ const getLiveMatches = `
             'match_format', m.match_format,
             'day_number', m.day_number,
             'sub_status', m.sub_status,
+            ''
             'homeTeam', json_build_object(
                 'id', ht.id,
                 'public_id', ht.public_id,
@@ -453,7 +464,8 @@ const getLiveMatches = `
                 'country', ht.country,
                 'type', ht.type,
                 'player_count', ht.player_count,
-                'game_id', ht.game_id
+                'game_id', ht.game_id,
+                'location_id', ht.location_id
             ),
 
             'homeScore', CASE 
@@ -635,9 +647,46 @@ func (q *Queries) UpdateMatchLocation(ctx context.Context, eventPublicID uuid.UU
 		&i.MatchFormat,
 		&i.DayNumber,
 		&i.SubStatus,
+		&i.LocationID,
+		&i.LocationLocked,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to scan update match location: ", err)
+	}
+	return &i, err
+}
+
+const udpateMatchLocationLockedQuery = `
+    UPDATE matches
+    SET location_locked = true
+    WHERE id = $1
+    RETURNING *;
+`
+
+func (q *Queries) UpdateMatchLocationLocked(ctx context.Context, matchID int64) (*models.Match, error) {
+	var i models.Match
+	rows := q.db.QueryRowContext(ctx, udpateMatchLocationLockedQuery, matchID)
+	err := rows.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.TournamentID,
+		&i.AwayTeamID,
+		&i.HomeTeamID,
+		&i.StartTimestamp,
+		&i.EndTimestamp,
+		&i.Type,
+		&i.StatusCode,
+		&i.Result,
+		&i.Stage,
+		&i.KnockoutLevelID,
+		&i.MatchFormat,
+		&i.DayNumber,
+		&i.SubStatus,
+		&i.LocationID,
+		&i.LocationLocked,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan update match location locked: ", err)
 	}
 	return &i, err
 }

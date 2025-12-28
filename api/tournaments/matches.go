@@ -5,10 +5,10 @@ import (
 	"khelogames/api/orchestrator"
 	"khelogames/api/shared"
 	"khelogames/core/token"
-	db "khelogames/database"
 	"khelogames/pkg"
 	"khelogames/util"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -64,20 +64,17 @@ type createTournamentMatchRequest struct {
 	MatchFormat        *string `json:"match_format"`
 	DayNumber          *int    `json:"day_number"`
 	SubStatus          *string `json:"sub_status"`
+	Latitude           string  `json:"latitude"`
+	Longitude          string  `json:"longitude"`
+	City               string  `json:"city"`
+	State              string  `json:"state"`
+	Country            string  `json:"country"`
 }
 
 func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin transactions: ", err)
-		return
-	}
-
-	defer tx.Rollback()
-
 	var req createTournamentMatchRequest
-	err = ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, (err))
@@ -130,6 +127,21 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		}
 	}
 
+	var latitude float64
+	var longitude float64
+	if req.Latitude != "" && req.Longitude != "" {
+		latitude, err = strconv.ParseFloat(req.Latitude, 64)
+		if err != nil {
+			s.logger.Error("Failed to parse to float: ", err)
+			return
+		}
+		longitude, err = strconv.ParseFloat(req.Longitude, 64)
+		if err != nil {
+			s.logger.Error("Failed to parse to float: ", err)
+			return
+		}
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
@@ -148,41 +160,36 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		return
 	}
 
-	arg := db.NewMatchParams{
-		TournamentPublicID: tournamentPublicID,
-		AwayTeamPublicID:   awayTeamPublicID,
-		HomeTeamPublicID:   homeTeamPublicID,
-		StartTimestamp:     startTimeStamp,
-		EndTimestamp:       endTimeStamp,
-		Type:               req.Type,
-		StatusCode:         req.StatusCode,
-		Result:             req.Result,
-		Stage:              req.Stage,
-		KnockoutLevelID:    req.KnockoutLevelID,
-		MatchFormat:        &matchFormat,
-		DayNumber:          nil,
-		SubStatus:          req.SubStatus,
-	}
+	match, err := s.txStore.CreateMatchTx(ctx,
+		authPayload.UserID,
+		latitude,
+		longitude,
+		req.City,
+		req.State,
+		req.Country,
+		tournamentPublicID,
+		awayTeamPublicID,
+		homeTeamPublicID,
+		startTimeStamp,
+		endTimeStamp,
+		req.Type,
+		req.StatusCode,
+		req.Result,
+		req.Stage,
+		req.KnockoutLevelID,
+		&matchFormat,
+		req.SubStatus,
+	)
 
-	s.logger.Debug("Create match params: ", arg)
-
-	response, err := s.store.NewMatch(ctx, arg)
 	if err != nil {
-		s.logger.Error("Failed to create match: ", err)
-		ctx.JSON(http.StatusNotFound, err)
+		s.logger.Error("Failed to create new match: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create match"})
 		return
 	}
 
-	s.logger.Debug("Successfully create match: ", response)
-	s.logger.Info("Successfully create match")
+	s.logger.Debug("Successfully created match: ", match)
 
-	err = tx.Commit()
-	if err != nil {
-		s.logger.Error("Failed to commit transactions: ", err)
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, match)
 }
 
 type updateMatchSubStatusRequest struct {

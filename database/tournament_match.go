@@ -105,6 +105,8 @@ type GetMatchByIDRow struct {
 	MatchFormat         string    `json:"match_format"`
 	DayNumber           *int      `json:"day_number"`
 	SubStatus           *string   `json:"sub_status"`
+	LocationID          *int32    `json:"location_id"`
+	LocationLocked      bool      `json:"location_locked"`
 	GroupID             *int64    `json:"group_id"`
 	HomeTeamPublicID    uuid.UUID `json:"home_team_public_id"`
 	HomeTeamUserID      int32     `json:"home_team_user_id"`
@@ -118,6 +120,7 @@ type GetMatchByIDRow struct {
 	HomeTeamType        string    `json:"home_team_type"`
 	HomeTeamPlayerCount int32     `json:"home_team_player_count"`
 	HomeGameID          int64     `json:"home_game_id"`
+	HomeTeamLocationID  *int32    `json:"home_team_location_id"`
 	AwayTeamPublicID    uuid.UUID `json:"away_team_public_id"`
 	AwayTeamUserID      int32     `json:"away_team_user_id"`
 	AwayTeamName        string    `json:"away_team_name"`
@@ -130,6 +133,7 @@ type GetMatchByIDRow struct {
 	AwayTeamType        string    `json:"away_team_type"`
 	AwayTeamPlayerCount int32     `json:"away_team_player_count"`
 	AwayGameID          int64     `json:"away_game_id"`
+	AwayTeamLocationID  *int32    `json:"away_team_location_id"`
 }
 
 func (q *Queries) GetMatchByTournamentPublicID(ctx context.Context, tournamentPublicID uuid.UUID) ([]GetMatchByIDRow, error) {
@@ -200,9 +204,9 @@ func (q *Queries) GetMatchByTournamentPublicID(ctx context.Context, tournamentPu
 
 const getMatchByMatchID = `
 SELECT
-    m.id, m.public_id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result, m.stage, m.knockout_level_id, COALESCE(m.match_format, '') AS match_format, m.day_number, m.sub_status,
-    t1.id AS id, t1.public_id, t1.user_id, t1.name AS home_team_name, t1.slug AS home_team_slug, t1.shortName AS home_team_shortName, t1.media_url AS home_team_media_url, t1.gender AS home_team_gender, t1.country AS home_team_country, t1.national AS home_team_national, t1.type AS home_team_type, t1.player_count AS home_team_player_count, t1.game_id AS home_game_id,
-    t2.id AS id,t2.public_id, t2.user_id, t2.name AS away_team_name, t2.slug AS away_team_slug, t2.shortName AS away_team_shortName, t2.media_url AS away_team_media_url, t2.gender AS away_team_gender, t2.country AS away_team_country, t2.national AS away_team_national, t2.type AS away_team_type, t2.player_count AS away_team_player_count, t1.game_id AS away_game_id
+    m.id, m.public_id, m.tournament_id, m.away_team_id, m.home_team_id, m.start_timestamp, m.end_timestamp, m.type, m.status_code, m.result, m.stage, m.knockout_level_id, COALESCE(m.match_format, '') AS match_format, m.day_number, m.sub_status, m.location_id, m.location_locked,
+    t1.id AS id, t1.public_id, t1.user_id, t1.name AS home_team_name, t1.slug AS home_team_slug, t1.shortName AS home_team_shortName, t1.media_url AS home_team_media_url, t1.gender AS home_team_gender, t1.country AS home_team_country, t1.national AS home_team_national, t1.type AS home_team_type, t1.player_count AS home_team_player_count, t1.game_id AS home_game_id, t1.location_id AS home_team_location_id,
+    t2.id AS id,t2.public_id, t2.user_id, t2.name AS away_team_name, t2.slug AS away_team_slug, t2.shortName AS away_team_shortName, t2.media_url AS away_team_media_url, t2.gender AS away_team_gender, t2.country AS away_team_country, t2.national AS away_team_national, t2.type AS away_team_type, t2.player_count AS away_team_player_count, t1.game_id AS away_game_id, t2.location_id AS away_team_location_id
 FROM matches m
 JOIN teams AS t1 ON m.home_team_id=t1.id
 JOIN teams AS t2 ON m.away_team_id=t2.id
@@ -228,6 +232,8 @@ func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID
 		&i.MatchFormat,
 		&i.DayNumber,
 		&i.SubStatus,
+		&i.LocationID,
+		&i.LocationLocked,
 
 		&i.HomeTeamID,
 		&i.HomeTeamPublicID,
@@ -242,6 +248,7 @@ func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID
 		&i.HomeTeamType,
 		&i.HomeTeamPlayerCount,
 		&i.HomeGameID,
+		&i.HomeTeamLocationID,
 
 		&i.AwayTeamID,
 		&i.AwayTeamPublicID,
@@ -256,6 +263,7 @@ func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID
 		&i.AwayTeamType,
 		&i.AwayTeamPlayerCount,
 		&i.AwayGameID,
+		&i.AwayTeamLocationID,
 	)
 	return i, err
 }
@@ -283,7 +291,9 @@ INSERT INTO matches (
 	knockout_level_id,
 	match_format,
 	day_number,
-	sub_status
+	sub_status,
+	location_id,
+	location_locked
 )
 SELECT 
 	tournamentID.id,
@@ -298,7 +308,9 @@ SELECT
 	$10,
 	$11,
 	$12,
-	$13
+	$13,
+	$14,
+	$15
 FROM tournamentID, awayTeamID, homeTeamID
 RETURNING *;`
 
@@ -316,6 +328,8 @@ type NewMatchParams struct {
 	MatchFormat        *string   `json:"match_format"`
 	DayNumber          *int      `json:"day_number"`
 	SubStatus          *string   `json:"sub_status"`
+	LocationID         int32     `json:"location_id"`
+	LocationLocked     bool      `json:"location_locked"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
@@ -333,6 +347,8 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		arg.MatchFormat,
 		arg.DayNumber,
 		arg.SubStatus,
+		arg.LocationID,
+		arg.LocationLocked,
 	)
 	var i models.Match
 	err := row.Scan(
@@ -351,6 +367,8 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		&i.MatchFormat,
 		&i.DayNumber,
 		&i.SubStatus,
+		&i.LocationID,
+		&i.LocationLocked,
 	)
 	return i, err
 }
@@ -386,6 +404,8 @@ func (q *Queries) UpdateMatchSchedule(ctx context.Context, matchPublicID uuid.UU
 		&i.MatchFormat,
 		&i.DayNumber,
 		&i.SubStatus,
+		&i.LocationID,
+		&i.LocationLocked,
 	)
 	return i, err
 }
@@ -416,6 +436,8 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID
 		&i.MatchFormat,
 		&i.DayNumber,
 		&i.SubStatus,
+		&i.LocationID,
+		&i.LocationLocked,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -454,6 +476,8 @@ func (q *Queries) UpdateMatchResult(ctx context.Context, matchID, resultID int32
 		&i.MatchFormat,
 		&i.DayNumber,
 		&i.SubStatus,
+		&i.LocationID,
+		&i.LocationLocked,
 	)
 	return i, err
 }
@@ -486,6 +510,8 @@ func (q *Queries) UpdateMatchSubStatus(ctx context.Context, matchPublicID uuid.U
 		&i.MatchFormat,
 		&i.DayNumber,
 		&i.SubStatus,
+		&i.LocationID,
+		&i.LocationLocked,
 	)
 	return i, err
 }

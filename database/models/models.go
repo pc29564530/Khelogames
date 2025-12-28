@@ -250,6 +250,7 @@ type Match struct {
 	DayNumber       *int      `json:"day_number"`
 	SubStatus       *string   `json:"sub_status"`
 	LocationID      *int32    `json:"location_id"`
+	LocationLocked  bool      `json:"location_locked"`
 }
 
 type Message struct {
