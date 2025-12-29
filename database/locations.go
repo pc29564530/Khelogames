@@ -73,3 +73,39 @@ func (q *Queries) UpdateUserLocation(ctx context.Context, locationID int32, lati
 
 	return &i, err
 }
+
+const updateLocationWithAddress = `
+	UPDATE locations
+	SET
+		city = $2,
+		state = $3,
+		country = $4,
+		latitude = $5,
+		longitude = $6,
+		h3_index = $7,
+		updated_at = NOW()
+	WHERE id = $1
+	RETURNING *
+`
+
+func (q *Queries) UpdateLocationWithAddress(ctx context.Context, locationID int32, city, state, country string, latitude, longitude float64, h3Index string) (*models.Locations, error) {
+	rows := q.db.QueryRowContext(ctx, updateLocationWithAddress, locationID, city, state, country, latitude, longitude, h3Index)
+	var i models.Locations
+	err := rows.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.City,
+		&i.State,
+		&i.Country,
+		&i.Latitude,
+		&i.Longitude,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.H3Index,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to scan location: %w", err)
+	}
+
+	return &i, err
+}

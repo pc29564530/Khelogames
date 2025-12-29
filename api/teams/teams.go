@@ -198,7 +198,7 @@ func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 
 func (s *TeamsServer) UpdateTeamLocationFunc(ctx *gin.Context) {
 	var reqURI struct {
-		TeamPublicID string `json:"team_public_id"`
+		TeamPublicID string `uri:"team_public_id"`
 	}
 	var reqJSON struct {
 		Latitude  string `json:"latitude"`

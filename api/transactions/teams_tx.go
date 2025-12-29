@@ -76,8 +76,14 @@ func (store *SQLStore) UpdateTeamTx(ctx context.Context, teamPublicID uuid.UUID,
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
-		// Create user
 
+		// Get the team first to check if it has an existing location
+		existingTeam, err := q.GetTeamByPublicID(ctx, teamPublicID)
+		if err != nil {
+			return fmt.Errorf("Failed to get team: %w", err)
+		}
+
+		// Calculate H3 index
 		latLng := h3.NewLatLng(latitude, longitude)
 		cell, err := h3.LatLngToCell(latLng, 9)
 		if err != nil {
@@ -87,26 +93,50 @@ func (store *SQLStore) UpdateTeamTx(ctx context.Context, teamPublicID uuid.UUID,
 
 		h3Index := cell.String()
 
-		location, err := q.AddLocation(ctx,
-			city,
-			state,
-			country,
-			latitude,
-			longitude,
-			h3Index,
-		)
-		if err != nil {
-			return fmt.Errorf("Failed to add the location: ", err)
+		fmt.Println("H3 Index: ", h3Index)
+
+		var locationID int32
+
+		// If team already has a location, update it; otherwise create a new one
+		if existingTeam.LocationID != nil && *existingTeam.LocationID > 0 {
+			// Update existing location with all fields including h3_index
+			location, err := q.UpdateLocationWithAddress(ctx, *existingTeam.LocationID, city, state, country, latitude, longitude, h3Index)
+			if err != nil {
+				return fmt.Errorf("Failed to update location: %w", err)
+			}
+			locationID = int32(location.ID)
+		} else {
+			// Create new location
+			location, err := q.AddLocation(ctx,
+				city,
+				state,
+				country,
+				latitude,
+				longitude,
+				h3Index,
+			)
+			if err != nil {
+				return fmt.Errorf("Failed to add the location: %w", err)
+			}
+			locationID = int32(location.ID)
+
+			// Update team with the new location ID
+			res, err := q.UpdateTeamLocation(ctx, teamPublicID, locationID)
+			if err != nil {
+				return fmt.Errorf("Failed to update team location: %w", err)
+			}
+			team = *res
+			return nil
 		}
 
-		locationID := int32(location.ID)
-
-		res, err := store.UpdateTeamLocation(ctx, teamPublicID, locationID)
+		// If we updated an existing location, fetch the team again to return current state
+		updatedTeam, err := q.GetTeamByPublicID(ctx, teamPublicID)
 		if err != nil {
-			return fmt.Errorf("Failed to update team location: ", err)
+			return fmt.Errorf("Failed to get updated team: %w", err)
 		}
-		team = *res
-		return err
+		team = updatedTeam
+
+		return nil
 	})
 	return team, err
 }
