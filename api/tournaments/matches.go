@@ -101,6 +101,12 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
 	gameName := ctx.Param("sport")
 
+	game, err := s.store.GetGamebyName(ctx, gameName)
+	if err != nil {
+		s.logger.Error("Failed to get game: ", err)
+		return
+	}
+
 	startTimeStamp, err := util.ConvertTimeStamp(req.StartTimestamp)
 	if err != nil {
 		s.logger.Error("unable to convert time to second: ", err)
@@ -179,6 +185,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		req.KnockoutLevelID,
 		&matchFormat,
 		req.SubStatus,
+		game.ID,
 	)
 
 	if err != nil {

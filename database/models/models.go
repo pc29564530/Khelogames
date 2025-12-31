@@ -251,6 +251,7 @@ type Match struct {
 	SubStatus       *string   `json:"sub_status"`
 	LocationID      *int32    `json:"location_id"`
 	LocationLocked  bool      `json:"location_locked"`
+	GameID          int32     `json:"game_id"`
 }
 
 type Message struct {

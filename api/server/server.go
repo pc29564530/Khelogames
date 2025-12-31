@@ -183,6 +183,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTournament/:tournament_public_id", tournamentServer.GetTournamentFunc)
 	sportRouter.GET("/getAllTournamentMatch/:tournament_public_id", tournamentServer.GetTournamentMatch)
 	sportRouter.PUT("/updateMatchSubStatus/:match_public_id", tournamentServer.UpdateMatchSubStatusFunc)
+	sportRouter.GET("/get-matches-by-location", handlersServer.GetMatchesByLocationFunc)
 	///
 	// sportRouter.POST("/addFootballGoalByPlayer", footballServer.UpdateFootballMatchScoreFunc)
 	sportRouter.GET("/getFootballStanding/:tournament_public_id", tournamentServer.GetFootballStandingFunc)

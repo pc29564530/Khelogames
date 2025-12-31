@@ -373,7 +373,8 @@ func (store *SQLStore) CreateMatchTx(
 	stage string,
 	knockoutLevelID *int32,
 	matchFormat *string,
-	subStatus *string) (*models.Match, error) {
+	subStatus *string,
+	gameID int64) (*models.Match, error) {
 	var match models.Match
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
@@ -409,6 +410,7 @@ func (store *SQLStore) CreateMatchTx(
 			SubStatus:          subStatus,
 			LocationID:         locationID,
 			LocationLocked:     false,
+			GameID:             int32(gameID),
 		}
 
 		match, err = q.NewMatch(ctx, arg)

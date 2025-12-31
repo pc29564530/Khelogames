@@ -293,7 +293,8 @@ INSERT INTO matches (
 	day_number,
 	sub_status,
 	location_id,
-	location_locked
+	location_locked,
+	game_id
 )
 SELECT 
 	tournamentID.id,
@@ -310,7 +311,8 @@ SELECT
 	$12,
 	$13,
 	$14,
-	$15
+	$15,
+	$16
 FROM tournamentID, awayTeamID, homeTeamID
 RETURNING *;`
 
@@ -330,6 +332,7 @@ type NewMatchParams struct {
 	SubStatus          *string   `json:"sub_status"`
 	LocationID         int32     `json:"location_id"`
 	LocationLocked     bool      `json:"location_locked"`
+	GameID             int32     `json:"game_id"`
 }
 
 func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
@@ -349,6 +352,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		arg.SubStatus,
 		arg.LocationID,
 		arg.LocationLocked,
+		arg.GameID,
 	)
 	var i models.Match
 	err := row.Scan(
@@ -369,6 +373,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		&i.SubStatus,
 		&i.LocationID,
 		&i.LocationLocked,
+		&i.GameID,
 	)
 	return i, err
 }
