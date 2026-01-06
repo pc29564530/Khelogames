@@ -15,48 +15,69 @@ import (
 func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 	userAgent := ctx.Request.UserAgent()
 	clientIP := ctx.ClientIP()
+
 	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required"`
 	}
+
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind the login request : ", err)
+		s.logger.Error("Failed to bind the login request: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tx, err := s.store.BeginTx(ctx)
 	if err != nil {
 		s.logger.Error("Failed to begin the transaction: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "An error occurred. Please try again later.",
+		})
 		return
 	}
-
 	defer tx.Rollback()
 
+	// Get user by email
 	existingUser, err := s.store.GetUsersByGmail(ctx, req.Email)
-	if err != nil && existingUser == nil {
-		s.logger.Info("User already does not exists with email: ", req.Email)
-		ctx.JSON(http.StatusConflict, gin.H{
-			"success": false,
-			"message": "Email not registered. Please sign up instead.",
-		})
-		return
-	}
-
-	err = util.CheckPassword(req.Password, *existingUser.HashPassword)
-	s.logger.Info("Existing User Password: ", *existingUser.HashPassword)
-	s.logger.Info("New Sign In : ", req.Password)
 	if err != nil {
-		s.logger.Info("Email and password does not match: ")
-		ctx.JSON(http.StatusConflict, gin.H{
+		s.logger.Error("Database error while fetching user: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"message": "Email and password does not match:",
+			"message": "An error occurred. Please try again later.",
 		})
 		return
 	}
 
-	//create a token using user id
-	tokens, err := token.CreateNewToken(ctx,
+	// Security best practice: Use same error message for both invalid email and password
+	// This prevents attackers from enumerating valid email addresses
+	if existingUser == nil {
+		s.logger.Info("Sign in attempt with non-existent email: ", req.Email)
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "Invalid email or password",
+		})
+		return
+	}
+
+	// Verify password
+	err = util.CheckPassword(req.Password, *existingUser.HashPassword)
+	if err != nil {
+		s.logger.Info("Failed password attempt for email: ", req.Email)
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"message": "Invalid email or password",
+		})
+		return
+	}
+
+	// Create tokens
+	tokens, err := token.CreateNewToken(
+		ctx,
 		s.store,
 		s.tokenMaker,
 		int32(existingUser.ID),
@@ -64,9 +85,14 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		s.config.AccessTokenDuration,
 		s.config.RefreshTokenDuration,
 		userAgent,
-		clientIP)
+		clientIP,
+	)
 	if err != nil {
-		s.logger.Errorf("Failed to create new token: ", err)
+		s.logger.Error("Failed to create new token: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "An error occurred. Please try again later.",
+		})
 		return
 	}
 
@@ -76,22 +102,27 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 	refreshToken := tokens["refreshToken"].(string)
 	refreshPayload := tokens["refreshPayload"].(*token.Payload)
 
-	s.logger.Info("Successfully Sign in using google ")
-
+	// Commit transaction
 	err = tx.Commit()
 	if err != nil {
 		s.logger.Error("Failed to commit transaction: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "An error occurred. Please try again later.",
+		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{
-		"Success":               true,
-		"SessionID":             session.ID,
-		"AccessToken":           accessToken,
-		"AccessTokenExpiresAt":  accessPayload.ExpiredAt,
-		"RefreshToken":          refreshToken,
-		"RefreshTokenExpiresAt": refreshPayload.ExpiredAt,
-		"User":                  existingUser,
+	s.logger.Info("Successful sign in for user: ", existingUser.PublicID)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success":               true,
+		"sessionID":             session.ID,
+		"accessToken":           accessToken,
+		"accessTokenExpiresAt":  accessPayload.ExpiredAt,
+		"refreshToken":          refreshToken,
+		"refreshTokenExpiresAt": refreshPayload.ExpiredAt,
+		"user":                  existingUser,
 	})
 }
 

@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 	"time"
 
@@ -99,6 +101,12 @@ func (q *Queries) GetUsersByGmail(ctx context.Context, gmail string) (*models.Us
 		&users.CreatedAt,
 		&users.UpdatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan user by gmail: ", err)
+	}
 	return &users, err
 }
 
