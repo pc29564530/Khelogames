@@ -22,19 +22,33 @@ func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 	var bodyReq createCommentRequest
 
 	if err := ctx.ShouldBindUri(&uriReq); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid thread ID"})
+		s.logger.Error("Failed to bind thread public ID: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid thread public ID",
+		})
 		return
 	}
 
 	if err := ctx.ShouldBindJSON(&bodyReq); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid comment body"})
+		s.logger.Error("Failed to bind comment body: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid comment body",
+		})
 		return
 	}
 
 	threadPublicID, err := uuid.Parse(uriReq.ThreadPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -42,13 +56,21 @@ func (s *HandlersServer) CreateCommentFunc(ctx *gin.Context) {
 	comment, err := s.store.CreateComment(ctx, threadPublicID, authPayload.PublicID, bodyReq.CommentText)
 	if err != nil {
 		s.logger.Error("Failed to create comment: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create comment"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Could not create comment",
+		})
 		return
 	}
 	profile, err := s.store.GetProfileByUserID(ctx, comment.UserID)
 	if err != nil {
 		s.logger.Error("Failed to get profile by user ID: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get profile"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Could not get user profile",
+		})
 		return
 	}
 
@@ -78,7 +100,11 @@ func (s *HandlersServer) GetAllCommentFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
@@ -87,18 +113,25 @@ func (s *HandlersServer) GetAllCommentFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	comments, err := s.store.GetAllComment(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get comment: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get comments",
+		})
 		return
 	}
-	s.logger.Debug("get all the comments : ", comments)
-	s.logger.Debug("Received threads from database")
+	s.logger.Debug("Successfully get all the comments : ", comments)
 	ctx.JSON(http.StatusAccepted, comments)
 }
 
@@ -111,6 +144,11 @@ func (s *HandlersServer) DeleteCommentByUserFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -118,7 +156,11 @@ func (s *HandlersServer) DeleteCommentByUserFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -127,7 +169,11 @@ func (s *HandlersServer) DeleteCommentByUserFunc(ctx *gin.Context) {
 	comments, err := s.store.DeleteComment(ctx, publicID, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get comment by user: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get comment by user",
+		})
 		return
 	}
 	s.logger.Info("successfully get comment by user")

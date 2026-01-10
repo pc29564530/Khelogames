@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
-
 	"khelogames/core/token"
 	"khelogames/pkg"
 	"net/http"
@@ -21,13 +19,12 @@ func (s *HandlersServer) CreateUserConnectionsFunc(ctx *gin.Context) {
 	var req createFollowingRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			s.logger.Error("No row error: ", err)
-			ctx.JSON(http.StatusNotFound, (err))
-			return
-		}
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -35,7 +32,11 @@ func (s *HandlersServer) CreateUserConnectionsFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.TargetPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -43,7 +44,11 @@ func (s *HandlersServer) CreateUserConnectionsFunc(ctx *gin.Context) {
 	follower, err := s.store.CreateUserConnections(ctx, authPayload.PublicID, publicID)
 	if err != nil {
 		s.logger.Error("Failed to create following: ", err)
-		ctx.JSON(http.StatusBadRequest, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to create following",
+		})
 		return
 	}
 	s.logger.Debug("successfully created: ", follower)
@@ -57,7 +62,11 @@ func (s *HandlersServer) GetAllFollowerFunc(ctx *gin.Context) {
 	follower, err := s.store.GetAllFollower(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get follwer: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get follower",
+		})
 		return
 	}
 	s.logger.Debug("successfully get follower ", follower)
@@ -70,7 +79,11 @@ func (s *HandlersServer) GetAllFollowingFunc(ctx *gin.Context) {
 	follower, err := s.store.GetAllFollowing(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get following: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get following",
+		})
 		return
 	}
 	s.logger.Debug("successfully get following: ", follower)
@@ -88,13 +101,13 @@ func (s *HandlersServer) DeleteFollowingFunc(ctx *gin.Context) {
 	var req deleteFollowingRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			s.logger.Error("No row error: ", err)
-			ctx.JSON(http.StatusNotFound, (err))
-			return
-		}
+
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -102,7 +115,11 @@ func (s *HandlersServer) DeleteFollowingFunc(ctx *gin.Context) {
 	targetPublicID, err := uuid.Parse(req.TargetPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -111,7 +128,11 @@ func (s *HandlersServer) DeleteFollowingFunc(ctx *gin.Context) {
 	err = s.store.DeleteUsersConnections(ctx, authPayload.PublicID, targetPublicID)
 	if err != nil {
 		s.logger.Error("Failed to unfollow user: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to unfollow user",
+		})
 		return
 	}
 
@@ -125,18 +146,23 @@ func (s *HandlersServer) IsFollowingFunc(ctx *gin.Context) {
 	}
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			s.logger.Error("No row error: ", err)
-		}
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	targetPublicID, err := uuid.Parse(req.TargetPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -145,7 +171,11 @@ func (s *HandlersServer) IsFollowingFunc(ctx *gin.Context) {
 	isFollowing, err := s.store.IsFollowingF(ctx, authPayload.PublicID, targetPublicID)
 	if err != nil {
 		s.logger.Error("Failed to check following ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check following status"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to check following status",
+		})
 		return
 	}
 

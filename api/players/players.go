@@ -24,6 +24,11 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("Requested data: ", req)
@@ -31,6 +36,11 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 	userPlayer, err := s.store.GetProfile(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("unable to get the profile: %s", err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get user profile",
+		})
 		return
 	}
 	fullNameSlug := util.GenerateSlug(userPlayer.FullName)
@@ -50,7 +60,11 @@ func (s *PlayerServer) NewPlayerFunc(ctx *gin.Context) {
 	response, err := s.store.NewPlayer(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to add player profile: ", err)
-		ctx.JSON(http.StatusNoContent, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to add player profile",
+		})
 		return
 	}
 	s.logger.Debug("Added player profile: ", response)
@@ -64,17 +78,32 @@ func (s *PlayerServer) GetPlayerByProfilePublicIDFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	profilePublicID, err := uuid.Parse(req.ProfilePublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse to uuid: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	player, err := s.store.GetPlayerByProfile(ctx, profilePublicID)
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get player profile",
+		})
 		return
 	}
 	ctx.JSON(http.StatusAccepted, player)
@@ -85,7 +114,11 @@ func (s *PlayerServer) GetAllPlayerFunc(ctx *gin.Context) {
 	response, err := s.store.GetAllPlayer(ctx)
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
-		ctx.JSON(http.StatusNoContent, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get player profiles",
+		})
 		return
 	}
 
@@ -102,21 +135,33 @@ func (s *PlayerServer) GetPlayerFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusNoContent, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	response, err := s.store.GetPlayer(ctx, playerPublicID)
 	if err != nil {
-		s.logger.Error("Failed to get player profile: ", err)
-		ctx.JSON(http.StatusNoContent, err)
+		s.logger.Error("Failed to get player profile: ")
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get player profile",
+		})
 		return
 	}
 
@@ -132,8 +177,12 @@ func (s *PlayerServer) GetPlayerSearchFunc(ctx *gin.Context) {
 
 	response, err := s.store.SearchPlayer(ctx, playerName)
 	if err != nil {
-		s.logger.Error("Failed to get player profile: ", err)
-		ctx.JSON(http.StatusNoContent, err)
+		s.logger.Error("Failed to search player profile: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to search player profile",
+		})
 		return
 	}
 
@@ -148,7 +197,11 @@ func (s *PlayerServer) GetPlayerByCountry(ctx *gin.Context) {
 	response, err := s.store.GetPlayersCountry(ctx, country)
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
-		ctx.JSON(http.StatusNoContent, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get player profiles by country",
+		})
 		return
 	}
 	s.logger.Debug("Successfully get all player profile: ", response)
@@ -163,14 +216,22 @@ func (s *PlayerServer) GetPlayersBySportFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	response, err := s.store.GetPlayersBySport(ctx, req.GameID)
 	if err != nil {
 		s.logger.Error("Failed to get player profile: ", err)
-		ctx.JSON(http.StatusNoContent, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get player profiles by sport",
+		})
 		return
 	}
 	s.logger.Debug("Successfully get all player profile: ", response)

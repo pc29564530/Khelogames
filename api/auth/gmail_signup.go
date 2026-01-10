@@ -20,7 +20,8 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind the sign-up request: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"message": "Invalid request data",
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
 		})
 		return
 	}
@@ -31,6 +32,7 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 		s.logger.Info("User already exists with email: ", req.Email)
 		ctx.JSON(http.StatusConflict, gin.H{
 			"success": false,
+			"code":    "EMAIL_ALREADY_REGISTERED",
 			"message": "Email already registered. Please sign in instead.",
 		})
 		return
@@ -42,18 +44,6 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, "Failed to convert to hash")
 		return
 	}
-
-	// Start database transaction
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin the transaction: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": "Internal server error",
-		})
-		return
-	}
-	defer tx.Rollback()
 
 	// Generate username
 	username := GenerateUsername(req.Email)
@@ -68,6 +58,7 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 		s.logger.Errorf("Failed to create new account: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
+			"code":    "SIGNUP_ERROR",
 			"message": "Failed to create account. Please try again.",
 		})
 		return
@@ -78,16 +69,6 @@ func (s *AuthServer) CreateEmailSignUpFunc(ctx *gin.Context) {
 	accessPayload := tokens["accessPayload"].(*token.Payload)
 	refreshToken := tokens["refreshToken"].(string)
 	refreshPayload := tokens["refreshPayload"].(*token.Payload)
-
-	// Commit transaction
-	if err := tx.Commit(); err != nil {
-		s.logger.Error("Failed to commit transaction: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": "Failed to create account. Please try again.",
-		})
-		return
-	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
 		"Success": true,

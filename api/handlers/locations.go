@@ -24,12 +24,22 @@ func (s *HandlersServer) AddLocationFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	eventPublicID, err := uuid.Parse(req.EventPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse event public id to uuid: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid event UUID format",
+		})
 		return
 	}
 
@@ -37,6 +47,11 @@ func (s *HandlersServer) AddLocationFunc(ctx *gin.Context) {
 	location, err := s.txStore.AddLocationTx(ctx, req.LocationOF, eventPublicID, req.City, req.State, req.Country, req.Latitude, req.Longitude)
 	if err != nil {
 		s.logger.Error("Failed to add location: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to add location",
+		})
 		return
 	}
 	ctx.JSON(http.StatusAccepted, location)
@@ -50,18 +65,33 @@ func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	latitude, err := strconv.ParseFloat(req.Latitude, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse to float: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid latitude format",
+		})
 		return
 	}
 
 	longitude, err := strconv.ParseFloat(req.Longitude, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse to float: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid longitude format",
+		})
 		return
 	}
 
@@ -71,6 +101,11 @@ func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 	profile, err := s.store.GetProfileByUserID(ctx, authPayload.UserID)
 	if err != nil {
 		s.logger.Error("Failed to get profile by user id: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get user profile",
+		})
 		return
 	}
 
@@ -81,6 +116,11 @@ func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 	location, err := s.store.UpdateUserLocation(ctx, *profile.LocationID, latitude, longitude, h3Index)
 	if err != nil {
 		s.logger.Error("Failed to update user location: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to update user location",
+		})
 		return
 	}
 	ctx.JSON(http.StatusAccepted, location)

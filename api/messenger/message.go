@@ -19,7 +19,11 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind URI", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
@@ -28,7 +32,11 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 	receiverPublicID, err := uuid.Parse(req.ReceiverPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -43,7 +51,11 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 	messageContent, err := s.store.GetMessageByReceiver(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to get message by receiver", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get message by receiver",
+		})
 		return
 	}
 
@@ -55,7 +67,11 @@ func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 	messageUser, err := s.store.GetUserByMessageSend(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get user by message send: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get user by message send",
+		})
 		return
 	}
 
@@ -69,8 +85,12 @@ func (s *MessageServer) DeleteScheduleMessageFunc(ctx *gin.Context) {
 	response, err := s.store.ScheduledDeleteMessage(ctx)
 	if err != nil {
 		s.logger.Error("Failed to delete message: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to delete message",
+		})
 		return
 	}
-
 	ctx.JSON(http.StatusAccepted, response)
 }

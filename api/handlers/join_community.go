@@ -18,7 +18,11 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind URI: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("Bind the request: ", req)
@@ -27,7 +31,11 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -37,18 +45,31 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	community, err := s.store.GetCommunity(ctx, communityPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get community: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get community",
+		})
 		return
 	}
 
 	if community.UserID != authPayload.UserID {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed"})
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"code":    "FORBIDDEN_ERROR",
+			"message": "You are not allowed to join this community",
+		})
 		return
 	}
 
 	communityUser, err := s.txStore.AddJoinCommunityTx(ctx.Request.Context(), communityPublicID, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to join community: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to join community"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to join community",
+		})
 		return
 	}
 
@@ -62,7 +83,11 @@ func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
 	communityList, err := s.store.GetCommunityByUser(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get community by user: ", err)
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Failed to get community list"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get communities",
+		})
 		return
 	}
 	s.logger.Debug("community by user: ", communityList)

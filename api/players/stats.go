@@ -11,9 +11,23 @@ import (
 func (s *PlayerServer) GetPlayerCricketStatsByMatchType(ctx *gin.Context) {
 	playerPublicIDString := ctx.Query("player_public_id")
 	playerPublicID, err := uuid.Parse(playerPublicIDString)
+	if err != nil {
+		s.logger.Error("Failed to parst to uuid: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
+		return
+	}
 	playerStats, err := s.store.GetCricketPlayerBowlingStats(ctx, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the player bowling stats: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get player bowling stats",
+		})
 		return
 	}
 	var testStats *models.PlayerBowlingStats
@@ -46,19 +60,33 @@ func (s *PlayerServer) GetFootballPlayerStatsFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	playersStats, err := s.store.GetFootballPlayerStats(ctx, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get football player stats: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get football player stats",
+		})
 		return
 	}
 
@@ -70,12 +98,22 @@ func (s *PlayerServer) GetPlayerCricketStatsByMatchTypeFunc(ctx *gin.Context) {
 	playerPublicID, err := uuid.Parse(playerPublicIDString)
 	if err != nil {
 		s.logger.Error("Failed to parst to uuid: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	playerStats, err := s.store.GetPlayerCricketStatsByMatchType(ctx, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the player stats for cricket: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get player cricket stats",
+		})
 		return
 	}
 

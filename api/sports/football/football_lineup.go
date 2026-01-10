@@ -22,26 +22,44 @@ func (s *FootballServer) GetFootballLineUpFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	response, err := s.store.GetFootballMatchSquad(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the player in lineup: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get the player in lineup",
+		})
 		return
 	}
 
@@ -66,20 +84,33 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -87,17 +118,32 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		s.logger.Error("Failed to get match data: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get match details",
+		})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		s.logger.Error("Failed to get user role: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get user tournament role",
+		})
 		return
 	}
 	if !isExists {
-		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		s.logger.Error("User does not own this match")
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"code":    "NOT_FOUND",
+			"message": "You do not own this match",
+		})
 		return
 	}
 
@@ -117,13 +163,22 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 		playerPublicID, err := uuid.Parse(player.PublicID)
 		if err != nil {
 			s.logger.Error("Invalid UUID format", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			})
 			return
 		}
 
 		squad, err = s.store.AddFootballSquad(ctx, matchPublicID, teamPublicID, playerPublicID, substitute)
 		if err != nil {
 			s.logger.Error("Failed to add football squad: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "DATABASE_ERROR",
+				"message": "Failed to add football squad",
+			})
 			return
 		}
 
@@ -152,6 +207,11 @@ func (s *FootballServer) GetFootballMatchSquadFunc(ctx *gin.Context) {
 	matchPublicID, err := uuid.Parse(matchIDString)
 	if err != nil {
 		s.logger.Error("`Failed to parse int: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -159,12 +219,22 @@ func (s *FootballServer) GetFootballMatchSquadFunc(ctx *gin.Context) {
 	teamPublicID, err := uuid.Parse(teamIDString)
 	if err != nil {
 		s.logger.Error("Failed to parse int: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	response, err := s.store.GetFootballMatchSquad(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get football match squad: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get football match squad",
+		})
 		return
 	}
 

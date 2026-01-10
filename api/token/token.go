@@ -18,14 +18,22 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	config, err := util.LoadConfig(".")
 	if err != nil {
 		s.logger.Error("Failed to load config: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "LOAD_CONFIG_ERROR",
+			"message": "Failed to load config",
+		})
 		return
 	}
 
 	var req renewAccessTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		s.logger.Error("Failed to bind request: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
@@ -35,7 +43,11 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	refreshPayload, err := s.tokenMaker.VerifyToken(req.RefreshToken)
 	if err != nil {
 		s.logger.Error("Failed to verify refresh token: %v", err)
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired refresh token"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"code":    "AUTHORIZATION_ERROR",
+			"message": "Failed to verify token",
+		})
 		return
 	}
 
@@ -44,7 +56,11 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	// Check if refresh token is expired (this should be redundant after VerifyToken, but good for safety)
 	if time.Now().After(refreshPayload.ExpiredAt) {
 		s.logger.Error("Refresh token expired")
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token expired"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"code":    "AUTHORIZATION_ERROR",
+			"message": "Failed to check refresh token is expired",
+		})
 		return
 	}
 
@@ -53,7 +69,11 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.logger.Error("Session not found: %v", err)
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"code":    "DATABASE_ERROR",
+				"message": "Failed to get sessions",
+			})
 			return
 		}
 		s.logger.Error("Failed to get session: %v", err)
@@ -64,21 +84,33 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	// Verify session belongs to the same user
 	if session.UserID != refreshPayload.UserID {
 		s.logger.Error("Session user mismatch")
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid session"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"code":    "AUHTORIZARION_ERROR",
+			"message": "Failed to verify user",
+		})
 		return
 	}
 
 	// Verify the refresh token matches
 	if session.RefreshToken != req.RefreshToken {
 		s.logger.Error("Session token mismatch")
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"code":    "AUTHORIZATION_ERROR",
+			"message": "Session token mismatch",
+		})
 		return
 	}
 
 	// Check session expiry (this is the database session expiry, not the JWT expiry)
 	if time.Now().After(session.ExpiresAt) {
 		s.logger.Error("Database session expired")
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"code":    "AUTHORIZATION_ERROR",
+			"message": "Session token expired",
+		})
 		return
 	}
 
@@ -90,7 +122,11 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	)
 	if err != nil {
 		s.logger.Error("Failed to create token: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create access token"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to create token",
+		})
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{

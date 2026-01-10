@@ -17,32 +17,44 @@ func (s *CricketServer) GetCurrentBowlerFunc(ctx *gin.Context) {
 	matchPublicID, err := uuid.Parse(matchPublicIDStr)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(teamPublicIDStr)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	inningNumber, err := strconv.Atoi(inningNumberStr)
 	if err != nil {
 		s.logger.Error("Failed to parse to int: ", err)
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid inning number format",
+		})
 		return
 	}
 
 	currentBowlerResponse, err := s.store.GetCurrentBowler(ctx, matchPublicID, teamPublicID, inningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get current bowler score : ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if currentBowlerResponse == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get current bowler score",
+		})
 		return
 	}
 

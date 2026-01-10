@@ -21,7 +21,11 @@ func (s *HandlersServer) GetPlayerWithProfileFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("Successfully bind: ", req)
@@ -29,18 +33,27 @@ func (s *HandlersServer) GetPlayerWithProfileFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	playerProfile, err := s.store.GetPlayerWithProfile(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get player with profile", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get player with profile",
+		})
+		return
 	}
 
 	ctx.JSON(http.StatusAccepted, playerProfile)
 	return
-
 }
 
 func (s *HandlersServer) GetProfileByPublicIDFunc(ctx *gin.Context) {
@@ -51,7 +64,11 @@ func (s *HandlersServer) GetProfileByPublicIDFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("Successfully bind: ", req)
@@ -59,18 +76,25 @@ func (s *HandlersServer) GetProfileByPublicIDFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	profile, err := s.store.GetProfileByPublicID(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get profile: ", err)
-		ctx.JSON(http.StatusNotFound, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get profile",
+		})
 		return
 	}
-	fmt.Println("Profile; ", profile)
-	s.logger.Info("Successfully retrieved profile by profile public_id: ", profile)
+	s.logger.Debug("Successfully retrieved profile by profile public_id: ", profile)
 	ctx.JSON(http.StatusOK, profile)
 }
 
@@ -82,7 +106,11 @@ func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("Successfully bind: ", req)
@@ -90,18 +118,25 @@ func (s *HandlersServer) GetProfileFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	profile, err := s.store.GetProfile(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get profile: ", err)
-		ctx.JSON(http.StatusNotFound, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get profile",
+		})
 		return
 	}
-	fmt.Println("Profile; ", profile)
-	s.logger.Info("Successfully retrieved profile: ", profile)
+	s.logger.Debug("Successfully retrieved profile: ", profile)
 	ctx.JSON(http.StatusOK, profile)
 }
 
@@ -113,7 +148,11 @@ func (s *HandlersServer) GetProfileByFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("Successfully bind: ", req)
@@ -121,17 +160,24 @@ func (s *HandlersServer) GetProfileByFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	profile, err := s.store.GetProfile(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get profile: ", err)
-		ctx.JSON(http.StatusNotFound, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get profile",
+		})
 		return
 	}
-	fmt.Println("Profile; ", profile)
 	s.logger.Info("Successfully retrieved profile: ", profile)
 	ctx.JSON(http.StatusOK, profile)
 }
@@ -153,23 +199,34 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind JSON: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request data",
+		})
 		return
 	}
 
 	s.logger.Debug("Request JSON bind successful: ", req)
 
-	fmt.Println("Latitude: ", req.Latitude)
-	fmt.Println("Longitude: ", req.Longitude)
-
 	latitude, err := strconv.ParseFloat(req.Latitude, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse to float: ", err)
+		s.logger.Error("Failed to parse latitude: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": fmt.Sprintf("Invalid latitude value: %v", req.Latitude),
+		})
 		return
 	}
 	longitude, err := strconv.ParseFloat(req.Longitude, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse to float: ", err)
+		s.logger.Error("Failed to parse longitude: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": fmt.Sprintf("Invalid longitude value: %v", req.Longitude),
+		})
 		return
 	}
 	var h3Index string
@@ -177,21 +234,13 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 	update, err := s.txStore.UpdateProfileTx(ctx, authPayload.PublicID, req.Bio, req.AvatarUrl, req.FullName, req.City, req.State, req.Country, latitude, longitude, h3Index)
 	if err != nil {
 		s.logger.Error("Failed to update profile transaction: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to update profile information",
+		})
 		return
 	}
-
-	// updatedProfile, err := s.store.EditProfile(ctx, arg)
-	// if err != nil {
-	// 	s.logger.Error("Failed to update profile: ", err)
-	// 	ctx.JSON(http.StatusNotAcceptable, err)
-	// 	return
-	// }
-
-	// _, err = s.store.UpdateUser(ctx, int32(updatedProfile.UserID), req.FullName)
-	// if err != nil {
-	// 	s.logger.Error("Failed to update the user full name: ", err)
-	// 	ctx.JSON(http.StatusNotAcceptable, err)
-	// }
 
 	s.logger.Info("Successfully updated profile: ", update)
 	ctx.JSON(http.StatusAccepted, update)
@@ -202,6 +251,11 @@ func (s *HandlersServer) GetRolesFunc(ctx *gin.Context) {
 	roles, err := s.store.GetRoles(ctx)
 	if err != nil {
 		s.logger.Error("Failed to get roles: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get roles",
+		})
 		return
 	}
 
@@ -215,15 +269,24 @@ func (s *HandlersServer) AddUserRoleFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request data",
+		})
 		return
 	}
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	roles, err := s.store.AddRole(ctx, authPayload.PublicID, req.RoleID)
 	if err != nil {
 		s.logger.Error("Failed to get roles: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get roles",
+		})
 		return
 	}
-
 	ctx.JSON(http.StatusAccepted, roles)
 }
 
@@ -240,6 +303,11 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request data",
+		})
 		return
 	}
 
@@ -247,6 +315,11 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 	organizerDetails, err := s.store.AddOrganizerVerificationDetails(ctx, req.ProfileID, req.OrganizationName, req.Email, req.PhoneNumber)
 	if err != nil {
 		s.logger.Error("Failed to Verify the organizer details: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to verify organizer details",
+		})
 		return
 	}
 
@@ -257,6 +330,11 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 		documentPath, err := saveImageStruct.SaveImageToFile([]byte(req.DocumentURL), "image")
 		if err != nil {
 			s.logger.Error("Failed to save avatar image: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to save document image",
+			})
 			return
 		}
 
@@ -264,6 +342,11 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 		documentVerification, err = s.store.AddDocumentVerificationDetails(ctx, organizerDetails.ID, req.DocumentType, documentPath)
 		if err != nil {
 			s.logger.Error("Failed to verify document: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to verify document",
+			})
 			return
 		}
 	}

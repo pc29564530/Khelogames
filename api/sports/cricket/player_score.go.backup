@@ -118,7 +118,12 @@ func (s *CricketServer) UpdateCricketInningStatusFunc(ctx *gin.Context) {
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "INNING_STATUS", inningData)
 		if err != nil {
-			s.logger.Warn("Failed to broadcast cricket event: ", err)
+			s.logger.Error("Failed to broadcast cricket event: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to broadcast cricket event",
+			})
 			return
 		}
 	}
@@ -192,7 +197,7 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"code":    "DATABASE_ERROR",
-			"message": "Failed to get striker information",
+			"message": "An error occurred. Please try again later.",
 		})
 		return
 	}
@@ -223,10 +228,10 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Tournament match not found: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
+		ctx.JSON(http.StatusNotFound, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match details",
+			"code":    "NOT_FOUND",
+			"message": "Tournament match not found",
 		})
 		return
 	}
@@ -237,7 +242,7 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user role in tournament",
+			"message": "An error occurred. Please try again later.",
 		})
 		return
 	}
@@ -294,7 +299,7 @@ func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "ADD_BATSMAN", batsman)
 		if err != nil {
-			s.logger.Warn("Failed to broadcast cricket event: ", err)
+			s.logger.Error("Failed to broadcast cricket event: ", err)
 		}
 	}
 }
@@ -317,11 +322,7 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind : ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -330,8 +331,8 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -341,8 +342,8 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -352,8 +353,8 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -364,10 +365,10 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 		if err != nil {
 			s.logger.Error("Invalid UUID format", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"code":    "VALIDATION_ERROR",
-				"message": "Invalid ID format",
-			})
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 			return
 		}
 	}
@@ -376,29 +377,17 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match details",
-		})
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user tournament role",
-		})
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
 		return
 	}
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"code":    "AUTHORIZATION_ERROR",
-			"message": "You don't have permission to update this match",
-		})
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -407,23 +396,12 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 	newBowlerResponse, prevBowler, err = s.txStore.AddCricketBlowerTx(ctx, matchPublicID, teamPublicID, bowlerPublicID, prevBowlerPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to add cricket bowler: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to add bowler data",
-		})
 		return
 	}
 
 	playerData, err := s.store.GetPlayerByPublicID(ctx, bowlerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get player data",
-		})
-		return
 	}
 
 	currentBowler := map[string]interface{}{
@@ -455,7 +433,7 @@ func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 	if s.scoreBroadcaster != nil {
 		s.scoreBroadcaster.BroadcastCricketEvent(ctx, "ADD_BOWLER", bowlerContent)
 		if err != nil {
-			s.logger.Warn("Failed to broadcast cricket event: ", err)
+			s.logger.Error("Failed to broadcast cricket event: ", err)
 		}
 	}
 }
@@ -468,44 +446,25 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	matchPublicID, err := uuid.Parse(matchPublicIDString)
 	if err != nil {
 		s.logger.Error("Failed to parse match id ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid match ID format",
-		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(teamPublicIDString)
 	if err != nil {
 		s.logger.Error("Failed to parse team id ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid team ID format",
-		})
 		return
 	}
 
 	game, err := s.store.GetGamebyName(ctx, gameName)
 	if err != nil {
 		s.logger.Error("Failed to get the game: ", gin.H{"error": err.Error()})
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": fmt.Sprintf("Failed to get the game: %s", gameName),
-		})
 		return
 	}
 
 	teamPlayerScore, err := s.store.GetCricketPlayersScore(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get players score : ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get players score.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -521,33 +480,20 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 	_, err = s.store.GetMatchByPublicId(ctx, matchPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get match:", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match data.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	playerOut, err := s.store.GetCricketWickets(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get wicket: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get wicket data.",
-		})
 		return
 	}
 
 	battingTeam, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get batting team : ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get team data.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
 	inningData := make(map[string][]map[string]interface{})
@@ -555,11 +501,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 		playerData, err := s.store.GetPlayerByID(ctx, int64(playerScore.BatsmanID))
 		if err != nil {
 			s.logger.Error("Failed to get players data : ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to get player data.",
-			})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		playerDetails := map[string]interface{}{
 			"player":               map[string]interface{}{"id": playerData.ID, "public_id": playerData.PublicID, "name": playerData.Name, "slug": playerData.Slug, "shortName": playerData.ShortName, "position": playerData.Positions},
@@ -583,11 +525,7 @@ func (s *CricketServer) GetPlayerScoreFunc(ctx *gin.Context) {
 				bowlerData, err := s.store.GetPlayerByID(ctx, int64(item.BowlerID))
 				if err != nil {
 					s.logger.Error("Failed to get bowler data : ", err)
-					ctx.JSON(http.StatusInternalServerError, gin.H{
-						"success": false,
-						"code":    "DATABASE_ERROR",
-						"message": "Failed to get bowler data.",
-					})
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 					return
 				}
 				// Add wicket details to the same playerDetails map
@@ -632,8 +570,8 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -643,8 +581,8 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -653,29 +591,17 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match details.",
-		})
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user role.",
-		})
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
 		return
 	}
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"code":    "AUTHORIZATION_ERROR",
-			"message": "You don't have permission to update this match",
-		})
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -684,22 +610,13 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 	_, err = s.store.GetGamebyName(ctx, gameName)
 	if err != nil {
 		s.logger.Error("Failed to get the game: ", gin.H{"error": err.Error()})
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get game data.",
-		})
 		return
 	}
 
 	playerScore, err := s.store.GetCricketBalls(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get cricket bowler data : ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get bowler data.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	var battingTeamId int64
@@ -708,11 +625,6 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team by public id: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get team data.",
-		})
 		return
 	}
 
@@ -728,11 +640,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 	bowlingTeam, err := s.store.GetTeamByID(ctx, bowlingTeamId)
 	if err != nil {
 		s.logger.Error("Failed to get players score : ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get bowling team data.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -741,11 +649,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		playerData, err := s.store.GetPlayerByID(ctx, int64(playerScore.BowlerID))
 		if err != nil {
 			s.logger.Error("Failed to get players data : ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to get player data.",
-			})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		bowlingDetails := map[string]interface{}{
@@ -795,32 +699,16 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 	matchPublicID, err := uuid.Parse(matchPublicIDString)
 	if err != nil {
 		s.logger.Error("Failed to parse to int: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid match ID format",
-		})
-		return
 	}
 
 	teamPublicID, err := uuid.Parse(teamPublicIDString)
 	if err != nil {
 		s.logger.Error("Failed to parse to int: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid team ID format",
-		})
-		return
 	}
 	wicketsResponse, err := s.store.GetCricketWickets(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get cricket bowler score : ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get wickets data.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -831,32 +719,20 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get match : ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match data.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team : ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get team data.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	_, err = s.store.GetCricketScore(ctx, int32(match.ID), int32(team.ID))
 	if err != nil {
 		s.logger.Error("Failed to get current score data : ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get current score data.",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
 	inningData := make(map[string][]map[string]interface{})
@@ -865,32 +741,20 @@ func (s *CricketServer) GetCricketWicketsFunc(ctx *gin.Context) {
 		batsmanPlayerData, err := s.store.GetPlayerByID(ctx, int64(wicket.BatsmanID))
 		if err != nil {
 			s.logger.Error("Failed to get batsman data : ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to get batsman data.",
-			})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
 		bowlerPlayerData, err := s.store.GetPlayerByID(ctx, int64(wicket.BowlerID))
 		if err != nil {
 			s.logger.Error("Failed to get bowler data : ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to get bowler data.",
-			})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		var fielderData *models.Player
 		if wicket.FielderID != nil {
 			fielderData, err = s.store.GetPlayerByID(ctx, int64(*wicket.FielderID))
 			if err != nil {
 				s.logger.Error("Failed to get fielder data : ", err)
-				ctx.JSON(http.StatusInternalServerError, gin.H{
-					"success": false,
-					"code":    "DATABASE_ERROR",
-					"message": "Failed to get fielder data.",
-				})
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			}
 		}
 
@@ -969,8 +833,8 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -978,44 +842,28 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid match UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid match UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
 		return
 	}
 
 	batsmanTeamPublicID, err := uuid.Parse(req.BattingTeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid batsman team UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid batsman team UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
 		return
 	}
 
 	batsmanPublicID, err := uuid.Parse(req.BatsmanPublicID)
 	if err != nil {
 		s.logger.Error("Invalid batsman UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid batsman UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman UUID format"})
 		return
 	}
 
 	bowlerPublicID, err := uuid.Parse(req.BowlerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid bowler UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid bowler UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
 		return
 	}
 
@@ -1023,29 +871,17 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get tournament match.",
-		})
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user role.",
-		})
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
 		return
 	}
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"code":    "AUTHORIZATION_ERROR",
-			"message": "You don't have permission to update this match",
-		})
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -1055,18 +891,13 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 	batsmanResponse, currentBatsman, bowlerResponse, inningScore, err := s.txStore.UpdateWideRunsTx(ctx, matchPublicID, bowlerPublicID, batsmanTeamPublicID, int32(runsScored), inningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update wide: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to update wide runs.",
-		})
 		return
 	}
 
 	var nonStrikerResponse models.BatsmanScore
 	verifyBatsman, err := s.store.GetPlayerByPublicID(ctx, batsmanPublicID)
 	if err != nil {
-		s.logger.Error("Failed to verify batsman: ", err)
+		s.logger.Error("Failed to update stricker: ", err)
 	}
 
 	for _, curBatsman := range currentBatsman {
@@ -1084,33 +915,18 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 	batsmanPlayerData, err := s.store.GetPlayerByID(ctx, int64(batsmanResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get batsman data",
-		})
 		return
 	}
 
 	nonStrikerPlayerData, err := s.store.GetPlayerByID(ctx, int64(nonStrikerResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get non-striker data",
-		})
 		return
 	}
 
 	bowlerPlayerData, err := s.store.GetPlayerByID(ctx, int64(bowlerResponse.BowlerID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get bowler data",
-		})
 		return
 	}
 
@@ -1178,7 +994,8 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "UPDATE_SCORE", payload)
 		if err != nil {
-			s.logger.Warn("Failed to broadcast cricket wide ball: ", err)
+			s.logger.Error("Failed to broadcast cricket wide ball: ", err)
+			return
 		}
 	}
 
@@ -1208,55 +1025,35 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
-		})
 		return
 	}
 
+	fmt.Println("Req No Ball: ", req)
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid match UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid match UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
 		return
 	}
 
 	battingTeamPublicID, err := uuid.Parse(req.BattingTeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid batsman team UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid batsman team UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
 		return
 	}
 
 	batsmanPublicID, err := uuid.Parse(req.BatsmanPublicID)
 	if err != nil {
 		s.logger.Error("Invalid batsman UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid batsman UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman UUID format"})
 		return
 	}
 
 	bowlerPublicID, err := uuid.Parse(req.BowlerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid bowler UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid bowler UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
 		return
 	}
 
@@ -1264,29 +1061,17 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get tournament match",
-		})
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to verify user role",
-		})
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
 		return
 	}
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"code":    "AUTHORIZATION_ERROR",
-			"message": "You don't have permission to update this match",
-		})
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -1296,18 +1081,13 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 	batsmanResponse, currentBatsman, bowlerResponse, inningScore, err := s.txStore.UpdateCricketNoBallTx(ctx, matchPublicID, bowlerPublicID, battingTeamPublicID, batsmanPublicID, int32(runsScored), inningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update no_ball: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to update no_ball",
-		})
 		return
 	}
 
 	var nonStrikerResponse models.BatsmanScore
 	verifyBatsman, err := s.store.GetPlayerByPublicID(ctx, batsmanPublicID)
 	if err != nil {
-		s.logger.Error("Failed to verify batsman: ", err)
+		s.logger.Error("Failed to update stricker: ", err)
 	}
 
 	for _, curBatsman := range currentBatsman {
@@ -1325,33 +1105,18 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 	batsmanPlayerData, err := s.store.GetPlayerByID(ctx, int64(batsmanResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get batsman data",
-		})
 		return
 	}
 
 	nonStrikerPlayerData, err := s.store.GetPlayerByID(ctx, int64(nonStrikerResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get non-striker data",
-		})
 		return
 	}
 
 	bowlerPlayerData, err := s.store.GetPlayerByID(ctx, int64(bowlerResponse.BowlerID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get bowler data",
-		})
 		return
 	}
 
@@ -1422,7 +1187,8 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "UPDATE_SCORE", payload)
 		if err != nil {
-			s.logger.Warn("Broadcast failed (non-blocking): ", err)
+			s.logger.Error("Failed to broadcast noball: ", err)
+			return
 		}
 	}
 
@@ -1459,11 +1225,6 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request payload",
-		})
 		return
 	}
 
@@ -1472,8 +1233,8 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -1483,8 +1244,8 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -1494,8 +1255,8 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -1505,8 +1266,8 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -1516,8 +1277,8 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -1532,41 +1293,23 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	cricketScore, err := s.store.GetCricketScoreByInning(ctx, matchPublicID, battingTeamID, inningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get cricket score: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get cricket score",
-		})
-		return
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get tournament match",
-		})
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user role",
-		})
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
 		return
 	}
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"code":    "AUTHORIZATION_ERROR",
-			"message": "You don't have permission to update this match",
-		})
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -1593,56 +1336,28 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	)
 	if err != nil {
 		s.logger.Error("Failed to add the cricket wicket: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to add the cricket wicket",
-		})
 		return
 	}
 
 	matchData, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("failed to get match: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match data",
-		})
 		return
 	}
 
 	outBatsmanPlayerData, err := s.store.GetPlayerByID(ctx, int64(outBatsmanResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get out batsman data",
-		})
-		return
 	}
 
 	notOutBatsmanPlayerData, err := s.store.GetPlayerByID(ctx, int64(notOutBatsmanResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get not out batsman data",
-		})
-		return
 	}
 
 	bowlerPlayerData, err := s.store.GetPlayerByID(ctx, int64(bowlerResponse.BowlerID))
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get bowler data",
-		})
-		return
 	}
 
 	var fielderPlayerData *models.Player
@@ -1651,23 +1366,12 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		fielderPlayerData, err = s.store.GetPlayerByID(ctx, int64(*wicketResponse.FielderID))
 		if err != nil {
 			s.logger.Error("Failed to get Player: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to get fielder data",
-			})
-			return
 		}
 	}
 
 	err = s.UpdateMatchStatusAndResult(ctx, inningScoreResponse, matchData, matchData.ID)
 	if err != nil {
 		s.logger.Error("Failed to update match status and result: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "An error occurred. Please try again later.",
-		})
 		return
 	}
 
@@ -1752,7 +1456,8 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "UPDATE_SCORE", payload)
 		if err != nil {
-			s.logger.Warn("Failed to broadcast cricket add wicket: ", err)
+			s.logger.Error("Failed to broadcast cricket add wicket: ", err)
+			return
 		}
 	}
 
@@ -1785,11 +1490,6 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request payload",
-		})
 		return
 	}
 
@@ -1797,44 +1497,28 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid match UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid match UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID format"})
 		return
 	}
 
 	batsmanTeamPublicID, err := uuid.Parse(req.BatsmanTeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid batsman team UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid batsman team UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman team UUID format"})
 		return
 	}
 
 	batsmanPublicID, err := uuid.Parse(req.BatsmanPublicID)
 	if err != nil {
 		s.logger.Error("Invalid batsman UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid batsman UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid batsman UUID format"})
 		return
 	}
 
 	bowlerPublicID, err := uuid.Parse(req.BowlerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid bowler UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid bowler UUID format",
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bowler UUID format"})
 		return
 	}
 
@@ -1845,20 +1529,10 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	cricketScore, err := s.store.GetCricketScoreByInning(ctx, matchPublicID, batsmanTeamPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to get cricket score: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get cricket score",
-		})
 		return
 	}
 	if cricketScore.IsInningCompleted {
 		s.logger.Info("Inning already completed, skipping update")
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "INNING_COMPLETED",
-			"message": "Inning is already completed, cannot update score",
-		})
 		return
 	}
 
@@ -1869,29 +1543,17 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match data",
-		})
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user role",
-		})
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
 		return
 	}
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"code":    "AUTHORIZATION_ERROR",
-			"message": "You don't have permission to update this match",
-		})
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -1907,11 +1569,7 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	)
 	if err != nil {
 		s.logger.Error("Failed to update innings: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to update inning score",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -1921,11 +1579,7 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	matchData, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("failed to get match by match id: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match data",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get match data"})
 		return
 	}
 
@@ -1970,22 +1624,11 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		currentBatsman, err = s.store.ToggleCricketStricker(ctx, matchPublicID, inningNumber)
 		if err != nil {
 			s.logger.Error("Failed to toggle striker: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to toggle striker",
-			})
-			return
 		}
 	} else {
 		currentBatsman, err = s.store.GetCurrentBattingBatsman(ctx, matchPublicID, batsmanTeamPublicID, inningNumber)
 		if err != nil {
 			s.logger.Error("Failed to get current batsmen: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to get current batsmen",
-			})
 		}
 
 	}
@@ -2009,38 +1652,27 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	}
 
 	// Fetch player details
+	fmt.Println("Striker Response: ", strikerResponse)
 	strikerPlayerData, err := s.store.GetPlayerByID(ctx, int64(strikerResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get striker player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get striker data",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get striker data"})
 		return
 	}
 
-	s.logger.Debug("Non Striker Response: %w", nonStrikerResponse)
+	fmt.Println("Non Striker Response: ", nonStrikerResponse)
 
 	nonStrikerPlayerData, err := s.store.GetPlayerByID(ctx, int64(nonStrikerResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get non-striker player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get non-striker data",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get non-striker data"})
 		return
 	}
 
 	bowlerPlayerData, err := s.store.GetPlayerByPublicID(ctx, bowlerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get bowler player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get bowler data",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bowler data"})
 		return
 	}
 
@@ -2148,11 +1780,6 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "UPDATE_SCORE", inningData)
 		if err != nil {
 			s.logger.Error("Failed to broadcast update score: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"code":    "BROADCAST_ERROR",
-				"message": "Failed to broadcast score update",
-			})
 			return
 		}
 	}
@@ -2173,6 +1800,9 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 	if inningStatus == "Completed" {
 		s.UpdateCricketInningStatusWS(ctx, matchPublicID, batsmanTeamPublicID, batsmanPublicID, bowlerPublicID, inningNumber)
 	}
+
+	// fmt.Println("Response data: ", data)
+	// return data, inningStatus
 }
 
 func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, matchPublicID, batsmanTeamPublicID, batsmanPublicID, bowlerPublicID uuid.UUID, inningNumber int) {
@@ -2205,29 +1835,17 @@ func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, matchPubli
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get tournament match",
-		})
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user role",
-		})
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
 		return
 	}
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"code":    "AUTHORIZATION_ERROR",
-			"message": "You don't have permission to update this match",
-		})
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
@@ -2247,16 +1865,11 @@ func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, matchPubli
 			nonStrikerResponse = curr
 		}
 	}
+	fmt.Println("Lien no 309")
 
 	inningScore, _, bowlerResponse, err := s.store.UpdateInningEndStatusByPublicID(ctx, matchPublicID, batsmanTeamPublicID, inningNumber)
 	if err != nil {
-		s.logger.Error("Faield to end the inning ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to end the inning",
-		})
-		return
+		s.logger.Error("Faield to end the inning ")
 	}
 	fmt.Println("INNING SCORE: ", inningScore)
 	fmt.Println("BowlerResoponse; ", bowlerResponse)
@@ -2264,32 +1877,20 @@ func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, matchPubli
 	strikerPlayerData, err := s.store.GetPlayerByID(ctx, int64(strikerResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get striker player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get striker data",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get striker data"})
 	}
 
 	nonStrikerPlayerData, err := s.store.GetPlayerByID(ctx, int64(nonStrikerResponse.BatsmanID))
 	if err != nil {
 		s.logger.Error("Failed to get non-striker player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get non-striker data",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get non-striker data"})
 
 	}
 
 	bowlerPlayerData, err := s.store.GetPlayerByPublicID(ctx, bowlerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get bowler player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get bowler data",
-		})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bowler data"})
 	}
 
 	// Build response objects
@@ -2405,7 +2006,8 @@ func (s *CricketServer) UpdateCricketInningStatusWS(ctx *gin.Context, matchPubli
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastCricketEvent(ctx, "INNING_STATUS", payload)
 		if err != nil {
-			s.logger.Warn("Failed to broadcast update score: ", err)
+			s.logger.Error("Failed to broadcast update score: ", err)
+			return
 		}
 	}
 	ctx.JSON(http.StatusAccepted, data)
@@ -2431,8 +2033,8 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -2442,8 +2044,8 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -2453,8 +2055,8 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -2464,8 +2066,8 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid ID format",
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
 		})
 		return
 	}
@@ -2474,62 +2076,35 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get tournament by match ID",
-		})
+		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"code":    "NOT_FOUND_ERROR",
-			"message": "Failed to get user role",
-		})
+		ctx.JSON(404, gin.H{"error": "Check  failed"})
 		return
 	}
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"code":    "AUTHORIZATION_ERROR",
-			"message": "You don't have permission to update this match",
-		})
+		ctx.JSON(403, gin.H{"error": "You do not own this match"})
 		return
 	}
 
 	currentBowlerResponse, nextBowlerResponse, err := s.txStore.UpdateBowlingBowlerStatusTx(ctx, matchPublicID, teamPublicID, currentBowlerPublicID, nextBowlerPublicID, req.InningNumber)
 	if err != nil {
 		s.logger.Error("Failed to update current bowler status: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to update current bowler status",
-		})
 		return
 	}
 
 	nextPlayerData, err := s.store.GetPlayerByPublicID(ctx, nextBowlerResponse.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get player data",
-		})
 		return
 	}
 
 	currentPlayerData, err := s.store.GetPlayerByPublicID(ctx, currentBowlerResponse.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get Player: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get player data",
-		})
 		return
 	}
 

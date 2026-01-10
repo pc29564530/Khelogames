@@ -21,21 +21,33 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -43,17 +55,31 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get tournament",
+		})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(tournament.ID), authPayload.UserID)
 	if err != nil {
-		s.logger.Error("Failed to get tournament by user role: ", err)
+		s.logger.Error("Failed to get user tournament role: ", err)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"code":    "NOT_FOUND_ERROR",
+			"message": "Check failed",
+		})
 		return
 	}
-
 	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": " You are not allowed to make change"})
+		s.logger.Error("Tournament user role does not exist: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get user role",
+		})
 		return
 	}
 
@@ -64,7 +90,11 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 		footballStanding, err := s.store.CreateFootballStanding(ctx, tournamentPublicID, req.GroupID, teamPublicID)
 		if err != nil {
 			s.logger.Error("Failed to create football standing: ", err)
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "DATABASE_ERROR",
+				"message": "Failed to create football standing",
+			})
 			return
 		}
 		ctx.JSON(http.StatusAccepted, footballStanding)
@@ -72,7 +102,11 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 		cricketStanding, err := s.store.CreateCricketStanding(ctx, tournamentPublicID, req.GroupID, teamPublicID)
 		if err != nil {
 			s.logger.Error("Failed to create cricket standing: ", err)
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "DATABASE_ERROR",
+				"message": "Failed to create cricket standing",
+			})
 			return
 		}
 		ctx.JSON(http.StatusAccepted, cricketStanding)

@@ -33,20 +33,33 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -56,13 +69,22 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 		playerPublicID, err := uuid.Parse(player.PublicID)
 		if err != nil {
 			s.logger.Error("Invalid UUID format", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			})
 			return
 		}
 
 		squad, err := s.store.AddCricketSquad(ctx, matchPublicID, teamPublicID, playerPublicID, player.Position, player.OnBench, false)
 		if err != nil {
 			s.logger.Error("Failed to add cricket squad: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to add cricket squad",
+			})
 			return
 		}
 
@@ -85,43 +107,38 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 }
 
 func (s *CricketServer) GetCricketMatchSquadFunc(ctx *gin.Context) {
-	// var reqUri struct {
-	//     MatchPublicID string `uri:"match_public_id"`
-	// }
-	// var reqJSON struct {
-	//     TeamPublicID string `json:"team_public_id"`
-	// }
-
-	// if err := ctx.ShouldBindUri(&reqUri); err != nil {
-	//     s.logger.Error("Failed to bind URI", err)
-	//     return
-	// }
-
-	// if err := ctx.ShouldBindJSON(&reqJSON); err != nil {
-	//     s.logger.Error("Failed to bind JSON", err)
-	//     return
-	// }
-
 	matchPublicIDStr := ctx.Query("match_public_id")
 	teamPublicIDStr := ctx.Query("team_public_id")
 
 	matchPublicID, err := uuid.Parse(matchPublicIDStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match UUID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid match UUID",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(teamPublicIDStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid team UUID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid team UUID",
+		})
 		return
 	}
 
 	cricketSquad, err := s.store.GetCricketMatchSquad(ctx, matchPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get cricket squad", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get cricket squad",
+		})
 		return
 	}
-
 	ctx.JSON(http.StatusOK, cricketSquad)
 }

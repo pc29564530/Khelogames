@@ -23,7 +23,11 @@ func (s *TournamentServer) GetFootballStandingFunc(ctx *gin.Context) {
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 

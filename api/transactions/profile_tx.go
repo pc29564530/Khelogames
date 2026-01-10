@@ -18,7 +18,6 @@ func (store *SQLStore) UpdateProfileTx(ctx context.Context, publicID uuid.UUID, 
 			return err
 		}
 
-		fmt.Println("Location: ", location)
 		profile, err := store.GetProfile(ctx, publicID)
 		if err != nil {
 			store.logger.Error("Failed to get profile: ", err)

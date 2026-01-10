@@ -15,19 +15,33 @@ func (s *TournamentServer) GetCricketTournamentMostRunsFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentMostRuns(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most runs: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get cricket most runs",
+		})
 		return
 	}
 
@@ -43,19 +57,33 @@ func (s *TournamentServer) GetCricketTournamentHighestRunsFunc(ctx *gin.Context)
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentHighestRuns(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket highest runs: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get highest runs",
+		})
 		return
 	}
 
@@ -72,19 +100,33 @@ func (s *TournamentServer) GetCricketTournamentMostSixesFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentMostSixes(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most sixes: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Failed to get cricket most sixes",
+		})
 		return
 	}
 
@@ -101,19 +143,33 @@ func (s *TournamentServer) GetCricketTournamentMostFoursFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentMostFours(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most fours: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get most fours",
+		})
 		return
 	}
 
@@ -130,19 +186,33 @@ func (s *TournamentServer) GetCricketTournamentMostFiftiesFunc(ctx *gin.Context)
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentMostFifties(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most fifties: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get most fifties",
+		})
 		return
 	}
 
@@ -159,19 +229,33 @@ func (s *TournamentServer) GetCricketTournamentMostHundredsFunc(ctx *gin.Context
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentMostHundreds(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most hundreds: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get most hundreds",
+		})
 		return
 	}
 
@@ -189,19 +273,33 @@ func (s *TournamentServer) GetCricketTournamentMostWicketsFunc(ctx *gin.Context)
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentMostWickets(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket most wickets: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABSE_ERROR",
+			"message": "Failed to get most wickets",
+		})
 		return
 	}
 
@@ -218,19 +316,33 @@ func (s *TournamentServer) GetCricketTournamentBowlingEconomyRateFunc(ctx *gin.C
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentBowlingEconomyRate(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket bowling economy rate: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get tournament bowling economy rate",
+		})
 		return
 	}
 
@@ -247,19 +359,33 @@ func (s *TournamentServer) GetCricketTournamentBowlingAverageFunc(ctx *gin.Conte
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentBowlingAverage(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket bowling average: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get bowling average",
+		})
 		return
 	}
 
@@ -276,19 +402,33 @@ func (s *TournamentServer) GetCricketTournamentBowlingStrikeRateFunc(ctx *gin.Co
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentBowlingStrikeRate(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket bowling strike rate: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get bowling strike rate",
+		})
 		return
 	}
 
@@ -305,19 +445,33 @@ func (s *TournamentServer) GetCricketTournamentBowlingFiveWicketHaulFunc(ctx *gi
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentBowlingFiveWicketHaul(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket  five wicket haul: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get five wicket haul",
+		})
 		return
 	}
 
@@ -334,19 +488,33 @@ func (s *TournamentServer) GetCricketTournamentBattingAverageFunc(ctx *gin.Conte
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentBattingAverage(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket batting average: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get batting average",
+		})
 		return
 	}
 
@@ -363,19 +531,33 @@ func (s *TournamentServer) GetCricketTournamentBattingStrikeFunc(ctx *gin.Contex
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	stats, err := s.store.GetCricketTournamentBattingStrikeRate(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("failed to get cricket batting strike: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get batting strike",
+		})
 		return
 	}
 

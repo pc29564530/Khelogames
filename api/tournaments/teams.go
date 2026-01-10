@@ -22,19 +22,33 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind request: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse tournament public ID: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse team public ID: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -43,32 +57,55 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	game, err := s.store.GetGamebyName(ctx, gameName)
 	if err != nil {
 		s.logger.Error("Failed to get game by name: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get game",
+		})
 		return
 	}
 
 	teamPlayer, err := s.store.GetPlayerByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team player: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get player by team",
+		})
 		return
 	}
 
 	teamPlayerCount := len(teamPlayer)
 
 	if game.MinPlayers > int32(teamPlayerCount) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Team strength does not satisfied"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Team strength does not satisfied",
+		})
 		return
 	}
 
 	_, err = s.store.NewTournamentTeam(ctx, tournamentPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to add team: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get new tournament team",
+		})
 		return
 	}
 
 	teamByTournament, err := s.store.GetTournamentTeam(ctx, tournamentPublicID, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get Tournament Team: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get tournament team",
+		})
 		return
 	}
 
@@ -77,8 +114,16 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	err = json.Unmarshal([]byte(teamByTournament.TeamData), &teamData)
 	if err != nil {
 		s.logger.Error("Failed to unmarshal team data: ", err)
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATA_PARSE_ERROR",
+			"message": "Failed to process team data",
+		})
+
 		return
 	}
+
 
 	ctx.JSON(http.StatusAccepted, teamData)
 	return
@@ -94,20 +139,33 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind request: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse tournament public ID: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	tournamentTeamsData, err := s.store.GetTournamentTeams(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get teams: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Not found"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get team",
+		})
 		return
 	}
 
@@ -117,6 +175,11 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 		err = json.Unmarshal(team.TeamData, &data)
 		if err != nil {
 			s.logger.Error("Failed to unmarshal: ", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"code":    "DATA_PARSE_ERROR",
+				"message": "Failed to process team data",
+			})
 			return
 		}
 		teamsData = append(teamsData, data)

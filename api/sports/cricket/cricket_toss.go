@@ -1,7 +1,6 @@
 package cricket
 
 import (
-	"fmt"
 	"khelogames/core/token"
 	"khelogames/pkg"
 	"net/http"
@@ -21,21 +20,33 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind : ", err)
-		ctx.JSON(http.StatusBadGateway, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	tossWin, err := uuid.Parse(req.TossWin)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -43,23 +54,40 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get match details",
+		})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get user tournament role",
+		})
 		return
 	}
 	if !isExists {
-		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"code":    "FORBIDDEN_ERROR",
+			"message": "You are not allowed to add toss details",
+		})
 		return
 	}
 
 	inningResponse, tossWinTeam, tossDecision, err := s.txStore.AddCricketTossTx(ctx, matchPublicID, req.TossDecision, tossWin)
 	if err != nil {
 		s.logger.Error("Failed to add cricket toss: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to add cricket toss",
+		})
 		return
 	}
 
@@ -96,50 +124,87 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind cricket toss : ", err)
-		ctx.JSON(http.StatusBadGateway, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
-	fmt.Println("Match PUblic ID: ", req.MatchPublicID)
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	cricketToss, err := s.store.GetCricketToss(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get the cricket match toss: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get cricket match toss",
+		})
 		return
 	}
 
 	tossWonTeamMap, ok := cricketToss["toss_won_team"].(map[string]interface{})
 	if !ok {
 		s.logger.Error("Invalid toss_won_team format")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid toss_won_team format",
+		})
 		return
 	}
 
 	publicIDStr, ok := tossWonTeamMap["public_id"].(string)
 	if !ok {
 		s.logger.Error("Invalid public_id format")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid public_id format",
+		})
 		return
 	}
 
 	publicID, err := uuid.Parse(publicIDStr)
 	if err != nil {
 		s.logger.Error("Failed to parse public_id as UUID: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format for public_id",
+		})
 		return
 	}
 
 	tossWonTeam, err := s.store.GetTeamByPublicID(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get team: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get team details",
+		})
 		return
 	}
 
 	tossDecision, ok := cricketToss["toss_decision"].(string)
 	if !ok {
 		s.logger.Error("Invalid toss_decision format")
+		ctx.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid toss_decision format",
+		})
 		return
 	}
 

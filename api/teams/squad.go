@@ -22,21 +22,33 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -44,6 +56,12 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 	startDate, err := util.ConvertTimeStamp(req.JoinDate)
 	if err != nil {
 		s.logger.Error("Failed to convert the timestamp to second ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid date format",
+		})
+		return
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
@@ -51,11 +69,21 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team by public id: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get team",
+		})
 		return
 	}
 
 	if team.UserID != authPayload.UserID {
-		ctx.JSON(http.StatusForbidden, "403 not match current user")
+		s.logger.Error("You do not own this team")
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"code":    "FORBIDDEN_ERROR",
+			"message": "You do not own this team",
+		})
 		return
 	}
 
@@ -65,12 +93,22 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		_, err := s.store.RemovePlayerFromTeam(ctx, teamPublicID, playerPublicID, leaveData)
 		if err != nil {
 			s.logger.Error("Failed to update the the leave date: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update leave date",
+			})
 			return
 		}
 
 		player, err := s.store.GetPlayerByPublicID(ctx, playerPublicID)
 		if err != nil {
 			s.logger.Error("Failed to get the player: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get player",
+			})
 			return
 		}
 		playerData := map[string]interface{}{
@@ -98,7 +136,11 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		members, err := s.store.AddTeamPlayers(ctx, arg)
 		if err != nil {
 			s.logger.Error("Failed to add team member: ", err)
-			ctx.JSON(http.StatusNotFound, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to add team member",
+			})
 			return
 		}
 		s.logger.Info("successfully added member to the team")
@@ -113,21 +155,33 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get team member",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	players, err := s.store.GetPlayerByTeam(ctx, teamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get team member: ", err)
-		ctx.JSON(http.StatusNotFound, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get team member",
+		})
 		return
 	}
 	s.logger.Info("successfully get team member")
@@ -147,20 +201,33 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to remove player from team",
+		})
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -168,18 +235,33 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 	endDate, err := util.ConvertTimeStamp(req.LeaveDate)
 	if err != nil {
 		s.logger.Error("Failed to convert to second")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid date format",
+		})
 		return
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		s.logger.Error("Failed to get team by public id: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get team",
+		})
 		return
 	}
 
-	if authPayload.UserID == int32(team.ID) {
-		ctx.JSON(403, gin.H{"error": "You do not own this team"})
+	if authPayload.UserID != int32(team.UserID) {
+		s.logger.Error("You do not own this team")
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"code":    "FORBIDDEN_ERROR",
+			"message": "You do not own this team",
+		})
 		return
 	}
 
@@ -189,6 +271,11 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 	response, err := s.store.RemovePlayerFromTeam(ctx, teamPublicID, playerPublicID, *eddPointer)
 	if err != nil {
 		s.logger.Error("Failed to remove player from team: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to remove player from team",
+		})
 		return
 	}
 

@@ -15,7 +15,11 @@ func (s *TeamsServer) SearchTeamFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: %v", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Failed to bind the request",
+		})
 		return
 	}
 	searchQuery := "%" + req.Name + "%"
@@ -25,7 +29,11 @@ func (s *TeamsServer) SearchTeamFunc(ctx *gin.Context) {
 	response, err := s.store.SearchTeam(ctx, searchQuery)
 	if err != nil {
 		s.logger.Error("Failed to search team : %v", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to search team",
+		})
 		return
 	}
 

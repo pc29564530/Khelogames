@@ -23,13 +23,22 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -40,6 +49,11 @@ func (s *TournamentServer) GetTournamentMatch(ctx *gin.Context) {
 	matches, err := s.store.GetMatchByTournamentPublicID(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament match: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get match by tournament public id",
+		})
 		return
 	}
 	var scoreBraodcaster shared.ScoreBroadcaster
@@ -77,7 +91,11 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
@@ -86,16 +104,31 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse tournament_public_id: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 	homeTeamPublicID, err := uuid.Parse(req.HomeTeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse home_team_public_id: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 	awayTeamPublicID, err := uuid.Parse(req.AwayTeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse away_team_public_id: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -104,12 +137,22 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	game, err := s.store.GetGamebyName(ctx, gameName)
 	if err != nil {
 		s.logger.Error("Failed to get game: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get game",
+		})
 		return
 	}
 
 	startTimeStamp, err := util.ConvertTimeStamp(req.StartTimestamp)
 	if err != nil {
 		s.logger.Error("unable to convert time to second: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid timestamp format",
+		})
 		return
 	}
 	var endTimeStamp int64
@@ -117,6 +160,11 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		endTimeStamp, err = util.ConvertTimeStamp(req.EndTimestamp)
 		if err != nil {
 			s.logger.Error("unable to convert time to second: ", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid timestamp format",
+			})
 			return
 		}
 	}
@@ -126,8 +174,10 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 			matchFormat = *req.MatchFormat
 		} else {
 			s.logger.Error("Match format is required for cricket matches")
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"error": "Match format is required for cricket matches. Please provide a valid match format.",
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"code":    "NOT_FOUND",
+				"message": "Match format is required",
 			})
 			return
 		}
@@ -139,11 +189,21 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 		latitude, err = strconv.ParseFloat(req.Latitude, 64)
 		if err != nil {
 			s.logger.Error("Failed to parse to float: ", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid request format",
+			})
 			return
 		}
 		longitude, err = strconv.ParseFloat(req.Longitude, 64)
 		if err != nil {
 			s.logger.Error("Failed to parse to float: ", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid request format",
+			})
 			return
 		}
 	}
@@ -152,17 +212,32 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
 	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		s.logger.Error("Failed to get tournament: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get tournament",
+		})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(tournament.ID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		s.logger.Error("Failed to get user role: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get user role",
+		})
 		return
 	}
 	if !isExists {
-		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		s.logger.Error("No user role exist for tournament: ", err)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"code":    "NOT_FOUND_ERROR",
+			"message": "Failed to find user role",
+		})
 		return
 	}
 
@@ -190,7 +265,11 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
 	if err != nil {
 		s.logger.Error("Failed to create new match: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create match"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get new match",
+		})
 		return
 	}
 
@@ -209,20 +288,32 @@ func (s *TournamentServer) UpdateMatchSubStatusFunc(ctx *gin.Context) {
 		MatchPublicID string `uri:"match_public_id"`
 	}
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	// Bind JSON
 	var req updateMatchSubStatusRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(reqUri.MatchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -230,23 +321,42 @@ func (s *TournamentServer) UpdateMatchSubStatusFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		s.logger.Error("Failed to get match: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get tournament match",
+		})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		s.logger.Error("Failed to get user role: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get user role",
+		})
 		return
 	}
 	if !isExists {
-		ctx.JSON(403, gin.H{"error": "You do not own this match"})
-		return
+		s.logger.Error("Failed to find user role: ", err)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"code": "NOT_FOUND_ERROR",
+			"message": "Failed to find user role",
+		})
 	}
 
 	updatedMatchData, err := s.store.UpdateMatchSubStatus(ctx, matchPublicID, req.SubStatus)
 	if err != nil {
 		s.logger.Error("Failed to update match status: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to update match sub status",
+		})
 		return
 	}
 
@@ -271,7 +381,7 @@ func (s *TournamentServer) UpdateMatchSubStatusFunc(ctx *gin.Context) {
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastTournamentEvent(ctx, "UPDATE_MATCH_SUB_STATUS", updateMatch)
 		if err != nil {
-			s.logger.Error("Failed to broadcast tournament match event: ", err)
+			s.logger.Warn("Failed to broadcast tournament match event: ", err)
 		}
 	}
 
@@ -289,27 +399,43 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		MatchPublicID string `uri:"match_public_id"`
 	}
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid match ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	// Bind JSON
 	var req updateStatusRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(reqUri.MatchPublicID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	game := ctx.Param("sport")
 	gameID, err := s.store.GetGamebyName(ctx, game)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Unknown sport"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get game",
+		})
 		return
 	}
 
@@ -317,23 +443,43 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Tournamet not found"})
+		s.logger.Error("Failed to get tournament by match id: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get match",
+		})
 		return
 	}
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		s.logger.Error("Failed to get user tournament role: ", err)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"code":    "NOT_FOUND_ERROR",
+			"message": "Check failed",
+		})
 		return
 	}
 	if !isExists {
-		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		s.logger.Error("Tournament user role does not exist: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get user role",
+		})
 		return
 	}
 
 	updatedMatchData, err := s.txStore.UpdateMatchStatusTx(ctx, matchPublicID, req.StatusCode, gameID)
 	if err != nil {
 		s.logger.Error("Failed to update match status: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to update match status",
+		})
 		return
 	}
 
@@ -358,7 +504,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastTournamentEvent(ctx, "UPDATE_MATCH_STATUS", updateMatch)
 		if err != nil {
-			s.logger.Error("Failed to broadcast tournament match event: ", err)
+			s.logger.Warn("Failed to broadcast tournament match event: ", err)
 		}
 	}
 
@@ -376,34 +522,54 @@ func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code": "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	resultPublicID, err := uuid.Parse(req.Result)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get match ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get match",
+		})
 		return
 	}
 	team, err := s.store.GetTeamByPublicID(ctx, resultPublicID)
 	if err != nil {
 		s.logger.Error("Failed to team ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATBASE_ERROR",
+			"message": "Failed to get team",
+		})
 		return
 	}
 
@@ -411,18 +577,32 @@ func (s *TournamentServer) UpdateMatchResultFunc(ctx *gin.Context) {
 
 	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "Check  failed"})
+		s.logger.Error("Failed to get user tournament role: ", err)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"code":    "NOT_FOUND_ERROR",
+			"message": "Check failed",
+		})
 		return
 	}
 	if !isExists {
-		ctx.JSON(403, gin.H{"error": "You do not own this match"})
+		s.logger.Error("Tournament user role does not exist: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "DATABASE_ERROR",
+			"message": "Failed to get user role",
+		})
 		return
 	}
 
 	response, err := s.store.UpdateMatchResult(ctx, int32(match.ID), int32(team.ID))
 	if err != nil {
 		s.logger.Error("Failed to update result: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code": "DATABASE_ERROR",
+			"message": "Failed to get update match result",
+		})
 		return
 	}
 

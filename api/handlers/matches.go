@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"khelogames/util"
 	"net/http"
 	"strconv"
@@ -18,7 +17,11 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 	game, err := s.store.GetGamebyName(ctx, sport)
 	if err != nil {
 		s.logger.Error("Failed to get game by name: ", err)
-		ctx.JSON(400, gin.H{"error": "Invalid sport"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get game by name",
+		})
 		return
 	}
 
@@ -30,7 +33,11 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 
 	// Validate required parameters
 	if latitudeString == "" || longitudeString == "" {
-		ctx.JSON(400, gin.H{"error": "latitude and longitude are required"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "latitude and longitude are required",
+		})
 		return
 	}
 
@@ -38,21 +45,34 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 	startDate, err := util.ConvertTimeStamp(startDateString)
 	if err != nil {
 		s.logger.Error("Failed to convert timestamp: ", err)
-		startDate = 0
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid start_timestamp format",
+		})
+		return
 	}
 
 	// Parse coordinates
 	latitude, err := strconv.ParseFloat(latitudeString, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse latitude: ", err)
-		ctx.JSON(400, gin.H{"error": "Invalid latitude"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Failed to parse latitude",
+		})
 		return
 	}
 
 	longitude, err := strconv.ParseFloat(longitudeString, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse longitude: ", err)
-		ctx.JSON(400, gin.H{"error": "Invalid longitude"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Failed to parse longitude",
+		})
 		return
 	}
 
@@ -67,6 +87,12 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 	userCell, err := h3.LatLngToCell(latLng, 9) // Resolution 9
 	if err != nil {
 		s.logger.Error("Failed to get cell from lat and long: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to process location",
+		})
+		return
 	}
 
 	s.logger.Info("User H3 Index: ", userCell.String())
@@ -79,6 +105,12 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 	neighbors, err := h3.GridDisk(userCell, kRing)
 	if err != nil {
 		s.logger.Error("Failed to get the neighbors: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to process neighboring locations",
+		})
+		return
 	}
 
 	// Convert to string array
@@ -102,14 +134,16 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 	)
 	if err != nil {
 		s.logger.Error("Failed to get matches by location: ", err)
-		ctx.JSON(500, gin.H{"error": "Failed to fetch matches"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get matches by location",
+		})
 		return
 	}
 
 	s.logger.Info("Found ", len(listMatches), " listMatches")
-
-	fmt.Println("Match: ", listMatches)
-	ctx.JSON(200, listMatches)
+	ctx.JSON(http.StatusAccepted, listMatches)
 }
 
 func calculateKRing(radiusKm float64, resolution int) int {
@@ -142,16 +176,32 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 	game, err := s.store.GetGamebyName(ctx, sport)
 	if err != nil {
 		s.logger.Error("Failed to get game by name: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get game by name",
+		})
 		return
 	}
 	startDateString := ctx.Query("start_timestamp")
 	startDate, err := util.ConvertTimeStamp(startDateString)
 	if err != nil {
 		s.logger.Error("Failed to convert to second: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid start_timestamp format",
+		})
+		return
 	}
 	response, err := s.store.ListMatches(ctx, int32(startDate), game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by game: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get matches by game",
+		})
 		return
 	}
 	ctx.JSON(http.StatusAccepted, response)
@@ -164,11 +214,21 @@ func (s *HandlersServer) GetLiveMatchesFunc(ctx *gin.Context) {
 	game, err := s.store.GetGamebyName(ctx, sport)
 	if err != nil {
 		s.logger.Error("Failed to get game by name: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid game name",
+		})
 		return
 	}
 	response, err := s.store.GetLiveMatches(ctx, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by game: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get live matches by game",
+		})
 		return
 	}
 	ctx.JSON(http.StatusAccepted, response)
@@ -182,14 +242,22 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusNotFound, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
@@ -197,12 +265,22 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 	game, err := s.store.GetGamebyName(ctx, sport)
 	if err != nil {
 		s.logger.Error("Failed to get game by name: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get game by name",
+		})
 		return
 	}
 
 	match, err := s.store.GetMatchByPublicId(ctx, matchPublicID, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by match id: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get match by match id",
+		})
 		return
 	}
 	ctx.JSON(http.StatusAccepted, match)

@@ -51,37 +51,20 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind the sign-up request: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
+			"code":    "VALIDATION_ERROR",
 			"error":   "Invalid request data",
 		})
 		return
 	}
 
-	// Start database transaction
-	tx, err := s.store.BeginTx(ctx)
-	if err != nil {
-		s.logger.Error("Failed to begin the transaction: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Internal server error",
-		})
-		return
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		}
-	}()
-
 	// Validate the ID token
 	googleOauthConfig := getGoogleOauthConfig()
 	payload, err := idtoken.Validate(ctx, req.IDToken, googleOauthConfig.ClientID)
 	if err != nil {
-		tx.Rollback()
 		s.logger.Error("Failed to verify idToken: ", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
+			"code":    "AUTHENTICATION_ERROR",
 			"error":   "Invalid Google token",
 		})
 		return
@@ -90,10 +73,10 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	// Extract user information from the verified token
 	email, ok := payload.Claims["email"].(string)
 	if !ok || email == "" {
-		tx.Rollback()
 		s.logger.Error("Failed to get email from idToken")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
+			"code":    "VALIDATION_ERROR",
 			"error":   "Failed to get user email",
 		})
 		return
@@ -102,10 +85,10 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	// Check if user already exists
 	_, err = s.store.GetUsersByGmail(ctx, email)
 	if err == nil {
-		tx.Rollback()
 		s.logger.Info("User already exists with email: ", req.Email)
 		ctx.JSON(http.StatusConflict, gin.H{
 			"success": false,
+			"code":    "EMAIL_ALREADY_REGISTERED",
 			"message": "Email already registered. Please sign in instead.",
 		})
 		return
@@ -114,10 +97,10 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	// Get name from token
 	name, ok := payload.Claims["name"].(string)
 	if !ok || name == "" {
-		tx.Rollback()
 		s.logger.Error("Failed to get name from idToken")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
+			"code":    "VALIDATION_ERROR",
 			"error":   "Failed to get user name",
 		})
 		return
@@ -126,10 +109,10 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	// Get Google ID from token
 	googleID, ok := payload.Claims["sub"].(string)
 	if !ok || googleID == "" {
-		tx.Rollback()
 		s.logger.Error("Failed to get google id from idToken")
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
+			"code":    "VALIDATION_ERROR",
 			"error":   "Failed to get Google ID",
 		})
 		return
@@ -137,10 +120,11 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 
 	// Verify the data matches what was sent from frontend
 	if req.Email != email || req.GoogleID != googleID {
-		tx.Rollback()
+
 		s.logger.Error("Token data doesn't match request data")
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
+			"code":    "VALIDATION_ERROR",
 			"error":   "Token validation failed",
 		})
 		return

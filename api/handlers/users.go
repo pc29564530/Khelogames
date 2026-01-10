@@ -39,8 +39,12 @@ func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	var req getUserRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		s.logger.Error("Failed to bind user: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid request format",
+		})
 		return
 	}
 	s.logger.Debug("bind the reqeust: ", req)
@@ -48,14 +52,22 @@ func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Invalid UUID format",
+		})
 		return
 	}
 
 	users, err := s.store.GetUser(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get user: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get user",
+		})
 		return
 	}
 	s.logger.Debug("get the user data: ", users)
@@ -73,7 +85,11 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Failed to bind the request",
+		})
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -82,7 +98,11 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 	userList, err := s.store.ListUser(ctx, req.PageSize, Offset)
 	if err != nil {
 		s.logger.Error("Failed to get list: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to get list of users",
+		})
 		return
 	}
 	s.logger.Debug("get the users list: ", userList)
@@ -98,7 +118,11 @@ func (s *HandlersServer) SearchUserFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"code":    "VALIDATION_ERROR",
+			"message": "Failed to bind the request",
+		})
 		return
 	}
 	searchQuery := "%" + req.Name + "%"
@@ -107,11 +131,15 @@ func (s *HandlersServer) SearchUserFunc(ctx *gin.Context) {
 	response, err := s.store.SearchUser(ctx, searchQuery)
 	if err != nil {
 		s.logger.Error("Failed to search team : ", err)
-		ctx.JSON(http.StatusInternalServerError, (err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"code":    "INTERNAL_ERROR",
+			"message": "Failed to search user",
+		})
 		return
 	}
 
-	fmt.Println("Search: ", response)
+	s.logger.Debug("User search: ", response)
 
 	ctx.JSON(http.StatusAccepted, response)
 	return
