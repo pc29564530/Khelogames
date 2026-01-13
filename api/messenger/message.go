@@ -3,6 +3,7 @@ package messenger
 import (
 	"khelogames/core/token"
 	db "khelogames/database"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 
@@ -11,32 +12,22 @@ import (
 )
 
 type getMessageByReceiverRequest struct {
-	ReceiverPublicID string `uri:"receiver_public_id"`
+	ReceiverPublicID string `uri:"receiver_public_id" binding:"required"`
 }
 
 func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 	var req getMessageByReceiverRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind URI", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
-
-	s.logger.Debug("message receiver username: ", err)
 
 	receiverPublicID, err := uuid.Parse(req.ReceiverPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"receiver_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -53,13 +44,19 @@ func (s *MessageServer) GetMessageByReceiverFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get message by receiver", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get message by receiver",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get message by receiver",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, messageContent)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    messageContent,
+	})
 }
 
 func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
@@ -69,28 +66,39 @@ func (s *MessageServer) GetUserByMessageSendFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get user by message send: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get user by message send",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user by message send",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
 	s.logger.Debug("Get message by user: ", messageUser)
 
-	ctx.JSON(http.StatusAccepted, messageUser)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    messageUser,
+	})
 }
 
 func (s *MessageServer) DeleteScheduleMessageFunc(ctx *gin.Context) {
-
 	response, err := s.store.ScheduledDeleteMessage(ctx)
 	if err != nil {
 		s.logger.Error("Failed to delete message: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to delete message",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to delete message",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }

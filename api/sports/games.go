@@ -1,25 +1,21 @@
 package sports
 
 import (
+	errorhandler "khelogames/error_handler"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type getGamesRequest struct {
-	ID int64 `uri:"ID"`
+	ID int64 `uri:"ID" binding:"required"`
 }
 
 func (s *SportsServer) GetGameFunc(ctx *gin.Context) {
 	var req getGamesRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -28,26 +24,37 @@ func (s *SportsServer) GetGameFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get the games: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get game",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get game",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 func (s *SportsServer) GetGamesFunc(ctx *gin.Context) {
-
 	response, err := s.store.GetGames(ctx)
 	if err != nil {
 		s.logger.Error("Failed to get the games: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get games",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get games",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }

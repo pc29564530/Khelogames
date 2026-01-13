@@ -3,6 +3,7 @@ package handlers
 import (
 	"khelogames/core/token"
 	db "khelogames/database"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 
@@ -14,7 +15,7 @@ import (
 
 type createCommunitiesRequest struct {
 	CommunityName string `json:"communityName" binding:"required,min=3,max=100"`
-	Description   string `json:"description" binding:"required,min=10,max=500"`
+	Description   string `json:"description"`
 	AvatarUrl     string `json:"avatar_url" binding:"omitempty,url"`
 	CoverImageUrl string `json:"cover_image_url" binding:"omitempty,url"`
 }
@@ -22,22 +23,9 @@ type createCommunitiesRequest struct {
 // Create communities function
 func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 	var req createCommunitiesRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind communities ", err)
-
-		// Provide more specific validation error messages
-		errorMessage := "Invalid request format"
-		if err.Error() != "" {
-			// Parse validation errors to provide specific feedback
-			errorMessage = err.Error()
-		}
-
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": errorMessage,
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -62,14 +50,19 @@ func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to create community: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to create community",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to create community",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("created community : ", communities)
-	ctx.JSON(http.StatusOK, communities)
-	return
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    communities,
+	})
 }
 
 type getCommunityRequest struct {
@@ -80,14 +73,9 @@ type getCommunityRequest struct {
 func (s *HandlersServer) GetCommunityFunc(ctx *gin.Context) {
 	var req getCommunityRequest
 
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind community: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -95,11 +83,8 @@ func (s *HandlersServer) GetCommunityFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -108,14 +93,19 @@ func (s *HandlersServer) GetCommunityFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get community: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get community",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get community",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, community)
-	return
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    community,
+	})
 }
 
 // Get all communities by owner.
@@ -126,42 +116,39 @@ func (s *HandlersServer) GetAllCommunitiesFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to  get communities: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get communities",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get communities",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("get all community: ", communities)
-	ctx.JSON(http.StatusOK, communities)
-	return
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    communities,
+	})
 }
 
 // Get all users that have joined a particular communities
 type getCommunitiesMemberRequest struct {
-	CommunityPublicID string `uri:"community_public_id"`
+	CommunityPublicID string `uri:"community_public_id" binding:"required"`
 }
 
 func (s *HandlersServer) GetCommunitiesMemberFunc(ctx *gin.Context) {
 	var req getCommunitiesMemberRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"community_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -170,29 +157,30 @@ func (s *HandlersServer) GetCommunitiesMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get community member: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get community member",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get community member",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("get community member: ", usersList)
-	ctx.JSON(http.StatusOK, usersList)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    usersList,
+	})
 }
 
 type getCommunityByCommunityNameRequest struct {
-	CommunitiesName string `uri:"communities_name"`
+	CommunitiesName string `uri:"communities_name" binding:"required"`
 }
 
 func (s *HandlersServer) GetCommunityByCommunityNameFunc(ctx *gin.Context) {
 	var req getCommunityByCommunityNameRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -201,54 +189,47 @@ func (s *HandlersServer) GetCommunityByCommunityNameFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get community by community name: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get community by community name",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get community by community name",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("get community by commmunity name: ", usersList)
 
-	ctx.JSON(http.StatusOK, usersList)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    usersList,
+	})
 }
 
 type updateCommunityName struct {
-	CommunityName string `json:"community_name"`
+	CommunityName string `json:"community_name" binding:"required,min=3,max=100"`
 }
 
 func (s *HandlersServer) UpdateCommunityByCommunityNameFunc(ctx *gin.Context) {
 	var reqUri communityPublicIDReq
 	var reqJSON updateCommunityName
 
-	err := ctx.ShouldBindUri(&reqUri)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
-	err = ctx.ShouldBindJSON(&reqJSON)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&reqJSON); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	publicID, err := uuid.Parse(reqUri.CommunityPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"community_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -258,14 +239,24 @@ func (s *HandlersServer) UpdateCommunityByCommunityNameFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get community: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get community",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get community",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
 	if authPayload.UserID != community.UserID {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed"})
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You are not allowed",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
 		return
 	}
 
@@ -274,57 +265,50 @@ func (s *HandlersServer) UpdateCommunityByCommunityNameFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to update the community name: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to update community name",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update community name",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 type communityPublicIDReq struct {
-	CommunityPublicID string `uri:"community_public_id"`
+	CommunityPublicID string `uri:"community_public_id" binding:"required"`
 }
 
 type updateCommunityDescription struct {
-	CommunityDescription string `json:"community_description"`
+	CommunityDescription string `json:"community_description" binding:"required,min=1,max=500"`
 }
 
 func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
 	var reqUri communityPublicIDReq
 	var reqJSON updateCommunityDescription
 
-	err := ctx.ShouldBindUri(&reqUri)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
-	err = ctx.ShouldBindJSON(&reqJSON)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&reqJSON); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	publicID, err := uuid.Parse(reqUri.CommunityPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"community_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -334,8 +318,11 @@ func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get community: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get community",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get community",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -344,8 +331,11 @@ func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
 		s.logger.Error("User is not allowed to update the description")
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"success": false,
-			"code":    "FORBIDDEN_ERROR",
-			"message": "You are not allowed",
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You are not allowed",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -355,11 +345,17 @@ func (s *HandlersServer) UpdateCommunityByDescriptionFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to update the  description: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to update community description",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update community description",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }

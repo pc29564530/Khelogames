@@ -1,6 +1,7 @@
 package tournaments
 
 import (
+	errorhandler "khelogames/error_handler"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,12 +20,8 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -33,8 +30,10 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to parse: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			}
 		})
 		return
 	}
@@ -44,8 +43,10 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to parse: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			}
 		})
 		return
 	}
@@ -79,8 +80,10 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to add tournament participants: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to add tournament participants",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to add tournament participants",
+			}
 		})
 		return
 	}
@@ -97,8 +100,10 @@ func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid request format",
+			}
 		})
 		return
 	}
@@ -108,8 +113,10 @@ func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to parse to uuid: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			}
 		})
 		return
 	}
@@ -119,8 +126,10 @@ func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get tournament participants: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get tournament pariticipants",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get tournament pariticipants",
+			}
 		})
 		return
 	}

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"khelogames/core/token"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 
@@ -11,35 +12,24 @@ import (
 
 func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	var req struct {
-		CommunityPublicID string `uri:"community_public_id"`
+		CommunityPublicID string `uri:"community_public_id" binding:"required"`
 	}
 
-	// Bind the URI parameter
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind URI: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("Bind the request: ", req)
 
-	// Parse UUID
 	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"community_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
-	// Get auth payload
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	community, err := s.store.GetCommunity(ctx, communityPublicID)
@@ -47,8 +37,11 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get community: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get community",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get community",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -56,8 +49,11 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 	if community.UserID != authPayload.UserID {
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"success": false,
-			"code":    "FORBIDDEN_ERROR",
-			"message": "You are not allowed to join this community",
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You are not allowed to join this community",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -67,15 +63,24 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to join community: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to join community",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to join community",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
 	s.logger.Debug("Successfully joined community: ", communityUser)
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully joined", "member": communityUser})
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"message": "Successfully joined",
+			"member":  communityUser,
+		},
+	})
 }
 
 func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
@@ -85,12 +90,18 @@ func (s *HandlersServer) GetCommunityByUserFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get community by user: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get communities",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get communities",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("community by user: ", communityList)
 
-	ctx.JSON(http.StatusOK, communityList)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    communityList,
+	})
 }

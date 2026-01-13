@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"khelogames/core/token"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 	"strconv"
@@ -13,33 +14,25 @@ import (
 
 func (s *HandlersServer) AddLocationFunc(ctx *gin.Context) {
 	var req struct {
-		LocationOF    string  `json:"city"`
-		EventPublicID string  `json:"event_public_id"`
-		City          string  `json:"city"`
-		State         string  `json:"state"`
-		Country       string  `json:"country"`
-		Latitude      float64 `json:"latitude"`
-		Longitude     float64 `json:"longitude"`
+		LocationOF    string  `json:"location_of" binding:"required"`
+		EventPublicID string  `json:"event_public_id" binding:"required"`
+		City          string  `json:"city" binding:"required,min=2,max=100"`
+		State         string  `json:"state" binding:"required,min=2,max=100"`
+		Country       string  `json:"country" binding:"required,min=2,max=100"`
+		Latitude      float64 `json:"latitude" binding:"required"`
+		Longitude     float64 `json:"longitude" binding:"required"`
 	}
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	eventPublicID, err := uuid.Parse(req.EventPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse event public id to uuid: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid event UUID format",
-		})
+		fieldErrors := map[string]string{"event_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -49,49 +42,44 @@ func (s *HandlersServer) AddLocationFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to add location: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to add location",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to add location",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, location)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    location,
+	})
 }
 
 func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 	var req struct {
-		Latitude  string `json:"latitude"`
-		Longitude string `json:"longitude"`
+		Latitude  string `json:"latitude" binding:"required"`
+		Longitude string `json:"longitude" binding:"required"`
 	}
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	latitude, err := strconv.ParseFloat(req.Latitude, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse to float: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid latitude format",
-		})
+		fieldErrors := map[string]string{"latitude": "Invalid latitude format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	longitude, err := strconv.ParseFloat(req.Longitude, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse to float: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid longitude format",
-		})
+		fieldErrors := map[string]string{"longitude": "Invalid longitude format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -103,8 +91,11 @@ func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get profile by user id: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get user profile",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user profile",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -118,10 +109,16 @@ func (s *HandlersServer) UpdateUserLocationFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to update user location: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to update user location",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update user location",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, location)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    location,
+	})
 }

@@ -1,6 +1,7 @@
 package teams
 
 import (
+	errorhandler "khelogames/error_handler"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,14 +13,9 @@ type searchTeamRequest struct {
 
 func (s *TeamsServer) SearchTeamFunc(ctx *gin.Context) {
 	var req searchTeamRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Failed to bind the request",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	searchQuery := "%" + req.Name + "%"
@@ -31,8 +27,10 @@ func (s *TeamsServer) SearchTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to search team : %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to search team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to search team",
+			}
 		})
 		return
 	}

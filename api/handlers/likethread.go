@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"khelogames/core/token"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 
@@ -10,19 +11,14 @@ import (
 )
 
 type createLikeRequest struct {
-	ThreadPublicID string `uri:"thread_public_id"`
+	ThreadPublicID string `uri:"thread_public_id" binding:"required"`
 }
 
 func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 	var req createLikeRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind : ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -30,11 +26,8 @@ func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 	threadPublicID, err := uuid.Parse(req.ThreadPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"thread_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -42,34 +35,34 @@ func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 
 	likeThread, err := s.store.CreateLike(ctx, authPayload.PublicID, threadPublicID)
 	if err != nil {
-		s.logger.Error("Failed to create like : ", err)
+		s.logger.Error("Failed to create like: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to like the thread",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to like the thread",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("liked the thread: ", likeThread)
 
-	ctx.JSON(http.StatusOK, likeThread)
-	return
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    likeThread,
+	})
 }
 
 type countLikeRequest struct {
-	ThreadPublicID string `uri:"thread_public_id"`
+	ThreadPublicID string `uri:"thread_public_id" binding:"required"`
 }
 
 func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
 	var req countLikeRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -77,11 +70,8 @@ func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
 	threadPublicID, err := uuid.Parse(req.ThreadPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"thread_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -90,31 +80,31 @@ func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to count like user: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to count like users",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to count like users",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("get like count: ", countLike)
-	ctx.JSON(http.StatusOK, countLike)
-	return
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    countLike,
+	})
 }
 
 type checkUserRequest struct {
-	ThreadPublicID string `uri:"thread_public_id"`
+	ThreadPublicID string `uri:"thread_public_id" binding:"required"`
 }
 
 func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
 	var req checkUserRequest
 
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -122,11 +112,8 @@ func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
 	threadPublicID, err := uuid.Parse(req.ThreadPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"thread_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -137,12 +124,17 @@ func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to check user: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to check like by user",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to check like by user",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("liked by user: ", userFound)
-	ctx.JSON(http.StatusOK, userFound)
-	return
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    userFound,
+	})
 }

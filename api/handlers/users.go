@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	errorhandler "khelogames/error_handler"
 	"net/http"
 	"time"
 
@@ -18,10 +19,10 @@ type loginUserResponse struct {
 	User                  userResponse `json:"user"`
 }
 type createUserRequest struct {
-	Username     string `json:"username"`
-	MobileNumber string `json:"mobile_number"`
-	Role         string `json:"role"`
-	Gmail        string `json:"gmail"`
+	Username     string `json:"username" binding:"required,min=3,max=50"`
+	MobileNumber string `json:"mobile_number" binding:"required,min=10,max=15"`
+	Role         string `json:"role" binding:"required,oneof=user admin moderator"`
+	Gmail        string `json:"gmail" binding:"required,email"`
 }
 
 type userResponse struct {
@@ -32,19 +33,14 @@ type userResponse struct {
 }
 
 type getUserRequest struct {
-	PublicID string `uri:"public_id"`
+	PublicID string `uri:"public_id" binding:"required"`
 }
 
 func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	var req getUserRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind user: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("bind the reqeust: ", req)
@@ -52,11 +48,8 @@ func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"status":  false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -65,14 +58,19 @@ func (s *HandlersServer) GetUsersFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get user: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get user",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("get the user data: ", users)
-	ctx.JSON(http.StatusOK, users)
-	return
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    users,
+	})
 }
 
 type getListUsersRequest struct {
@@ -82,14 +80,9 @@ type getListUsersRequest struct {
 
 func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 	var req getListUsersRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Failed to bind the request",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("bind the request: ", req)
@@ -100,29 +93,30 @@ func (s *HandlersServer) ListUsersFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get list: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get list of users",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get list of users",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Debug("get the users list: ", userList)
-	ctx.JSON(http.StatusOK, userList)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    userList,
+	})
 }
 
 type searchUserRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" binding:"required,min=1"`
 }
 
 func (s *HandlersServer) SearchUserFunc(ctx *gin.Context) {
 	var req searchUserRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Failed to bind the request",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	searchQuery := "%" + req.Name + "%"
@@ -133,14 +127,19 @@ func (s *HandlersServer) SearchUserFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to search team : ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to search user",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to search user",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
 	s.logger.Debug("User search: ", response)
 
-	ctx.JSON(http.StatusAccepted, response)
-	return
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }

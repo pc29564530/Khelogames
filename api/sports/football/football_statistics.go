@@ -4,6 +4,8 @@ import (
 	db "khelogames/database"
 	"net/http"
 
+	errorhandler "khelogames/error_handler"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -22,15 +24,13 @@ type addFootballStatisticsRequest struct {
 }
 
 func (s *FootballServer) AddFootballStatisticsFunc(ctx *gin.Context) {
+	s.logger.Info("Received request to add football statistics")
 	var req addFootballStatisticsRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		s.logger.Error("Failed to bind request: ", err)
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -52,14 +52,20 @@ func (s *FootballServer) AddFootballStatisticsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to add the football statistics: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to add football statistics",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to add football statistics",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
-
+	s.logger.Info("Successfully added football statistics")
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 type getFootballStatisticsRequest struct {
@@ -68,37 +74,29 @@ type getFootballStatisticsRequest struct {
 }
 
 func (s *FootballServer) GetFootballStatisticsFunc(ctx *gin.Context) {
+	s.logger.Info("Received request to get football statistics")
 	var req getFootballStatisticsRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		s.logger.Error("Failed to bind request: ", err)
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid match UUID format: ", err)
+		fieldErrors := map[string]string{"match_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid team UUID format: ", err)
+		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -107,11 +105,18 @@ func (s *FootballServer) GetFootballStatisticsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get the football statistics: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get football statistics",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get football statistics",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	s.logger.Info("Successfully retrieved football statistics")
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }

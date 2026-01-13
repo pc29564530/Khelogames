@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	errorhandler "khelogames/error_handler"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,12 +30,8 @@ func (s *AuthServer) RenewAccessTokenFunc(ctx *gin.Context) {
 
 	var req renewAccessTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		s.logger.Error("Failed to bind request: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"status":  false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 

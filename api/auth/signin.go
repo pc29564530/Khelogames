@@ -6,6 +6,8 @@ import (
 	"khelogames/util"
 	"net/http"
 
+	errorhandler "khelogames/error_handler"
+
 	"github.com/gin-gonic/gin"
 	"google.golang.org/api/idtoken"
 )
@@ -15,18 +17,14 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 	clientIP := ctx.ClientIP()
 
 	var req struct {
-		Email    string `json:"email" binding:"required,email"`
+		Email    string `json:"email" binding:"required, email"`
 		Password string `json:"password" binding:"required"`
 	}
 
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind the login request: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -36,8 +34,10 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		s.logger.Error("Database error while fetching user: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "An error occurred. Please try again later.",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user by gmail",
+			}
 		})
 		return
 	}
@@ -48,8 +48,10 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		s.logger.Info("Sign in attempt with non-existent email: ", req.Email)
 		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"code":    "NOT_FOUND",
-			"message": "Invalid email or password",
+			"error": gin.H{
+				"code":    "NOT_FOUND",
+				"message": "Invalid email or password",
+			}
 		})
 		return
 	}
@@ -60,8 +62,10 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		s.logger.Error("Failed password attempt for email: ", req.Email)
 		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"code":    "AUTHENTICATION_ERROR",
-			"message": "Invalid email or password",
+			"error": gin.H{
+				"code":    "AUTHENTICATION_ERROR",
+				"message": "Invalid email or password",
+			}
 		})
 		return
 	}
@@ -79,11 +83,21 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 		clientIP,
 	)
 	if err != nil {
-		s.logger.Error("Failed to create new token: ", err)
+		s.logger.Error("Token creation failed",
+			"user_public_id", existingUser.PublicID,
+			"request_id", ctx.GetString("request_id"),
+			"client_ip", clientIP,
+			"user_agent", userAgent,
+			"error", err,
+		)
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "An error occurred. Please try again later.",
+			"error": gin.H{
+				"code":    "AUTH_SERVICE_UNAVAILABLE",
+				"message": "Unable to sign in right now. Please try again later.",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -115,12 +129,8 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 	var req getGoogleLoginRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind the login request: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -130,6 +140,7 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 		s.logger.Error("Failed to verify idToken: ", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
+			""
 			"code":    "AUTHENTICATION_ERROR",
 			"message": "Invalid Google token",
 		})
@@ -140,12 +151,14 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 	email, ok := idToken.Claims["email"].(string)
 	if !ok {
 		s.logger.Error("Failed to get email from idToken")
-		ctx.JSON(http.StatusBadRequest, gin.H{
+		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Failed to get user info from Google",
+			"error": gin.H{
+				"code":    "AUTH_SERVICE_UNAVAILABLE",
+				"message": "Unable to sign in right now. Please try again later.",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
-		return
 	}
 
 	// Check if user exists
@@ -164,8 +177,10 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 		s.logger.Info("User does not exist with email: ", email)
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"success": false,
-			"code":    "NOT_FOUND",
-			"message": "Email not registered. Please sign up instead.",
+			"error": gin.H{
+				"code":    "NOT_FOUND",
+				"message": "Email not registered. Please sign up instead.",
+			}
 		})
 		return
 	}
@@ -183,11 +198,21 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 		clientIP,
 	)
 	if err != nil {
-		s.logger.Error("Failed to create new token: ", err)
+		s.logger.Error("Token creation failed",
+			"user_public_id", existingUser.PublicID,
+			"request_id", ctx.GetString("request_id"),
+			"client_ip", clientIP,
+			"user_agent", userAgent,
+			"error", err,
+		)
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "An error occurred. Please try again later.",
+			"error": gin.H{
+				"code":    "AUTH_SERVICE_UNAVAILABLE",
+				"message": "Unable to sign in right now. Please try again later.",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}

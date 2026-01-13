@@ -2,6 +2,7 @@ package teams
 
 import (
 	"khelogames/core/token"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"strconv"
 
@@ -29,50 +30,43 @@ type addTeamsRequest struct {
 
 func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 	var req addTeamsRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind create club request: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	fieldErrors := make(map[string]string)
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors = errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	slug := util.GenerateSlug(req.Name)
-	shortName := util.GenerateShortName(req.Name)
 
-	var emptyString string
-	var latitude float64
-	var longitude float64
-
-	if req.Latitude != emptyString && req.Longitude != emptyString {
-		latitude, err = strconv.ParseFloat(req.Latitude, 64)
-		if err != nil {
-			s.logger.Error("Failed to parse to float: ", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"code":    "VALIDATION_ERROR",
-				"message": "Invalid latitude format",
-			})
-			return
-		}
-
-		longitude, err = strconv.ParseFloat(req.Longitude, 64)
-		if err != nil {
-			s.logger.Error("Failed to parse to float: ", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"code":    "VALIDATION_ERROR",
-				"message": "Invalid longitude format",
-			})
-			return
+	// Latitude / Longitude validation
+	if req.Latitude != "" {
+		if _, err := strconv.ParseFloat(req.Latitude, 64); err != nil {
+			fieldErrors["latitude"] = "Invalid format"
 		}
 	}
 
-	team, err := s.txStore.CreateTeamsTx(ctx,
+	if req.Longitude != "" {
+		if _, err := strconv.ParseFloat(req.Longitude, 64); err != nil {
+			fieldErrors["longitude"] = "Invalid format"
+		}
+	}
+
+	// If ANY validation error exists → return once
+	if len(fieldErrors) > 0 {
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	latitude, _ := strconv.ParseFloat(req.Latitude, 64)
+	longitude, _ := strconv.ParseFloat(req.Longitude, 64)
+
+	slug := util.GenerateSlug(req.Name)
+	shortName := util.GenerateShortName(req.Name)
+
+	team, err := s.txStore.CreateTeamsTx(
+		ctx,
 		authPayload.PublicID,
 		req.Name,
 		slug,
@@ -89,35 +83,46 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 		latitude,
 		longitude,
 	)
+
 	if err != nil {
-		s.logger.Error("Failed to create new team: ", err)
+		s.logger.Error("Failed to create team: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to create team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to create team",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, team)
-	return
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    team,
+	})
 }
 
 func (s *TeamsServer) GetTeamsFunc(ctx *gin.Context) {
 
 	response, err := s.store.GetTeams(ctx)
 	if err != nil {
-		s.logger.Error("Failed to get club: ", err)
+		s.logger.Error("Failed to get teams: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get teams",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get teams",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
-	return
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 type getClubRequest struct {
@@ -126,41 +131,38 @@ type getClubRequest struct {
 
 func (s *TeamsServer) GetTeamFunc(ctx *gin.Context) {
 	var req getClubRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid UUID format: ", err)
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	response, err := s.store.GetTeamByPublicID(ctx, publicID)
 	if err != nil {
-		s.logger.Error("Failed to get club: ", err)
+		s.logger.Error("Failed to get team: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get team",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
-	return
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 type getTeamsBySportRequest struct {
@@ -170,29 +172,30 @@ type getTeamsBySportRequest struct {
 func (s *TeamsServer) GetTeamsBySportFunc(ctx *gin.Context) {
 
 	var req getTeamsBySportRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	rows, err := s.store.GetTeamsBySport(ctx, req.GameID)
 	if err != nil {
-		s.logger.Error("Failed to get club by sport: ", err)
+		s.logger.Error("Failed to get teams by sport: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get teams by sport",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get teams by sport",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, rows)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    rows,
+	})
 }
 
 func (s *TeamsServer) GetTeamsByPlayerFunc(ctx *gin.Context) {
@@ -201,27 +204,30 @@ func (s *TeamsServer) GetTeamsByPlayerFunc(ctx *gin.Context) {
 
 	playerPublicID, err := uuid.Parse(playerPublicIDString)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid UUID format: ", err)
+		fieldErrors := map[string]string{"player_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	response, err := s.store.GetTeamByPlayer(ctx, playerPublicID)
 	if err != nil {
-		s.logger.Error("Failed to get club by sport: ", err)
+		s.logger.Error("Failed to get teams by player: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get teams by player",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get teams by player",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 type getPlayersByTeamRequest struct {
@@ -230,40 +236,38 @@ type getPlayersByTeamRequest struct {
 
 func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {
 	var req getPlayersByTeamRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid UUID format: ", err)
+		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	players, err := s.store.GetPlayerByTeam(ctx, teamPublicID)
 	if err != nil {
-		s.logger.Error("Failed to get club by sport: ", err)
+		s.logger.Error("Failed to get players by team: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get players by team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get players by team",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, players)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    players,
+	})
 }
 
 func (s *TeamsServer) UpdateTeamLocationFunc(ctx *gin.Context) {
@@ -277,61 +281,57 @@ func (s *TeamsServer) UpdateTeamLocationFunc(ctx *gin.Context) {
 		State     string `json:"state"`
 		Country   string `json:"country"`
 	}
-	err := ctx.ShouldBindUri(&reqURI)
-	if err != nil {
-		s.logger.Error("Failed to bind uri: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&reqURI); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
-	err = ctx.ShouldBindJSON(&reqJSON)
-	if err != nil {
-		s.logger.Error("Failed to bind json: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&reqJSON); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(reqURI.TeamPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid UUID format: ", err)
+		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	latitude, err := strconv.ParseFloat(reqJSON.Latitude, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse float: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid latitude format",
-		})
+		s.logger.Error("Failed to parse latitude: ", err)
+		fieldErrors := map[string]string{"latitude": "Invalid format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	longitude, err := strconv.ParseFloat(reqJSON.Longitude, 64)
 	if err != nil {
-		s.logger.Error("Failed to parse float: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid longitude format",
-		})
+		s.logger.Error("Failed to parse longitude: ", err)
+		fieldErrors := map[string]string{"longitude": "Invalid format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	team, err := s.txStore.UpdateTeamTx(ctx, teamPublicID, reqJSON.City, reqJSON.State, reqJSON.Country, latitude, longitude)
+	if err != nil {
+		s.logger.Error("Failed to update team location: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update team location",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
 
-	ctx.JSON(http.StatusAccepted, team)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    team,
+	})
 }

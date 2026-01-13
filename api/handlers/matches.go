@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	errorhandler "khelogames/error_handler"
 	"khelogames/util"
 	"net/http"
 	"strconv"
@@ -19,8 +20,11 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get game by name: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get game by name",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get game by name",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -33,11 +37,14 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 
 	// Validate required parameters
 	if latitudeString == "" || longitudeString == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "latitude and longitude are required",
-		})
+		fieldErrors := make(map[string]string)
+		if latitudeString == "" {
+			fieldErrors["latitude"] = "Latitude is required"
+		}
+		if longitudeString == "" {
+			fieldErrors["longitude"] = "Longitude is required"
+		}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -45,11 +52,8 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 	startDate, err := util.ConvertTimeStamp(startDateString)
 	if err != nil {
 		s.logger.Error("Failed to convert timestamp: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid start_timestamp format",
-		})
+		fieldErrors := map[string]string{"start_timestamp": "Invalid timestamp format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -57,22 +61,16 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 	latitude, err := strconv.ParseFloat(latitudeString, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse latitude: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Failed to parse latitude",
-		})
+		fieldErrors := map[string]string{"latitude": "Invalid latitude format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	longitude, err := strconv.ParseFloat(longitudeString, 64)
 	if err != nil {
 		s.logger.Error("Failed to parse longitude: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Failed to parse longitude",
-		})
+		fieldErrors := map[string]string{"longitude": "Invalid longitude format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -82,33 +80,39 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 		radius = 10.0
 	}
 
-	// ✅ Step 1: Convert user location to H3
+	//Convert user location to H3
 	latLng := h3.NewLatLng(latitude, longitude)
 	userCell, err := h3.LatLngToCell(latLng, 9) // Resolution 9
 	if err != nil {
 		s.logger.Error("Failed to get cell from lat and long: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to process location",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to process location",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
 	s.logger.Info("User H3 Index: ", userCell.String())
 
-	// ✅ Step 2: Calculate k-ring based on radius
+	//Calculate k-ring based on radius
 	kRing := calculateKRing(radius, 9)
 	s.logger.Info("K-Ring: ", kRing, " for radius: ", radius, " km")
 
-	// ✅ Step 3: Get neighboring H3 cells
+	//Get neighboring H3 cells
 	neighbors, err := h3.GridDisk(userCell, kRing)
 	if err != nil {
 		s.logger.Error("Failed to get the neighbors: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to process neighboring locations",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to process neighboring locations",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -121,7 +125,7 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 
 	s.logger.Info("Searching in ", len(h3Cells), " H3 cells")
 
-	// ✅ Step 4: Query matches with those H3 indexes
+	// Query matches with those H3 indexes
 	// This queries locations with nearby H3, then gets matches at those locations
 	listMatches, err := s.store.ListMatchesByLocation(
 		ctx,
@@ -136,14 +140,20 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get matches by location: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get matches by location",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get matches by location",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
 	s.logger.Info("Found ", len(listMatches), " listMatches")
-	ctx.JSON(http.StatusAccepted, listMatches)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    listMatches,
+	})
 }
 
 func calculateKRing(radiusKm float64, resolution int) int {
@@ -178,8 +188,11 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get game by name: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get game by name",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get game by name",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -187,11 +200,8 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 	startDate, err := util.ConvertTimeStamp(startDateString)
 	if err != nil {
 		s.logger.Error("Failed to convert to second: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid start_timestamp format",
-		})
+		fieldErrors := map[string]string{"start_timestamp": "Invalid timestamp format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	response, err := s.store.ListMatches(ctx, int32(startDate), game.ID)
@@ -199,13 +209,18 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get matches by game: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get matches by game",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get matches by game",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, response)
-	return
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 func (s *HandlersServer) GetLiveMatchesFunc(ctx *gin.Context) {
@@ -216,8 +231,11 @@ func (s *HandlersServer) GetLiveMatchesFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get game by name: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid game name",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid game name",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -226,38 +244,35 @@ func (s *HandlersServer) GetLiveMatchesFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get matches by game: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get live matches by game",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get live matches by game",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, response)
-	return
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 	var req struct {
-		MatchPublicID string `uri:"match_public_id"`
+		MatchPublicID string `uri:"match_public_id" binding:"required"`
 	}
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"match_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -267,8 +282,11 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get game by name: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get game by name",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get game by name",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -278,11 +296,16 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get matches by match id: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get match by match id",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get match by match id",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, match)
-	return
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    match,
+	})
 }

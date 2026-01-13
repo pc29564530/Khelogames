@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"io"
+	errorhandler "khelogames/error_handler"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,7 +21,17 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 	//checking if the data is valid
 	if uploadId == "" || chunkIndexStr == "" || totalChunksStr == "" {
 		s.logger.Error("Missing uploadId, chunkIndex, or totalChunks")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Missing uploadId, chunkIndex, or totalChunks"})
+		fieldErrors := make(map[string]string)
+		if uploadId == "" {
+			fieldErrors["uploadId"] = "Upload ID is required"
+		}
+		if chunkIndexStr == "" {
+			fieldErrors["chunkIndex"] = "Chunk index is required"
+		}
+		if totalChunksStr == "" {
+			fieldErrors["totalChunks"] = "Total chunks is required"
+		}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -28,7 +39,8 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 	chunkIndex, err := strconv.Atoi(chunkIndexStr)
 	if err != nil {
 		s.logger.Error("Invalid chunkIndex: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chunkIndex"})
+		fieldErrors := map[string]string{"chunkIndex": "Invalid chunk index format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -36,7 +48,8 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 	file, _, err := ctx.Request.FormFile("chunk")
 	if err != nil {
 		s.logger.Error("Failed to get file chunk: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get file chunk"})
+		fieldErrors := map[string]string{"chunk": "Failed to get file chunk"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -46,7 +59,14 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 	tempDir := filepath.Join("/tmp/khelogames_tmp_uploads", uploadId)
 	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
 		s.logger.Error("Failed to create upload dir: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload dir"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to create upload directory",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
 		return
 	}
 
@@ -54,7 +74,14 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 	chunkPath := filepath.Join(tempDir, fmt.Sprintf("chunk_%d", chunkIndex))
 	out, err := os.Create(chunkPath)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save chunk"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to save chunk",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
 		return
 	}
 	defer out.Close()
@@ -64,31 +91,26 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 
 	// Save the chunk to the database
 	ctx.JSON(http.StatusOK, gin.H{
-		"message":     "Chunk uploaded",
-		"chunk_index": chunkIndex,
+		"success":     true,
+		"data": gin.H{
+			"message":     "Chunk uploaded",
+			"chunk_index": chunkIndex,
+		},
 	})
 }
 
 func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 	// Get the req params
 	var req struct {
-		UploadID    string `json:"upload_id"`
-		TotalChunks int    `json:"total_chunks"`
-		MediaType   string `json:"media_type"`
+		UploadID    string `json:"upload_id" binding:"required"`
+		TotalChunks int    `json:"total_chunks" binding:"required,min=1"`
+		MediaType   string `json:"media_type" binding:"required"`
 	}
 
 	// Parse the request body
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
-		return
-	}
-
-	// Validate required fields
-	if req.UploadID == "" || req.TotalChunks <= 0 || req.MediaType == "" {
-		s.logger.Error("Missing required fields")
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields"})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -98,7 +120,14 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 	finalDir := "/tmp/khelogames_media_uploads"
 	if err := os.MkdirAll(finalDir, os.ModePerm); err != nil {
 		s.logger.Error("Failed to create final upload dir: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to create upload directory",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
 		return
 	}
 
@@ -109,7 +138,8 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 	} else if mediaType == "video/mp4" || mediaType == "video/quicktime" || mediaType == "video/mkv" {
 		finalPath = filepath.Join(finalDir, req.UploadID+".mp4")
 	} else {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported media type"})
+		fieldErrors := map[string]string{"media_type": "Unsupported media type"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -117,7 +147,14 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 	finalFile, err := os.Create(finalPath)
 	if err != nil {
 		s.logger.Error("Failed to create file path: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create final file"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to create final file",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
 		return
 	}
 	defer finalFile.Close()
@@ -129,7 +166,14 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		chunkFile, err := os.Open(chunkPath)
 		if err != nil {
 			s.logger.Error("Failed to open chunk: ", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open chunk"})
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to open chunk",
+				},
+				"request_id": ctx.GetString("request_id"),
+			})
 			return
 		}
 
@@ -137,7 +181,14 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		if _, err := io.Copy(finalFile, chunkFile); err != nil {
 			s.logger.Error("Failed to copy chunk: ", err)
 			chunkFile.Close()
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to copy chunk"})
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to copy chunk",
+				},
+				"request_id": ctx.GetString("request_id"),
+			})
 			return
 		}
 
@@ -162,8 +213,11 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 	fileURL := fmt.Sprintf("http://192.168.1.3:8080/media/%s.%s", req.UploadID, fileExt)
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message":   "Upload complete",
-		"file_url":  fileURL,
-		"upload_id": req.UploadID,
+		"success": true,
+		"data": gin.H{
+			"message":   "Upload complete",
+			"file_url":  fileURL,
+			"upload_id": req.UploadID,
+		},
 	})
 }

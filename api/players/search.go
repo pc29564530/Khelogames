@@ -1,6 +1,7 @@
 package players
 
 import (
+	errorhandler "khelogames/error_handler"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,14 +13,9 @@ type searchPlayerRequest struct {
 
 func (s *PlayerServer) SearchPlayerFunc(ctx *gin.Context) {
 	var req searchPlayerRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	searchQuery := "%" + req.Name + "%"

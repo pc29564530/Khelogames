@@ -3,6 +3,7 @@ package messenger
 import (
 	"khelogames/core/token"
 	db "khelogames/database"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 
@@ -11,19 +12,18 @@ import (
 )
 
 type createCommunityMessageRequest struct {
-	CommuntiyPublicID string `json:"community_public_id"`
-	Name              string `json:"name"`
-	Content           string `json:"content"`
+	CommuntiyPublicID string `json:"community_public_id" binding:"required"`
+	Name              string `json:"name" binding:"required,min=1,max=100"`
+	Content           string `json:"content" binding:"required,min=1"`
 	MediaUrl          string `json:"media_url"`
 	MediaType         string `json:"media_type"`
 }
 
 func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
-
 	var req createCommunityMessageRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		s.logger.Error("Failed to bind JSON: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("Successfully bind: ", req)
@@ -31,11 +31,8 @@ func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
 	communityPublicID, err := uuid.Parse(req.CommuntiyPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"community_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -55,21 +52,30 @@ func (s *MessageServer) CreateCommunityMessageFunc(ctx *gin.Context) {
 	response, err := s.store.CreateCommunityMessage(ctx, arg)
 	if err != nil {
 		s.logger.Error("Failed to create community message: ", err)
-		ctx.JSON(http.StatusNotFound, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to create community message",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
 		return
 	}
 	s.logger.Info("Successfully created community message")
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 func (s *MessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
 	var req struct {
-		CommunityPublicID string `json:"community_public_id"`
+		CommunityPublicID string `uri:"community_public_id" binding:"required"`
 	}
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind URI: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -78,22 +84,29 @@ func (s *MessageServer) GetCommunityMessageFunc(ctx *gin.Context) {
 	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"community_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	response, err := s.store.GetCommuntiyMessage(ctx, communityPublicID) //spelling mistake
 	if err != nil {
 		s.logger.Error("Failed to get community message: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get community message",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
 		return
 	}
 	s.logger.Info("Successfully retrieved community message")
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 func (s *MessageServer) GetCommunityByMessageFunc(ctx *gin.Context) {
@@ -104,9 +117,19 @@ func (s *MessageServer) GetCommunityByMessageFunc(ctx *gin.Context) {
 	response, err := s.store.GetCommunityByMessage(ctx, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to get community by message: ", err)
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get community by message",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
 		return
 	}
 	s.logger.Info("Successfully retrieved community by message")
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }

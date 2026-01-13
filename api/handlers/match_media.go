@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"khelogames/core/token"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 
@@ -11,42 +12,29 @@ import (
 
 func (s *HandlersServer) CreateMatchMediaFunc(ctx *gin.Context) {
 	var reqUri struct {
-		MatchPublicID string `uri:"match_public_id"`
+		MatchPublicID string `uri:"match_public_id" binding:"required"`
 	}
 	var reqJSON struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		MediaURL    string `json:"media_url"`
+		Title       string `json:"title" binding:"required,min=1,max=200"`
+		Description string `json:"description" binding:"max=1000"`
+		MediaURL    string `json:"media_url" binding:"required"`
 	}
-	err := ctx.ShouldBindUri(&reqUri)
-	if err != nil {
-		s.logger.Error("Failed to bind uri: %w", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
-	err = ctx.ShouldBindJSON(&reqJSON)
-	if err != nil {
-		s.logger.Error("Failed to bind json: %w", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&reqJSON); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(reqUri.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse to uuid: %w", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"match_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -57,8 +45,11 @@ func (s *HandlersServer) CreateMatchMediaFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get game: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid game name",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid game name",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -70,8 +61,11 @@ func (s *HandlersServer) CreateMatchMediaFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get tournament by match id: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get tournament match",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get tournament match",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -81,8 +75,11 @@ func (s *HandlersServer) CreateMatchMediaFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get tournament by user role: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get tournament user role",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get tournament user role",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -90,8 +87,11 @@ func (s *HandlersServer) CreateMatchMediaFunc(ctx *gin.Context) {
 	if !isExists {
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"success": false,
-			"code":    "FORBIDDEN_ERROR",
-			"message": "You are not allowed to upload media for this match",
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You are not allowed to upload media for this match",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -101,37 +101,35 @@ func (s *HandlersServer) CreateMatchMediaFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to create match media: %w", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Could not create match media",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Could not create match media",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
 
 func (s *HandlersServer) GetMatchMediaFunc(ctx *gin.Context) {
 	var reqUri struct {
-		MatchPublicID string `uri:"match_public_id"`
+		MatchPublicID string `uri:"match_public_id" binding:"required"`
 	}
-	err := ctx.ShouldBindUri(&reqUri)
-	if err != nil {
-		s.logger.Error("Failed to bind uri: %w", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(reqUri.MatchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse to uuid: %w", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"match_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -140,10 +138,16 @@ func (s *HandlersServer) GetMatchMediaFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get match media: %w", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Could not get match media",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Could not get match media",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"khelogames/core/token"
 	db "khelogames/database"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 
 	"net/http"
@@ -12,23 +13,28 @@ import (
 )
 
 type createThreadRequest struct {
-	CommunityPublicID string `json:"community_public_id,omitempty"`
-	Title             string `json:"title"`
-	Content           string `json:"content"`
-	MediaType         string `json:"mediaType,omitempty"`
-	MediaURL          string `json:"mediaURL,omitempty"`
+	CommunityPublicID string `json:"community_public_id" binding:"omitempty,uuid4"`
+	Title             string `json:"title" binding:"omitempty,min=1,max=500"`
+	Content           string `json:"content" binding:"omitempty,min=1,max=10000"`
+	MediaType         string `json:"media_type" binding:"omitempty,oneof=image video gif link"`
+	MediaURL          string `json:"media_url" binding:"omitempty,url"`
 }
 
 func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 	var req createThreadRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	var emptyString string
+
+	if req.Title == emptyString && req.Content == emptyString && req.MediaURL == emptyString {
+		fieldErrors := map[string]string{
+			"general": "Please provide any of the input",
+		}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -37,11 +43,8 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 		parsed, err := uuid.Parse(req.CommunityPublicID)
 		if err != nil {
 			s.logger.Error("Failed to parse community public id: ", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"code":    "VALIDATION_ERROR",
-				"message": "Invalid community UUID format",
-			})
+			fieldErrors := map[string]string{"community_public_id": "Invalid UUID format"}
+			errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 			return
 		}
 		communityPublicID = &parsed
@@ -63,8 +66,11 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to create new thread ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to create thread",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to create thread",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -74,8 +80,11 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get user profile: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get user profile",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user profile",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -97,34 +106,29 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 	}
 
 	s.logger.Info("Thread successfully created ")
-	ctx.JSON(http.StatusOK, threadResponse)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    threadResponse,
+	})
 }
 
 type getThreadRequest struct {
-	PublicID string `uri:"public_id"`
+	PublicID string `uri:"public_id" binding:"required"`
 }
 
 func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
 	var req getThreadRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"status":  false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -133,41 +137,39 @@ func (s *HandlersServer) GetThreadFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get thread: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get thread",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get thread",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Info("Successfully get the thread")
-	ctx.JSON(http.StatusOK, thread)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    thread,
+	})
 }
 
 type getThreadUserRequest struct {
-	PublicID string `uri:"public_id"`
+	PublicID string `uri:"public_id" binding:"required"`
 }
 
 // get thread by user
 func (s *HandlersServer) GetThreadByUserFunc(ctx *gin.Context) {
 	var req getThreadUserRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"status":  false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -176,12 +178,18 @@ func (s *HandlersServer) GetThreadByUserFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get thread by user: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "THREAD_FETCH_FAILED",
-			"message": "Failed to get thread by user",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get thread by user",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusOK, thread)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    thread,
+	})
 }
 
 func (s *HandlersServer) GetAllThreadDetailFunc(ctx *gin.Context) {
@@ -190,8 +198,11 @@ func (s *HandlersServer) GetAllThreadDetailFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to fetch threads", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "THREAD_FETCH_FAILED",
-			"message": "Unable to fetch threads",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Unable to fetch threads",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -209,8 +220,11 @@ func (s *HandlersServer) GetAllThreadsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to fetch threads", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "THREAD_FETCH_FAILED",
-			"message": "Unable to fetch threads",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Unable to fetch threads",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -224,27 +238,19 @@ func (s *HandlersServer) GetAllThreadsFunc(ctx *gin.Context) {
 
 func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 	var req struct {
-		CommunityPublicID string `uri:"community_public_id"`
+		CommunityPublicID string `uri:"community_public_id" binding:"required"`
 	}
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	communityPublicID, err := uuid.Parse(req.CommunityPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"status":  false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"community_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -253,40 +259,38 @@ func (s *HandlersServer) GetAllThreadsByCommunitiesFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get thread by communities: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "FAILED_TO_GET_THREADS",
-			"message": "Failed to get threads by communities",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get threads by communities",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Info("Successfully get the thread")
-	ctx.JSON(http.StatusOK, threads)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    threads,
+	})
 }
 
 type updateThreadLikeRequest struct {
-	PublicID string `uri:"public_id"`
+	PublicID string `uri:"public_id" binding:"required"`
 }
 
 func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 	var req updateThreadLikeRequest
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"status":  false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -295,39 +299,37 @@ func (s *HandlersServer) UpdateThreadLikeFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to update like: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "FAILED_TO_UPDATE_LIKE",
-			"message": "Failed to update like count",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update like count",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
 	s.logger.Debug("Successfully update the thread ", thread)
-	ctx.JSON(http.StatusOK, thread)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    thread,
+	})
 }
 
 func (s *HandlersServer) UpdateThreadCommentCountFunc(ctx *gin.Context) {
 	var req struct {
-		PublicID string `uri:"public_id"`
+		PublicID string `uri:"public_id" binding:"required"`
 	}
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	publicID, err := uuid.Parse(req.PublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"status":  false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -336,12 +338,18 @@ func (s *HandlersServer) UpdateThreadCommentCountFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to update comment count: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to update comment count",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update comment count",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
 	s.logger.Debug("Successfully updated the thread ", thread)
-	ctx.JSON(http.StatusOK, thread)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    thread,
+	})
 }

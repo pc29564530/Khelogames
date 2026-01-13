@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"khelogames/core/token"
 	db "khelogames/database"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 
@@ -25,37 +26,28 @@ type addFootballIncidentsRequest struct {
 }
 
 func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
+	s.logger.Info("Received request to add football incident")
 	var req addFootballIncidentsRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		s.logger.Error("Failed to bind request: ", err)
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		s.logger.Error("Invalid tournament UUID format: ", err)
+		fieldErrors := map[string]string{"tournament_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		s.logger.Error("Invalid match UUID format: ", err)
+		fieldErrors := map[string]string{"match_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -64,12 +56,9 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 	if req.TeamPublicID != nil && *req.TeamPublicID != "" {
 		parsed, err := uuid.Parse(*req.TeamPublicID)
 		if err != nil {
-			s.logger.Error("Invalid UUID format", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"code":    "VALIDATION_ERROR",
-				"message": "Invalid request format",
-			})
+			s.logger.Error("Invalid team UUID format: ", err)
+			fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+			errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 			return
 		}
 		teamPublicID = parsed
@@ -80,12 +69,9 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 	if req.IncidentType != "periods" {
 		playerPublicID, err = uuid.Parse(req.PlayerPublicID)
 		if err != nil {
-			s.logger.Error("Invalid UUID format", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"code":    "VALIDATION_ERROR",
-				"message": "Invalid request format",
-			})
+			s.logger.Error("Invalid player UUID format: ", err)
+			fieldErrors := map[string]string{"player_public_id": "Invalid UUID format"}
+			errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 			return
 		}
 	}
@@ -97,8 +83,11 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 		s.logger.Error("Tournament match not found: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match details",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get match details",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -108,17 +97,23 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get user role in tournament: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user tournament role",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user tournament role",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	if !isExists {
 		s.logger.Error("User does not own this match")
-		ctx.JSON(http.StatusNotFound, gin.H{
+		ctx.JSON(http.StatusForbidden, gin.H{
 			"success": false,
-			"code":    "NOT_FOUND",
-			"message": "You do not own this match",
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You do not own this match",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -139,22 +134,28 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 
 	incidentData, err := s.txStore.AddFootballIncidentsTx(ctx, arg, playerPublicID)
 	if err != nil {
-		s.logger.Error("Failed to create footbal incidents: ", err)
+		s.logger.Error("Failed to create football incidents: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Could not create football incident",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Could not create football incident",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	s.logger.Info("successfully update the add football incident:  , incidentData")
+	s.logger.Info("Successfully added football incident")
 
-	ctx.JSON(http.StatusAccepted, incidentData)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    incidentData,
+	})
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "ADD_FOOTBALL_INCIDENT", incidentData)
 		if err != nil {
-			s.logger.Warn("Failed to broadcast cricket event: ", err)
+			s.logger.Warn("Failed to broadcast football event: ", err)
 		}
 	}
 }
@@ -171,59 +172,44 @@ type addFootballIncidentsSubsRequest struct {
 }
 
 func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
+	s.logger.Info("Received request to add football substitution incident")
 	var req addFootballIncidentsSubsRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		s.logger.Error("Failed to bind request: ", err)
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid match UUID format: ", err)
+		fieldErrors := map[string]string{"match_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid team UUID format: ", err)
+		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	playerInPublicID, err := uuid.Parse(req.PlayerInPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid player in UUID format: ", err)
+		fieldErrors := map[string]string{"player_in_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	playerOutPublicID, err := uuid.Parse(req.PlayerOutPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid player out UUID format: ", err)
+		fieldErrors := map[string]string{"player_out_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -231,11 +217,14 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		s.logger.Error("Tournament not found: ", err)
+		s.logger.Error("Tournament match not found: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match details",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get match details",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -245,17 +234,23 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		s.logger.Error("Failed to get user role in tournament: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user tournament role",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user tournament role",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	if !isExists {
 		s.logger.Error("User does not own this match")
-		ctx.JSON(http.StatusNotFound, gin.H{
+		ctx.JSON(http.StatusForbidden, gin.H{
 			"success": false,
-			"code":    "NOT_FOUND",
-			"message": "You do not own this match",
+			"error": gin.H{
+				"code":    "FORBIDDEN",
+				"message": "You do not own this match",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -271,20 +266,27 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		playerOutPublicID,
 	)
 	if err != nil {
-		s.logger.Error("Failed to create football incidents transaction: ", err)
+		s.logger.Error("Failed to create football substitution incident: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Could not create football incident substitution",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Could not create football incident substitution",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, incidentData)
+	s.logger.Info("Successfully added football substitution incident")
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    incidentData,
+	})
 	if s.scoreBroadcaster != nil {
 		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "ADD_FOOTBALL_SUB_INCIDENT", *incidentData)
 		if err != nil {
-			s.logger.Warn("Failed to broadcast cricket event: ", err)
+			s.logger.Warn("Failed to broadcast football event: ", err)
 		}
 	}
 }
@@ -294,27 +296,22 @@ type getFootballIncidentsRequest struct {
 }
 
 func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
+	s.logger.Info("Received request to get football incidents")
 	var req getFootballIncidentsRequest
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		s.logger.Error("Failed to bind request: ", err)
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	s.logger.Debug("Successfully bind the req: ", req)
 
 	matchPublicID, err := uuid.Parse(req.MatchPublicID)
 	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		s.logger.Error("Invalid match UUID format: ", err)
+		fieldErrors := map[string]string{"match_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -323,8 +320,11 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get football incidents: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get football incidents",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get football incidents",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -334,8 +334,11 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get match data: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get match details",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get match details",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -561,6 +564,9 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 		{"incidents": incidents},
 	}
 
-	s.logger.Info("Successfully get match incidents")
-	ctx.JSON(http.StatusOK, matchIncidents)
+	s.logger.Info("Successfully retrieved match incidents")
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    matchIncidents,
+	})
 }

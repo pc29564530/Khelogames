@@ -2,6 +2,7 @@ package tournaments
 
 import (
 	"encoding/json"
+	errorhandler "khelogames/error_handler"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,12 +22,8 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	}
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		s.logger.Error("Failed to bind request: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -124,7 +121,6 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		return
 	}
 
-
 	ctx.JSON(http.StatusAccepted, teamData)
 	return
 }
@@ -141,8 +137,10 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind request: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid request format",
+			}
 		})
 		return
 	}
@@ -152,8 +150,10 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to parse tournament public ID: ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
+			"erorr": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			}
 		})
 		return
 	}
@@ -163,8 +163,10 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get teams: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get team",
+			}
 		})
 		return
 	}
@@ -177,8 +179,10 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to unmarshal: ", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
-				"code":    "DATA_PARSE_ERROR",
-				"message": "Failed to process team data",
+				"error": gin.H{
+					"code":    "DATA_PARSE_ERROR",
+					"message": "Failed to process team data",
+				}
 			})
 			return
 		}

@@ -3,6 +3,7 @@ package teams
 import (
 	"khelogames/core/token"
 	db "khelogames/database"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"khelogames/util"
 	"net/http"
@@ -19,14 +20,9 @@ type addPlayerToTeamRequest struct {
 
 func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 	var req addPlayerToTeamRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -35,8 +31,10 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			}
 		})
 		return
 	}
@@ -46,8 +44,10 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			}
 		})
 		return
 	}
@@ -58,8 +58,10 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to convert the timestamp to second ", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid date format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid date format",
+			}
 		})
 		return
 	}
@@ -71,8 +73,10 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get team by public id: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get team",
+			}
 		})
 		return
 	}
@@ -81,8 +85,10 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("You do not own this team")
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"success": false,
-			"code":    "FORBIDDEN_ERROR",
-			"message": "You do not own this team",
+			"error": gin.H{
+				"code":    "FORBIDDEN_ERROR",
+				"message": "You do not own this team",
+			}
 		})
 		return
 	}
@@ -95,8 +101,10 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to update the the leave date: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to update leave date",
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to update leave date",
+				}
 			})
 			return
 		}
@@ -106,8 +114,10 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to get the player: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get player",
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to get player",
+				}
 			})
 			return
 		}
@@ -138,8 +148,10 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to add team member: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to add team member",
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to add team member",
+				}
 			})
 			return
 		}
@@ -157,8 +169,10 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to bind: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get team member",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get team member",
+			}
 		})
 		return
 	}
@@ -168,8 +182,10 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			}
 		})
 		return
 	}
@@ -179,8 +195,10 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get team member: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get team member",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get team member",	
+			}
 		})
 		return
 	}
@@ -198,14 +216,9 @@ type removePlayerFromTeamRequest struct {
 
 func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 	var req removePlayerFromTeamRequest
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to remove player from team",
-		})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -214,8 +227,10 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Invalid UUID format",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Invalid UUID format",
+			}
 		})
 		return
 	}
@@ -225,8 +240,11 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Invalid UUID format",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Invalid UUID format",
+			}
+			
 		})
 		return
 	}
@@ -237,8 +255,10 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to convert to second")
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid date format",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid date format",
+			}
 		})
 		return
 	}
@@ -249,8 +269,10 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get team by public id: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get team",
+			}
 		})
 		return
 	}
@@ -259,8 +281,10 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 		s.logger.Error("You do not own this team")
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"success": false,
-			"code":    "FORBIDDEN_ERROR",
-			"message": "You do not own this team",
+			"error": gin.H{
+				"code":    "FORBIDDEN_ERROR",
+				"message": "You do not own this team",
+			}
 		})
 		return
 	}
@@ -273,8 +297,10 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to remove player from team: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to remove player from team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to remove player from team",
+			}
 		})
 		return
 	}
