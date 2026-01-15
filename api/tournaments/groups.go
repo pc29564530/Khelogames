@@ -16,7 +16,8 @@ func (s *TournamentServer) GetGroupsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get groups",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}

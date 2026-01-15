@@ -30,11 +30,15 @@ func (s *TeamsServer) SearchTeamFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to search team",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 	return
 }

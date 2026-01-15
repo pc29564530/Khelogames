@@ -5,9 +5,10 @@ import (
 	"khelogames/pkg"
 	"net/http"
 
+	errorhandler "khelogames/error_handler"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	errorhandler "khelogames/error_handler"
 )
 
 type addCricketTossRequest struct {
@@ -32,8 +33,9 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 			"success": false,
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
-				"message": "Invalid UUID format",	
-			}
+				"message": "Invalid UUID format",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -45,8 +47,9 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 			"success": false,
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
-				"message": "Invalid UUID format",	
-			}
+				"message": "Invalid UUID format",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -60,7 +63,8 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get match details",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -72,7 +76,8 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get user tournament role",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -82,7 +87,8 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "FORBIDDEN_ERROR",
 				"message": "You are not allowed to add toss details",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -95,7 +101,8 @@ func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to add cricket toss",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -138,7 +145,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid request format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -150,7 +158,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -163,7 +172,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get cricket match toss",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -176,7 +186,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid toss_won_team format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -189,7 +200,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid public_id format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -202,7 +214,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format for public_id",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -215,7 +228,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get team details",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -228,7 +242,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid toss_decision format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}

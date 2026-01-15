@@ -33,7 +33,8 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -46,7 +47,8 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -83,11 +85,15 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to add tournament participants",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, participants)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    participants,
+	})
 }
 
 func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
@@ -103,7 +109,8 @@ func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid request format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -116,7 +123,8 @@ func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -129,9 +137,13 @@ func (s *TournamentServer) GetTournamentParticipantsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get tournament pariticipants",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	ctx.JSON(http.StatusAccepted, tournamentParticipants)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    tournamentParticipants,
+	})
 }

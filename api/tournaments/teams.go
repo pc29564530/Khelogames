@@ -30,22 +30,16 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse tournament public ID: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Failed to parse team public ID: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -56,8 +50,11 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get game by name: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get game",
+			"error": gin.H{
+				"code":    "DATABASE_ERROR",
+				"message": "Failed to get game",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -67,8 +64,11 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get team player: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get player by team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get player by team",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -78,8 +78,11 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 	if game.MinPlayers > int32(teamPlayerCount) {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Team strength does not satisfied",
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Team strength does not satisfied",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -89,8 +92,11 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to add team: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get new tournament team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get new tournament team",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -100,8 +106,11 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get Tournament Team: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get tournament team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get tournament team",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -114,14 +123,20 @@ func (s *TournamentServer) AddTournamentTeamFunc(ctx *gin.Context) {
 
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATA_PARSE_ERROR",
-			"message": "Failed to process team data",
+			"error": gin.H{
+				"code":    "DATA_PARSE_ERROR",
+				"message": "Failed to process team data",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, teamData)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    teamData,
+	})
 	return
 }
 
@@ -140,7 +155,8 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid request format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -153,7 +169,8 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 			"erorr": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -166,7 +183,8 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get team",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -182,7 +200,8 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 				"error": gin.H{
 					"code":    "DATA_PARSE_ERROR",
 					"message": "Failed to process team data",
-				}
+				},
+				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
@@ -191,5 +210,8 @@ func (s *TournamentServer) GetTournamentTeamsFunc(ctx *gin.Context) {
 
 	s.logger.Info("Successfully retrieved teams: ", teamsData)
 
-	ctx.JSON(http.StatusAccepted, teamsData)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    teamsData,
+	})
 }

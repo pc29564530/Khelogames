@@ -37,7 +37,8 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get user by gmail",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -51,7 +52,8 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "NOT_FOUND",
 				"message": "Invalid email or password",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -65,7 +67,8 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "AUTHENTICATION_ERROR",
 				"message": "Invalid email or password",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -140,9 +143,11 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 		s.logger.Error("Failed to verify idToken: ", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			""
-			"code":    "AUTHENTICATION_ERROR",
-			"message": "Invalid Google token",
+			"error": gin.H{
+				"code":    "AUTHENTICATION_ERROR",
+				"message": "Invalid google token",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -167,8 +172,11 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 		s.logger.Error("Database error while fetching user: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "An error occurred. Please try again later.",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get users by gmail",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -180,7 +188,8 @@ func (s *AuthServer) CreateGoogleSignIn(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "NOT_FOUND",
 				"message": "Email not registered. Please sign up instead.",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}

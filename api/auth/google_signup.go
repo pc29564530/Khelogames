@@ -5,6 +5,7 @@ import (
 
 	"khelogames/core/token"
 	"khelogames/database/models"
+	errorhandler "khelogames/error_handler"
 
 	utils "khelogames/util"
 	"net/http"
@@ -16,7 +17,6 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/idtoken"
-	errorhandler "khelogames/error_handler"
 )
 
 func getGoogleOauthConfig() *oauth2.Config {
@@ -41,11 +41,11 @@ func (s *AuthServer) HandleGoogleRedirect(ctx *gin.Context) {
 
 func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	var req struct {
-		GoogleID  string `json:"google_id" binding:"required"`
-		Email     string `json:"email" binding:"required,email"`
-		FullName  string `json:"full_name" binding:"required"`
+		GoogleID  string `json:"google_id"`
+		Email     string `json:"email"`
+		FullName  string `json:"full_name"`
 		AvatarURL string `json:"avatar_url"`
-		IDToken   string `json:"id_token" binding:"required"`
+		IDToken   string `json:"id_token"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -63,7 +63,7 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 			"success": false,
 			"error": gin.H{
 				"code":    "AUTHENTICATION_ERROR",
-				"message": "Google sign up failed. Please try again.",
+				"message": "Failed to sign up",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
@@ -77,8 +77,8 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Google sign up failed. Please try again.",
+				"code":    "VALIDATION_ERROR",
+				"message": "Failed to get user email",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
@@ -86,23 +86,9 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	}
 
 	// Check if user already exists
-	existingUser, err := s.store.GetUsersByGmail(ctx, email)
-	if err != nil {
-		// Database error while checking existing user
-		s.logger.Error("Database error while checking existing user: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Something went wrong. Please try again.",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	if existingUser != nil {
-		s.logger.Info("User already exists with email: ", email)
+	_, err = s.store.GetUsersByGmail(ctx, email)
+	if err == nil {
+		s.logger.Info("User already exists with email: ", req.Email)
 		ctx.JSON(http.StatusConflict, gin.H{
 			"success": false,
 			"error": gin.H{
@@ -121,8 +107,8 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Google sign up failed. Please try again.",
+				"code":  "VALIDATION_ERROR",
+				"error": "Failed to get name",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
@@ -136,8 +122,8 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Google sign up failed. Please try again.",
+				"code":  "VALIDATION_ERROR",
+				"error": "Failed to create account",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
@@ -146,12 +132,13 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 
 	// Verify the data matches what was sent from frontend
 	if req.Email != email || req.GoogleID != googleID {
+
 		s.logger.Error("Token data doesn't match request data")
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
-				"message": "Google sign up failed. Please try again.",
+				"message": "Failed to create account",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
@@ -161,7 +148,6 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	// Generate username
 	username := GenerateUsername(email)
 
-	// Create Google sign up
 	_, userSignUp, tokens, err := s.txStore.CreateGoogleSignUpTx(
 		ctx,
 		s.config,
@@ -175,8 +161,8 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error": gin.H{
-				"code":    "SIGNUP_ERROR",
-				"message": "Failed to create account. Please try again.",
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to create account",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
@@ -189,17 +175,20 @@ func (s *AuthServer) CreateGoogleSignUpFunc(ctx *gin.Context) {
 	refreshToken := tokens["refreshToken"].(string)
 	refreshPayload := tokens["refreshPayload"].(*token.Payload)
 
-	s.logger.Info("Successfully created Google sign-up for user: ", userSignUp.PublicID)
+	s.logger.Info("Successfully created user_profile")
 
+	s.logger.Info("Successfully created Google sign-up for: ", email)
 	ctx.JSON(http.StatusCreated, gin.H{
-		"success":               true,
-		"user":                  userSignUp,
-		"sessionID":             session.ID,
-		"accessToken":           accessToken,
-		"accessTokenExpiresAt":  accessPayload.ExpiredAt,
-		"refreshToken":          refreshToken,
-		"refreshTokenExpiresAt": refreshPayload.ExpiredAt,
-		"message":               "Account created successfully!",
+		"success": true, // Changed from "Success" to "success" for consistency
+		"user":    userSignUp,
+		"session": gin.H{
+			"session_id":               session.ID,
+			"access_token":             accessToken,
+			"access_token_expires_at":  accessPayload.ExpiredAt,
+			"refresh_token":            refreshToken,
+			"refresh_token_expires_at": refreshPayload.ExpiredAt,
+		},
+		"message": "Account created successfully",
 	})
 }
 

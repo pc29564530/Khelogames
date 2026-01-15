@@ -34,7 +34,8 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -47,7 +48,8 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -61,7 +63,8 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid date format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -76,7 +79,8 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get team",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -88,7 +92,8 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "FORBIDDEN_ERROR",
 				"message": "You do not own this team",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -104,7 +109,8 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 				"error": gin.H{
 					"code":    "INTERNAL_ERROR",
 					"message": "Failed to update leave date",
-				}
+				},
+				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
@@ -117,7 +123,8 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 				"error": gin.H{
 					"code":    "INTERNAL_ERROR",
 					"message": "Failed to get player",
-				}
+				},
+				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
@@ -151,12 +158,16 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 				"error": gin.H{
 					"code":    "INTERNAL_ERROR",
 					"message": "Failed to add team member",
-				}
+				},
+				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
 		s.logger.Info("successfully added member to the team")
-		ctx.JSON(http.StatusAccepted, members)
+		ctx.JSON(http.StatusAccepted, gin.H{
+			"success": true,
+			"data":    members,
+		})
 	}
 }
 
@@ -172,7 +183,8 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get team member",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -185,7 +197,8 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -197,14 +210,18 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 			"success": false,
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get team member",	
-			}
+				"message": "Failed to get team member",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	s.logger.Info("successfully get team member")
 
-	ctx.JSON(http.StatusAccepted, players)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    players,
+	})
 	return
 }
 
@@ -230,7 +247,8 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Invalid UUID format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -243,8 +261,8 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Invalid UUID format",
-			}
-			
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -258,7 +276,8 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
 				"message": "Invalid date format",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -272,7 +291,8 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get team",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -284,7 +304,8 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "FORBIDDEN_ERROR",
 				"message": "You do not own this team",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -300,10 +321,14 @@ func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to remove player from team",
-			}
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 }
