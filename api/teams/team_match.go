@@ -3,6 +3,7 @@ package teams
 import (
 	db "khelogames/database"
 	"khelogames/database/models"
+	errorhandler "khelogames/error_handler"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,22 +17,16 @@ func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -40,13 +35,19 @@ func (s *TeamsServer) GetTournamentbyTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get tournament by team id: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get tournament by team id",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get tournament by team id",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
 	return
 }
 
@@ -57,22 +58,16 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to bind the request",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -83,14 +78,20 @@ func (s *TeamsServer) GetMatchByTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get match by team id: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get match by team id",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get match by team id",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 	var matchesDetails []map[string]interface{}
 	clubMatchDetails := s.getMatchScore(ctx, matches, sport, matchesDetails)
-	ctx.JSON(http.StatusAccepted, clubMatchDetails)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    clubMatchDetails,
+	})
 	return
 }
 
@@ -101,22 +102,16 @@ func (s *TeamsServer) GetMatchesByTeamFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -127,8 +122,11 @@ func (s *TeamsServer) GetMatchesByTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get the game: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get the game",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get the game",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -138,13 +136,19 @@ func (s *TeamsServer) GetMatchesByTeamFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get matches by team: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get matches by team",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get matches by team",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, matches)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    matches,
+	})
 }
 
 func (s *TeamsServer) getMatchScore(ctx *gin.Context, matches []db.GetMatchByTeamRow, sport string, matchesDetails []map[string]interface{}) []map[string]interface{} {

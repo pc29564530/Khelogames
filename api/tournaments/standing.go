@@ -3,6 +3,7 @@ package tournaments
 import (
 	"khelogames/core/token"
 	"khelogames/database/models"
+	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
 
@@ -21,33 +22,24 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	tournamentPublicID, err := uuid.Parse(req.TournamentPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"tournament_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -57,7 +49,7 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get tournament: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
+			"code":    "INTERNAL_ERROR",
 			"message": "Failed to get tournament",
 		})
 		return
@@ -68,8 +60,11 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get user tournament role: ", err)
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"success": false,
-			"code":    "NOT_FOUND_ERROR",
-			"message": "Check failed",
+			"error": gin.H{
+				"code":    "NOT_FOUND_ERROR",
+				"message": "Check failed",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -77,8 +72,11 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 		s.logger.Error("Tournament user role does not exist: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "DATABASE_ERROR",
-			"message": "Failed to get user role",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user role",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -92,23 +90,35 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 			s.logger.Error("Failed to create football standing: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to create football standing",
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to create football standing",
+				},
+				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
-		ctx.JSON(http.StatusAccepted, footballStanding)
+		ctx.JSON(http.StatusAccepted, gin.H{
+			"success": true,
+			"data":    footballStanding,
+		})
 	} else if game == "cricket" {
 		cricketStanding, err := s.store.CreateCricketStanding(ctx, tournamentPublicID, req.GroupID, teamPublicID)
 		if err != nil {
 			s.logger.Error("Failed to create cricket standing: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
-				"code":    "DATABASE_ERROR",
-				"message": "Failed to create cricket standing",
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to create cricket standing",
+				},
+				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
-		ctx.JSON(http.StatusAccepted, cricketStanding)
+		ctx.JSON(http.StatusAccepted, gin.H{
+			"success": true,
+			"data":    cricketStanding,
+		})
 	}
 }

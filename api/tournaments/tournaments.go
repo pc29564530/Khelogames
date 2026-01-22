@@ -18,7 +18,7 @@ type getTournamentPublicIDRequest struct {
 
 type addTournamentRequest struct {
 	Name           string `json:"name" binding:"required,min=3,max=100"`
-	Status         string `json:"status" binding:"required,oneof=draft upcoming live completed cancelled"`
+	Status         string `json:"status" binding:"required,oneof=draft not_started live completed cancelled"`
 	Level          string `json:"level" binding:"required,oneof=local state national international"`
 	StartTimestamp string `json:"start_timestamp" binding:"required,datetime=2006-01-02T15:04:05Z07:00"`
 
@@ -29,23 +29,23 @@ type addTournamentRequest struct {
 	Stage       string `json:"stage" binding:"required,oneof=league group knockout"`
 	HasKnockout bool   `json:"has_knockout"`
 
-	City    string `json:"city" binding:"required,location"`
-	State   string `json:"state" binding:"required,location"`
-	Country string `json:"country" binding:"required,location"`
+	City    string `json:"city" binding:"required"`
+	State   string `json:"state" binding:"required"`
+	Country string `json:"country" binding:"required"`
 }
+
+//TODO: Normalization the words for location and other input
 
 func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 	var req addTournamentRequest
 	fieldErrors := make(map[string]string)
 
-	// 1️⃣ Bind & struct-level validation
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		fieldErrors = errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
-	// 2️⃣ Cross-field validation (POST-specific)
 	if req.Stage == "group" && req.GroupCount == nil {
 		fieldErrors["group_count"] = "Required when stage is group"
 	}
@@ -55,7 +55,6 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
-	// 3️⃣ Convert timestamp (business validation)
 	startTimestamp, err := util.ConvertTimeStamp(req.StartTimestamp)
 	if err != nil {
 		s.logger.Warn("invalid_start_timestamp",
@@ -68,12 +67,10 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
-	// 4️⃣ Generate derived fields
 	slug := util.GenerateSlug(req.Name)
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	// 5️⃣ Transaction call
 	tournament, err := s.txStore.AddNewTournamentTx(
 		ctx,
 		authPayload,
@@ -109,7 +106,6 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
-	// 6️⃣ Success response
 	ctx.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"data":    tournament,

@@ -203,20 +203,25 @@ func (s *HandlersServer) UpdateProfileFunc(ctx *gin.Context) {
 	}
 
 	s.logger.Debug("Request JSON bind successful: ", req)
-
-	latitude, err := strconv.ParseFloat(req.Latitude, 64)
-	if err != nil {
-		s.logger.Error("Failed to parse latitude: ", err)
-		fieldErrors := map[string]string{"latitude": "Invalid format"}
-		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
-	}
-	longitude, err := strconv.ParseFloat(req.Longitude, 64)
-	if err != nil {
-		s.logger.Error("Failed to parse longitude: ", err)
-		fieldErrors := map[string]string{"longitude": "Invalid format"}
-		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
+	var err error
+	var emtpyString string
+	var latitude float64
+	var longitude float64
+	if req.Latitude != emtpyString && req.Longitude != emtpyString {
+		latitude, err = strconv.ParseFloat(req.Latitude, 64)
+		if err != nil {
+			s.logger.Error("Failed to parse latitude: ", err)
+			fieldErrors := map[string]string{"latitude": "Invalid format"}
+			errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+			return
+		}
+		longitude, err = strconv.ParseFloat(req.Longitude, 64)
+		if err != nil {
+			s.logger.Error("Failed to parse longitude: ", err)
+			fieldErrors := map[string]string{"longitude": "Invalid format"}
+			errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+			return
+		}
 	}
 	var h3Index string
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)

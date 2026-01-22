@@ -2,6 +2,7 @@ package players
 
 import (
 	"khelogames/database/models"
+	errorhandler "khelogames/error_handler"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,11 +14,8 @@ func (s *PlayerServer) GetPlayerCricketStatsByMatchType(ctx *gin.Context) {
 	playerPublicID, err := uuid.Parse(playerPublicIDString)
 	if err != nil {
 		s.logger.Error("Failed to parst to uuid: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"player_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 	playerStats, err := s.store.GetCricketPlayerBowlingStats(ctx, playerPublicID)
@@ -25,8 +23,11 @@ func (s *PlayerServer) GetPlayerCricketStatsByMatchType(ctx *gin.Context) {
 		s.logger.Error("Failed to get the player bowling stats: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get player bowling stats",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get player bowling stats",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -60,22 +61,16 @@ func (s *PlayerServer) GetFootballPlayerStatsFunc(ctx *gin.Context) {
 	err := ctx.ShouldBindUri(&req)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
 	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
 	if err != nil {
 		s.logger.Error("Invalid UUID format", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"player_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -84,13 +79,19 @@ func (s *PlayerServer) GetFootballPlayerStatsFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get football player stats: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get football player stats",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get football player stats",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, playersStats)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    playersStats,
+	})
 }
 
 func (s *PlayerServer) GetPlayerCricketStatsByMatchTypeFunc(ctx *gin.Context) {
@@ -98,11 +99,8 @@ func (s *PlayerServer) GetPlayerCricketStatsByMatchTypeFunc(ctx *gin.Context) {
 	playerPublicID, err := uuid.Parse(playerPublicIDString)
 	if err != nil {
 		s.logger.Error("Failed to parst to uuid: ", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid UUID format",
-		})
+		fieldErrors := map[string]string{"Player_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
@@ -111,8 +109,11 @@ func (s *PlayerServer) GetPlayerCricketStatsByMatchTypeFunc(ctx *gin.Context) {
 		s.logger.Error("Failed to get the player stats for cricket: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get player cricket stats",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get player cricket stats",
+			},
+			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
@@ -137,5 +138,8 @@ func (s *PlayerServer) GetPlayerCricketStatsByMatchTypeFunc(ctx *gin.Context) {
 		"T20":  t20Stats,
 	}
 
-	ctx.JSON(http.StatusAccepted, stats)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    stats,
+	})
 }

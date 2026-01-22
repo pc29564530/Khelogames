@@ -347,7 +347,7 @@ const updateCricketOvers = `
 UPDATE cricket_score cs
 SET overs = (
         SELECT COALESCE(SUM(bt.balls_faced), 0)
-        FROM bats bt
+        FROM batsman_score bt
         WHERE bt.match_id = cs.match_id AND bt.inning_number= cs.inning_number AND bt.team_id = cs.team_id
     )
 FROM update_over uo
@@ -389,7 +389,7 @@ const updateCricketScore = `
 UPDATE cricket_score cs
 SET score = (
         SELECT SUM(bt.runs_scored) + SUM(bl.wide + bl.no_ball)
-        FROM bats bt
+        FROM batsman_score bt
 		LEFT JOIN bowler_score AS bl ON bt.match_id=bl.match_id AND bl.team_id =  $3 AND bl.bowling_status=true
         WHERE bt.match_id = cs.match_id AND bt.inning_number = cs.inning_number AND bt.team_id=cs.team_id
         GROUP BY (bt.match_id, bt.inning_number, bt.team_id)

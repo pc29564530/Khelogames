@@ -11,7 +11,7 @@ import (
 )
 
 type createCommentRequest struct {
-	CommentText string `json:"comment_text" binding:"required,min=1,max=5000"`
+	CommentText string `json:"comment_text" binding:"required,min=3,max=100"`
 }
 
 type createCommentThreadIdRequest struct {

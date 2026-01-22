@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"khelogames/core/token"
 	db "khelogames/database"
 	errorhandler "khelogames/error_handler"
@@ -14,7 +15,7 @@ import (
 )
 
 type createCommunitiesRequest struct {
-	CommunityName string `json:"communityName" binding:"required,min=3,max=100"`
+	CommunityName string `json:"name" binding:"required,min=3,max=100"`
 	Description   string `json:"description"`
 	AvatarUrl     string `json:"avatar_url" binding:"omitempty,url"`
 	CoverImageUrl string `json:"cover_image_url" binding:"omitempty,url"`
@@ -25,6 +26,7 @@ func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 	var req createCommunitiesRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		fmt.Println("Field Error: ", fieldErrors)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}

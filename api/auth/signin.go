@@ -17,7 +17,7 @@ func (s *AuthServer) CreateEmailSignInFunc(ctx *gin.Context) {
 	clientIP := ctx.ClientIP()
 
 	var req struct {
-		Email    string `json:"email" binding:"required, email"`
+		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 

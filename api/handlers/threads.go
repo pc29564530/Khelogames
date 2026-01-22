@@ -32,7 +32,7 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 
 	if req.Title == emptyString && req.Content == emptyString && req.MediaURL == emptyString {
 		fieldErrors := map[string]string{
-			"general": "Please provide any of the input",
+			"global": "Please provide any of the input",
 		}
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return

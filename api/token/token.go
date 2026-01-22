@@ -3,6 +3,7 @@ package token
 import (
 	"database/sql"
 	"fmt"
+	errorhandler "khelogames/error_handler"
 	"khelogames/util"
 	"net/http"
 	"time"
@@ -29,11 +30,8 @@ func (s *TokenServer) RenewAccessTokenFunc(ctx *gin.Context) {
 	var req renewAccessTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		s.logger.Error("Failed to bind request: %v", err)
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"code":    "VALIDATION_ERROR",
-			"message": "Invalid request format",
-		})
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
