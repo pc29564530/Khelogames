@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -71,6 +72,12 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 		&i.SentAt,
 		&i.IsDelivered,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -102,6 +109,12 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (m
 		&i.SentAt,
 		&i.IsDelivered,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 

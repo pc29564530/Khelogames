@@ -114,6 +114,12 @@ func (q *Queries) GetCricketScore(ctx context.Context, matchID, teamID int32) (m
 		&i.Declared,
 		&i.InningStatus,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
 	return i, err
 }
 
@@ -144,6 +150,12 @@ func (q *Queries) GetCricketScoreByInning(ctx context.Context, matchPublicID, te
 		&i.Declared,
 		&i.InningStatus,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
 	return i, err
 }
 
@@ -209,6 +221,9 @@ func (q *Queries) GetCricketScores(ctx context.Context, matchID int32) ([]models
 			&i.InningStatus,
 		)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, fmt.Errorf("Not able to scan row: %w", err)
 		}
 		cricketScores = append(cricketScores, i)
@@ -217,6 +232,9 @@ func (q *Queries) GetCricketScores(ctx context.Context, matchID int32) ([]models
 	// Check for row iteration errors
 	if err = row.Err(); err != nil {
 		return nil, fmt.Errorf("Row iteration error: %w", err)
+	}
+	if len(cricketScores) == 0 {
+		return nil, fmt.Println("No Score found")
 	}
 
 	return cricketScores, nil
@@ -308,6 +326,12 @@ func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams
 		&i.Declared,
 		&i.InningStatus,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -340,6 +364,12 @@ func (q *Queries) UpdateCricketInnings(ctx context.Context, matchPublicID, teamP
 		&i.Declared,
 		&i.InningStatus,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
 	return i, err
 }
 

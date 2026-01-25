@@ -143,6 +143,12 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (m
 		&profile.CreatedAt,
 		&profile.UpdatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return profile, err
 }
 
@@ -185,6 +191,12 @@ func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (model
 		&profile.CreatedAt,
 		&profile.UpdatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return profile, err
 }
 
@@ -374,7 +386,10 @@ func (q *Queries) UpdateProfilesLocation(ctx context.Context, eventPublicID uuid
 		&i.UpdatedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan update match location: ", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &i, err
 }

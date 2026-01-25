@@ -326,6 +326,12 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Pl
 		&i.UpdatedAt,
 		&i.CreatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -399,6 +405,12 @@ func (q *Queries) UpdatePlayerMedia(ctx context.Context, publicID uuid.UUID, med
 		&i.UpdatedAt,
 		&i.CreatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return &i, err
 }
 
@@ -431,5 +443,11 @@ func (q *Queries) UpdatePlayerPosition(ctx context.Context, publicID uuid.UUID, 
 		&i.UpdatedAt,
 		&i.CreatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return &i, err
 }

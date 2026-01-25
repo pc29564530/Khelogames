@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -65,6 +67,12 @@ func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootba
 		&i.YellowCards,
 		&i.RedCards,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -92,6 +100,12 @@ func (q *Queries) GetFootballStatistics(ctx context.Context, matchPublicID, team
 		&i.YellowCards,
 		&i.RedCards,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -153,5 +167,11 @@ func (q *Queries) UpdateFootballStatistics(ctx context.Context,
 		&i.YellowCards,
 		&i.RedCards,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }

@@ -335,6 +335,9 @@ func (q *Queries) UpdatePlayerBattingStats(ctx context.Context, playerPublicID u
 		&i.UpdatedAT,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("Failed to scan the query data: ", err)
 	}
 	return &i, nil
@@ -383,6 +386,9 @@ func (q *Queries) UpdatePlayerBowlingStats(ctx context.Context, playerPublicID u
 		&i.UpdatedAT,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("Failed to scan the query data: ", err)
 	}
 	return &i, nil

@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -20,6 +22,12 @@ func (q *Queries) CheckUserCount(ctx context.Context, userPublicID, threadPublic
 	row := q.db.QueryRowContext(ctx, checkUserCount, userPublicID, threadPublicID)
 	var user_count int
 	err := row.Scan(&user_count)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return user_count, err
 }
 
@@ -33,6 +41,12 @@ func (q *Queries) CountLikeUser(ctx context.Context, threadID uuid.UUID) (int, e
 	row := q.db.QueryRowContext(ctx, countUserLike, threadID)
 	var count int
 	err := row.Scan(&count)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return count, err
 }
 
@@ -58,6 +72,12 @@ func (q *Queries) CreateLike(ctx context.Context, userPublicID, threadPublicID u
 	row := q.db.QueryRowContext(ctx, createLike, userPublicID, threadPublicID)
 	var i models.UserLikeThread
 	err := row.Scan(&i.ID, &i.ThreadID, &i.UserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -70,6 +90,12 @@ func (q *Queries) GetLike(ctx context.Context, limit int32) (models.UserLikeThre
 	row := q.db.QueryRowContext(ctx, getLike, limit)
 	var i models.UserLikeThread
 	err := row.Scan(&i.ID, &i.ThreadID, &i.UserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 

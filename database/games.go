@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 )
 
@@ -14,6 +16,12 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (models.Game, error) {
 	row := q.db.QueryRowContext(ctx, getGame, id)
 	var i models.Game
 	err := row.Scan(&i.ID, &i.Name, &i.MinPlayers)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 

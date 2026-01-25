@@ -265,6 +265,12 @@ func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID
 		&i.AwayGameID,
 		&i.AwayTeamLocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -375,6 +381,12 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		&i.LocationLocked,
 		&i.GameID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -412,6 +424,12 @@ func (q *Queries) UpdateMatchSchedule(ctx context.Context, matchPublicID uuid.UU
 		&i.LocationID,
 		&i.LocationLocked,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -484,6 +502,12 @@ func (q *Queries) UpdateMatchResult(ctx context.Context, matchID, resultID int32
 		&i.LocationID,
 		&i.LocationLocked,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -518,5 +542,11 @@ func (q *Queries) UpdateMatchSubStatus(ctx context.Context, matchPublicID uuid.U
 		&i.LocationID,
 		&i.LocationLocked,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }

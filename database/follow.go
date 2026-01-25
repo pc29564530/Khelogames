@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -35,6 +36,12 @@ func (q *Queries) CreateUserConnections(ctx context.Context, userPublicID, targe
 		&i.UserID,
 		&i.TargetUserID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan user connection: %w", err)
+	}
 	return i, err
 }
 
@@ -52,6 +59,12 @@ func (q *Queries) DeleteUsersConnections(ctx context.Context, userID, targetUser
 		&i.UserID,
 		&i.TargetUserID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to get users connection: %w", err)
+	}
 	return err
 }
 
@@ -138,6 +151,9 @@ func (q *Queries) GetAllFollowing(ctx context.Context, userPublicID uuid.UUID) (
 		var jsonByte []byte
 		var item map[string]interface{}
 		if err := rows.Scan(&jsonByte); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, err
 		}
 		err := json.Unmarshal(jsonByte, &item)

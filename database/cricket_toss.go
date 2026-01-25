@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -39,6 +40,12 @@ func (q *Queries) AddCricketToss(ctx context.Context, matchPublicID uuid.UUID, t
 		&i.TossDecision,
 		&i.TossWin,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to add cricket toss: %w", err)
+	}
 	return i, err
 }
 
@@ -59,6 +66,9 @@ func (q *Queries) GetCricketToss(ctx context.Context, matchPublicID uuid.UUID) (
 	var jsonByte []byte
 	err := row.Scan(&jsonByte)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("Failed to scan: ", err)
 	}
 	var data map[string]interface{}

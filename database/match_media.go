@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"khelogames/database/models"
 
@@ -52,7 +53,10 @@ func (q *Queries) CreateMatchMedia(ctx context.Context, userPublicID int32, matc
 		&matchHighlights.UpdatedAT,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan match media: %w", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &matchHighlights, err
 }

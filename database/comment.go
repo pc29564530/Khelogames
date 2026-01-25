@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"khelogames/database/models"
 	"log"
@@ -52,6 +53,7 @@ func (q *Queries) CreateComment(ctx context.Context, threadPublicID, userPublicI
 	)
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 	return &i, err
 }
@@ -108,6 +110,9 @@ func (q *Queries) GetAllComment(ctx context.Context, publicID uuid.UUID) ([]map[
 		var jsonBytes []byte
 		var data map[string]interface{}
 		if err := rows.Scan(&jsonBytes); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, err
 		}
 		err := json.Unmarshal(jsonBytes, &data)

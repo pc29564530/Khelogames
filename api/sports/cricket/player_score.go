@@ -696,39 +696,16 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	// authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
+		s.logger.Error("Unable to get match details: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get match details.",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get user role.",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-	if !isExists {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "FORBIDDEN",
-				"message": "You don't have permission to update this match",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
@@ -855,7 +832,7 @@ func (s *CricketServer) GetCricketBowlerFunc(ctx *gin.Context) {
 		"innings": inningData,
 	}
 
-	s.logger.Info("Successfully retrieved cricket bowler")
+	s.logger.Info("Successfully retrieved cricket bowler: ", scoreDetails)
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    scoreDetails,

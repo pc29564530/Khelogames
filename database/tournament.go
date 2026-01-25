@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -39,6 +40,12 @@ func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (models
 		&i.UpdatedAt,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -72,6 +79,12 @@ func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (models.Tourn
 		&i.UpdatedAt,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: ", err)
+	}
 	return i, err
 }
 
@@ -314,6 +327,12 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		&i.UpdatedAt,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -354,6 +373,12 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		&i.UpdatedAt,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -394,6 +419,12 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 		&i.UpdatedAt,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -416,7 +447,10 @@ func (q *Queries) AddTournamentUserRoles(ctx context.Context, tournamentID, user
 		&i.Role,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan tournament user role query: ", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &i, nil
 }
@@ -434,7 +468,10 @@ func (q *Queries) GetTournamentUserRole(ctx context.Context, tournamentID, userI
 
 	err := q.db.QueryRowContext(ctx, getTournamentUserRoles, tournamentID, userID).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("failed to check tournament user role: %w", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 
 	return exists, nil
@@ -472,6 +509,12 @@ func (q *Queries) UpdateTournamentLocation(ctx context.Context, eventPublicID uu
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return &i, err
 }
 

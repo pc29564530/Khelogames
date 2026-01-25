@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -24,7 +25,13 @@ func (q *Queries) AddAdmin(ctx context.Context, arg AddAdminParams) (models.Cont
 	row := q.db.QueryRowContext(ctx, addAdmin, arg.ContentID, arg.Admin)
 	var i models.ContentAdmin
 	err := row.Scan(&i.ID, &i.ContentID, &i.Admin)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.ContentAdmin{}, nil
+		}
+		return models.ContentAdmin{}, err
+	}
+	return i, nil
 }
 
 const deleteAdmin = `
@@ -42,7 +49,13 @@ func (q *Queries) DeleteAdmin(ctx context.Context, arg DeleteAdminParams) (model
 	row := q.db.QueryRowContext(ctx, deleteAdmin, arg.ContentID, arg.Admin)
 	var i models.ContentAdmin
 	err := row.Scan(&i.ID, &i.ContentID, &i.Admin)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.ContentAdmin{}, nil
+		}
+		return models.ContentAdmin{}, err
+	}
+	return i, nil
 }
 
 const getAdmin = `
@@ -90,5 +103,11 @@ func (q *Queries) UpdateAdmin(ctx context.Context, arg UpdateAdminParams) (model
 	row := q.db.QueryRowContext(ctx, updateAdmin, arg.Admin, arg.ContentID, arg.Admin_2)
 	var i models.ContentAdmin
 	err := row.Scan(&i.ID, &i.ContentID, &i.Admin)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.ContentAdmin{}, nil
+		}
+		return models.ContentAdmin{}, err
+	}
+	return i, nil
 }

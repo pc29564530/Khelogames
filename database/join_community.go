@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -24,6 +26,12 @@ func (q *Queries) AddJoinCommunity(ctx context.Context, communityID, userID uuid
 	row := q.db.QueryRowContext(ctx, addJoinCommunity, communityID, userID)
 	var i models.JoinCommunity
 	err := row.Scan(&i.ID, &i.PublicID, &i.CommunityID, &i.UserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 

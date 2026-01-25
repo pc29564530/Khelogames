@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -72,6 +73,12 @@ func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (mod
 		&i.IsDeleted,
 		&i.CreatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -98,6 +105,12 @@ func (q *Queries) DeleteThread(ctx context.Context, publicID uuid.UUID) (models.
 		&i.IsDeleted,
 		&i.CreatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -241,6 +254,9 @@ func (q *Queries) GetThread(ctx context.Context, publicID uuid.UUID) (map[string
 	var jsonByte []byte
 	var item map[string]interface{}
 	if err := row.Scan(&jsonByte); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -282,6 +298,9 @@ func (q *Queries) GetThreadUser(ctx context.Context, publicID uuid.UUID) ([]mode
 			&i.IsDeleted,
 			&i.CreatedAt,
 		); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, err
 		}
 		items = append(items, i)
@@ -323,6 +342,12 @@ func (q *Queries) UpdateThreadLike(ctx context.Context, publicID uuid.UUID) (mod
 		&i.IsDeleted,
 		&i.CreatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -350,6 +375,12 @@ func (q *Queries) UpdateThreadCommentCount(ctx context.Context, publicID uuid.UU
 		&i.IsDeleted,
 		&i.CreatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -376,6 +407,9 @@ func (q *Queries) GetThreadByPublicID(ctx context.Context, threadPublicID uuid.U
 		&thread.CreatedAt,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("Failed to get thread by public id: ", err)
 	}
 	return thread, nil

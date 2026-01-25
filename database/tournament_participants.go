@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -54,7 +55,10 @@ func (q *Queries) AddTournamentParticipants(ctx context.Context, tournamentPubli
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan rows: ", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &i, nil
 }

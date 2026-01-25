@@ -925,7 +925,10 @@ func (q *Queries) UpdateMatchLocation(ctx context.Context, eventPublicID uuid.UU
 		&i.LocationLocked,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan update match location: ", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &i, err
 }
@@ -960,7 +963,10 @@ func (q *Queries) UpdateMatchLocationLocked(ctx context.Context, matchID int64) 
 		&i.LocationLocked,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan update match location locked: ", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &i, err
 }

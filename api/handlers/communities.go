@@ -33,19 +33,14 @@ func (s *HandlersServer) CreateCommunitesFunc(ctx *gin.Context) {
 	s.logger.Debug("bind the request: ", req)
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	// Sanitize user text inputs to prevent XSS
-	sanitizedName := utils.SanitizeString(req.CommunityName)
-	sanitizedDesc := utils.SanitizeString(req.Description)
-
 	arg := db.CreateCommunityParams{
 		UserPublicID:  authPayload.PublicID,
-		Name:          sanitizedName,
-		Slug:          utils.GenerateSlug(sanitizedName),
-		Description:   sanitizedDesc,
+		Name:          req.CommunityName,
+		Slug:          utils.GenerateSlug(req.CommunityName),
+		Description:   req.Description,
 		AvatarUrl:     req.AvatarUrl,
 		CoverImageUrl: req.CoverImageUrl,
 	}
-	s.logger.Debug("params arg: ", arg)
 
 	communities, err := s.store.CreateCommunity(ctx, arg)
 	if err != nil {

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -64,7 +65,13 @@ func (q *Queries) GetFootballScore(ctx context.Context, arg GetFootballScorePara
 		&i.Goals,
 		&i.PenaltyShootOut,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.FootballScore{}, nil
+		}
+		return models.FootballScore{}, err
+	}
+	return i, nil
 }
 
 const newFootballScore = `
@@ -108,7 +115,13 @@ func (q *Queries) NewFootballScore(ctx context.Context, arg NewFootballScorePara
 		&i.Goals,
 		&i.PenaltyShootOut,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.FootballScore{}, nil
+		}
+		return models.FootballScore{}, err
+	}
+	return i, nil
 }
 
 const updateFirstHalfScore = `
@@ -140,7 +153,13 @@ func (q *Queries) UpdateFirstHalfScore(ctx context.Context, arg UpdateFirstHalfS
 		&i.Goals,
 		&i.PenaltyShootOut,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.FootballScore{}, nil
+		}
+		return models.FootballScore{}, err
+	}
+	return i, nil
 }
 
 const updateSecondHalfScore = `
@@ -172,7 +191,13 @@ func (q *Queries) UpdateSecondHalfScore(ctx context.Context, arg UpdateSecondHal
 		&i.Goals,
 		&i.PenaltyShootOut,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.FootballScore{}, nil
+		}
+		return models.FootballScore{}, err
+	}
+	return i, nil
 }
 
 const updatePenaltyShootoutScore = `
@@ -197,5 +222,11 @@ func (q *Queries) UpdatePenaltyShootoutScore(ctx context.Context, matchID, teamI
 		&i.Goals,
 		&i.PenaltyShootOut,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.FootballScore{}, nil
+		}
+		return models.FootballScore{}, err
+	}
+	return i, nil
 }

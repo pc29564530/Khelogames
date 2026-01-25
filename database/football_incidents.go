@@ -69,6 +69,9 @@ func (q *Queries) ADDFootballSubsPlayer(ctx context.Context, incidentPublicID, p
 
 	err := row.Scan(&jsonByte)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("Failed to scan: ", err)
 	}
 
@@ -92,8 +95,6 @@ RETURNING *;
 `
 
 func (q *Queries) AddFootballIncidentPlayer(ctx context.Context, incidentID int64, playerPublicID uuid.UUID) (models.FootballIncidentPlayer, error) {
-	fmt.Println("Incident ID: ", incidentID)
-	fmt.Println("Player ID: ", playerPublicID)
 	row := q.db.QueryRowContext(ctx, addFootballIncidentPlayer, incidentID, playerPublicID)
 
 	var i models.FootballIncidentPlayer
@@ -181,6 +182,12 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		&i.PenaltyShootoutScored,
 		&i.CreatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 

@@ -32,6 +32,12 @@ func (q *Queries) GetUser(ctx context.Context, publicID uuid.UUID) (models.Users
 		&users.CreatedAt,
 		&users.UpdatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return users, err
 }
 
@@ -137,6 +143,12 @@ func (q *Queries) UpdateUser(ctx context.Context, userID int32, fullName string)
 		&users.CreatedAt,
 		&users.UpdatedAt,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return users, err
 }
 

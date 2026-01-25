@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -44,6 +45,12 @@ func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) 
 	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamPublicID, arg.PlayerPublicID, arg.JoinDate, arg.LeaveDate)
 	var i models.TeamPlayer
 	err := row.Scan(&i.TeamID, &i.PlayerID, &i.JoinDate, &i.LeaveDate)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -369,6 +376,12 @@ func (q *Queries) GetTeamByPublicID(ctx context.Context, publicID uuid.UUID) (mo
 		&i.GameID,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -397,6 +410,12 @@ func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error
 		&i.GameID,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -686,6 +705,12 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team
 		&i.GameID,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -753,6 +778,12 @@ func (q *Queries) UpdateMediaUrl(ctx context.Context, publicID uuid.UUID, mediaU
 		&i.GameID,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -787,6 +818,12 @@ func (q *Queries) UpdateTeamName(ctx context.Context, publicID uuid.UUID, name s
 		&i.GameID,
 		&i.LocationID,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -810,6 +847,12 @@ func (q *Queries) RemovePlayerFromTeam(ctx context.Context, teamPublicID, player
 		&i.JoinDate,
 		&i.LeaveDate,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -858,7 +901,10 @@ func (q *Queries) UpdateTeamLocation(ctx context.Context, eventPublicID uuid.UUI
 		&i.LocationID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan update team location: ", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &i, err
 }

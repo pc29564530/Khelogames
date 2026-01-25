@@ -46,6 +46,9 @@ func (q *Queries) AddFootballPlayerStats(ctx *gin.Context, playerPublicID uuid.U
 		&stats.UpdatedAt,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -250,9 +253,6 @@ func (q *Queries) AddORUpdateFootballPlayerStats(ctx context.Context, mathchPubl
 			&stats.UpdatedAt,
 		)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
 			return nil, fmt.Errorf("Failed to scan row: %w", err)
 		}
 

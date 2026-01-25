@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"khelogames/database/models"
 	"time"
 
@@ -71,7 +72,13 @@ func (q *Queries) CreateCommunityMessage(ctx context.Context, arg CreateCommunit
 		&i.MediaType,
 		&i.SentAt,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.CommunityMessage{}, nil
+		}
+		return models.CommunityMessage{}, err
+	}
+	return i, nil
 }
 
 const getCommunityByMessage = `

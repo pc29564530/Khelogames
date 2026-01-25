@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"khelogames/database/models"
 )
@@ -37,7 +38,10 @@ func (q *Queries) AddLocation(ctx context.Context, city, state, country string, 
 		&i.H3Index,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get query row context: ", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return i, err
 }
@@ -68,9 +72,11 @@ func (q *Queries) UpdateUserLocation(ctx context.Context, locationID int32, lati
 		&i.H3Index,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan location by user: ", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-
 	return &i, err
 }
 
@@ -104,8 +110,10 @@ func (q *Queries) UpdateLocationWithAddress(ctx context.Context, locationID int3
 		&i.H3Index,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan location: %w", err)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-
 	return &i, err
 }

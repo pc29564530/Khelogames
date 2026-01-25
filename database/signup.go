@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"khelogames/database/models"
 	"log"
 )
@@ -32,7 +33,11 @@ func (q *Queries) CreateGoogleSignUp(ctx context.Context, fullName, username, em
 		&users.UpdatedAt,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.Users{}, nil
+		}
 		log.Printf("Failed to create google signup: %v", err)
+		return models.Users{}, err
 	}
 	return users, nil
 }
@@ -63,7 +68,11 @@ func (q *Queries) CreateEmailSignUp(ctx context.Context, fullName, username, ema
 		&users.UpdatedAt,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.Users{}, nil
+		}
 		log.Printf("Failed to create gmail signup: %v", err)
+		return models.Users{}, err
 	}
 	return users, nil
 }

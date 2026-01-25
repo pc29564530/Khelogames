@@ -216,7 +216,7 @@ func (s *TeamsServer) GetTeamsMemberFunc(ctx *gin.Context) {
 		})
 		return
 	}
-	s.logger.Info("successfully get team member")
+	s.logger.Info("successfully get team member: ", players)
 
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"success": true,

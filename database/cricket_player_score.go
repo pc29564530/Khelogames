@@ -1889,6 +1889,9 @@ func (q *Queries) GetCurrentBatsman(ctx context.Context, matchPublicID, teamPubl
 
 	var jsonBytes []byte
 	if err := row.Scan(&jsonBytes); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to scan json data: %w", err)
 	}
 

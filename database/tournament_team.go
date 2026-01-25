@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"khelogames/database/models"
 
@@ -24,7 +25,13 @@ func (q *Queries) GetTournamentTeam(ctx context.Context, teamPublicID, tournamen
 	row := q.db.QueryRowContext(ctx, getTournamentTeam, teamPublicID, tournamentPublicID)
 	var i GetTournamentTeamInterface
 	err := row.Scan(&i.TournamentID, &i.TeamData)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return GetTournamentTeamInterface{}, nil
+		}
+		return GetTournamentTeamInterface{}, err
+	}
+	return i, nil
 }
 
 const getTournamentTeams = `
@@ -73,7 +80,13 @@ func (q *Queries) GetTournamentTeamsCount(ctx context.Context, tournamentPublicI
 	row := q.db.QueryRowContext(ctx, getTournamentTeamsCount, tournamentPublicID)
 	var count int64
 	err := row.Scan(&count)
-	return count, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return count, nil
 }
 
 const newTournamentTeam = `
@@ -98,5 +111,11 @@ func (q *Queries) NewTournamentTeam(ctx context.Context, tournamentPublicID, tea
 	row := q.db.QueryRowContext(ctx, newTournamentTeam, tournamentPublicID, teamPublicID)
 	var i models.TournamentTeam
 	err := row.Scan(&i.TournamentID, &i.TeamID)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.TournamentTeam{}, nil
+		}
+		return models.TournamentTeam{}, err
+	}
+	return i, nil
 }

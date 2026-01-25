@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -48,6 +49,12 @@ func (q *Queries) AddFootballSquad(ctx context.Context, matchPublicID, teamPubli
 		&i.Role,
 		&i.CreatedAT,
 	)
+	if err != nil {
+		if er == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
 	return i, err
 }
 
@@ -97,5 +104,12 @@ func (q *Queries) GetFootballMatchSquad(ctx context.Context, matchPublicID, team
 		squads = append(squads, squad)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(squads) == 0 {
+		return nil, fmt.Printf("No data found")
+	}
 	return squads, nil
 }

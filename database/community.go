@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"khelogames/database/models"
@@ -105,6 +106,9 @@ func (q *Queries) GetAllCommunities(ctx context.Context) ([]models.Communities, 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, err
 		}
 		items = append(items, i)
@@ -150,6 +154,9 @@ func (q *Queries) GetCommunitiesMember(ctx context.Context, communityPublicID uu
 		var jsonByte []byte
 		var item map[string]interface{}
 		if err := rows.Scan(&jsonByte); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
 			return nil, err
 		}
 		err := json.Unmarshal(jsonByte, &item)
@@ -190,7 +197,13 @@ func (q *Queries) GetCommunity(ctx context.Context, publicID uuid.UUID) (models.
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return i, err
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Unable to get community: ", err)
+	}
+	return i, nil
 }
 
 const getCommunityByCommunityName = `

@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"khelogames/database/models"
 
 	"github.com/google/uuid"
@@ -61,6 +63,12 @@ func (q *Queries) CreateCricketStanding(ctx context.Context, tournamentPublicID 
 		&i.Draw,
 		&i.Points,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Unable to create cricket standing: %w", err)
+	}
 	return &i, err
 }
 
@@ -221,5 +229,11 @@ func (q *Queries) UpdateCricketStanding(ctx context.Context, tournamentID, teamI
 		&i.Draw,
 		&i.Points,
 	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to update standing: %w", err)
+	}
 	return i, err
 }
