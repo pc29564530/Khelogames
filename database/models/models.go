@@ -655,3 +655,27 @@ type Locations struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	H3Index   *string   `json:"h3_index"`
 }
+
+type MatchUserRoles struct {
+	ID         int64     `json:"id"`
+	PublicID   uuid.UUID `json:"public_id`
+	MatchID    int32     `json:"match_id"`
+	UserID     int32     `json:"user_id"`
+	Role       string    `json:"role"`
+	AssignedBy int32     `json:"assigned_by"`
+	CreatedAt  time.Time `json:"created_at"`
+	IsActive   bool      `json:"is_active"`
+}
+
+// CREATE TABLE match_user_roles (
+//     id BIGSERIAL PRIMARY KEY,
+//     public_id UUID NOT NULL DEFAULT gen_random_uuid(),
+//     match_id BIGINT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+//     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+//     role VARCHAR NOT NULL,
+//     assigned_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+//     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+//     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+//     UNIQUE (match_id, user_id, role),
+//     UNIQUE (public_id)
+// );
