@@ -29,7 +29,7 @@ RETURNING *;
 `
 
 // CreateUserConnections
-func (q *Queries) CreateUserConnections(ctx context.Context, userPublicID, targetPublicID uuid.UUID) (models.UsersConnections, error) {
+func (q *Queries) CreateUserConnections(ctx context.Context, userPublicID, targetPublicID uuid.UUID) (*models.UsersConnections, error) {
 	row := q.db.QueryRowContext(ctx, createUserConnectionQuery, userPublicID, targetPublicID)
 	var i models.UsersConnections
 	err := row.Scan(
@@ -42,7 +42,7 @@ func (q *Queries) CreateUserConnections(ctx context.Context, userPublicID, targe
 		}
 		return nil, fmt.Errorf("Failed to scan user connection: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const deleteUsersConnectionsQuery = `
@@ -61,9 +61,9 @@ func (q *Queries) DeleteUsersConnections(ctx context.Context, userID, targetUser
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil
 		}
-		return nil, fmt.Errorf("Failed to get users connection: %w", err)
+		return fmt.Errorf("Failed to get users connection: %w", err)
 	}
 	return err
 }

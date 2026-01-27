@@ -215,7 +215,7 @@ WHERE ts.tournament_id = t.id
 RETURNING *
 `
 
-func (q *Queries) UpdateCricketStanding(ctx context.Context, tournamentID, teamID int32) (models.CricketStanding, error) {
+func (q *Queries) UpdateCricketStanding(ctx context.Context, tournamentID, teamID int32) (*models.CricketStanding, error) {
 	row := q.db.QueryRowContext(ctx, updateCricketStanding, tournamentID, teamID)
 	var i models.CricketStanding
 	err := row.Scan(
@@ -235,5 +235,5 @@ func (q *Queries) UpdateCricketStanding(ctx context.Context, tournamentID, teamI
 		}
 		return nil, fmt.Errorf("Failed to update standing: %w", err)
 	}
-	return i, err
+	return &i, err
 }

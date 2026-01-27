@@ -43,7 +43,7 @@ func (s *SQLStore) AddNewTournamentTx(ctx context.Context,
 	city,
 	state,
 	country string) (*models.Tournament, error) {
-	var newTournament models.Tournament
+	var newTournament *models.Tournament
 	err := s.execTx(ctx, func(q *database.Queries) error {
 		var err error
 
@@ -93,5 +93,5 @@ func (s *SQLStore) AddNewTournamentTx(ctx context.Context,
 		return nil
 	})
 
-	return &newTournament, err
+	return newTournament, err
 }

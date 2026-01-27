@@ -15,7 +15,7 @@ SELECT * FROM users
 WHERE public_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUser(ctx context.Context, publicID uuid.UUID) (models.Users, error) {
+func (q *Queries) GetUser(ctx context.Context, publicID uuid.UUID) (*models.Users, error) {
 	row := q.db.QueryRowContext(ctx, getUser, publicID)
 	var users models.Users
 	err := row.Scan(
@@ -38,7 +38,7 @@ func (q *Queries) GetUser(ctx context.Context, publicID uuid.UUID) (models.Users
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return users, err
+	return &users, err
 }
 
 const listUser = `
@@ -123,7 +123,7 @@ const updateUsersFullName = `
 	RETURNING *;
 `
 
-func (q *Queries) UpdateUser(ctx context.Context, userID int32, fullName string) (models.Users, error) {
+func (q *Queries) UpdateUser(ctx context.Context, userID int32, fullName string) (*models.Users, error) {
 	row := q.db.QueryRowContext(ctx, updateUsersFullName,
 		userID,
 		fullName,
@@ -149,7 +149,7 @@ func (q *Queries) UpdateUser(ctx context.Context, userID int32, fullName string)
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return users, err
+	return &users, err
 }
 
 type searchUserParam struct {

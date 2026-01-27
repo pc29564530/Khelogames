@@ -11,9 +11,9 @@ import (
 )
 
 // Add cricket toss and new inning score for batting team
-func (store *SQLStore) AddCricketTossTx(ctx context.Context, matchPublicID uuid.UUID, tossDescision string, tossWinPublicID uuid.UUID) (models.CricketScore, models.Team, string, error) {
-	var newScore models.CricketScore
-	var team models.Team
+func (store *SQLStore) AddCricketTossTx(ctx context.Context, matchPublicID uuid.UUID, tossDescision string, tossWinPublicID uuid.UUID) (*models.CricketScore, *models.Team, string, error) {
+	var newScore *models.CricketScore
+	var team *models.Team
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error

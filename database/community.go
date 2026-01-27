@@ -179,7 +179,7 @@ SELECT * FROM communities
 WHERE public_id = $1
 `
 
-func (q *Queries) GetCommunity(ctx context.Context, publicID uuid.UUID) (models.Communities, error) {
+func (q *Queries) GetCommunity(ctx context.Context, publicID uuid.UUID) (*models.Communities, error) {
 	row := q.db.QueryRowContext(ctx, getCommunity, publicID)
 	var i models.Communities
 	err := row.Scan(
@@ -203,7 +203,7 @@ func (q *Queries) GetCommunity(ctx context.Context, publicID uuid.UUID) (models.
 		}
 		return nil, fmt.Errorf("Unable to get community: ", err)
 	}
-	return i, nil
+	return &i, nil
 }
 
 const getCommunityByCommunityName = `

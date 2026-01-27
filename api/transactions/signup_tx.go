@@ -11,13 +11,13 @@ import (
 )
 
 // CreateEmailSignUpTx performs email signup transaction
-func (store *SQLStore) CreateEmailSignUpTx(ctx *gin.Context, config util.Config, st *database.Store, fullName, username, email, hashPassword string) (models.UserProfiles, models.Users, map[string]interface{}, error) {
+func (store *SQLStore) CreateEmailSignUpTx(ctx *gin.Context, config util.Config, st *database.Store, fullName, username, email, hashPassword string) (*models.UserProfiles, *models.Users, map[string]interface{}, error) {
 	clientIP := ctx.ClientIP()
 	accessDuration := config.AccessTokenDuration
 	refreshDuration := config.RefreshTokenDuration
 	var tokens map[string]interface{}
-	var userSignUp models.Users
-	var profile models.UserProfiles
+	var userSignUp *models.Users
+	var profile *models.UserProfiles
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
@@ -53,13 +53,13 @@ func (store *SQLStore) CreateEmailSignUpTx(ctx *gin.Context, config util.Config,
 	return profile, userSignUp, tokens, err
 }
 
-func (store *SQLStore) CreateGoogleSignUpTx(ctx *gin.Context, config util.Config, name, username, email, googleID string, avatarUrl string) (models.UserProfiles, models.Users, map[string]interface{}, error) {
+func (store *SQLStore) CreateGoogleSignUpTx(ctx *gin.Context, config util.Config, name, username, email, googleID string, avatarUrl string) (*models.UserProfiles, *models.Users, map[string]interface{}, error) {
 	accessDuration := config.AccessTokenDuration
 	refreshDuration := config.RefreshTokenDuration
 	clientIP := ctx.ClientIP()
 	var tokens map[string]interface{}
-	var userSignUp models.Users
-	var profile models.UserProfiles
+	var userSignUp *models.Users
+	var profile *models.UserProfiles
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error

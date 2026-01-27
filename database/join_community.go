@@ -22,7 +22,7 @@ FROM communityID, userID
 RETURNING *;
 `
 
-func (q *Queries) AddJoinCommunity(ctx context.Context, communityID, userID uuid.UUID) (models.JoinCommunity, error) {
+func (q *Queries) AddJoinCommunity(ctx context.Context, communityID, userID uuid.UUID) (*models.JoinCommunity, error) {
 	row := q.db.QueryRowContext(ctx, addJoinCommunity, communityID, userID)
 	var i models.JoinCommunity
 	err := row.Scan(&i.ID, &i.PublicID, &i.CommunityID, &i.UserID)
@@ -32,7 +32,7 @@ func (q *Queries) AddJoinCommunity(ctx context.Context, communityID, userID uuid
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getCommunityByUser = `

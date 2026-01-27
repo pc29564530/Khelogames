@@ -153,7 +153,7 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 
 	var footballSquad []map[string]interface{}
 	for _, player := range req.Player {
-		var squad models.FootballSquad
+		var squad *models.FootballSquad
 		var err error
 
 		substitute := substitutedMap[player.PublicID]

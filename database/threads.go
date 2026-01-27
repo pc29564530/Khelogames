@@ -49,7 +49,7 @@ type CreateThreadParams struct {
 	MediaType         string     `json:"media_type"`
 }
 
-func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (models.Thread, error) {
+func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (*models.Thread, error) {
 	row := q.db.QueryRowContext(ctx, createThread,
 		arg.UserPublicID,
 		arg.CommunityPublicID,
@@ -79,7 +79,7 @@ func (q *Queries) CreateThread(ctx context.Context, arg CreateThreadParams) (mod
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const deleteThread = `
@@ -88,7 +88,7 @@ WHERE public_id = $1
 RETURNING *
 `
 
-func (q *Queries) DeleteThread(ctx context.Context, publicID uuid.UUID) (models.Thread, error) {
+func (q *Queries) DeleteThread(ctx context.Context, publicID uuid.UUID) (*models.Thread, error) {
 	row := q.db.QueryRowContext(ctx, deleteThread, publicID)
 	var i models.Thread
 	err := row.Scan(
@@ -111,7 +111,7 @@ func (q *Queries) DeleteThread(ctx context.Context, publicID uuid.UUID) (models.
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getAllThreads = `
@@ -325,7 +325,7 @@ type UpdateThreadLikeParams struct {
 	PublicID uuid.UUID `json:"public_id"`
 }
 
-func (q *Queries) UpdateThreadLike(ctx context.Context, publicID uuid.UUID) (models.Thread, error) {
+func (q *Queries) UpdateThreadLike(ctx context.Context, publicID uuid.UUID) (*models.Thread, error) {
 	row := q.db.QueryRowContext(ctx, updateThreadLike, publicID)
 	var i models.Thread
 	err := row.Scan(
@@ -348,7 +348,7 @@ func (q *Queries) UpdateThreadLike(ctx context.Context, publicID uuid.UUID) (mod
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateThreadComment = `
@@ -358,7 +358,7 @@ const updateThreadComment = `
 	RETURNING *
 `
 
-func (q *Queries) UpdateThreadCommentCount(ctx context.Context, publicID uuid.UUID) (models.Thread, error) {
+func (q *Queries) UpdateThreadCommentCount(ctx context.Context, publicID uuid.UUID) (*models.Thread, error) {
 	row := q.db.QueryRowContext(ctx, updateThreadLike, publicID)
 	var i models.Thread
 	err := row.Scan(
@@ -381,7 +381,7 @@ func (q *Queries) UpdateThreadCommentCount(ctx context.Context, publicID uuid.UU
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getThreadByPublicID = `

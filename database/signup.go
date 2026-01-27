@@ -15,7 +15,7 @@ const createGoogleSignUp = `
 	) RETURNING *;
 `
 
-func (q *Queries) CreateGoogleSignUp(ctx context.Context, fullName, username, email, googleId string) (models.Users, error) {
+func (q *Queries) CreateGoogleSignUp(ctx context.Context, fullName, username, email, googleId string) (*models.Users, error) {
 	var users models.Users
 	row := q.db.QueryRowContext(ctx, createGoogleSignUp, fullName, username, email, googleId)
 	err := row.Scan(
@@ -34,12 +34,12 @@ func (q *Queries) CreateGoogleSignUp(ctx context.Context, fullName, username, em
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return models.Users{}, nil
+			return nil, nil
 		}
 		log.Printf("Failed to create google signup: %v", err)
-		return models.Users{}, err
+		return nil, err
 	}
-	return users, nil
+	return &users, nil
 }
 
 const createEmailSignUp = `
@@ -50,7 +50,7 @@ const createEmailSignUp = `
 	) RETURNING *;
 `
 
-func (q *Queries) CreateEmailSignUp(ctx context.Context, fullName, username, email, hashPassword string) (models.Users, error) {
+func (q *Queries) CreateEmailSignUp(ctx context.Context, fullName, username, email, hashPassword string) (*models.Users, error) {
 	var users models.Users
 	row := q.db.QueryRowContext(ctx, createEmailSignUp, fullName, username, email, hashPassword)
 	err := row.Scan(
@@ -69,10 +69,10 @@ func (q *Queries) CreateEmailSignUp(ctx context.Context, fullName, username, ema
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return models.Users{}, nil
+			return nil, nil
 		}
 		log.Printf("Failed to create gmail signup: %v", err)
-		return models.Users{}, err
+		return nil, err
 	}
-	return users, nil
+	return &users, nil
 }

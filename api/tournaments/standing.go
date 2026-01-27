@@ -2,7 +2,6 @@ package tournaments
 
 import (
 	"khelogames/core/token"
-	"khelogames/database/models"
 	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
@@ -84,7 +83,6 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 	game := ctx.Param("sport")
 
 	if game == "football" {
-		var footballStanding models.FootballStanding
 		footballStanding, err := s.store.CreateFootballStanding(ctx, tournamentPublicID, req.GroupID, teamPublicID)
 		if err != nil {
 			s.logger.Error("Failed to create football standing: ", err)

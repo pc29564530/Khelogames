@@ -45,7 +45,7 @@ FROM tournamentID, teamID
 RETURNING *;
 `
 
-func (q *Queries) CreateFootballStanding(ctx context.Context, tournamentPublicID uuid.UUID, groupID int32, teamPublicID uuid.UUID) (models.FootballStanding, error) {
+func (q *Queries) CreateFootballStanding(ctx context.Context, tournamentPublicID uuid.UUID, groupID int32, teamPublicID uuid.UUID) (*models.FootballStanding, error) {
 
 	row := q.db.QueryRowContext(ctx, createFootballStanding,
 		tournamentPublicID,
@@ -82,7 +82,7 @@ func (q *Queries) CreateFootballStanding(ctx context.Context, tournamentPublicID
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getFootballStanding = `

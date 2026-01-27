@@ -213,7 +213,7 @@ JOIN teams AS t2 ON m.away_team_id=t2.id
 WHERE m.public_id=$1
 `
 
-func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID uuid.UUID) (GetMatchByIDRow, error) {
+func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID uuid.UUID) (*GetMatchByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getMatchByMatchID, matchPublicID)
 	var i GetMatchByIDRow
 	err := row.Scan(
@@ -271,7 +271,7 @@ func (q *Queries) GetTournamentMatchByMatchID(ctx context.Context, matchPublicID
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const newMatch = `
@@ -341,7 +341,7 @@ type NewMatchParams struct {
 	GameID             int32     `json:"game_id"`
 }
 
-func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Match, error) {
+func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (*models.Match, error) {
 	row := q.db.QueryRowContext(ctx, newMatch,
 		arg.TournamentPublicID,
 		arg.AwayTeamPublicID,
@@ -387,7 +387,7 @@ func (q *Queries) NewMatch(ctx context.Context, arg NewMatchParams) (models.Matc
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateMatchSchedule = `
@@ -402,7 +402,7 @@ type UpdateMatchScheduleParams struct {
 	StartTimestamp int64     `json:"start_timestamp"`
 }
 
-func (q *Queries) UpdateMatchSchedule(ctx context.Context, matchPublicID uuid.UUID, startTimestamp int64) (models.Match, error) {
+func (q *Queries) UpdateMatchSchedule(ctx context.Context, matchPublicID uuid.UUID, startTimestamp int64) (*models.Match, error) {
 	row := q.db.QueryRowContext(ctx, updateMatchSchedule, matchPublicID, startTimestamp)
 	var i models.Match
 	err := row.Scan(
@@ -430,7 +430,7 @@ func (q *Queries) UpdateMatchSchedule(ctx context.Context, matchPublicID uuid.UU
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateMatchStatus = `
@@ -440,7 +440,7 @@ WHERE public_id=$1
 RETURNING *
 `
 
-func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID, status string) (models.Match, error) {
+func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID, status string) (*models.Match, error) {
 	row := q.db.QueryRowContext(ctx, updateMatchStatus, matchPublicID, status)
 	var i models.Match
 	err := row.Scan(
@@ -464,11 +464,11 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return models.Match{}, fmt.Errorf("Failed to get data", err)
+			return nil, fmt.Errorf("Failed to get data", err)
 		}
-		return models.Match{}, fmt.Errorf("Failed to scan: ", err)
+		return nil, fmt.Errorf("Failed to scan: ", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateMatchResult = `
@@ -480,7 +480,7 @@ WHERE id = $1
 RETURNING *
 `
 
-func (q *Queries) UpdateMatchResult(ctx context.Context, matchID, resultID int32) (models.Match, error) {
+func (q *Queries) UpdateMatchResult(ctx context.Context, matchID, resultID int32) (*models.Match, error) {
 	row := q.db.QueryRowContext(ctx, updateMatchResult, matchID, resultID)
 	var i models.Match
 	err := row.Scan(
@@ -508,7 +508,7 @@ func (q *Queries) UpdateMatchResult(ctx context.Context, matchID, resultID int32
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateMatchSubStatus = `
@@ -520,7 +520,7 @@ const updateMatchSubStatus = `
 	RETURNING *
 `
 
-func (q *Queries) UpdateMatchSubStatus(ctx context.Context, matchPublicID uuid.UUID, subStatus string) (models.Match, error) {
+func (q *Queries) UpdateMatchSubStatus(ctx context.Context, matchPublicID uuid.UUID, subStatus string) (*models.Match, error) {
 	row := q.db.QueryRowContext(ctx, updateMatchSubStatus, matchPublicID, subStatus)
 	var i models.Match
 	err := row.Scan(
@@ -548,5 +548,5 @@ func (q *Queries) UpdateMatchSubStatus(ctx context.Context, matchPublicID uuid.U
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }

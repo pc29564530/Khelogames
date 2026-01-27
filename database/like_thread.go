@@ -18,7 +18,7 @@ WHERE u.public_id = $1
 AND t.public_id = $2
 `
 
-func (q *Queries) CheckUserCount(ctx context.Context, userPublicID, threadPublicID uuid.UUID) (int, error) {
+func (q *Queries) CheckUserCount(ctx context.Context, userPublicID, threadPublicID uuid.UUID) (*int, error) {
 	row := q.db.QueryRowContext(ctx, checkUserCount, userPublicID, threadPublicID)
 	var user_count int
 	err := row.Scan(&user_count)
@@ -28,7 +28,7 @@ func (q *Queries) CheckUserCount(ctx context.Context, userPublicID, threadPublic
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return user_count, err
+	return &user_count, err
 }
 
 const countUserLike = `
@@ -37,7 +37,7 @@ JOIN threads t ON t.id = ut.thread_id
 WHERE t.public_id = $1
 `
 
-func (q *Queries) CountLikeUser(ctx context.Context, threadID uuid.UUID) (int, error) {
+func (q *Queries) CountLikeUser(ctx context.Context, threadID uuid.UUID) (*int, error) {
 	row := q.db.QueryRowContext(ctx, countUserLike, threadID)
 	var count int
 	err := row.Scan(&count)
@@ -47,7 +47,7 @@ func (q *Queries) CountLikeUser(ctx context.Context, threadID uuid.UUID) (int, e
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return count, err
+	return &count, err
 }
 
 const createLike = `
@@ -68,7 +68,7 @@ FROM userID, threadID
 RETURNING *;
 `
 
-func (q *Queries) CreateLike(ctx context.Context, userPublicID, threadPublicID uuid.UUID) (models.UserLikeThread, error) {
+func (q *Queries) CreateLike(ctx context.Context, userPublicID, threadPublicID uuid.UUID) (*models.UserLikeThread, error) {
 	row := q.db.QueryRowContext(ctx, createLike, userPublicID, threadPublicID)
 	var i models.UserLikeThread
 	err := row.Scan(&i.ID, &i.ThreadID, &i.UserID)
@@ -78,7 +78,7 @@ func (q *Queries) CreateLike(ctx context.Context, userPublicID, threadPublicID u
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getLike = `
@@ -86,7 +86,7 @@ SELECT id, thread_id, user_id FROM user_like_thread
 WHERE user_id = $1 LIMIT $1
 `
 
-func (q *Queries) GetLike(ctx context.Context, limit int32) (models.UserLikeThread, error) {
+func (q *Queries) GetLike(ctx context.Context, limit int32) (*models.UserLikeThread, error) {
 	row := q.db.QueryRowContext(ctx, getLike, limit)
 	var i models.UserLikeThread
 	err := row.Scan(&i.ID, &i.ThreadID, &i.UserID)
@@ -96,7 +96,7 @@ func (q *Queries) GetLike(ctx context.Context, limit int32) (models.UserLikeThre
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const userListLike = `

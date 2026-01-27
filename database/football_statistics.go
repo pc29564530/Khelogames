@@ -39,7 +39,7 @@ type CreateFootballStatisticsParams struct {
 	RedCards        int32 `json:"red_cards"`
 }
 
-func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootballStatisticsParams) (models.FootballStatistics, error) {
+func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootballStatisticsParams) (*models.FootballStatistics, error) {
 	row := q.db.QueryRowContext(ctx, createFootballStatistics,
 		arg.MatchID,
 		arg.TeamID,
@@ -73,7 +73,7 @@ func (q *Queries) CreateFootballStatistics(ctx context.Context, arg CreateFootba
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getFootballStatistics = `
@@ -83,7 +83,7 @@ JOIN teams t ON t.id = fs.team_id
 WHERE m.public_id=$1 AND t.public_id=$2
 `
 
-func (q *Queries) GetFootballStatistics(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (models.FootballStatistics, error) {
+func (q *Queries) GetFootballStatistics(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (*models.FootballStatistics, error) {
 	row := q.db.QueryRowContext(ctx, getFootballStatistics, matchPublicID, teamPublicID)
 	var i models.FootballStatistics
 	err := row.Scan(
@@ -106,7 +106,7 @@ func (q *Queries) GetFootballStatistics(ctx context.Context, matchPublicID, team
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateFootballStatistics = `
@@ -139,7 +139,7 @@ type UpdateFootballStatisticsParams struct {
 
 func (q *Queries) UpdateFootballStatistics(ctx context.Context,
 	matchID, teamID,
-	shotsOnTarget, totalShots, cornerKicks, fouls, goalKeeperSaves, freeKicks, yellowCards, redCards int32) (models.FootballStatistics, error) {
+	shotsOnTarget, totalShots, cornerKicks, fouls, goalKeeperSaves, freeKicks, yellowCards, redCards int32) (*models.FootballStatistics, error) {
 	row := q.db.QueryRowContext(ctx, updateFootballStatistics,
 		matchID,
 		teamID,
@@ -173,5 +173,5 @@ func (q *Queries) UpdateFootballStatistics(ctx context.Context,
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }

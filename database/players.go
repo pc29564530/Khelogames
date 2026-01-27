@@ -48,7 +48,7 @@ const getAllPlayer = `
 SELECT * FROM players
 `
 
-func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
+func (q *Queries) GetAllPlayer(ctx context.Context) (*[]models.Player, error) {
 	rows, err := q.db.QueryContext(ctx, getAllPlayer)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (q *Queries) GetAllPlayer(ctx context.Context) ([]models.Player, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return items, nil
+	return &items, nil
 }
 
 // Existing method - gets player by public ID
@@ -186,7 +186,7 @@ SELECT * FROM players
 WHERE country=$1
 `
 
-func (q *Queries) GetPlayersCountry(ctx context.Context, country string) ([]models.Player, error) {
+func (q *Queries) GetPlayersCountry(ctx context.Context, country string) (*[]models.Player, error) {
 	rows, err := q.db.QueryContext(ctx, getPlayersCountry, country)
 	if err != nil {
 		return nil, err
@@ -217,7 +217,7 @@ func (q *Queries) GetPlayersCountry(ctx context.Context, country string) ([]mode
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return items, nil
+	return &items, nil
 }
 
 const getPlayerBySport = `
@@ -225,7 +225,7 @@ const getPlayerBySport = `
 	WHERE game_id=$1;
 `
 
-func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) ([]models.Player, error) {
+func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) (*[]models.Player, error) {
 	rows, err := q.db.QueryContext(ctx, getPlayerBySport, gameID)
 	if err != nil {
 		return nil, err
@@ -258,7 +258,7 @@ func (q *Queries) GetPlayersBySport(ctx context.Context, gameID int32) ([]models
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return items, nil
+	return &items, nil
 }
 
 const newPlayer = `
@@ -300,7 +300,7 @@ type NewPlayerParams struct {
 	Country      string    `json:"country"`
 }
 
-func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Player, error) {
+func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (*models.Player, error) {
 	row := q.db.QueryRowContext(ctx, newPlayer,
 		arg.UserPublicID,
 		arg.GameID,
@@ -332,7 +332,7 @@ func (q *Queries) NewPlayer(ctx context.Context, arg NewPlayerParams) (models.Pl
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const searchPlayer = `

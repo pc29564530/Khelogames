@@ -95,7 +95,7 @@ SELECT * FROM cricket_score cs
 WHERE cs.match_id=$1 AND cs.team_id=$2
 `
 
-func (q *Queries) GetCricketScore(ctx context.Context, matchID, teamID int32) (models.CricketScore, error) {
+func (q *Queries) GetCricketScore(ctx context.Context, matchID, teamID int32) (*models.CricketScore, error) {
 	row := q.db.QueryRowContext(ctx, getCricketScore, matchID, teamID)
 	var i models.CricketScore
 	err := row.Scan(
@@ -120,7 +120,7 @@ func (q *Queries) GetCricketScore(ctx context.Context, matchID, teamID int32) (m
 		}
 		return nil, err
 	}
-	return i, err
+	return &i, err
 }
 
 // Get cricket score by inning
@@ -131,7 +131,7 @@ const getCricketScoreByInning = `
 	WHERE m.public_id=$1 AND t.public_id=$2 AND cs.inning_number=$3
 `
 
-func (q *Queries) GetCricketScoreByInning(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (models.CricketScore, error) {
+func (q *Queries) GetCricketScoreByInning(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (*models.CricketScore, error) {
 	row := q.db.QueryRowContext(ctx, getCricketScoreByInning, matchPublicID, teamPublicID, inningNumber)
 	var i models.CricketScore
 	err := row.Scan(
@@ -156,7 +156,7 @@ func (q *Queries) GetCricketScoreByInning(ctx context.Context, matchPublicID, te
 		}
 		return nil, err
 	}
-	return i, err
+	return &i, err
 }
 
 const getCricketScoreByPublicID = `
@@ -166,7 +166,7 @@ JOIN teams t ON t.id = cs.team_id
 WHERE m.public_id=$1 AND t.public_id=$2
 `
 
-func (q *Queries) GetCricketScoreByPublicID(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (models.CricketScore, error) {
+func (q *Queries) GetCricketScoreByPublicID(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (*models.CricketScore, error) {
 	row := q.db.QueryRowContext(ctx, getCricketScoreByPublicID, matchPublicID, teamPublicID)
 	var i models.CricketScore
 	err := row.Scan(
@@ -185,7 +185,7 @@ func (q *Queries) GetCricketScoreByPublicID(ctx context.Context, matchPublicID, 
 		&i.Declared,
 		&i.InningStatus,
 	)
-	return i, err
+	return &i, err
 }
 
 const getCricketScores = `
@@ -234,7 +234,7 @@ func (q *Queries) GetCricketScores(ctx context.Context, matchID int32) ([]models
 		return nil, fmt.Errorf("Row iteration error: %w", err)
 	}
 	if len(cricketScores) == 0 {
-		return nil, fmt.Println("No Score found")
+		return nil, nil
 	}
 
 	return cricketScores, nil
@@ -293,7 +293,7 @@ type NewCricketScoreParams struct {
 	InningStatus      string    `json:"inning_status"`
 }
 
-func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams) (models.CricketScore, error) {
+func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams) (*models.CricketScore, error) {
 
 	row := q.db.QueryRowContext(ctx, newCricketScore,
 		arg.MatchPublicID,
@@ -332,7 +332,7 @@ func (q *Queries) NewCricketScore(ctx context.Context, arg NewCricketScoreParams
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateCricketInnings = `
@@ -345,7 +345,7 @@ WHERE m.public_id=$1 AND t.public_id=$2 AND ui.match_id = m.id
 RETURNING cs.*
 `
 
-func (q *Queries) UpdateCricketInnings(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (models.CricketScore, error) {
+func (q *Queries) UpdateCricketInnings(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, inningNumber int) (*models.CricketScore, error) {
 	row := q.db.QueryRowContext(ctx, updateCricketInnings, matchPublicID, teamPublicID, inningNumber)
 	var i models.CricketScore
 	err := row.Scan(
@@ -370,7 +370,7 @@ func (q *Queries) UpdateCricketInnings(ctx context.Context, matchPublicID, teamP
 		}
 		return nil, err
 	}
-	return i, err
+	return &i, err
 }
 
 const updateCricketOvers = `

@@ -41,7 +41,7 @@ type AddTeamPlayersParams struct {
 	LeaveDate      *int32    `json:"leave_date"`
 }
 
-func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) (models.TeamPlayer, error) {
+func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) (*models.TeamPlayer, error) {
 	row := q.db.QueryRowContext(ctx, addTeamPlayers, arg.TeamPublicID, arg.PlayerPublicID, arg.JoinDate, arg.LeaveDate)
 	var i models.TeamPlayer
 	err := row.Scan(&i.TeamID, &i.PlayerID, &i.JoinDate, &i.LeaveDate)
@@ -51,7 +51,7 @@ func (q *Queries) AddTeamPlayers(ctx context.Context, arg AddTeamPlayersParams) 
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 type GetMatchByTeamRow struct {
@@ -357,7 +357,7 @@ const getTeamByPublicID = `
 	WHERE public_id=$1
 `
 
-func (q *Queries) GetTeamByPublicID(ctx context.Context, publicID uuid.UUID) (models.Team, error) {
+func (q *Queries) GetTeamByPublicID(ctx context.Context, publicID uuid.UUID) (*models.Team, error) {
 	row := q.db.QueryRowContext(ctx, getTeamByPublicID, publicID)
 	var i models.Team
 	err := row.Scan(
@@ -382,7 +382,7 @@ func (q *Queries) GetTeamByPublicID(ctx context.Context, publicID uuid.UUID) (mo
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 // team by public_id
@@ -391,7 +391,7 @@ const getTeamByID = `
 	WHERE id=$1
 `
 
-func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error) {
+func (q *Queries) GetTeamByID(ctx context.Context, id int64) (*models.Team, error) {
 	row := q.db.QueryRowContext(ctx, getTeamByID, id)
 	var i models.Team
 	err := row.Scan(
@@ -416,7 +416,7 @@ func (q *Queries) GetTeamByID(ctx context.Context, id int64) (models.Team, error
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getTeamByPlayer = `
@@ -673,7 +673,7 @@ type NewTeamsParams struct {
 	LocationID   *int32    `json:"location_id"`
 }
 
-func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team, error) {
+func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (*models.Team, error) {
 	row := q.db.QueryRowContext(ctx, newTeams,
 		arg.UserPublicID,
 		arg.Name,
@@ -711,7 +711,7 @@ func (q *Queries) NewTeams(ctx context.Context, arg NewTeamsParams) (models.Team
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const searchTeam = `
@@ -759,7 +759,7 @@ type UpdateMediaUrlParams struct {
 	MediaUrl string    `json:"media_url"`
 }
 
-func (q *Queries) UpdateMediaUrl(ctx context.Context, publicID uuid.UUID, mediaUrl string) (models.Team, error) {
+func (q *Queries) UpdateMediaUrl(ctx context.Context, publicID uuid.UUID, mediaUrl string) (*models.Team, error) {
 	row := q.db.QueryRowContext(ctx, updateMediaUrl, publicID, mediaUrl)
 	var i models.Team
 	err := row.Scan(
@@ -784,7 +784,7 @@ func (q *Queries) UpdateMediaUrl(ctx context.Context, publicID uuid.UUID, mediaU
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateTeamName = `
@@ -799,7 +799,7 @@ type UpdateTeamNameParams struct {
 	Name     string    `json:"name"`
 }
 
-func (q *Queries) UpdateTeamName(ctx context.Context, publicID uuid.UUID, name string) (models.Team, error) {
+func (q *Queries) UpdateTeamName(ctx context.Context, publicID uuid.UUID, name string) (*models.Team, error) {
 	row := q.db.QueryRowContext(ctx, updateTeamName, publicID, name)
 	var i models.Team
 	err := row.Scan(
@@ -824,7 +824,7 @@ func (q *Queries) UpdateTeamName(ctx context.Context, publicID uuid.UUID, name s
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const removePlayerFromTeam = `
@@ -838,7 +838,7 @@ WHERE t.public_id = $1
 RETURNING tp.*;
 `
 
-func (q *Queries) RemovePlayerFromTeam(ctx context.Context, teamPublicID, playerPublicID uuid.UUID, leaveDate int32) (models.TeamPlayer, error) {
+func (q *Queries) RemovePlayerFromTeam(ctx context.Context, teamPublicID, playerPublicID uuid.UUID, leaveDate int32) (*models.TeamPlayer, error) {
 	row := q.db.QueryRowContext(ctx, removePlayerFromTeam, teamPublicID, playerPublicID, leaveDate)
 	var i models.TeamPlayer
 	err := row.Scan(
@@ -853,7 +853,7 @@ func (q *Queries) RemovePlayerFromTeam(ctx context.Context, teamPublicID, player
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getTeamPlayer = `

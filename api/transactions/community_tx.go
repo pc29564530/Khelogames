@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func (store *SQLStore) AddJoinCommunityTx(ctx context.Context, communityPublicID, userPublicID uuid.UUID) (models.JoinCommunity, error) {
-	var communityUser models.JoinCommunity
+func (store *SQLStore) AddJoinCommunityTx(ctx context.Context, communityPublicID, userPublicID uuid.UUID) (*models.JoinCommunity, error) {
+	var communityUser *models.JoinCommunity
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error

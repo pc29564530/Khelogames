@@ -15,7 +15,7 @@ SELECT * FROM tournaments
 WHERE public_id=$1
 `
 
-func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (models.Tournament, error) {
+func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (*models.Tournament, error) {
 	row := q.db.QueryRowContext(ctx, getTournament, publicID)
 	var i models.Tournament
 	err := row.Scan(
@@ -46,7 +46,7 @@ func (q *Queries) GetTournament(ctx context.Context, publicID uuid.UUID) (models
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getTournamentByID = `
@@ -54,7 +54,7 @@ SELECT * FROM tournaments
 WHERE id=$1
 `
 
-func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (models.Tournament, error) {
+func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (*models.Tournament, error) {
 	row := q.db.QueryRowContext(ctx, getTournament, id)
 	var i models.Tournament
 	err := row.Scan(
@@ -85,7 +85,7 @@ func (q *Queries) GetTournamentByID(ctx context.Context, id int64) (models.Tourn
 		}
 		return nil, fmt.Errorf("Failed to scan: ", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getTournaments = `
@@ -285,7 +285,7 @@ type NewTournamentParams struct {
 	LocationID     *int32    `json:"location_id"`
 }
 
-func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (models.Tournament, error) {
+func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (*models.Tournament, error) {
 	row := q.db.QueryRowContext(ctx, newTournament,
 		arg.UserPublicID,
 		arg.Name,
@@ -333,7 +333,7 @@ func (q *Queries) NewTournament(ctx context.Context, arg NewTournamentParams) (m
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateTournamentDate = `
@@ -348,7 +348,7 @@ type UpdateTournamentDateParams struct {
 	StartTimestamp     int64     `json:"start_timestamp"`
 }
 
-func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournamentDateParams) (models.Tournament, error) {
+func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournamentDateParams) (*models.Tournament, error) {
 	row := q.db.QueryRowContext(ctx, updateTournamentDate, arg.TournamentPublicID, arg.StartTimestamp)
 	var i models.Tournament
 	err := row.Scan(
@@ -379,7 +379,7 @@ func (q *Queries) UpdateTournamentDate(ctx context.Context, arg UpdateTournament
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const updateTournamentStatus = `
@@ -394,7 +394,7 @@ type UpdateTournamentStatusParams struct {
 	Status             string    `json:"status_code"`
 }
 
-func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTournamentStatusParams) (models.Tournament, error) {
+func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTournamentStatusParams) (*models.Tournament, error) {
 	row := q.db.QueryRowContext(ctx, updateTournamentStatus, arg.TournamentPublicID, arg.Status)
 	var i models.Tournament
 	err := row.Scan(
@@ -425,7 +425,7 @@ func (q *Queries) UpdateTournamentStatus(ctx context.Context, arg UpdateTourname
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const addTournamentUserRoles = `
@@ -469,9 +469,9 @@ func (q *Queries) GetTournamentUserRole(ctx context.Context, tournamentID, userI
 	err := q.db.QueryRowContext(ctx, getTournamentUserRoles, tournamentID, userID).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return false, nil
 		}
-		return nil, fmt.Errorf("Failed to scan: %w", err)
+		return false, fmt.Errorf("Failed to scan: %w", err)
 	}
 
 	return exists, nil

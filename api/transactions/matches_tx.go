@@ -33,8 +33,8 @@ import (
 // }
 
 // Update match status transaction
-func (store *SQLStore) UpdateMatchStatusTx(ctx *gin.Context, matchPublicID uuid.UUID, statusCode string, gameID models.Game) (models.Match, error) {
-	var updatedMatchData models.Match
+func (store *SQLStore) UpdateMatchStatusTx(ctx *gin.Context, matchPublicID uuid.UUID, statusCode string, gameID models.Game) (*models.Match, error) {
+	var updatedMatchData *models.Match
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
@@ -131,7 +131,7 @@ func (store *SQLStore) UpdateMatchStatusTx(ctx *gin.Context, matchPublicID uuid.
 	return updatedMatchData, err
 }
 
-func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match, gameID int64, q *database.Queries, store *SQLStore) error {
+func UpdateFootballStatusCode(ctx context.Context, updatedMatchData *models.Match, gameID int64, q *database.Queries, store *SQLStore) error {
 	var ct *gin.Context
 
 	if updatedMatchData.StatusCode == "in_progress" {
@@ -309,7 +309,7 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData models.Match
 	return nil
 }
 
-func UpdateCricketStatusCode(ctx context.Context, updatedMatchData models.Match, gameID int64, q *database.Queries, store *SQLStore) error {
+func UpdateCricketStatusCode(ctx context.Context, updatedMatchData *models.Match, gameID int64, q *database.Queries, store *SQLStore) error {
 	if updatedMatchData.StatusCode == "finished" {
 
 		awayScore, err := q.GetCricketScore(ctx, int32(updatedMatchData.ID), int32(updatedMatchData.AwayTeamID))
@@ -375,7 +375,7 @@ func (store *SQLStore) CreateMatchTx(
 	matchFormat *string,
 	subStatus *string,
 	gameID int64) (*models.Match, error) {
-	var match models.Match
+	var match *models.Match
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
 		latLng := h3.NewLatLng(latitude, longitude)
@@ -420,5 +420,5 @@ func (store *SQLStore) CreateMatchTx(
 		}
 		return err
 	})
-	return &match, err
+	return match, err
 }

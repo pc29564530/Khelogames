@@ -35,7 +35,7 @@ FROM matchID, teamID, playerID
 RETURNING *;
 `
 
-func (q *Queries) AddFootballSquad(ctx context.Context, matchPublicID, teamPublicID, playerPublicID uuid.UUID, IsSubstitute bool) (models.FootballSquad, error) {
+func (q *Queries) AddFootballSquad(ctx context.Context, matchPublicID, teamPublicID, playerPublicID uuid.UUID, IsSubstitute bool) (*models.FootballSquad, error) {
 	row := q.db.QueryRowContext(ctx, addFootballSquad, matchPublicID, teamPublicID, playerPublicID, IsSubstitute)
 	var i models.FootballSquad
 	err := row.Scan(
@@ -50,12 +50,12 @@ func (q *Queries) AddFootballSquad(ctx context.Context, matchPublicID, teamPubli
 		&i.CreatedAT,
 	)
 	if err != nil {
-		if er == sql.ErrNoRows {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getFootballMatchSquad = `
@@ -81,7 +81,7 @@ const getFootballMatchSquad = `
 	WHERE m.public_id=$1 AND t.public_id=$2;
 `
 
-func (q *Queries) GetFootballMatchSquad(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) ([]map[string]interface{}, error) {
+func (q *Queries) GetFootballMatchSquad(ctx context.Context, matchPublicID, teamPublicID uuid.UUID) (*[]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getFootballMatchSquad, matchPublicID, teamPublicID)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (q *Queries) GetFootballMatchSquad(ctx context.Context, matchPublicID, team
 	}
 
 	if len(squads) == 0 {
-		return nil, fmt.Printf("No data found")
+		return nil, nil
 	}
-	return squads, nil
+	return &squads, nil
 }

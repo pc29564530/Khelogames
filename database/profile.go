@@ -124,7 +124,7 @@ type CreateProfileParams struct {
 	Location  string `json:"location"`
 }
 
-func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (models.UserProfiles, error) {
+func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (*models.UserProfiles, error) {
 	row := q.db.QueryRowContext(ctx, createProfile,
 		arg.UserID,
 		arg.Bio,
@@ -149,7 +149,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (m
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return profile, err
+	return &profile, err
 }
 
 type UpdateUserParams struct {
@@ -172,7 +172,7 @@ type EditProfileParams struct {
 	LocationID int32     `json:"location_id"`
 }
 
-func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (models.UserProfiles, error) {
+func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (*models.UserProfiles, error) {
 	row := q.db.QueryRowContext(ctx, editProfile,
 		arg.PublicID,
 		arg.AvatarUrl,
@@ -197,7 +197,7 @@ func (q *Queries) EditProfile(ctx context.Context, arg EditProfileParams) (model
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return profile, err
+	return &profile, err
 }
 
 const getProfile = `
@@ -293,7 +293,7 @@ const addRole = `
 	RETURNING *;
 `
 
-func (q *Queries) AddRole(ctx context.Context, userID uuid.UUID, roleID int32) (models.UserRole, error) {
+func (q *Queries) AddRole(ctx context.Context, userID uuid.UUID, roleID int32) (*models.UserRole, error) {
 	row := q.db.QueryRowContext(ctx, addRole, userID, roleID)
 	var userRole models.UserRole
 	err := row.Scan(
@@ -302,7 +302,7 @@ func (q *Queries) AddRole(ctx context.Context, userID uuid.UUID, roleID int32) (
 		&userRole.RoleID,
 		&userRole.CreatedAT,
 	)
-	return userRole, err
+	return &userRole, err
 }
 
 const addOrganizerVerificationDetails = `

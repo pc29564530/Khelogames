@@ -17,8 +17,8 @@ func (store *SQLStore) CreateTeamsTx(ctx context.Context, userPublicID uuid.UUID
 	gameID int32,
 	city, state, country string,
 	latitude, longitude float64,
-) (models.Team, error) {
-	var team models.Team
+) (*models.Team, error) {
+	var team *models.Team
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
@@ -71,7 +71,7 @@ func (store *SQLStore) CreateTeamsTx(ctx context.Context, userPublicID uuid.UUID
 	return team, err
 }
 
-func (store *SQLStore) UpdateTeamTx(ctx context.Context, teamPublicID uuid.UUID, city, state, country string, latitude, longitude float64) (models.Team, error) {
+func (store *SQLStore) UpdateTeamTx(ctx context.Context, teamPublicID uuid.UUID, city, state, country string, latitude, longitude float64) (*models.Team, error) {
 	var team models.Team
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
@@ -134,9 +134,9 @@ func (store *SQLStore) UpdateTeamTx(ctx context.Context, teamPublicID uuid.UUID,
 		if err != nil {
 			return fmt.Errorf("Failed to get updated team: %w", err)
 		}
-		team = updatedTeam
+		team = *updatedTeam
 
 		return nil
 	})
-	return team, err
+	return &team, err
 }

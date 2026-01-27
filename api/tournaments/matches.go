@@ -508,7 +508,7 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		return
 	}
 
-	updatedMatchData, err := s.txStore.UpdateMatchStatusTx(ctx, matchPublicID, req.StatusCode, gameID)
+	updatedMatchData, err := s.txStore.UpdateMatchStatusTx(ctx, matchPublicID, req.StatusCode, *gameID)
 	if err != nil {
 		s.logger.Error("Failed to update match status: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{

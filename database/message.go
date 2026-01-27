@@ -48,7 +48,7 @@ type CreateNewMessageParams struct {
 	SentAt     time.Time `json:"sent_at"`
 }
 
-func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessageParams) (models.Message, error) {
+func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessageParams) (*models.Message, error) {
 	row := q.db.QueryRowContext(ctx, createNewMessage,
 		arg.SenderID,
 		arg.ReceiverID,
@@ -78,7 +78,7 @@ func (q *Queries) CreateNewMessage(ctx context.Context, arg CreateNewMessagePara
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const deleteMessage = `
@@ -92,7 +92,7 @@ type DeleteMessageParams struct {
 	ID       int64  `json:"id"`
 }
 
-func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (models.Message, error) {
+func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (*models.Message, error) {
 	row := q.db.QueryRowContext(ctx, deleteMessage, arg.SenderID, arg.ID)
 	var i models.Message
 	err := row.Scan(
@@ -115,7 +115,7 @@ func (q *Queries) DeleteMessage(ctx context.Context, arg DeleteMessageParams) (m
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 // fetch all the message by the receiver id

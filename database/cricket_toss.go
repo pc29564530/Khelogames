@@ -30,7 +30,7 @@ FROM matchID, teamID
 RETURNING *
 `
 
-func (q *Queries) AddCricketToss(ctx context.Context, matchPublicID uuid.UUID, tossDecision string, tossWinPublicID uuid.UUID) (models.CricketToss, error) {
+func (q *Queries) AddCricketToss(ctx context.Context, matchPublicID uuid.UUID, tossDecision string, tossWinPublicID uuid.UUID) (*models.CricketToss, error) {
 	row := q.db.QueryRowContext(ctx, addCricketToss, matchPublicID, tossDecision, tossWinPublicID)
 	var i models.CricketToss
 	err := row.Scan(
@@ -46,7 +46,7 @@ func (q *Queries) AddCricketToss(ctx context.Context, matchPublicID uuid.UUID, t
 		}
 		return nil, fmt.Errorf("Failed to add cricket toss: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getCricketToss = `

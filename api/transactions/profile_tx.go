@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func (store *SQLStore) UpdateProfileTx(ctx context.Context, publicID uuid.UUID, bio string, avatarUrl string, fullName, city, state, country string, latitude, longitude float64, h3Index string) (models.UserProfiles, error) {
-	var userProfiles models.UserProfiles
+func (store *SQLStore) UpdateProfileTx(ctx context.Context, publicID uuid.UUID, bio string, avatarUrl string, fullName, city, state, country string, latitude, longitude float64, h3Index string) (*models.UserProfiles, error) {
+	var userProfiles *models.UserProfiles
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		location, err := q.AddLocation(ctx, city, state, country, latitude, longitude, h3Index)
 		if err != nil {

@@ -197,12 +197,11 @@ func (s *TeamsServer) getCricketMatchScore(ctx *gin.Context, matches []db.GetMat
 
 		var awayScoreMap map[string]interface{}
 		var homeScoreMap map[string]interface{}
-		var emptyScore models.CricketScore
-		if awayScore != emptyScore {
-			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": homeScore.Wickets, "overs": awayScore.Overs, "inning_number": awayScore.InningNumber}
+		if awayScore != nil {
+			awayScoreMap = map[string]interface{}{"id": awayScore.ID, "score": awayScore.Score, "wickets": awayScore.Wickets, "overs": awayScore.Overs, "inning_number": awayScore.InningNumber}
 		}
 
-		if homeScore != emptyScore {
+		if homeScore != nil {
 			homeScoreMap = map[string]interface{}{"id": homeScore.ID, "score": homeScore.Score, "wickets": homeScore.Wickets, "overs": homeScore.Overs, "inning_number": homeScore.InningNumber}
 		}
 

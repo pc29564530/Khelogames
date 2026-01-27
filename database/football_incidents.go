@@ -157,7 +157,7 @@ type CreateFootballIncidentsParams struct {
 	PenaltyShootoutScored bool       `json:"penalty_shootout_scored"`
 }
 
-func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootballIncidentsParams) (models.FootballIncident, error) {
+func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootballIncidentsParams) (*models.FootballIncident, error) {
 	row := q.db.QueryRowContext(ctx, createFootballIncidents,
 		arg.TournamentPublicID,
 		arg.MatchPublicID,
@@ -188,7 +188,7 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getFootballIncidentWithPlayer = `

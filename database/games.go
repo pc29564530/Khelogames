@@ -12,7 +12,7 @@ SELECT id, name, min_players FROM games
 WHERE id=$1
 `
 
-func (q *Queries) GetGame(ctx context.Context, id int64) (models.Game, error) {
+func (q *Queries) GetGame(ctx context.Context, id int64) (*models.Game, error) {
 	row := q.db.QueryRowContext(ctx, getGame, id)
 	var i models.Game
 	err := row.Scan(&i.ID, &i.Name, &i.MinPlayers)
@@ -22,7 +22,7 @@ func (q *Queries) GetGame(ctx context.Context, id int64) (models.Game, error) {
 		}
 		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
-	return i, err
+	return &i, err
 }
 
 const getGameByName = `
@@ -30,18 +30,18 @@ const getGameByName = `
 	WHERE name=$1
 `
 
-func (q *Queries) GetGamebyName(ctx context.Context, name string) (models.Game, error) {
+func (q *Queries) GetGamebyName(ctx context.Context, name string) (*models.Game, error) {
 	row := q.db.QueryRowContext(ctx, getGameByName, name)
 	var i models.Game
 	err := row.Scan(&i.ID, &i.Name, &i.MinPlayers)
-	return i, err
+	return &i, err
 }
 
 const getGames = `
 SELECT id, name, min_players FROM games
 `
 
-func (q *Queries) GetGames(ctx context.Context) ([]models.Game, error) {
+func (q *Queries) GetGames(ctx context.Context) (*[]models.Game, error) {
 	rows, err := q.db.QueryContext(ctx, getGames)
 	if err != nil {
 		return nil, err
@@ -61,5 +61,5 @@ func (q *Queries) GetGames(ctx context.Context) ([]models.Game, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return items, nil
+	return &items, nil
 }

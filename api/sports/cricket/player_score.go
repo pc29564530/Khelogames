@@ -1677,7 +1677,7 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		wicketType,
 		ballNumber,
 		fielderPublicID,
-		cricketScore,
+		*cricketScore,
 		&req.BowlType,
 		int32(runsScored),
 		inningNumber,
