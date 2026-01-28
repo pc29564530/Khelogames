@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -36,7 +37,8 @@ func (s *Server) RequiredPermission(permission string) gin.HandlerFunc {
 		authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 		matchPublicIDStr := ctx.Param("match_public_id")
 		tournamentPublicIDStr := ctx.Param("tournament_public_id")
-
+		fmt.Println("Tournament: ", tournamentPublicIDStr)
+		fmt.Println("Match: ", matchPublicIDStr)
 		var allowed bool
 		var err error
 
@@ -58,14 +60,24 @@ func (s *Server) RequiredPermission(permission string) gin.HandlerFunc {
 			)
 		default:
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": "no permission context found",
+				"success": false,
+				"error": gin.H{
+					"code":    "CALL_ERROR",
+					"message": "No context found",
+				},
+				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
 
 		if err != nil || !allowed {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error": "permission denied",
+				"success": false,
+				"error": gin.H{
+					"code":    "AUTHENTICATION_ERROR",
+					"message": "Not allowed to make change",
+				},
+				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
@@ -85,7 +97,9 @@ func (s *Server) canPerformTeamAction(ctx context.Context, authPayload *token.Pa
 		return false, nil
 	}
 
-	if authPayload.UserID != team.UserID {
+	if authPayload.UserID == team.UserID {
+		return true, nil
+	} else {
 		return false, nil
 	}
 	return hasPermission("team_manager", permission), nil
@@ -97,14 +111,19 @@ func (s *Server) canPerformTournamentAction(ctx context.Context, authPayload *to
 		return false, err
 	}
 
+	fmt.Println("Line no 102: ")
+
 	// GetTournament expects UUID, let's use it
 	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament: ", err)
 		return false, nil
 	}
-
-	if authPayload.UserID != tournament.UserID {
+	fmt.Println("Tou User: ", tournament.UserID)
+	fmt.Println("Auth: ", authPayload.UserID)
+	if authPayload.UserID == tournament.UserID {
+		return true, nil
+	} else {
 		return false, nil
 	}
 	return hasPermission("tournament_organizer", permission), nil
@@ -128,6 +147,7 @@ func (s *Server) canPerformMatchAction(
 	}
 
 	if userRole.UserID != authPayload.UserID {
+		fmt.Println("No match")
 		return false, nil
 	}
 
@@ -140,6 +160,8 @@ func hasPermission(role string, permission string) bool {
 		return false
 	}
 	for _, perm := range permissions {
+		fmt.Println("Perm: ", perm)
+		fmt.Println("Permission: ", permission)
 		if perm == permission {
 			return true
 		}

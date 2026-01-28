@@ -185,7 +185,7 @@ func NewServer(config util.Config,
 	//tournament
 	sportRouter.GET("/get-tournament-by-location", tournamentServer.GetTournamentByLocationFunc)
 	sportRouter.POST("/createTournamentUserRole/:tournament_public_id", tournamentServer.AddTournamentUserRolesFunc)
-	sportRouter.POST("/createTournamentMatch", server.RequiredPermission(PermUpdateTournament), tournamentServer.CreateTournamentMatch)
+	sportRouter.POST("/createTournamentMatch/:tournament_public_id", server.RequiredPermission(PermUpdateTournament), tournamentServer.CreateTournamentMatch)
 	sportRouter.POST("/createTournament", tournamentServer.AddTournamentFunc)
 	//sportRouter.GET("/getTeamsByGroup", tournamentServer.GetTeamxsByGroupFunc)
 	//sportRouter.GET("/getTeams/:tournament_id", tournamentServer.GetTeamsFunc)
