@@ -259,12 +259,9 @@ func (q *Queries) AddORUpdateFootballPlayerStats(ctx context.Context, mathchPubl
 		playerStats = append(playerStats, stats)
 	}
 
-	// if err != nil {
-	// 	if err == sql.ErrNoRows {
-	// 		return nil, nil
-	// 	}
-	// 	return nil, fmt.Errorf("Failed to scan the query data: ", err)
-	// }
+	if rows.Err() err != nil {
+		return nil, fmt.Errorf("Failed to add or update football player stats: %w", err)
+	}
 
 	return &playerStats, nil
 }
