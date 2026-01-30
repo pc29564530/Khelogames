@@ -377,10 +377,25 @@ func NewServer(config util.Config,
 	return server, nil
 }
 
+// Middleware for large file upload
+func TimeoutMiddleware(d time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), d)
+		defer cancel()
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	}
+}
+
 func (server *Server) Start(address string) error {
 	server.httpServer = &http.Server{
 		Addr:    address,
 		Handler: server.router,
+
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	return server.httpServer.ListenAndServe()
 }
