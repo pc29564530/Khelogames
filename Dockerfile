@@ -1,62 +1,61 @@
-FROM python:3.11-slim-bullseye
+# Multi-stage build for Go backend
 
-MAINTAINER Jookies LTD <jasmin@jookies.net>
+# Stage 1: Build stage
+FROM golang:1.24-alpine AS builder
 
-# add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
-RUN groupadd -r jasmin && useradd -r -g jasmin jasmin
+# Install build dependencies
+RUN apk add --no-cache git make
 
-# Install requirements
-RUN apt-get update && apt-get install -y \
-    libffi-dev \
-    libssl-dev \
-    # Run python with jemalloc
-    # More on this:
-    # - https://zapier.com/engineering/celery-python-jemalloc/
-    # - https://paste.pics/581cc286226407ab0be400b94951a7d9
-    libjemalloc2
+# Set working directory
+WORKDIR /app
 
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
 
-# Run python with jemalloc
-ENV LD_PRELOAD /usr/lib/aarch64-linux-gnu/libjemalloc.so.2
+# Download dependencies
+RUN go mod download
 
-# Install Jasmin SMS gateway
-RUN mkdir -p /etc/jasmin/resource \
-    /etc/jasmin/store \
-    /var/log/jasmin \
-  && chown jasmin:jasmin /etc/jasmin/store \
-    /var/log/jasmin
-
-WORKDIR /build
-
+# Copy the entire source code
 COPY . .
 
-RUN pip install .
+# Build the application
+# CGO_ENABLED=0 for static binary, helps with alpine compatibility
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-ENV UNICODEMAP_JP unicode-ascii
+# Stage 2: Runtime stage
+FROM alpine:latest
 
-ENV ROOT_PATH /
-ENV CONFIG_PATH /etc/jasmin
-ENV RESOURCE_PATH /etc/jasmin/resource
-ENV STORE_PATH /etc/jasmin/store
-ENV LOG_PATH /var/log/jasmin
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata
 
-COPY misc/config/*.cfg ${CONFIG_PATH}/
-COPY misc/config/resource ${RESOURCE_PATH}
+# Create non-root user for security
+RUN addgroup -g 1000 appuser && \
+    adduser -D -u 1000 -G appuser appuser
 
-WORKDIR /usr/jasmin
+WORKDIR /app
 
-# Change binding host for jcli, redis, and amqp
-RUN sed -i '/\[jcli\]/a bind=0.0.0.0' /etc/jasmin/jasmin.cfg
-RUN sed -i '/\[redis-client\]/a host=redis' /etc/jasmin/jasmin.cfg
-RUN sed -i '/\[amqp-broker\]/a host=rabbitmq' /etc/jasmin/jasmin.cfg
+# Copy the binary from builder
+COPY --from=builder /app/main .
 
-EXPOSE 2775 8990 1401
-VOLUME ["/var/log/jasmin", "/etc/jasmin", "/etc/jasmin/store"]
+# Copy the app.env file (optional, can also use docker-compose env)
+COPY --from=builder /app/app.env .
 
-COPY docker/docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["jasmind.py", "--enable-interceptor-client", "--enable-dlr-thrower", "--enable-dlr-lookup", "-u", "jcliadmin", "-p", "jclipwd"]
-# Notes:
-# - jasmind is started with native dlr-thrower and dlr-lookup threads instead of standalone processes
-# - restapi (0.9rc16+) is not started in this docker configuration
+# Create media directories with proper permissions
+RUN mkdir -p /app/media/images /app/media/videos /app/media/uploads && \
+    chown -R appuser:appuser /app/media
+
+# Change ownership of app directory
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose the application port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Run the application
+CMD ["./main"]

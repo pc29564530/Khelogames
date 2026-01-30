@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: khelogames-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: Khelogames
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - khelogames-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d Khelogames"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: khelogames-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - khelogames-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Go Backend Application
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: khelogames-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override specific environment variables for Docker
+      # Database Configuration - uses URL-encoded password from .env file
+      DB_DRIVER: ${DB_DRIVER}
+      DB_SOURCE: postgresql://root:${DB_PASSWORD_ENCODED}@postgres:5432/Khelogames?sslmode=disable
+
+      # Server Configuration
+      SERVER_ADDRESS: ${SERVER_ADDRESS}
+
+      # JWT Token Configuration
+      ACCESS_TOKEN_DURATION: ${ACCESS_TOKEN_DURATION}
+      REFRESH_TOKEN_DURATION: ${REFRESH_TOKEN_DURATION}
+      TOKEN_SYMMETRIC_KEY: ${TOKEN_SYMMETRIC_KEY}
+
+      # RabbitMQ Configuration (override localhost with container name)
+      RABBIT_SOURCE: amqp://guest:guest@rabbitmq:5672/
+
+      # CORS Configuration
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+
+      # Media Storage Configuration (override paths for container)
+      MEDIA_BASE_PATH: /app/media
+      IMAGE_PATH: /app/media/images
+      VIDEO_PATH: /app/media/videos
+
+      # Twilio Configuration (optional)
+      ACCOUNT_SID: ${ACCOUNT_SID}
+      AUTH_TOKEN: ${AUTH_TOKEN}
+      VERIFY_SERVICE_SID: ${VERIFY_SERVICE_SID}
+      YOUR_TWILIO_PHONE_NUMBER: ${YOUR_TWILIO_PHONE_NUMBER}
+
+      # Google OAuth Configuration (optional)
+      CLIENT_ID: ${CLIENT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persistent media storage
+      - media_data:/app/media
+    networks:
+      - khelogames-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Named volumes for data persistence
+volumes:
+  postgres_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  media_data:
+    driver: local
+
+# Network for service communication
+networks:
+  khelogames-network:
+    driver: bridge

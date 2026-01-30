@@ -15,6 +15,9 @@ type Config struct {
 	TokenSymmetricKey    string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	RabbitSource         string        `mapstructure:"RABBIT_SOURCE"`
 	AllowedOrigins       string        `mapstructure:"ALLOWED_ORIGINS"`
+	MediaBasePath        string        `mapstructure:"MEDIA_BASE_PATH"`
+	ImagePath            string        `mapstructure:"IMAGE_PATH"`
+	VideoPath            string        `mapstructure:"VIDEO_PATH"`
 }
 
 // LoadConfig reads configuration from file or envirnment variables.

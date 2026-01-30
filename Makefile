@@ -89,4 +89,42 @@ redis:
 rabbitmq:
 	docker run -d --hostname rabbit --name rabbit-mq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
-.PHONY: network postgres createdb dropdb migrateup migratedown migrateUp1 migrateDown1 new_migration db_docs db_schema sqlc test server mock proto evans redis migrateUp2 migrateUp3 migrateUp4
+# Docker Compose commands
+docker-build:
+	docker build -t khelogames-backend .
+
+docker-up:
+	docker-compose up -d
+
+docker-down:
+	docker-compose down
+
+docker-down-volumes:
+	docker-compose down -v
+
+docker-logs:
+	docker-compose logs -f backend
+
+docker-logs-all:
+	docker-compose logs -f
+
+docker-restart:
+	docker-compose restart backend
+
+docker-ps:
+	docker-compose ps
+
+docker-exec:
+	docker-compose exec backend sh
+
+docker-db:
+	docker-compose exec postgres psql -U root -d Khelogames
+
+docker-backup-db:
+	docker-compose exec postgres pg_dump -U root Khelogames > backup_$(shell date +%Y%m%d_%H%M%S).sql
+
+docker-clean:
+	docker-compose down -v
+	docker system prune -f
+
+.PHONY: network postgres createdb dropdb migrateup migratedown migrateUp1 migrateDown1 new_migration db_docs db_schema sqlc test server mock proto evans redis migrateUp2 migrateUp3 migrateUp4 docker-build docker-up docker-down docker-down-volumes docker-logs docker-logs-all docker-restart docker-ps docker-exec docker-db docker-backup-db docker-clean

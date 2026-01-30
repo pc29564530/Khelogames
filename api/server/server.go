@@ -50,6 +50,17 @@ const (
 	PermUpdateCommunity       = "UPDATE_COMMUNITY"
 )
 
+func (server *Server) setupStaticFiles() {
+	mediaBase := server.config.MediaBasePath
+	if mediaBase == "" {
+		mediaBase = "./media"
+	}
+
+	server.router.Static("/media/images", mediaBase+"/images")
+	server.router.Static("/media/videos", mediaBase+"/videos")
+	server.router.Static("/media/uploads", mediaBase+"/uploads")
+}
+
 func (server *Server) healthCheck(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"status": "ok",
@@ -114,7 +125,6 @@ func NewServer(config util.Config,
 	rabbitChan *amqp091.Channel,
 	httpServer *http.Server,
 ) (*Server, error) {
-
 	isShuttingDown := &atomic.Bool{}
 	isShuttingDown.Store(false)
 
@@ -131,12 +141,11 @@ func NewServer(config util.Config,
 		httpServer:     httpServer,
 	}
 
+	server.setupStaticFiles()
+
 	router.GET("/health", server.healthCheck)
 	router.GET("/ready", server.readinessCheck)
 	router.Use(server.corsHandle())
-	router.StaticFS("/api/images", http.Dir("/Users/pawan/database/Khelogames/images"))
-	router.StaticFS("/api/videos", http.Dir("/Users/pawan/database/Khelogames/videos"))
-	router.StaticFS("/media", http.Dir("/tmp/khelogames_media_uploads"))
 
 	public := router.Group("/auth")
 	{
