@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"khelogames/api/auth"
 	"khelogames/api/handlers"
 	"khelogames/api/messenger"
@@ -18,17 +20,25 @@ import (
 	"khelogames/logger"
 	util "khelogames/util"
 	"net/http"
+	"sync/atomic"
+	"time"
+
+	"github.com/rabbitmq/amqp091-go"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Server struct {
-	config        util.Config
-	store         *db.Store
-	tokenMaker    token.Maker
-	logger        *logger.Logger
-	router        *gin.Engine
-	messageServer *messenger.MessageServer
+	config         util.Config
+	store          *db.Store
+	tokenMaker     token.Maker
+	logger         *logger.Logger
+	router         *gin.Engine
+	messageServer  *messenger.MessageServer
+	dbConn         *sql.DB
+	rabbitChan     *amqp091.Channel
+	isShuttingDown *atomic.Bool
+	httpServer     *http.Server
 }
 
 const (
@@ -39,6 +49,49 @@ const (
 	PermUpdateTeam            = "UPDATE_TEAM"
 	PermUpdateCommunity       = "UPDATE_COMMUNITY"
 )
+
+func (server *Server) healthCheck(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+	})
+}
+
+func (server *Server) readinessCheck(ctx *gin.Context) {
+
+	if server.isShuttingDown != nil && server.isShuttingDown.Load() {
+		ctx.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "shutting_down",
+		})
+		return
+	}
+
+	if server.dbConn != nil {
+		ctxPing, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		if err := server.dbConn.PingContext(ctxPing); err != nil {
+			server.logger.Error("DB health check failed", err)
+			ctx.JSON(http.StatusServiceUnavailable, gin.H{
+				"status": "unhealthy",
+				"reason": "database unreachable",
+			})
+			return
+		}
+	}
+
+	if server.rabbitChan != nil && server.rabbitChan.IsClosed() {
+		server.logger.Error("RabbitMQ health check failed: channel closed")
+		ctx.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unhealthy",
+			"reason": "rabbitmq channel close",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "ready",
+	})
+}
 
 func NewServer(config util.Config,
 	store *db.Store,
@@ -57,18 +110,30 @@ func NewServer(config util.Config,
 	router *gin.Engine,
 	tokenServer *apiToken.TokenServer,
 	hub *hub.Hub,
+	conn *sql.DB,
+	rabbitChan *amqp091.Channel,
+	httpServer *http.Server,
 ) (*Server, error) {
 
+	isShuttingDown := &atomic.Bool{}
+	isShuttingDown.Store(false)
+
 	server := &Server{
-		config:        config,
-		store:         store,
-		tokenMaker:    tokenMaker,
-		logger:        logger,
-		router:        router,
-		messageServer: messageServer,
+		config:         config,
+		store:          store,
+		tokenMaker:     tokenMaker,
+		logger:         logger,
+		router:         router,
+		messageServer:  messageServer,
+		dbConn:         conn,
+		rabbitChan:     rabbitChan,
+		isShuttingDown: isShuttingDown,
+		httpServer:     httpServer,
 	}
 
-	router.Use(corsHandle())
+	router.GET("/health", server.healthCheck)
+	router.GET("/ready", server.readinessCheck)
+	router.Use(server.corsHandle())
 	router.StaticFS("/api/images", http.Dir("/Users/pawan/database/Khelogames/images"))
 	router.StaticFS("/api/videos", http.Dir("/Users/pawan/database/Khelogames/videos"))
 	router.StaticFS("/media", http.Dir("/tmp/khelogames_media_uploads"))
@@ -93,7 +158,7 @@ func NewServer(config util.Config,
 		// public.GET("/getUserByGmail", handlersServer.GetUserByGmail)
 	}
 
-	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker))
+	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker, server.logger))
 	{
 		// added the funcitonality for the matches by player
 		authRouter.GET("/getPlayerWithProfile/:public_id", handlersServer.GetPlayerWithProfileFunc)
@@ -181,7 +246,7 @@ func NewServer(config util.Config,
 		authRouter.POST("/add-match-user-roles", handlersServer.AddMatchUserRoleFunc)
 		authRouter.GET("/get-match-user-roles", handlersServer.GetMatchUserRoleFunc)
 	}
-	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker))
+	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker, server.logger))
 	//tournament
 	sportRouter.GET("/get-tournament-by-location", tournamentServer.GetTournamentByLocationFunc)
 	sportRouter.POST("/createTournamentUserRole/:tournament_public_id", tournamentServer.AddTournamentUserRolesFunc)
@@ -304,15 +369,44 @@ func NewServer(config util.Config,
 }
 
 func (server *Server) Start(address string) error {
-	// go server.messageServer.StartWebSocketHub()
-	return server.router.Run(address)
+	server.httpServer = &http.Server{
+		Addr:    address,
+		Handler: server.router,
+	}
+	return server.httpServer.ListenAndServe()
 }
 
-func corsHandle() gin.HandlerFunc {
+func (server *Server) Shutdown(ctx context.Context) error {
+	server.logger.Info("Shutting down HTTP server...")
+
+	// Set shutting down flag first
+	server.SetShuttingDown(true)
+
+	// Gracefully shutdown the HTTP server
+	if server.httpServer != nil {
+		return server.httpServer.Shutdown(ctx)
+	}
+
+	return nil
+}
+
+func (server *Server) SetShuttingDown(isShuttingDown bool) {
+	if server.isShuttingDown != nil {
+		server.isShuttingDown.Store(isShuttingDown)
+	}
+}
+
+func (server *Server) corsHandle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		allowedOrigins := server.config.AllowedOrigins
+		if allowedOrigins == "" {
+			allowedOrigins = "*"
+		}
+
+		c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)

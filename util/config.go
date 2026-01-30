@@ -14,6 +14,7 @@ type Config struct {
 	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	TokenSymmetricKey    string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	RabbitSource         string        `mapstructure:"RABBIT_SOURCE"`
+	AllowedOrigins       string        `mapstructure:"ALLOWED_ORIGINS"`
 }
 
 // LoadConfig reads configuration from file or envirnment variables.

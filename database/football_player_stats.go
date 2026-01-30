@@ -259,7 +259,7 @@ func (q *Queries) AddORUpdateFootballPlayerStats(ctx context.Context, mathchPubl
 		playerStats = append(playerStats, stats)
 	}
 
-	if rows.Err() err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("Failed to add or update football player stats: %w", err)
 	}
 

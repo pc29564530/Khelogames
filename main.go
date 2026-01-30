@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"khelogames/api/auth"
@@ -14,6 +15,9 @@ import (
 	"khelogames/hub"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"khelogames/api/messenger"
 	"khelogames/api/server"
@@ -129,6 +133,9 @@ func main() {
 		router,
 		tokenServer,
 		hub,
+		conn,
+		rabbitChan,
+		nil, // httpServer will be created in Start()
 	)
 	if err != nil {
 		newLogger.Error("Server creation failed", err)
@@ -136,9 +143,41 @@ func main() {
 	}
 
 	// Start server
-	err = server.Start(config.ServerAddress)
-	if err != nil {
-		newLogger.Error("Server start failed", err)
-		os.Exit(1)
+	go func() {
+		err = server.Start(config.ServerAddress)
+		if err != nil && err != http.ErrServerClosed {
+			newLogger.Error("Server start failed", err)
+			os.Exit(1)
+		}
+	}()
+
+	//Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Info("Shutting down server...")
+
+	// Create shutdown context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Gracefully shutdown the server
+	if err := server.Shutdown(ctx); err != nil {
+		log.Error("Server forced to shutdown:", err)
 	}
+
+	// Close database connection
+	if conn != nil {
+		conn.Close()
+		log.Info("Database connection closed")
+	}
+
+	// Close RabbitMQ connection
+	if rabbitChan != nil {
+		rabbitChan.Close()
+		log.Info("RabbitMQ connection closed")
+	}
+
+	log.Info("Server exited gracefully")
 }
