@@ -57,7 +57,7 @@ services:
       rabbitmq:
         condition: service_healthy
     env_file:
-      - .env
+      - app.env
     environment:
       # Override specific environment variables for Docker
       # Database Configuration - uses URL-encoded password from .env file
@@ -82,12 +82,6 @@ services:
       MEDIA_BASE_PATH: /app/media
       IMAGE_PATH: /app/media/images
       VIDEO_PATH: /app/media/videos
-
-      # Twilio Configuration (optional)
-      ACCOUNT_SID: ${ACCOUNT_SID}
-      AUTH_TOKEN: ${AUTH_TOKEN}
-      VERIFY_SERVICE_SID: ${VERIFY_SERVICE_SID}
-      YOUR_TWILIO_PHONE_NUMBER: ${YOUR_TWILIO_PHONE_NUMBER}
 
       # Google OAuth Configuration (optional)
       CLIENT_ID: ${CLIENT_ID}

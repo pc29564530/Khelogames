@@ -36,9 +36,9 @@ import (
 )
 
 func init() {
-	err := godotenv.Load("./app.env")
-	if err != nil {
-		fmt.Errorf("Unable to read env file: ", err)
+	// Load app.env if it exists (local dev). In production, env vars are set directly.
+	if err := godotenv.Load("./app.env"); err != nil {
+		fmt.Println("No app.env file found, using environment variables")
 	}
 }
 
@@ -64,11 +64,15 @@ func main() {
 
 	rabbitConn, rabbitChan, err := hub.StartRabbitMQ(config)
 	if err != nil {
-		log.Fatal("cannot start RabbitMQ:", err)
+		log.Warnf("RabbitMQ not available, chat features will be disabled: %v", err)
 	}
-	_, _ = rabbitChan.QueueDeclare("chatHub", true, false, false, false, nil)
-	_, _ = rabbitChan.QueueDeclare("scoreHub", true, false, false, false, nil)
-	defer rabbitConn.Close()
+	if rabbitChan != nil {
+		_, _ = rabbitChan.QueueDeclare("chatHub", true, false, false, false, nil)
+		_, _ = rabbitChan.QueueDeclare("scoreHub", true, false, false, false, nil)
+	}
+	if rabbitConn != nil {
+		defer rabbitConn.Close()
+	}
 
 	// Define clients map for WebSocket connections
 	clients := make(map[*websocket.Conn]bool)
@@ -111,8 +115,10 @@ func main() {
 	fmt.Printf("Messenger server pointer:    %p\n", messengerServer)
 	fmt.Printf("Tournament broadcaster pointer: %p\n", tournamentServer.GetScoreBroadcaster())
 
-	go hub.StartRabbitMQConsumer("scoreHub")
-	go hub.StartRabbitMQConsumer("chatHub")
+	if rabbitChan != nil {
+		go hub.StartRabbitMQConsumer("scoreHub")
+		go hub.StartRabbitMQConsumer("chatHub")
+	}
 	// go hub.StartMessageHub()
 
 	// Initialize Gin router

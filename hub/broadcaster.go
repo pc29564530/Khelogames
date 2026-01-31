@@ -113,6 +113,11 @@ func (s *Hub) BroadcastMessageEvent(ctx *gin.Context, eventType string, payload 
 		return err
 	}
 
+	if s.rabbitChan == nil {
+		s.logger.Warn("[BroadcastMessageEvent] RabbitMQ not available, skipping publish")
+		return nil
+	}
+
 	err = s.rabbitChan.PublishWithContext(
 		ctx,
 		"",

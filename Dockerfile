@@ -9,6 +9,9 @@ RUN apk add --no-cache git make
 # Set working directory
 WORKDIR /app
 
+#Install C compiler + libc headers (Required for CGO)
+RUN apk add --no-cache gcc musl-dev
+
 # Copy go mod files first for better caching
 COPY go.mod go.sum ./
 
@@ -18,9 +21,8 @@ RUN go mod download
 # Copy the entire source code
 COPY . .
 
-# Build the application
-# CGO_ENABLED=0 for static binary, helps with alpine compatibility
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+# Build the application with CGO enabled
+RUN CGO_ENABLED=1 GOOS=linux go build -o main .
 
 # Stage 2: Runtime stage
 FROM alpine:latest
@@ -36,9 +38,6 @@ WORKDIR /app
 
 # Copy the binary from builder
 COPY --from=builder /app/main .
-
-# Copy the app.env file (optional, can also use docker-compose env)
-COPY --from=builder /app/app.env .
 
 # Create media directories with proper permissions
 RUN mkdir -p /app/media/images /app/media/videos /app/media/uploads && \

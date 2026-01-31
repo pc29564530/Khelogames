@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+tmp/
+temp/
+uploads/
+
+# Env files (VERY IMPORTANT)
+.env
+.env.*
+app.env
+app.env.*
+
+# Docs (optional)
+docs/
+*.md
+*.template
+
+# Scripts & backups
+*.sh
+*.py
+*.backup
+
+# Built binaries
+khelogames
+kridagram

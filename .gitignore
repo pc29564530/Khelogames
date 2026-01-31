@@ -1,4 +1,4 @@
 app.env
+app.env.*
 .env
-.env.local
-.env.*.local
+.env.*

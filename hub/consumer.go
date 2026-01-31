@@ -6,6 +6,11 @@ import (
 )
 
 func (s *Hub) StartRabbitMQConsumer(queueName string) {
+	if s.rabbitChan == nil {
+		s.logger.Warnf("RabbitMQ not available, skipping consumer for queue: %s", queueName)
+		return
+	}
+
 	msgs, err := s.rabbitChan.Consume(
 		queueName,
 		"",
