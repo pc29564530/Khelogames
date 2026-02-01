@@ -28,6 +28,18 @@ func LoadConfig(path string) (config Config, err error) {
 
 	viper.AutomaticEnv()
 
+	viper.BindEnv("DB_DRIVER")
+	viper.BindEnv("DB_SOURCE")
+	viper.BindEnv("SERVER_ADDRESS")
+	viper.BindEnv("ACCESS_TOKEN_DURATION")
+	viper.BindEnv("REFRESH_TOKEN_DURATION")
+	viper.BindEnv("TOKEN_SYMMETRIC_KEY")
+	viper.BindEnv("RABBIT_SOURCE")
+	viper.BindEnv("ALLOWED_ORIGINS")
+	viper.BindEnv("MEDIA_BASE_PATH")
+	viper.BindEnv("IMAGE_PATH")
+	viper.BindEnv("VIDEO_PATH")
+
 	if err = viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return
