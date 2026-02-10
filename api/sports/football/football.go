@@ -46,8 +46,8 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 		if homeScore != emptyScore {
 			hScore = map[string]interface{}{
 				"public_id":        homeScore.PublicID,
-				"firstHalf":        homeScore.FirstHalf,
-				"secondHalf":       homeScore.SecondHalf,
+				"first_half":       homeScore.FirstHalf,
+				"second_half":      homeScore.SecondHalf,
 				"goals":            homeScore.Goals,
 				"penalty_shootout": homeScore.PenaltyShootOut,
 			}
@@ -56,8 +56,8 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 		if awayScore != emptyScore {
 			aScore = map[string]interface{}{
 				"public_id":        awayScore.PublicID,
-				"firstHalf":        awayScore.FirstHalf,
-				"secondHalf":       awayScore.SecondHalf,
+				"first_half":       awayScore.FirstHalf,
+				"second_half":      awayScore.SecondHalf,
 				"goals":            awayScore.Goals,
 				"penalty_shootout": awayScore.PenaltyShootOut,
 			}
@@ -69,20 +69,20 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 		}
 
 		matchMap := map[string]interface{}{
-			"id":              match.ID,
-			"public_id":       match.PublicID,
-			"homeTeam":        map[string]interface{}{"id": match.HomeTeamID, "public_id": match.HomeTeamPublicID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "shortName": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount, "media_url": match.HomeTeamMediaUrl},
-			"homeScore":       hScore,
-			"awayTeam":        map[string]interface{}{"id": match.AwayTeamID, "public_id": match.AwayTeamPublicID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "shortName": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount, "media_url": match.AwayTeamMediaUrl},
-			"awayScore":       aScore,
-			"startTimeStamp":  match.StartTimestamp,
-			"endTimestamp":    match.EndTimestamp,
-			"type":            match.Type,
-			"status_code":     match.StatusCode,
-			"game":            game,
-			"result":          match.Result,
-			"stage":           match.Stage,
-			"knockoutLevelId": match.KnockoutLevelID,
+			"id":                match.ID,
+			"public_id":         match.PublicID,
+			"home_team":         map[string]interface{}{"id": match.HomeTeamID, "public_id": match.HomeTeamPublicID, "name": match.HomeTeamName, "slug": match.HomeTeamSlug, "short_name": match.HomeTeamShortname, "gender": match.HomeTeamGender, "national": match.HomeTeamNational, "country": match.HomeTeamCountry, "type": match.HomeTeamType, "player_count": match.HomeTeamPlayerCount, "media_url": match.HomeTeamMediaUrl},
+			"home_score":        hScore,
+			"away_team":         map[string]interface{}{"id": match.AwayTeamID, "public_id": match.AwayTeamPublicID, "name": match.AwayTeamName, "slug": match.AwayTeamSlug, "short_name": match.AwayTeamShortname, "gender": match.AwayTeamGender, "national": match.AwayTeamNational, "country": match.AwayTeamCountry, "type": match.AwayTeamType, "player_count": match.AwayTeamPlayerCount, "media_url": match.AwayTeamMediaUrl},
+			"away_score":        aScore,
+			"start_timestamp":   match.StartTimestamp,
+			"end_timestamp":     match.EndTimestamp,
+			"type":              match.Type,
+			"status_code":       match.StatusCode,
+			"game":              game,
+			"result":            match.Result,
+			"stage":             match.Stage,
+			"knockout_level_id": match.KnockoutLevelID,
 		}
 
 		if *match.Stage == "Group" {
