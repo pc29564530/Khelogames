@@ -8,7 +8,6 @@ import (
 	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
-	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -344,22 +343,42 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 		return
 	}
 
-	var incidents []map[string]interface{}
-
-	// Initialize score counters outside the loop
+	// Initialize score counters
 	homeGoals := 0
 	awayGoals := 0
 	homeTeamID := match.HomeTeamID
 	awayTeamID := match.AwayTeamID
 
-	//Sort incidents in ascending order (oldest first) to calculate scores correctly
-	sortedResponse := make([]db.GetFootballIncidentWithPlayerRow, len(response))
-	copy(sortedResponse, response)
-	sort.Slice(sortedResponse, func(i, j int) bool {
-		return sortedResponse[i].ID < sortedResponse[j].ID
+	// First pass: count total goals by iterating in reverse (oldest first) to calculate cumulative scores
+	// We'll store the score for each goal incident
+	incidentScores := make(map[int64]struct {
+		homeGoals int
+		awayGoals int
 	})
 
-	for _, incident := range sortedResponse {
+	// Process in reverse order (oldest first) to calculate cumulative scores
+	for i := len(response) - 1; i >= 0; i-- {
+		incident := response[i]
+		if incident.IncidentType == "goal" {
+			// Increment score counter
+			if incident.TeamID != nil {
+				if homeTeamID == *incident.TeamID {
+					homeGoals++
+				} else if awayTeamID == *incident.TeamID {
+					awayGoals++
+				}
+			}
+			// Store the cumulative score at this point
+			incidentScores[incident.ID] = struct {
+				homeGoals int
+				awayGoals int
+			}{homeGoals, awayGoals}
+		}
+	}
+
+	// Second pass: build incidents array in descending order (newest first) with correct scores
+	var incidents []map[string]interface{}
+	for _, incident := range response {
 
 		if incident.IncidentType == "substitutions" {
 			var data map[string]interface{}
@@ -553,10 +572,6 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 			}
 			incidents = append(incidents, incidentDataMap)
 		}
-	}
-	// Reverse incidents array to show newest first
-	for i, j := 0, len(incidents)-1; i < j; i, j = i+1, j-1 {
-		incidents[i], incidents[j] = incidents[j], incidents[i]
 	}
 
 	matchDetail := map[string]interface{}{
