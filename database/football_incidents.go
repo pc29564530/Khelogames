@@ -251,7 +251,7 @@ WHERE
     m.public_id = $1 AND
     (fi.periods IS NULL OR fi.periods NOT IN ('half_time', 'full_time', 'extra_time'))
 ORDER BY
-    fi.id ASC;
+    id ASC;
 `
 
 type GetFootballIncidentWithPlayerRow struct {
