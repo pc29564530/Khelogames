@@ -8,6 +8,7 @@ import (
 	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -351,7 +352,14 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 	homeTeamID := match.HomeTeamID
 	awayTeamID := match.AwayTeamID
 
-	for _, incident := range response {
+	//Sort incidents in ascending order (oldest first) to calculate scores correctly
+	sortedResponse := make([]db.GetFootballIncidentWithPlayerRow, len(response))
+	copy(sortedResponse, response)
+	sort.Slice(sortedResponse, func(i, j int) bool {
+		return sortedResponse[i].ID < sortedResponse[j].ID
+	})
+
+	for _, incident := range sortedResponse {
 
 		if incident.IncidentType == "substitutions" {
 			var data map[string]interface{}
@@ -545,6 +553,10 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 			}
 			incidents = append(incidents, incidentDataMap)
 		}
+	}
+	// Reverse incidents array to show newest first
+	for i, j := 0, len(incidents)-1; i < j; i, j = i+1, j-1 {
+		incidents[i], incidents[j] = incidents[j], incidents[i]
 	}
 
 	matchDetail := map[string]interface{}{

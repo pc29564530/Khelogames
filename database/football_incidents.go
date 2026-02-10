@@ -247,11 +247,11 @@ LEFT JOIN
     players AS player_in ON player_in.id = fis.player_in_id
 LEFT JOIN 
     players AS player_out ON player_out.id = fis.player_out_id
-WHERE 
-    m.public_id = $1 AND 
+WHERE
+    m.public_id = $1 AND
     (fi.periods IS NULL OR fi.periods NOT IN ('half_time', 'full_time', 'extra_time'))
-ORDER BY 
-    id ASC;
+ORDER BY
+    fi.id ASC;
 `
 
 type GetFootballIncidentWithPlayerRow struct {
