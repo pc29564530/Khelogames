@@ -466,8 +466,8 @@ SELECT
             'location_id', ht.location_id
         ),
 
-        'homeScore', CASE 
-            WHEN g.name = 'football' THEN 
+        'homeScore', CASE
+            WHEN g.name = 'football' THEN
                 json_build_object(
                     'id', fs_home.id,
                     'match_id', fs_home.match_id,
@@ -497,8 +497,8 @@ SELECT
             'location_id', at.location_id
         ),
 
-        'awayScore', CASE 
-            WHEN g.name = 'football' THEN 
+        'awayScore', CASE
+            WHEN g.name = 'football' THEN
                 json_build_object(
                     'id', fs_away.id,
                     'match_id', fs_away.match_id,
