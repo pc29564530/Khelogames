@@ -212,7 +212,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"status_code":     match.StatusCode,
 			"result":          match.Result,
 			"stage":           match.Stage,
-			"home_team": map[string]interface{}{
+			"homeTeam": map[string]interface{}{
 				"id":         match.HomeTeamID,
 				"public_id":  match.HomeTeamPublicID,
 				"name":       match.HomeTeamName,
@@ -222,8 +222,9 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 				"national":   match.HomeTeamNational,
 				"country":    match.HomeTeamCountry,
 				"type":       match.HomeTeamType,
+				"media_url":  match.HomeTeamMediaUrl,
 			},
-			"away_team": map[string]interface{}{
+			"awayTeam": map[string]interface{}{
 				"id":         match.AwayTeamID,
 				"public_id":  match.AwayTeamPublicID,
 				"name":       match.AwayTeamName,
@@ -233,9 +234,10 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 				"national":   match.AwayTeamNational,
 				"country":    match.AwayTeamCountry,
 				"type":       match.AwayTeamType,
+				"media_url":  match.AwayTeamMediaUrl,
 			},
-			"home_score":        homeScore,
-			"away_score":        awayScore,
+			"homeScore":         homeScore,
+			"awayScore":         awayScore,
 			"knockout_level_id": match.KnockoutLevelID,
 		}
 
