@@ -197,6 +197,8 @@ func NewServer(config util.Config,
 		authRouter.POST("/create_follow/:target_public_id", handlersServer.CreateUserConnectionsFunc)
 		authRouter.GET("/getFollower", handlersServer.GetAllFollowerFunc)
 		authRouter.GET("/getFollowing", handlersServer.GetAllFollowingFunc)
+		authRouter.GET("/getFollowerCount/:public_id", handlersServer.GetFollowerCountFunc)
+		authRouter.GET("/getFollowingCount/:public_id", handlersServer.GetFollowingCountFunc)
 		authRouter.POST("/createComment/:thread_public_id", handlersServer.CreateCommentFunc)
 		authRouter.GET("/getComments/:public_id", handlersServer.GetAllCommentFunc)
 		// authRouter.GET("/getCommentByUser/:username", handlersServer.GetCommentByUserFunc)

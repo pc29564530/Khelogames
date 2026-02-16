@@ -98,6 +98,51 @@ func (s *HandlersServer) GetAllFollowingFunc(ctx *gin.Context) {
 	})
 }
 
+func (s *HandlersServer) GetFollowerCountFunc(ctx *gin.Context) {
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	follower, err := s.store.GetAllFollower(ctx, authPayload.PublicID)
+	if err != nil {
+		s.logger.Error("Failed to get follower: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get follower",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+	s.logger.Debug("Successfully retrieved follower: ", follower)
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    follower.length,
+	})
+}
+
+func (s *HandlersServer) GetFollowingCountFunc(ctx *gin.Context) {
+	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	following, err := s.store.GetAllFollowing(ctx, authPayload.PublicID)
+	if err != nil {
+		s.logger.Error("Failed to get following: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get following",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+	s.logger.Debug("Successfully retrieved following: ", following)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    following.length,
+	})
+}
+
 type deleteFollowingRequest struct {
 	TargetPublicID string `uri:"target_public_id" binding:"required"`
 }
