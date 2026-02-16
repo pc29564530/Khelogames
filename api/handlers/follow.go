@@ -119,7 +119,7 @@ func (s *HandlersServer) GetFollowerCountFunc(ctx *gin.Context) {
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	follower, err := s.store.GetAllFollower(ctx, publicID)
+	follower, err := s.store.GetFollowerCount(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get follower: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -135,7 +135,7 @@ func (s *HandlersServer) GetFollowerCountFunc(ctx *gin.Context) {
 	s.logger.Debug("Successfully retrieved follower: ", follower)
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    follower.length,
+		"data":    follower,
 	})
 }
 
@@ -160,7 +160,7 @@ func (s *HandlersServer) GetFollowingCountFunc(ctx *gin.Context) {
 	}
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	following, err := s.store.GetAllFollowing(ctx, publicID)
+	following, err := s.store.GetFollowingCount(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get following: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -177,7 +177,7 @@ func (s *HandlersServer) GetFollowingCountFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    following.length,
+		"data":    following,
 	})
 }
 

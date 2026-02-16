@@ -192,3 +192,45 @@ func (q *Queries) IsFollowingF(ctx context.Context, followerPublicID, followingP
 
 	return isFollowingUser, nil
 }
+
+const getFollowingCount = `
+	SELECT COUNT(*)
+	FROM users_connections uc
+	JOIN user_profiles up ON up.user_id = uc.user_id
+	WHERE up.public_id = $1;
+`
+
+func (q *Queries) GetFollowingCount(ctx context.Context, publicID uuid.UUID) (int, error) {
+	var count int
+	rows := q.db.QueryRowContext(ctx, getFollowingCount, publicID)
+	err := rows.Scan(&count)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	defer rows.Close()
+	return count, nil
+}
+
+const getFollowerCount = `
+	SELECT COUNT(*)
+	FROM users_connections uc
+	JOIN user_profiles up ON up.user_id = uc.target_user_id
+	WHERE up.public_id = $1;
+`
+
+func (q *Queries) GetFollowerCount(ctx context.Context, publicID uuid.UUID) (int, error) {
+	var count int
+	rows := q.db.QueryRowContext(ctx, getFollowerCount, publicID)
+	err := rows.Scan(&count)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	defer rows.Close()
+	return count, nil
+}
