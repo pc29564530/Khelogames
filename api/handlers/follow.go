@@ -99,8 +99,27 @@ func (s *HandlersServer) GetAllFollowingFunc(ctx *gin.Context) {
 }
 
 func (s *HandlersServer) GetFollowerCountFunc(ctx *gin.Context) {
+
+	var req struct {
+		PublicID string `uri:"public_id"`
+	}
+
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors = errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format: ", err)
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	follower, err := s.store.GetAllFollower(ctx, authPayload.PublicID)
+	follower, err := s.store.GetAllFollower(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get follower: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -121,8 +140,27 @@ func (s *HandlersServer) GetFollowerCountFunc(ctx *gin.Context) {
 }
 
 func (s *HandlersServer) GetFollowingCountFunc(ctx *gin.Context) {
+
+	var req struct {
+		PublicID string `uri:"public_id"`
+	}
+
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors = errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	publicID, err := uuid.Parse(req.PublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format: ", err)
+		fieldErrors := map[string]string{"public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	following, err := s.store.GetAllFollowing(ctx, authPayload.PublicID)
+	following, err := s.store.GetAllFollowing(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get following: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
