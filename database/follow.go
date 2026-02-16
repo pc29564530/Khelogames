@@ -202,15 +202,14 @@ const getFollowingCount = `
 
 func (q *Queries) GetFollowingCount(ctx context.Context, publicID uuid.UUID) (int, error) {
 	var count int
-	rows := q.db.QueryRowContext(ctx, getFollowingCount, publicID)
-	err := rows.Scan(&count)
+	row := q.db.QueryRowContext(ctx, getFollowingCount, publicID)
+	err := row.Scan(&count)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return 0, nil
 		}
-		return nil, err
+		return 0, err
 	}
-	defer rows.Close()
 	return count, nil
 }
 
@@ -223,14 +222,13 @@ const getFollowerCount = `
 
 func (q *Queries) GetFollowerCount(ctx context.Context, publicID uuid.UUID) (int, error) {
 	var count int
-	rows := q.db.QueryRowContext(ctx, getFollowerCount, publicID)
-	err := rows.Scan(&count)
+	row := q.db.QueryRowContext(ctx, getFollowerCount, publicID)
+	err := row.Scan(&count)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return 0, nil
 		}
-		return nil, err
+		return 0, err
 	}
-	defer rows.Close()
 	return count, nil
 }

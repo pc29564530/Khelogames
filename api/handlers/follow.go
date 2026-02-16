@@ -105,7 +105,7 @@ func (s *HandlersServer) GetFollowerCountFunc(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindUri(&req); err != nil {
-		fieldErrors = errorhandler.ExtractValidationErrors(err)
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
@@ -118,7 +118,6 @@ func (s *HandlersServer) GetFollowerCountFunc(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	follower, err := s.store.GetFollowerCount(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get follower: ", err)
@@ -146,7 +145,7 @@ func (s *HandlersServer) GetFollowingCountFunc(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindUri(&req); err != nil {
-		fieldErrors = errorhandler.ExtractValidationErrors(err)
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
@@ -159,7 +158,6 @@ func (s *HandlersServer) GetFollowingCountFunc(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 	following, err := s.store.GetFollowingCount(ctx, publicID)
 	if err != nil {
 		s.logger.Error("Failed to get following: ", err)
