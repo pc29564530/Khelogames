@@ -289,8 +289,8 @@ func (q *Queries) GetThread(ctx context.Context, publicID uuid.UUID) (map[string
 }
 
 const getThreadByUser = `
-SELECT 
-	JSON_BUILD_OBJECT(
+	SELECT 
+    JSON_BUILD_OBJECT(
         'id', t.id,
         'public_id', t.public_id,
         'user_id', t.user_id,
