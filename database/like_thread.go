@@ -81,6 +81,26 @@ func (q *Queries) CreateLike(ctx context.Context, userPublicID, threadPublicID u
 	return &i, err
 }
 
+const deleteLike = `
+WITH userID AS (
+	SELECT id FROM users WHERE public_id = $1
+),
+threadID AS (
+	SELECT id FROM threads WHERE public_id = $2
+)
+DELETE FROM user_like_thread
+WHERE user_id = (SELECT id FROM userID)
+  AND thread_id = (SELECT id FROM threadID)
+`
+
+func (q *Queries) DeleteLike(ctx context.Context, userPublicID, threadPublicID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteLike, userPublicID, threadPublicID)
+	if err != nil {
+		return fmt.Errorf("Failed to delete like: %w", err)
+	}
+	return nil
+}
+
 const getLike = `
 SELECT id, thread_id, user_id FROM user_like_thread
 WHERE user_id = $1 LIMIT $1

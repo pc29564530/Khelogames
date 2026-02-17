@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"khelogames/core/token"
+	"khelogames/database/models"
 	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
 	"net/http"
@@ -10,12 +11,14 @@ import (
 	"github.com/google/uuid"
 )
 
-type createLikeRequest struct {
+type likeThreadRequest struct {
 	ThreadPublicID string `uri:"thread_public_id" binding:"required"`
 }
 
-func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
-	var req createLikeRequest
+// LikeThreadFunc toggles a like on a thread in a single API call.
+// Check → like/unlike in one transaction → returns the updated thread.
+func (s *HandlersServer) LikeThreadFunc(ctx *gin.Context) {
+	var req likeThreadRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -33,108 +36,56 @@ func (s *HandlersServer) CreateLikeFunc(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	likeThread, err := s.store.CreateLike(ctx, authPayload.PublicID, threadPublicID)
+	// Check if user already liked this thread
+	userLikeCount, err := s.store.CheckUserCount(ctx, authPayload.PublicID, threadPublicID)
 	if err != nil {
-		s.logger.Error("Failed to create like: ", err)
+		s.logger.Error("Failed to check user like: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
-				"message": "Failed to like the thread",
+				"message": "Failed to check like status",
 			},
-			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
-	s.logger.Debug("liked the thread: ", likeThread)
+
+	var thread *models.Thread
+
+	if userLikeCount != nil && *userLikeCount > 0 {
+		// Already liked → unlike
+		thread, err = s.txStore.DeleteLikeThreadTx(ctx, authPayload.PublicID, threadPublicID)
+		if err != nil {
+			s.logger.Error("Failed to unlike thread: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to unlike thread",
+				},
+			})
+			return
+		}
+	} else {
+		// Not liked → like
+		thread, err = s.txStore.CreateLikeTx(ctx, authPayload.PublicID, threadPublicID)
+		if err != nil {
+			s.logger.Error("Failed to like thread: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to like thread",
+				},
+			})
+			return
+		}
+	}
+
+	s.logger.Debugf("Thread %s like toggled, new count=%d", threadPublicID, thread.LikeCount)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    likeThread,
-	})
-}
-
-type countLikeRequest struct {
-	ThreadPublicID string `uri:"thread_public_id" binding:"required"`
-}
-
-func (s *HandlersServer) CountLikeFunc(ctx *gin.Context) {
-	var req countLikeRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		fieldErrors := errorhandler.ExtractValidationErrors(err)
-		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
-	}
-	s.logger.Debug("bind the request: ", req)
-
-	threadPublicID, err := uuid.Parse(req.ThreadPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		fieldErrors := map[string]string{"thread_public_id": "Invalid UUID format"}
-		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
-	}
-
-	countLike, err := s.store.CountLikeUser(ctx, threadPublicID)
-	if err != nil {
-		s.logger.Error("Failed to count like user: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to count like users",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-	s.logger.Debug("get like count: ", countLike)
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    countLike,
-	})
-}
-
-type checkUserRequest struct {
-	ThreadPublicID string `uri:"thread_public_id" binding:"required"`
-}
-
-func (s *HandlersServer) CheckLikeByUserFunc(ctx *gin.Context) {
-	var req checkUserRequest
-
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		fieldErrors := errorhandler.ExtractValidationErrors(err)
-		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
-	}
-	s.logger.Debug("bind the request: ", req)
-
-	threadPublicID, err := uuid.Parse(req.ThreadPublicID)
-	if err != nil {
-		s.logger.Error("Invalid UUID format", err)
-		fieldErrors := map[string]string{"thread_public_id": "Invalid UUID format"}
-		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
-	}
-
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
-	userFound, err := s.store.CheckUserCount(ctx, authPayload.PublicID, threadPublicID)
-	if err != nil {
-		s.logger.Error("Failed to check user: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to check like by user",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-	s.logger.Debug("liked by user: ", userFound)
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    userFound,
+		"data":    thread,
 	})
 }

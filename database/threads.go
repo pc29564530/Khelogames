@@ -358,12 +358,41 @@ const updateThreadLike = `
 	RETURNING *
 `
 
-type UpdateThreadLikeParams struct {
-	PublicID uuid.UUID `json:"public_id"`
-}
-
 func (q *Queries) UpdateThreadLike(ctx context.Context, publicID uuid.UUID) (*models.Thread, error) {
 	row := q.db.QueryRowContext(ctx, updateThreadLike, publicID)
+	var i models.Thread
+	err := row.Scan(
+		&i.ID,
+		&i.PublicID,
+		&i.UserID,
+		&i.CommunityID,
+		&i.Title,
+		&i.Content,
+		&i.MediaUrl,
+		&i.MediaType,
+		&i.LikeCount,
+		&i.CommentCount,
+		&i.IsDeleted,
+		&i.CreatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
+	return &i, err
+}
+
+const decrementThreadLike = `
+	UPDATE threads t
+	SET like_count = GREATEST(like_count - 1, 0)
+	WHERE t.public_id = $1
+	RETURNING *
+`
+
+func (q *Queries) DecrementThreadLike(ctx context.Context, publicID uuid.UUID) (*models.Thread, error) {
+	row := q.db.QueryRowContext(ctx, decrementThreadLike, publicID)
 	var i models.Thread
 	err := row.Scan(
 		&i.ID,
