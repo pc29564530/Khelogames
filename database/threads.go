@@ -272,7 +272,7 @@ const getThreadByUser = `
 SELECT t.* FROM threads t
 JOIN users u ON u.id = t.user_id
 JOIN user_profiles up ON up.user_id = t.user_id
-WHERE up.publid_id=$1
+WHERE up.public_id=$1
 `
 
 func (q *Queries) GetThreadUser(ctx context.Context, publicID uuid.UUID) ([]models.Thread, error) {
