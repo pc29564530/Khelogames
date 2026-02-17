@@ -269,41 +269,38 @@ func (q *Queries) GetThread(ctx context.Context, publicID uuid.UUID) (map[string
 }
 
 const getThreadByUser = `
-SELECT t.* FROM threads t
+SELECT 
+	JSON_BUILD_OBJECT(
+		'id', t.id 'public_id' t.public_id,'user_public_id',u.public_id, 'community_id', t.community_id, 'title', t.title, 'content', t.content,'media_url', t.media_url, 'media_type', 'like_count', t.like_count, 'comment_count',t.comment_count, 'is_deleted',t.is_deleted, 'created_at',c.created_at,
+		'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_public_id',u.public_id,  'username',u.username,  'full_name',p.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
+	)
+FROM threads t
 JOIN users u ON u.id = t.user_id
-JOIN user_profiles up ON up.user_id = t.user_id
-WHERE up.public_id=$1
+JOIN user_profiles p ON p.user_id = t.user_id
+WHERE p.public_id=$1
 `
 
-func (q *Queries) GetThreadUser(ctx context.Context, publicID uuid.UUID) ([]models.Thread, error) {
+func (q *Queries) GetThreadUser(ctx context.Context, publicID uuid.UUID) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getThreadByUser, publicID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []models.Thread
+	var items []map[string]interface{}
 	for rows.Next() {
-		var i models.Thread
-		if err := rows.Scan(
-			&i.ID,
-			&i.PublicID,
-			&i.UserID,
-			&i.CommunityID,
-			&i.Title,
-			&i.Content,
-			&i.MediaUrl,
-			&i.MediaType,
-			&i.LikeCount,
-			&i.CommentCount,
-			&i.IsDeleted,
-			&i.CreatedAt,
-		); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
+		var jsonByte []byte
+		var item map[string]interface{}
+		if err := rows.Scan(&jsonByte); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+
+		err := json.Unmarshal(jsonByte, &item)
+		if err != nil {
+			log.Fatal("Failed to unmarshal: ", err)
+			return nil, err
+		}
+
+		items = append(items, item)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
