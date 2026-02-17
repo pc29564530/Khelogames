@@ -176,9 +176,29 @@ func (q *Queries) GetAllThreads(ctx context.Context) ([]map[string]interface{}, 
 const getThreadsByCommunities = `
 	SELECT 
 	JSON_BUILD_OBJECT(
-		'id', t.id 'public_id' t.public_id,'user_id',c.user_id, 'community_id', t.community_id, 'title', t.title, 'content', t.content,'media_url', t.media_url, 'media_type', 'like_count', t.like_count, 'comment_count',t.comment_count, 'is_deleted',t.is_deleted, 'created_at',c.created_at,
-		'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_id',p.user_id,  'username',u.username,  'full_name',p.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
-	) 
+        'id', t.id,
+        'public_id', t.public_id,
+        'user_id', t.user_id,
+        'community_id', t.community_id,
+        'title', t.title,
+        'content', t.content,
+        'media_url', t.media_url,
+        'media_type', t.media_type,
+        'like_count', t.like_count,
+        'comment_count', t.comment_count,
+        'is_deleted', t.is_deleted,
+        'created_at', t.created_at,
+        'profile', JSON_BUILD_OBJECT(
+            'id', p.id,
+            'public_id', p.public_id,
+            'user_id', p.user_id,
+            'username', u.username,
+            'full_name', u.full_name,
+            'bio', p.bio,
+            'avatar_url', p.avatar_url,
+            'created_at', p.created_at
+        )
+    ) 
 	FROM threads t
 	JOIN profile AS p ON p.user_id = c.user_id
 	JOIN users AS u ON u.id = c.user_id
@@ -271,9 +291,29 @@ func (q *Queries) GetThread(ctx context.Context, publicID uuid.UUID) (map[string
 const getThreadByUser = `
 SELECT 
 	JSON_BUILD_OBJECT(
-		'id', t.id 'public_id' t.public_id,'user_public_id',u.public_id, 'community_id', t.community_id, 'title', t.title, 'content', t.content,'media_url', t.media_url, 'media_type', 'like_count', t.like_count, 'comment_count',t.comment_count, 'is_deleted',t.is_deleted, 'created_at',c.created_at,
-		'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_public_id',u.public_id,  'username',u.username,  'full_name',p.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
-	)
+        'id', t.id,
+        'public_id', t.public_id,
+        'user_id', t.user_id,
+        'community_id', t.community_id,
+        'title', t.title,
+        'content', t.content,
+        'media_url', t.media_url,
+        'media_type', t.media_type,
+        'like_count', t.like_count,
+        'comment_count', t.comment_count,
+        'is_deleted', t.is_deleted,
+        'created_at', t.created_at,
+        'profile', JSON_BUILD_OBJECT(
+            'id', p.id,
+            'public_id', p.public_id,
+            'user_id', p.user_id,
+            'username', u.username,
+            'full_name', u.full_name,
+            'bio', p.bio,
+            'avatar_url', p.avatar_url,
+            'created_at', p.created_at
+        )
+    )
 FROM threads t
 JOIN users u ON u.id = t.user_id
 JOIN user_profiles p ON p.user_id = t.user_id
