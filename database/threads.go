@@ -269,9 +269,9 @@ func (q *Queries) GetThread(ctx context.Context, publicID uuid.UUID) (map[string
 }
 
 const getThreadByUser = `
-SELECT *t. FROM threads
-JOIN users AS u ON u.id = t.user_id
-JOIN user_profiles AS up up.user_id = t.user_id
+SELECT t.* FROM threads t
+JOIN users u ON u.id = t.user_id
+JOIN user_profiles up ON up.user_id = t.user_id
 WHERE up.publid_id=$1
 `
 
