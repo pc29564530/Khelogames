@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	ampq "github.com/rabbitmq/amqp091-go"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -116,6 +114,12 @@ func (s *Hub) BroadcastMessageEvent(ctx context.Context, eventType string, paylo
 
 	if s.rabbitChan == nil {
 		s.logger.Warn("[BroadcastMessageEvent] RabbitMQ not available, skipping publish")
+		select {
+		case s.MessageBroadcast <- body:
+			s.logger.Info("[BroadcastMessageEvent] Sent directly to MessageBroadcast channel")
+		default:
+			s.logger.Warn("[BroadcastMessageEvent] MessageBroadcast channel full — message dropped")
+		}
 		return nil
 	}
 
