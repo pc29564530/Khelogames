@@ -189,24 +189,4 @@ func (s *Hub) BroadcastTournamentEvent(ctx *gin.Context, eventType string, paylo
 		s.logger.Warn("[BroadcastTournamentEvent] scoreBroadCast channel is full or blocked — message dropped")
 	}
 	return nil
-
-	// err = s.rabbitChan.PublishWithContext(
-	// 	ctx,
-	// 	"",
-	// 	"scoreHub",
-	// 	false,
-	// 	false,
-	// 	ampq.Publishing{
-	// 		ContentType: "application/json",
-	// 		Body:        body,
-	// 	},
-	// )
-
-	// if err != nil {
-	// 	s.logger.Error("failed to publish RabbitMQ: %w", err)
-	// }
-
-	//Log size and body preview
-
-	return nil
 }

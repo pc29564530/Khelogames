@@ -42,7 +42,7 @@ type Hub struct {
 func NewHub(store *database.Store, logger *logger.Logger, upgrader websocket.Upgrader, rabbitChan *ampq.Channel, tokenMaker token.Maker, scoreBroadcaster shared.ScoreBroadcaster, messageBroadcaster shared.MessageBroadcaster, subscriber map[string]map[*Client]bool) *Hub {
 	h := &Hub{
 		Clients:             make(map[*Client]bool),
-		MessageBroadcast:    make(chan []byte),
+		MessageBroadcast:    make(chan []byte, 256),
 		CricketBroadcast:    make(chan []byte),
 		FootballBroadcast:   make(chan []byte),
 		TournamentBroadcast: make(chan []byte),
