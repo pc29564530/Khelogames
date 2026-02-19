@@ -250,8 +250,12 @@ func NewServer(config util.Config,
 		authRouter.GET("/getMatchMedia/:match_public_id", handlersServer.GetMatchMediaFunc)
 		authRouter.PUT("/update-user-location", handlersServer.UpdateUserLocationFunc)
 		authRouter.POST("/add-location", handlersServer.AddLocationFunc)
-		authRouter.POST("/add-match-user-roles", handlersServer.AddMatchUserRoleFunc)
-		authRouter.GET("/get-match-user-roles", handlersServer.GetMatchUserRoleFunc)
+		authRouter.POST("/assign-role", handlersServer.AssignRoleFunc)
+		authRouter.DELETE("/revoke-role", handlersServer.RevokeRoleFunc)
+		authRouter.GET("/get-my-roles", handlersServer.GetMyRolesFunc)
+		authRouter.GET("/get-user-roles/:profile_public_id", handlersServer.GetUserRolesFunc)
+		authRouter.GET("/get-resource-roles", handlersServer.GetResourceRolesFunc)
+		authRouter.GET("/get-all-roles", handlersServer.GetAllRolesFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker, server.logger))
 	//tournament
@@ -390,10 +394,10 @@ func (server *Server) Start(address string) error {
 		Addr:    address,
 		Handler: server.router,
 
-		ReadTimeout:       15 * time.Second,
+		ReadTimeout:       0 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		WriteTimeout:      0 * time.Second,
+		IdleTimeout:       0 * time.Second,
 	}
 	return server.httpServer.ListenAndServe()
 }

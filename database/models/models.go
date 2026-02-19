@@ -134,8 +134,11 @@ type UsersConnections struct {
 }
 
 type Roles struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Scope       string    `json:"scope"`
+	Description *string   `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type UserRole struct {
@@ -143,6 +146,29 @@ type UserRole struct {
 	UserID    int32     `json:"user_id"`
 	RoleID    int32     `json:"role_id"`
 	CreatedAT time.Time `json:"created_at"`
+}
+
+type UserRoleAssignment struct {
+	ID           int64     `json:"id"`
+	UserID       int64     `json:"user_id"`
+	RoleID       int64     `json:"role_id"`
+	ResourceType *string   `json:"resource_type"` // "tournament" | "match" | "team" | nil
+	ResourceID   *int64    `json:"resource_id"`   // "tournament_id" | "match_id" | "team_id"
+	AssignedBy   *int64    `json:"assigned_by"`
+	IsActive     bool      `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type UserRoleAssignmentWithRole struct {
+	ID           int64     `json:"id"`
+	UserID       int64     `json:"user_id"`
+	RoleName     string    `json:"role_name"`
+	RoleScope    string    `json:"role_scope"`
+	ResourceType *string   `json:"resource_type"`
+	ResourceID   *int64    `json:"resource_id"`
+	AssignedBy   *int64    `json:"assigned_by"`
+	IsActive     bool      `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type Organizations struct {

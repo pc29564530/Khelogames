@@ -3,9 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"fmt"
-	"khelogames/core/token"
 	"khelogames/database"
-	"khelogames/pkg"
 	"net/http"
 	"strings"
 	"time"
@@ -83,6 +81,8 @@ func (h *Hub) HandleWebSocket(ctx *gin.Context) {
 			continue
 		}
 
+		fmt.Println("Message Payload: ", message["payload"])
+
 		switch message["type"].(string) {
 		case "SUBSCRIBE":
 			switch message["category"].(string) {
@@ -92,7 +92,8 @@ func (h *Hub) HandleWebSocket(ctx *gin.Context) {
 				h.SubscribeClient(client, payload["match_public_id"].(string))
 			}
 		case "CREATE_MESSAGE":
-			h.CreateMessage(ctx, msg, message["payload"].(map[string]interface{}))
+			// Pass client.UserPublicID (senderID from JWT) directly — ctx.MustGet panics after WS upgrade
+			h.CreateMessage(ctx, msg, message["payload"].(map[string]interface{}), client.UserPublicID)
 		}
 	}
 }
@@ -108,25 +109,7 @@ func (h *Hub) SubscribeClient(client *Client, topic string) {
 	h.logger.Infof("Client %s subscribed to %s", client.UserPublicID, topic)
 }
 
-func (h *Hub) CreateMessage(ctx *gin.Context, msg []byte, message map[string]interface{}) {
-	// err := h.rabbitChan.PublishWithContext(
-	// 	ctx,
-	// 	"",
-	// 	"message",
-	// 	false,
-	// 	false,
-	// 	ampq.Publishing{
-	// 		ContentType: "application/json",
-	// 		Body:        msg,
-	// 	},
-	// )
-
-	// if err != nil {
-	// 	h.logger.Error("unable to publish message to rabbitchannel: ", err)
-	// 	return
-	// }
-
-	authToken := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+func (h *Hub) CreateMessage(ctx *gin.Context, msg []byte, message map[string]interface{}, senderPublicID uuid.UUID) {
 	fmt.Println("Receiver Id: ", message["receiver_public_id"])
 	receiverPublicID, err := uuid.Parse(message["receiver_public_id"].(string))
 	if err != nil {
@@ -141,12 +124,21 @@ func (h *Hub) CreateMessage(ctx *gin.Context, msg []byte, message map[string]int
 		sentAt = time.Now()
 	}
 
+	var mediaUrl string
+	var mediaType string
+	if message["media_url"] != nil {
+		mediaUrl = message["media_url"].(string)
+	}
+	if message["media_type"] != nil {
+		mediaType = message["media_type"].(string)
+	}
+
 	arg := database.CreateNewMessageParams{
-		SenderID:   authToken.PublicID,
+		SenderID:   senderPublicID,
 		ReceiverID: receiverPublicID,
 		Content:    message["content"].(string),
-		MediaUrl:   message["media_url"].(string),
-		MediaType:  message["media_type"].(string),
+		MediaUrl:   mediaUrl,
+		MediaType:  mediaType,
 		SentAt:     sentAt,
 	}
 
@@ -158,7 +150,7 @@ func (h *Hub) CreateMessage(ctx *gin.Context, msg []byte, message map[string]int
 		return
 	}
 
-	sender, err := h.store.GetProfile(ctx, authToken.PublicID)
+	sender, err := h.store.GetProfile(ctx, senderPublicID)
 	if err != nil {
 		h.logger.Error("Failed to get profile by public id: ", err)
 		return
