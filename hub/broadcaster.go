@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	ampq "github.com/rabbitmq/amqp091-go"
 )
 
 func (s *Hub) BroadcastFootballEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error {
