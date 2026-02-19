@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -97,7 +98,7 @@ func (s *Hub) BroadcastCricketEvent(ctx *gin.Context, eventType string, payload 
 	return nil
 }
 
-func (s *Hub) BroadcastMessageEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error {
+func (s *Hub) BroadcastMessageEvent(ctx context.Context, eventType string, payload map[string]interface{}) error {
 	content := map[string]interface{}{
 		"type":    eventType,
 		"payload": payload,

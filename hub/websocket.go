@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"khelogames/database"
@@ -109,7 +110,11 @@ func (h *Hub) SubscribeClient(client *Client, topic string) {
 	h.logger.Infof("Client %s subscribed to %s", client.UserPublicID, topic)
 }
 
-func (h *Hub) CreateMessage(ctx *gin.Context, msg []byte, message map[string]interface{}, senderPublicID uuid.UUID) {
+func (h *Hub) CreateMessage(_ *gin.Context, msg []byte, message map[string]interface{}, senderPublicID uuid.UUID) {
+	// Use context.Background() for all DB/broadcast calls — the gin ctx is recycled
+	// by gin's sync.Pool after the WebSocket upgrade and must NOT be used here.
+	bgCtx := context.Background()
+
 	fmt.Println("Receiver Id: ", message["receiver_public_id"])
 	receiverPublicID, err := uuid.Parse(message["receiver_public_id"].(string))
 	if err != nil {
@@ -144,19 +149,19 @@ func (h *Hub) CreateMessage(ctx *gin.Context, msg []byte, message map[string]int
 
 	h.logger.Debug("create new message params: ", arg)
 
-	msgData, err := h.store.CreateNewMessage(ctx, arg)
+	msgData, err := h.store.CreateNewMessage(bgCtx, arg)
 	if err != nil {
 		h.logger.Error("unable to store new message: ", err)
 		return
 	}
 
-	sender, err := h.store.GetProfile(ctx, senderPublicID)
+	sender, err := h.store.GetProfile(bgCtx, senderPublicID)
 	if err != nil {
 		h.logger.Error("Failed to get profile by public id: ", err)
 		return
 	}
 
-	receiver, err := h.store.GetProfileByPublicID(ctx, receiverPublicID)
+	receiver, err := h.store.GetProfileByPublicID(bgCtx, receiverPublicID)
 	if err != nil {
 		h.logger.Error("Failed to get profile by public id: ", err)
 		return
@@ -193,13 +198,10 @@ func (h *Hub) CreateMessage(ctx *gin.Context, msg []byte, message map[string]int
 	}
 
 	h.logger.Info("successfully created a new message")
-	// if h.messageBroadcaster != nil {
-	err = h.BroadcastMessageEvent(ctx, "CREATE_MESSAGE", data)
+	err = h.BroadcastMessageEvent(bgCtx, "CREATE_MESSAGE", data)
 	if err != nil {
-		h.logger.Error("Failed to broadcast tournament match event: ", err)
+		h.logger.Error("Failed to broadcast message event: ", err)
 	}
-	// }
 
-	h.logger.Debug("Successfully broad cast message")
-	// ctx.JSON(http.StatusAccepted, data)
+	h.logger.Debug("Successfully broadcast message")
 }
