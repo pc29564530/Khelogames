@@ -246,7 +246,7 @@ func NewServer(config util.Config,
 		//authRouter.PUT("/updateThreadCommentCount/:public_id", handlersServer.UpdateThreadCommentCountFunc)
 		authRouter.GET("/getPlayerByTeam/:team_public_id", teamsServer.GetPlayersByTeamFunc)
 		authRouter.GET("/getTeamByPlayer/:player_public_id", teamsServer.GetTeamsByPlayerFunc)
-		authRouter.POST("/uploadMatchMedia/:match_public_id", handlersServer.CreateMatchMediaFunc)
+		authRouter.POST("/uploadMatchMedia/:match_public_id", server.RequiredPermission(PermUpdateTournament), handlersServer.CreateMatchMediaFunc)
 		authRouter.GET("/getMatchMedia/:match_public_id", handlersServer.GetMatchMediaFunc)
 		authRouter.PUT("/update-user-location", handlersServer.UpdateUserLocationFunc)
 		authRouter.POST("/add-location", handlersServer.AddLocationFunc)
@@ -288,7 +288,7 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateTournamentStatus/:tournament_public_id", server.RequiredPermission(PermUpdateTournament), tournamentServer.UpdateTournamentStatusFunc)
 	sportRouter.GET("/getMatchByMatchID/:match_public_id", handlersServer.GetMatchByMatchIDFunc)
 	sportRouter.GET("getTournamentParticipants/:tournament_public_id", tournamentServer.GetTournamentParticipantsFunc)
-	sportRouter.POST("addTournamentParticipants", server.RequiredPermission(PermUpdateTournament), tournamentServer.AddTournamentParticipantsFunc)
+	sportRouter.POST("/addTournamentParticipants", server.RequiredPermission(PermUpdateTournament), tournamentServer.AddTournamentParticipantsFunc)
 
 	//teams //teams database update completed
 	sportRouter.PUT("/update-team-location/:team_public_id", server.RequiredPermission(PermUpdateTeam), teamsServer.UpdateTeamLocationFunc)

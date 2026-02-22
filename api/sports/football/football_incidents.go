@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -28,7 +29,7 @@ type addFootballIncidentsRequest struct {
 func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to add football incident")
 	var req addFootballIncidentsRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
 		s.logger.Error("Failed to bind request: ", err)
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -174,7 +175,7 @@ type addFootballIncidentsSubsRequest struct {
 func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 	s.logger.Info("Received request to add football substitution incident")
 	var req addFootballIncidentsSubsRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
 		s.logger.Error("Failed to bind request: ", err)
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)

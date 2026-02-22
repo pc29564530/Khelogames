@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -20,7 +21,7 @@ type addPlayerToTeamRequest struct {
 
 func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 	var req addPlayerToTeamRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
@@ -233,7 +234,7 @@ type removePlayerFromTeamRequest struct {
 
 func (s *TeamsServer) RemovePlayerFromTeamFunc(ctx *gin.Context) {
 	var req removePlayerFromTeamRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return

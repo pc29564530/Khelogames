@@ -46,6 +46,11 @@ func (s *TournamentServer) AddTournamentFunc(ctx *gin.Context) {
 		return
 	}
 
+	if req.Stage == "league" {
+		defaultGroupCount := int32(1)
+		req.GroupCount = &defaultGroupCount
+	}
+
 	if req.Stage == "group" && req.GroupCount == nil {
 		fieldErrors["group_count"] = "Required when stage is group"
 	}

@@ -3,64 +3,116 @@ package server
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"khelogames/core/token"
+	db "khelogames/database"
 	"khelogames/pkg"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
-var RolePermissions = map[string][]string{
-	"SCORER": {
-		PermUpdateMatch,
+// Role names
+const (
+	RoleOrganizer       = "organizer"
+	RoleTournamentAdmin = "tournament_admin"
+	RoleScorer          = "scorer"
+	RoleTeamManager     = "team_manager"
+	RoleCoach           = "coach"
+	RoleAdmin           = "admin"
+	RoleNormal          = "normal"
+)
+
+// Resource types
+const (
+	ResourceTournament = "tournament"
+	ResourceMatch      = "match"
+	ResourceTeam       = "team"
+)
+
+// Permission → Roles that can perform it
+var permissionRoles = map[string][]string{
+	PermUpdateMatch: {
+		RoleScorer,
+		RoleTournamentAdmin,
+		RoleOrganizer,
+		RoleAdmin,
 	},
-	"TEAM_MANAGER": {
-		PermUpdateTeam,
+	PermUpdateTournament: {
+		RoleOrganizer,
+		RoleTournamentAdmin,
+		RoleAdmin,
 	},
-	"TOURNAMENT_ADMIN": {
-		PermUpdateMatch,
-		PermUpdateTournament,
+	PermUpdateTournamentAdmin: {
+		RoleOrganizer,
+		RoleAdmin,
 	},
-	"TOURNAMENT_ORGANIZER": {
-		PermUpdateMatch,
-		PermUpdateTournament,
-		PermUpdateTournamentAdmin,
-		PermUpdateTeam,
+	PermUpdateTeam: {
+		RoleTeamManager,
+		RoleCoach,
+		RoleAdmin,
+	},
+	PermUpdateCommunity: {
+		RoleAdmin,
 	},
 }
+
+// RequiredPermission Middleware
 
 func (s *Server) RequiredPermission(permission string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+
+		// First try URL path params
 		matchPublicIDStr := ctx.Param("match_public_id")
 		tournamentPublicIDStr := ctx.Param("tournament_public_id")
+		teamPublicIDStr := ctx.Param("team_public_id")
+
+		// Fallback: try query string
+		if matchPublicIDStr == "" {
+			matchPublicIDStr = ctx.Query("match_public_id")
+		}
+		if tournamentPublicIDStr == "" {
+			tournamentPublicIDStr = ctx.Query("tournament_public_id")
+		}
+		if teamPublicIDStr == "" {
+			teamPublicIDStr = ctx.Query("team_public_id")
+		}
+
+		// Fallback: try JSON request body (uses ShouldBindBodyWith so body is preserved for the handler)
+		if matchPublicIDStr == "" && tournamentPublicIDStr == "" && teamPublicIDStr == "" {
+			var body struct {
+				MatchPublicID      string `json:"match_public_id"`
+				TournamentPublicID string `json:"tournament_public_id"`
+				TeamPublicID       string `json:"team_public_id"`
+			}
+			if err := ctx.ShouldBindBodyWith(&body, binding.JSON); err == nil {
+				matchPublicIDStr = body.MatchPublicID
+				tournamentPublicIDStr = body.TournamentPublicID
+				teamPublicIDStr = body.TeamPublicID
+			}
+		}
+
 		var allowed bool
 		var err error
 
 		switch {
 		case matchPublicIDStr != "":
-			//Match public id
-			allowed, err = s.canPerformMatchAction(
-				ctx,
-				authPayload,
-				matchPublicIDStr,
-				permission,
-			)
+			allowed, err = s.canPerformMatchAction(ctx, authPayload, matchPublicIDStr, permission)
+
 		case tournamentPublicIDStr != "":
-			allowed, err = s.canPerformTournamentAction(
-				ctx,
-				authPayload,
-				tournamentPublicIDStr,
-				permission,
-			)
+			allowed, err = s.canPerformTournamentAction(ctx, authPayload, tournamentPublicIDStr, permission)
+
+		case teamPublicIDStr != "":
+			allowed, err = s.canPerformTeamAction(ctx, authPayload, teamPublicIDStr, permission)
+
 		default:
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error": gin.H{
 					"code":    "CALL_ERROR",
-					"message": "No context found",
+					"message": "No resource context found",
 				},
 				"request_id": ctx.GetString("request_id"),
 			})
@@ -71,8 +123,8 @@ func (s *Server) RequiredPermission(permission string) gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"success": false,
 				"error": gin.H{
-					"code":    "AUTHENTICATION_ERROR",
-					"message": "Not allowed to make change",
+					"code":    "FORBIDDEN",
+					"message": "You don't have permission to perform this action",
 				},
 				"request_id": ctx.GetString("request_id"),
 			})
@@ -83,27 +135,14 @@ func (s *Server) RequiredPermission(permission string) gin.HandlerFunc {
 	}
 }
 
-func (s *Server) canPerformTeamAction(ctx context.Context, authPayload *token.Payload, teamPublicIDStr string, permission string) (bool, error) {
-	teamPublicID, err := uuid.Parse(teamPublicIDStr)
-	if err != nil {
-		return false, err
-	}
-	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
-	if err != nil {
-		s.logger.Error("Failed to get team public_id: ", err)
-		return false, nil
-	}
+// Tournament Permission Check
 
-	// Check if user is the team owner
-	if authPayload.UserID == team.UserID {
-		return true, nil
-	}
-
-	// If not owner, check role-based permissions
-	return hasPermission("team_manager", permission), nil
-}
-
-func (s *Server) canPerformTournamentAction(ctx context.Context, authPayload *token.Payload, tournamentPublicIDStr string, permission string) (bool, error) {
+func (s *Server) canPerformTournamentAction(
+	ctx context.Context,
+	authPayload *token.Payload,
+	tournamentPublicIDStr string,
+	permission string,
+) (bool, error) {
 	tournamentPublicID, err := uuid.Parse(tournamentPublicIDStr)
 	if err != nil {
 		return false, err
@@ -111,18 +150,26 @@ func (s *Server) canPerformTournamentAction(ctx context.Context, authPayload *to
 
 	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
-		s.logger.Error("Failed to get tournament: ", err)
+		s.logger.Error("canPerformTournamentAction: failed to get tournament: ", err)
 		return false, nil
 	}
 
-	// Check if user is the tournament owner
+	// Owner always has full access
 	if authPayload.UserID == tournament.UserID {
 		return true, nil
 	}
 
-	// If not owner, check role-based permissions
-	return hasPermission("tournament_organizer", permission), nil
+	// Check via user_role_assignments for each allowed role
+	return s.hasAnyRoleForResource(
+		ctx,
+		authPayload.UserID,
+		permission,
+		ResourceTournament,
+		tournament.ID,
+	)
 }
+
+// Match Permission Check
 
 func (s *Server) canPerformMatchAction(
 	ctx context.Context,
@@ -135,28 +182,106 @@ func (s *Server) canPerformMatchAction(
 		return false, err
 	}
 
-	userRole, err := s.store.GetMatchUserRole(ctx, matchPublicID, authPayload.UserID)
+	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
-		s.logger.Error("Failed to get user role: ", err)
-		return false, err
-	}
-
-	if userRole.UserID != authPayload.UserID {
+		s.logger.Error("canPerformMatchAction: failed to get match: ", err)
 		return false, nil
 	}
 
-	return hasPermission(userRole.Role, permission), nil
+	// Check via user_role_assignments for match-level roles
+	// Also check tournament-level roles (organizer of tournament can manage matches)
+	matchAllowed, err := s.hasAnyRoleForResource(
+		ctx,
+		authPayload.UserID,
+		permission,
+		ResourceMatch,
+		match.ID,
+	)
+	if err != nil {
+		return false, err
+	}
+	if matchAllowed {
+		return true, nil
+	}
+
+	// Fallback: check tournament-level role for this match's tournament
+	tournamentAllowed, err := s.hasAnyRoleForResource(
+		ctx,
+		authPayload.UserID,
+		permission,
+		ResourceTournament,
+		int64(match.TournamentID),
+	)
+	return tournamentAllowed, err
 }
 
-func hasPermission(role string, permission string) bool {
-	permissions, exists := RolePermissions[strings.ToUpper(role)]
-	if !exists {
-		return false
+// Team Permission Check
+
+func (s *Server) canPerformTeamAction(
+	ctx context.Context,
+	authPayload *token.Payload,
+	teamPublicIDStr string,
+	permission string,
+) (bool, error) {
+	teamPublicID, err := uuid.Parse(teamPublicIDStr)
+	if err != nil {
+		return false, err
 	}
-	for _, perm := range permissions {
-		if perm == permission {
-			return true
+
+	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
+	if err != nil {
+		s.logger.Error("canPerformTeamAction: failed to get team: ", err)
+		return false, nil
+	}
+
+	// Owner always has access
+	if authPayload.UserID == team.UserID {
+		return true, nil
+	}
+
+	return s.hasAnyRoleForResource(
+		ctx,
+		authPayload.UserID,
+		permission,
+		ResourceTeam,
+		team.ID,
+	)
+}
+
+// Core DB Permission Check
+
+// hasAnyRoleForResource checks if the user has any of the roles
+// allowed for the given permission, scoped to the given resource
+func (s *Server) hasAnyRoleForResource(
+	ctx context.Context,
+	userID int32,
+	permission string,
+	resourceType string,
+	resourceID int64,
+) (bool, error) {
+	allowedRoles, exists := permissionRoles[permission]
+	if !exists {
+		return false, nil
+	}
+
+	rt := resourceType
+
+	for _, roleName := range allowedRoles {
+		rn := roleName
+		allowed, err := s.store.HasRolePermission(ctx, db.HasPermissionParams{
+			UserID:       int64(userID),
+			RoleName:     rn,
+			ResourceType: &rt,
+			ResourceID:   &resourceID,
+		})
+		if err != nil {
+			s.logger.Error("hasAnyRoleForResource: DB error: ", err)
+			continue
+		}
+		if allowed {
+			return true, nil
 		}
 	}
-	return false
+
+	return false, nil
 }

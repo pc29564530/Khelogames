@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -18,7 +19,7 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 		Status             string `json:"status"`
 	}
 
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -76,6 +77,10 @@ func (s *TournamentServer) AddTournamentParticipantsFunc(ctx *gin.Context) {
 	// }
 
 	var groupID *int32
+	if req.GroupID != 0 {
+		gid := req.GroupID
+		groupID = &gid
+	}
 
 	participants, err := s.store.AddTournamentParticipants(ctx, tournamentPublicID, groupID, entityPublicID, req.EntityType, req.SeedNumber, req.Status)
 	if err != nil {

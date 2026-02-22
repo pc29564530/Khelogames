@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -86,7 +87,7 @@ type createTournamentMatchRequest struct {
 	Result             *int64  `json:"result" binding:"omitempty"`
 	Stage              string  `json:"stage" binding:"required,oneof=group knockout league"`
 	KnockoutLevelID    *int32  `json:"knockout_level_id" binding:"omitempty,min=1"`
-	MatchFormat        *string `json:"match_format" binding:"required,min=2,max=50"`
+	MatchFormat        *string `json:"match_format"`
 	DayNumber          *int    `json:"day_number" binding:"omitempty,min=1"`
 	SubStatus          *string `json:"sub_status" binding:"omitempty,min=2,max=50"`
 	Latitude           string  `json:"latitude" binding:"required"`
@@ -100,7 +101,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	s.logger.Info("Received request to create tournament match")
 
 	var req createTournamentMatchRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
@@ -208,7 +209,7 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
+	_, err = s.store.GetTournament(ctx, tournamentPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -216,33 +217,6 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get tournament",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	isExists, err := s.store.GetTournamentUserRole(ctx, int32(tournament.ID), authPayload.UserID)
-	if err != nil {
-		s.logger.Error("Failed to get user role: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get user role",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	if !isExists {
-		s.logger.Error("No user role exist for tournament")
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "FORBIDDEN",
-				"message": "User does not have permission to create matches for this tournament",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})

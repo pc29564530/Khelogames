@@ -83,9 +83,18 @@ func (s *SQLStore) AddNewTournamentTx(ctx context.Context,
 			return err
 		}
 
-		organizer := "organizer"
+		resourceType := "tournament"
+		resourceID := newTournament.ID
+		assignedBy := int64(authPayload.UserID)
+		roleID := int64(2)
 
-		_, err = q.AddTournamentUserRoles(ctx, int32(newTournament.ID), newTournament.UserID, organizer)
+		_, err = q.AssignUserRole(ctx, database.AssignUserRoleParams{
+			UserID:       int64(authPayload.UserID),
+			RoleID:       roleID,
+			ResourceType: &resourceType,
+			ResourceID:   &resourceID,
+			AssignedBy:   &assignedBy,
+		})
 		if err != nil {
 			s.logger.Error("Failed to add tournament user roles: ", err)
 			return err

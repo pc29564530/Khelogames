@@ -4,6 +4,7 @@ import (
 	"context"
 	db "khelogames/database"
 	"khelogames/database/models"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -85,9 +86,11 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			"knockout_level_id": match.KnockoutLevelID,
 		}
 
-		if *match.Stage == "Group" {
+		if match.Stage == nil {
+			// skip matches with no stage set
+		} else if strings.EqualFold(*match.Stage, "group") {
 			groupMatches = append(groupMatches, matchMap)
-		} else if match.Stage != nil && *match.Stage == "Knockout" {
+		} else if strings.EqualFold(*match.Stage, "knockout") {
 			switch *match.KnockoutLevelID {
 			case 1:
 				knockoutMatches["final"] = append(knockoutMatches["final"], matchMap)
@@ -104,7 +107,7 @@ func (s *FootballServer) GetFootballScore(matches []db.GetMatchByIDRow, tourname
 			case 7:
 				knockoutMatches["round_128"] = append(knockoutMatches["round_128"], matchMap)
 			}
-		} else if *match.Stage == "League" {
+		} else if strings.EqualFold(*match.Stage, "league") {
 			leagueMatches = append(leagueMatches, matchMap)
 		}
 	}

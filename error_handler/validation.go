@@ -38,10 +38,8 @@ var validationFieldAliases = map[string]string{
 
 func ExtractValidationErrors(err error) map[string]string {
 	errors := make(map[string]string)
-	fmt.Println("Line no 12 error; ", err)
 	ve, ok := err.(validator.ValidationErrors)
 	if !ok {
-		fmt.Println("Line no 26: ", errors)
 		return errors
 	}
 

@@ -3,6 +3,7 @@ package transactions
 import (
 	"context"
 	"fmt"
+	"khelogames/core/token"
 	"khelogames/database"
 	"khelogames/database/models"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/uber/h3-go/v4"
 )
 
-func (store *SQLStore) CreateTeamsTx(ctx context.Context, userPublicID uuid.UUID, name, slug, shortName, mediaUrl, gender string,
+func (store *SQLStore) CreateTeamsTx(ctx context.Context, authPayload *token.Payload, name, slug, shortName, mediaUrl, gender string,
 	national bool,
 	types string,
 	playerCount int32,
@@ -46,14 +47,14 @@ func (store *SQLStore) CreateTeamsTx(ctx context.Context, userPublicID uuid.UUID
 		}
 
 		locationID := int32(location.ID)
-
+		genderChar := gender[0:1]
 		arg := database.NewTeamsParams{
-			UserPublicID: userPublicID,
+			UserPublicID: authPayload.PublicID,
 			Name:         name,
 			Slug:         slug,
 			Shortname:    shortName,
 			MediaUrl:     mediaUrl,
-			Gender:       gender,
+			Gender:       genderChar,
 			National:     false,
 			Country:      country,
 			Type:         types,
@@ -66,6 +67,22 @@ func (store *SQLStore) CreateTeamsTx(ctx context.Context, userPublicID uuid.UUID
 		if err != nil {
 			return err
 		}
+
+		resourceType := "team"
+		resourceID := team.ID
+		assignedBy := int64(authPayload.UserID)
+
+		_, err = q.AssignUserRole(ctx, database.AssignUserRoleParams{
+			UserID:       int64(authPayload.UserID),
+			RoleID:       5,
+			ResourceType: &resourceType,
+			ResourceID:   &resourceID,
+			AssignedBy:   &assignedBy,
+		})
+		if err != nil {
+			return err
+		}
+
 		return err
 	})
 	return team, err

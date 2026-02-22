@@ -12,6 +12,7 @@ import (
 	errorhandler "khelogames/error_handler"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -154,7 +155,7 @@ type addCricketBatScore struct {
 func (s *CricketServer) AddCricketBatScoreFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to add cricket bat score")
 	var req addCricketBatScore
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		s.logger.Error("Failed to bind request: ", err)
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
@@ -337,7 +338,7 @@ type addCricketBallScore struct {
 func (s *CricketServer) AddCricketBallFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to add cricket ball")
 	var req addCricketBallScore
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -1041,7 +1042,7 @@ func (s *CricketServer) UpdateWideBallFunc(ctx *gin.Context) {
 		InningNumber        int    `json:"inning_number"`
 	}
 
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -1293,7 +1294,7 @@ func (s *CricketServer) UpdateNoBallsRunsFunc(ctx *gin.Context) {
 		InningNumber        int    `json:"inning_number"`
 	}
 
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -1555,7 +1556,7 @@ func (s *CricketServer) AddCricketWicketsFunc(ctx *gin.Context) {
 		ToggleStriker       bool   `json:"toggle_striker"`
 	}
 
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -1901,7 +1902,7 @@ func (s *CricketServer) UpdateInningScoreFunc(ctx *gin.Context) {
 		InningNumber        int    `json:"inning_number"`
 	}
 
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -2568,7 +2569,7 @@ func (s *CricketServer) UpdateBowlingBowlerFunc(ctx *gin.Context) {
 		InningNumber          int    `json:"inning_number"`
 	}
 
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)

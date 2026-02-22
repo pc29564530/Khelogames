@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -22,7 +23,7 @@ type addCricketScoreRequest struct {
 
 func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 	var req addCricketScoreRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
@@ -294,7 +295,7 @@ type updateCricketEndInningRequest struct {
 
 func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 	var req updateCricketEndInningRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := ctx.ShouldBindBodyWith(&req, binding.JSON); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return

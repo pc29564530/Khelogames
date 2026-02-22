@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -18,7 +19,7 @@ type createTournamentStandingRequest struct {
 
 func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 	var req createTournamentStandingRequest
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		s.logger.Error("Failed to bind: ", err)
 		fieldErrors := errorhandler.ExtractValidationErrors(err)

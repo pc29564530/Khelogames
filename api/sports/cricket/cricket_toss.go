@@ -8,6 +8,7 @@ import (
 	errorhandler "khelogames/error_handler"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -19,7 +20,7 @@ type addCricketTossRequest struct {
 
 func (s *CricketServer) AddCricketTossFunc(ctx *gin.Context) {
 	var req addCricketTossRequest
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)

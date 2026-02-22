@@ -6,6 +6,7 @@ import (
 	errorhandler "khelogames/error_handler"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 )
 
@@ -33,7 +34,7 @@ func (s *CricketServer) AddCricketSquadFunc(ctx *gin.Context) {
 	s.logger.Info("Received request to add cricket squad")
 	var req MatchSquadRequest
 
-	err := ctx.ShouldBindJSON(&req)
+	err := ctx.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		s.logger.Error("Failed to bind request: ", err)
 		fieldErrors := errorhandler.ExtractValidationErrors(err)

@@ -15,12 +15,12 @@ import (
 
 type addTeamsRequest struct {
 	Name        string `json:"name" binding:"required,min=3,max=100"`
-	MediaURL    string `json:"media_url" binding:"omitempty,url"`
+	MediaURL    string `json:"media_url" binding:"omitempty"`
 	Gender      string `json:"gender" binding:"required,oneof=male female mixed"`
 	National    bool   `json:"national"`
 	Country     string `json:"country" binding:"required,min=2,max=100"`
 	Type        string `json:"type" binding:"required,min=2,max=50"`
-	PlayerCount int    `json:"player_count" binding:"required,min=1,max=100"`
+	PlayerCount int    `json:"player_count" binding:"omitempty,min=0"`
 	GameID      int32  `json:"game_id" binding:"required,min=1"`
 	Latitude    string `json:"latitude" binding:"omitempty"`
 	Longitude   string `json:"longitude" binding:"omitempty"`
@@ -65,14 +65,19 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 	slug := util.GenerateSlug(req.Name)
 	shortName := util.GenerateShortName(req.Name)
 
+	genderChar := "M"
+	if req.Gender == "female" {
+		genderChar = "F"
+	}
+
 	team, err := s.txStore.CreateTeamsTx(
 		ctx,
-		authPayload.PublicID,
+		authPayload,
 		req.Name,
 		slug,
 		shortName,
 		req.MediaURL,
-		req.Gender,
+		genderChar,
 		false,
 		req.Type,
 		int32(req.PlayerCount),
