@@ -1,9 +1,7 @@
 package tournaments
 
 import (
-	"khelogames/core/token"
 	errorhandler "khelogames/error_handler"
-	"khelogames/pkg"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -40,44 +38,6 @@ func (s *TournamentServer) CreateTournamentStandingFunc(ctx *gin.Context) {
 		s.logger.Error("Invalid UUID format", err)
 		fieldErrors := map[string]string{"team_public_id": "Invalid UUID format"}
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
-	}
-
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-	tournament, err := s.store.GetTournament(ctx, tournamentPublicID)
-	if err != nil {
-		s.logger.Error("Failed to get tournament: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"code":    "INTERNAL_ERROR",
-			"message": "Failed to get tournament",
-		})
-		return
-	}
-
-	isExists, err := s.store.GetTournamentUserRole(ctx, int32(tournament.ID), authPayload.UserID)
-	if err != nil {
-		s.logger.Error("Failed to get user tournament role: ", err)
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "NOT_FOUND_ERROR",
-				"message": "Check failed",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-	if !isExists {
-		s.logger.Error("Tournament user role does not exist: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get user role",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
 		return
 	}
 

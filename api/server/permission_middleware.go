@@ -62,8 +62,6 @@ var permissionRoles = map[string][]string{
 
 func (s *Server) RequiredPermission(permission string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var req struct {
-		}
 		authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
 		// First try URL path params
@@ -157,14 +155,14 @@ func (s *Server) canPerformTournamentAction(
 	}
 
 	// Owner always has full access
-	if authPayload.ID == tournament.UserID {
+	if authPayload.UserID == tournament.UserID {
 		return true, nil
 	}
 
 	// Check via user_role_assignments for each allowed role
 	return s.hasAnyRoleForResource(
 		ctx,
-		authPayload.ID,
+		authPayload.UserID,
 		permission,
 		ResourceTournament,
 		tournament.ID,
@@ -194,7 +192,7 @@ func (s *Server) canPerformMatchAction(
 	// Also check tournament-level roles (organizer of tournament can manage matches)
 	matchAllowed, err := s.hasAnyRoleForResource(
 		ctx,
-		authPayload.ID,
+		authPayload.UserID,
 		permission,
 		ResourceMatch,
 		match.ID,
@@ -209,7 +207,7 @@ func (s *Server) canPerformMatchAction(
 	// Fallback: check tournament-level role for this match's tournament
 	tournamentAllowed, err := s.hasAnyRoleForResource(
 		ctx,
-		authPayload.ID,
+		authPayload.UserID,
 		permission,
 		ResourceTournament,
 		int64(match.TournamentID),
@@ -236,16 +234,16 @@ func (s *Server) canPerformTeamAction(
 		return false, nil
 	}
 
-	assignUser, err := s.store.GetUserRoles()
+	// assignUser, err := s.store.GetUserRoles()
 
 	// Owner always has access
-	if authPayload.ID == team.UserID {
+	if authPayload.UserID == team.UserID {
 		return true, nil
 	}
 
 	return s.hasAnyRoleForResource(
 		ctx,
-		authPayload.ID,
+		authPayload.UserID,
 		permission,
 		ResourceTeam,
 		team.ID,
