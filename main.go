@@ -110,10 +110,7 @@ func main() {
 	footballServer.SetScoreBroadcaster(hub)
 	txStore.SetScoreBroadcaster(hub)
 
-	fmt.Printf("Cricket broadcaster pointer: %p\n", cricketServer.GetScoreBroadcaster())
-	fmt.Printf("Football broadcaster pointer: %p\n", footballServer.GetScoreBroadcaster())
-	fmt.Printf("Messenger server pointer:    %p\n", messengerServer)
-	fmt.Printf("Tournament broadcaster pointer: %p\n", tournamentServer.GetScoreBroadcaster())
+	log.Info("Broadcasters initialized for cricket, football, tournament, and messenger")
 
 	if rabbitChan != nil {
 		go hub.StartRabbitMQConsumer("scoreHub")

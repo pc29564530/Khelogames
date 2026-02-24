@@ -139,9 +139,9 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (*
 		&profile.Bio,
 		&profile.AvatarUrl,
 		&profile.Location,
-		&profile.LocationID,
 		&profile.CreatedAt,
 		&profile.UpdatedAt,
+		&profile.LocationID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

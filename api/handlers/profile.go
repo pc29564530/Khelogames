@@ -369,6 +369,11 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 		status = "rejected"
 	}
 
+	var filePath string
+	if documentVerification != nil {
+		filePath = documentVerification.FilePath
+	}
+
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"success": true,
 		"data": gin.H{
@@ -378,7 +383,7 @@ func (s *HandlersServer) AddUserVerificationFunc(ctx *gin.Context) {
 			"phone":             organizerDetails.PhoneNumber,
 			"profile_id":        organizerDetails.ProfileID,
 			"status":            status,
-			"file_path":         documentVerification.FilePath,
+			"file_path":         filePath,
 		},
 	})
 

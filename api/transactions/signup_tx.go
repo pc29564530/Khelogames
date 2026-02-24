@@ -66,13 +66,13 @@ func (store *SQLStore) CreateGoogleSignUpTx(ctx *gin.Context, config util.Config
 
 		userSignUp, err = q.CreateGoogleSignUp(ctx, name, username, email, googleID)
 		if err != nil {
-			return fmt.Errorf("Failed to create google signup: ", err)
+			return fmt.Errorf("Failed to create google signup: %w", err)
 		}
 
 		// Create tokens and session
 		tokens, err = coreToken.CreateNewTokenTx(ctx, q, *store.tokenMaker, int32(userSignUp.ID), userSignUp.PublicID, accessDuration, refreshDuration, ctx.Request.UserAgent(), clientIP)
 		if err != nil {
-			return fmt.Errorf("Failed to create new token: ", err)
+			return fmt.Errorf("Failed to create new token: %w", err)
 		}
 
 		// Create user profile

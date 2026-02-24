@@ -1,7 +1,6 @@
 package hub
 
 import (
-	"fmt"
 	"khelogames/api/shared"
 	"khelogames/core/token"
 	"khelogames/database"
@@ -66,14 +65,11 @@ func NewHub(store *database.Store, logger *logger.Logger, upgrader websocket.Upg
 }
 
 func (h *Hub) AddClient(conn *websocket.Conn, userPublicID uuid.UUID) *Client {
-
 	client := &Client{
 		Conn:         conn,
 		UserPublicID: userPublicID,
 		SendChan:     make(chan []byte, 256),
 	}
-
-	fmt.Println("clent: ", client)
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -85,9 +81,17 @@ func (h *Hub) AddClient(conn *websocket.Conn, userPublicID uuid.UUID) *Client {
 
 func (h *Hub) RemoveClient(client *Client) {
 	h.mu.Lock()
-	delete(h.Clients, client)
 	defer h.mu.Unlock()
-	close(client.SendChan)
+	delete(h.Clients, client)
+	// Guard against double-close of the send channel
+	select {
+	case _, ok := <-client.SendChan:
+		if ok {
+			close(client.SendChan)
+		}
+	default:
+		close(client.SendChan)
+	}
 	client.Conn.Close()
 	h.logger.Infof("Removed WebSocket client: %s", client.UserPublicID)
 }

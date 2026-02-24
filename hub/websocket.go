@@ -3,7 +3,6 @@ package hub
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"khelogames/database"
 	"net/http"
 	"strings"
@@ -82,19 +81,45 @@ func (h *Hub) HandleWebSocket(ctx *gin.Context) {
 			continue
 		}
 
-		fmt.Println("Message Payload: ", message["payload"])
+		h.logger.Debugf("Message payload received: type=%v", message["type"])
 
-		switch message["type"].(string) {
+		msgType, ok := message["type"].(string)
+		if !ok {
+			h.logger.Error("invalid message type field")
+			continue
+		}
+
+		switch msgType {
 		case "SUBSCRIBE":
-			switch message["category"].(string) {
+			category, ok := message["category"].(string)
+			if !ok {
+				h.logger.Error("invalid or missing category field in SUBSCRIBE message")
+				continue
+			}
+			switch category {
 			case "CHAT":
-				h.SubscribeClient(client, payload["profile_public_id"].(string))
+				profileID, ok := payload["profile_public_id"].(string)
+				if !ok {
+					h.logger.Error("missing profile_public_id in SUBSCRIBE CHAT payload")
+					continue
+				}
+				h.SubscribeClient(client, profileID)
 			case "MATCH":
-				h.SubscribeClient(client, payload["match_public_id"].(string))
+				matchID, ok := payload["match_public_id"].(string)
+				if !ok {
+					h.logger.Error("missing match_public_id in SUBSCRIBE MATCH payload")
+					continue
+				}
+				h.SubscribeClient(client, matchID)
 			}
 		case "CREATE_MESSAGE":
+			msgPayload, ok := message["payload"].(map[string]interface{})
+			if !ok {
+				h.logger.Error("invalid payload in CREATE_MESSAGE")
+				continue
+			}
 			// Pass client.UserPublicID (senderID from JWT) directly — ctx.MustGet panics after WS upgrade
-			h.CreateMessage(ctx, msg, message["payload"].(map[string]interface{}), client.UserPublicID)
+			h.CreateMessage(ctx, msg, msgPayload, client.UserPublicID)
 		}
 	}
 }
@@ -115,7 +140,7 @@ func (h *Hub) CreateMessage(_ *gin.Context, msg []byte, message map[string]inter
 	// by gin's sync.Pool after the WebSocket upgrade and must NOT be used here.
 	bgCtx := context.Background()
 
-	fmt.Println("Receiver Id: ", message["receiver_public_id"])
+	h.logger.Debugf("CreateMessage: receiver_id=%v", message["receiver_public_id"])
 	receiverPublicID, err := uuid.Parse(message["receiver_public_id"].(string))
 	if err != nil {
 		h.logger.Error("Failed to parse to uuid: ", err)

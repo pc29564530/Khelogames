@@ -22,7 +22,7 @@ func StartRabbitMQ(config util.Config) (*ampq.Connection, *ampq.Channel, error) 
 }
 
 func (s *Hub) StartMessageHub() {
-	fmt.Println("Start message hub ")
+	s.logger.Info("StartMessageHub started")
 	for {
 		select {
 		case message := <-s.MessageBroadcast:
@@ -41,39 +41,45 @@ func (s *Hub) StartMessageHub() {
 
 			receiverID, _ := payload["receiver"].(map[string]interface{})["public_id"].(string)
 			senderID, _ := payload["sender"].(map[string]interface{})["public_id"].(string)
-			fmt.Println("REciever ID: ", receiverID)
-			fmt.Println("Sender ID: ", senderID)
+			s.logger.Debugf("Broadcasting message: senderID=%s receiverID=%s", senderID, receiverID)
+
+			// Copy subscriber sets under lock to avoid race conditions
 			s.mu.Lock()
-			senSubs := s.subscriber[senderID]
-			recSubs := s.subscriber[receiverID]
+			senSubsCopy := make([]*Client, 0, len(s.subscriber[senderID]))
+			for c := range s.subscriber[senderID] {
+				senSubsCopy = append(senSubsCopy, c)
+			}
+			recSubsCopy := make([]*Client, 0, len(s.subscriber[receiverID]))
+			for c := range s.subscriber[receiverID] {
+				recSubsCopy = append(recSubsCopy, c)
+			}
 			s.mu.Unlock()
 
-			fmt.Println("Sender Sub: ", senSubs)
-			fmt.Println("Receiver Sub: ", recSubs)
-
-			for client := range senSubs {
-				err := client.Conn.WriteMessage(websocket.TextMessage, message)
-				if err != nil {
-					delete(s.Clients, client)
-					client.Conn.Close()
+			var failedClients []*Client
+			for _, client := range senSubsCopy {
+				if err := client.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
+					failedClients = append(failedClients, client)
 				}
 			}
-
-			for client := range recSubs {
-				err := client.Conn.WriteMessage(websocket.TextMessage, message)
-				if err != nil {
+			for _, client := range recSubsCopy {
+				if err := client.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
+					failedClients = append(failedClients, client)
+				}
+			}
+			if len(failedClients) > 0 {
+				s.mu.Lock()
+				for _, client := range failedClients {
 					delete(s.Clients, client)
 					client.Conn.Close()
 				}
+				s.mu.Unlock()
 			}
 		}
 	}
 }
 
 func (s *Hub) StartTournamentHub() {
-	// fmt.Println("Lien noi 41 Start Tournament Hub")
-	// fmt.Println("Subscriber: ", s.subscriber)
-	// fmt.Println("Cleint: ", s.Clients)
+
 	s.logger.Info("StartTournamentHub started")
 	defer func() {
 		if r := recover(); r != nil {
@@ -85,10 +91,9 @@ func (s *Hub) StartTournamentHub() {
 		case tournament := <-s.TournamentBroadcast:
 			s.mu.Lock()
 			for client := range s.Clients {
-				fmt.Println("Client: ", client)
 				err := client.Conn.WriteMessage(websocket.TextMessage, tournament)
 				if err != nil {
-					fmt.Println("Failed to write message to tournament: client:", err)
+					s.logger.Errorf("Failed to write tournament message to client: %v", err)
 					delete(s.Clients, client)
 					client.Conn.Close()
 				}
@@ -99,9 +104,7 @@ func (s *Hub) StartTournamentHub() {
 }
 
 func (s *Hub) StartCricketHub() {
-	// fmt.Println("Lien noi 41 Start Tournament Hub")
-	// fmt.Println("Subscriber: ", s.subscriber)
-	// fmt.Println("Cleint: ", s.Clients)
+
 	s.logger.Info("StartCricketHub started")
 	defer func() {
 		if r := recover(); r != nil {
@@ -113,10 +116,9 @@ func (s *Hub) StartCricketHub() {
 		case cricket := <-s.CricketBroadcast:
 			s.mu.Lock()
 			for client := range s.Clients {
-				fmt.Println("Client: ", client)
 				err := client.Conn.WriteMessage(websocket.TextMessage, cricket)
 				if err != nil {
-					fmt.Println("Failed to write message to cricket: client:", err)
+					s.logger.Errorf("Failed to write cricket message to client: %v", err)
 					delete(s.Clients, client)
 					client.Conn.Close()
 				}
@@ -127,9 +129,6 @@ func (s *Hub) StartCricketHub() {
 }
 
 func (s *Hub) StartFootballHub() {
-	// fmt.Println("Lien noi 41 Start Tournament Hub")
-	// fmt.Println("Subscriber: ", s.subscriber)
-	// fmt.Println("Cleint: ", s.Clients)
 	s.logger.Info("StartFootballHub started")
 	defer func() {
 		if r := recover(); r != nil {
@@ -141,10 +140,9 @@ func (s *Hub) StartFootballHub() {
 		case football := <-s.FootballBroadcast:
 			s.mu.Lock()
 			for client := range s.Clients {
-				fmt.Println("Client: ", client)
 				err := client.Conn.WriteMessage(websocket.TextMessage, football)
 				if err != nil {
-					fmt.Println("Failed to write message to cricket: client:", err)
+					s.logger.Errorf("Failed to write football message to client: %v", err)
 					delete(s.Clients, client)
 					client.Conn.Close()
 				}

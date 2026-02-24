@@ -18,6 +18,7 @@ type Config struct {
 	MediaBasePath        string        `mapstructure:"MEDIA_BASE_PATH"`
 	ImagePath            string        `mapstructure:"IMAGE_PATH"`
 	VideoPath            string        `mapstructure:"VIDEO_PATH"`
+	AppEnv               string        `mapstructure:"APP_ENV"` // "development" | "production"
 }
 
 // LoadConfig reads configuration from file or envirnment variables.
@@ -39,6 +40,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.BindEnv("MEDIA_BASE_PATH")
 	viper.BindEnv("IMAGE_PATH")
 	viper.BindEnv("VIDEO_PATH")
+	viper.BindEnv("APP_ENV")
 
 	if err = viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {

@@ -2,7 +2,6 @@ package hub
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 func (s *Hub) StartRabbitMQConsumer(queueName string) {
@@ -24,8 +23,6 @@ func (s *Hub) StartRabbitMQConsumer(queueName string) {
 		s.logger.Fatal("Failed to register consumer: ", err)
 		return
 	}
-	fmt.Println("QueueName: ", queueName)
-
 	s.logger.Infof("Starting RabbitMQ consumer for queue: %s", queueName)
 
 	go func() {
@@ -37,22 +34,14 @@ func (s *Hub) StartRabbitMQConsumer(queueName string) {
 				continue
 			}
 
-			fmt.Println("Unmarshal Message: ", message)
-
 			messageType, ok := message["type"].(string)
 			if !ok {
 				s.logger.Error("Message type not found or invalid")
 				continue
 			}
 
-			fmt.Println("Message Type: ", messageType)
-			fmt.Println("Queue Name: ", queueName)
+			s.logger.Debugf("RabbitMQ message received: type=%s queue=%s", messageType, queueName)
 			switch queueName {
-			// case "chatHub":
-			// 	if messageType == "CREATE_MESSAGE" {
-			// 		s.MessageBroadcast <- msg.Body
-			// 		s.logger.Debug("Broadcasted chat message")
-			// // 	}
 			case "scoreHub":
 				s.logger.Warnf("No Score hub")
 			case "chatHub":
