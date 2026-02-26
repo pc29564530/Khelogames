@@ -91,7 +91,7 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 
 	// Save the chunk to the database
 	ctx.JSON(http.StatusOK, gin.H{
-		"success":     true,
+		"success": true,
 		"data": gin.H{
 			"message":     "Chunk uploaded",
 			"chunk_index": chunkIndex,
@@ -116,8 +116,11 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 
 	// Get the upload from the database
 	chunkDir := filepath.Join("/tmp/khelogames_tmp_uploads", req.UploadID)
-	// Create upload directory
-	finalDir := "/tmp/khelogames_media_uploads"
+	// Use configured media base path, fallback to /tmp
+	finalDir := s.config.MediaBasePath
+	if finalDir == "" {
+		finalDir = "/tmp/khelogames_media_uploads"
+	}
 	if err := os.MkdirAll(finalDir, os.ModePerm); err != nil {
 		s.logger.Error("Failed to create final upload dir: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -157,6 +160,7 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		})
 		return
 	}
+	fmt.Println("final file: ", finalFile)
 	defer finalFile.Close()
 
 	// Copy the chunks from the temporary directory to the final file
@@ -198,7 +202,6 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 	// Remove the temp chunks
 	if err := os.RemoveAll(chunkDir); err != nil {
 		s.logger.Error("Failed to remove temp chunks: ", err)
-		// Continue even if cleanup fails, as the main operation succeeded
 	}
 
 	var fileExt string
@@ -208,10 +211,12 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		fileExt = "mp4"
 	}
 
-	// Return the final file path - use relative path or configurable base URL
-	// For now, use a relative path that can be served by a static file server
-	fileURL := fmt.Sprintf("http://192.168.1.3:8080/media/%s.%s", req.UploadID, fileExt)
-
+	// Build the public URL using MEDIA_BASE_URL from config
+	mediaBaseURL := s.config.MediaBaseURL
+	if mediaBaseURL == "" {
+		mediaBaseURL = "http://localhost/192.168.1.2:8082"
+	}
+	fileURL := fmt.Sprintf("%s/media/%s.%s", mediaBaseURL, req.UploadID, fileExt)
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{

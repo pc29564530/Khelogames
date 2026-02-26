@@ -53,12 +53,10 @@ const (
 func (server *Server) setupStaticFiles() {
 	mediaBase := server.config.MediaBasePath
 	if mediaBase == "" {
-		mediaBase = "./media"
+		mediaBase = "/tmp/khelogames_media_uploads"
 	}
 
-	server.router.Static("/media/images", mediaBase+"/images")
-	server.router.Static("/media/videos", mediaBase+"/videos")
-	server.router.Static("/media/uploads", mediaBase+"/uploads")
+	server.router.Static("/media", mediaBase)
 }
 
 func (server *Server) healthCheck(ctx *gin.Context) {

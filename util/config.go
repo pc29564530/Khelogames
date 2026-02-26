@@ -16,6 +16,7 @@ type Config struct {
 	RabbitSource         string        `mapstructure:"RABBIT_SOURCE"`
 	AllowedOrigins       string        `mapstructure:"ALLOWED_ORIGINS"`
 	MediaBasePath        string        `mapstructure:"MEDIA_BASE_PATH"`
+	MediaBaseURL         string        `mapstructure:"MEDIA_BASE_URL"`
 	ImagePath            string        `mapstructure:"IMAGE_PATH"`
 	VideoPath            string        `mapstructure:"VIDEO_PATH"`
 	AppEnv               string        `mapstructure:"APP_ENV"` // "development" | "production"
@@ -38,6 +39,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.BindEnv("RABBIT_SOURCE")
 	viper.BindEnv("ALLOWED_ORIGINS")
 	viper.BindEnv("MEDIA_BASE_PATH")
+	viper.BindEnv("MEDIA_BASE_URL")
 	viper.BindEnv("IMAGE_PATH")
 	viper.BindEnv("VIDEO_PATH")
 	viper.BindEnv("APP_ENV")

@@ -105,7 +105,7 @@ func (s *HandlersServer) CreateThreadFunc(ctx *gin.Context) {
 		"profile":       users,
 	}
 
-	s.logger.Info("Thread successfully created ")
+	s.logger.Info("Thread successfully created:  ", threadResponse)
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    threadResponse,
