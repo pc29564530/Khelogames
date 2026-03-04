@@ -241,6 +241,59 @@ func (q *Queries) GetTournamentsBySport(ctx context.Context, gameID int64) ([]ma
 	return tournaments, err
 }
 
+// Get tournament by sport and trending
+// Tournament by sport and trending
+const getTournamentsBySportAndTrending = `
+SELECT
+JSON_BUILD_OBJECT(
+    'id', t.id,
+    'public_id', t.public_id,
+    'user_id', t.user_id,
+    'name', t.name,
+    'slug', t.slug,
+    'country', t.country,
+    'status', t.status,
+    'level', t.level,
+    'start_timestamp', t.start_timestamp,
+    'game_id', t.game_id,
+    'group_count', t.group_count,
+    'max_group_team', t.max_group_teams,
+    'stage', t.stage,
+    'has_knockout', t.has_knockout,
+    'profile', JSON_BUILD_OBJECT('id', p.id, 'public_id',p.public_id, 'user_public_id',u.public_id,  'username',u.username,  'full_name',u.full_name,  'bio',p.bio,  'avatar_url',p.avatar_url,  'created_at',p.created_at )
+)
+FROM tournaments t
+JOIN games g ON g.id = t.game_id
+JOIN user_profiles p ON p.user_id = t.user_id
+JOIN users u ON u.id = t.user_id
+WHERE t.game_id = $1 AND (t.status = 'in_progress' OR t.status = 'not_started')
+ORDER BY t.start_timestamp DESC
+LIMIT 4;
+`
+
+func (q *Queries) GetTournamentsBySportAndTrending(ctx context.Context, gameID int64) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getTournamentsBySportAndTrending, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tournaments []map[string]interface{}
+	for rows.Next() {
+		var jsonByte []byte
+		var i map[string]interface{}
+		err := rows.Scan(&jsonByte)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to scan tournament: ", err)
+		}
+		err = json.Unmarshal(jsonByte, &i)
+		if err != nil {
+			return nil, fmt.Errorf("Faile to unmarshal: ", err)
+		}
+		tournaments = append(tournaments, i)
+	}
+	return tournaments, err
+}
+
 const newTournament = `
 WITH userID AS (
 	SELECT * FROM users WHERE public_id=$1

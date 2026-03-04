@@ -104,7 +104,7 @@ func main() {
 	// Create messenger server with cricket server as both updater and broadcaster
 	messengerServer := messenger.NewMessageServer(store, tokenMaker, clients, messageBroadCast, scoredBroadCast, upgrader, rabbitChan, log, nil)
 	playerServer := players.NewPlayerServer(store, log, tokenMaker, config)
-	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config)
+	sportsServer := sports.NewSportsServer(store, log, tokenMaker, config, footballServer, cricketServer)
 	tournamentServer.SetScoreBroadcaster(hub)
 	cricketServer.SetScoreBroadcaster(hub)
 	footballServer.SetScoreBroadcaster(hub)

@@ -258,6 +258,7 @@ func NewServer(config util.Config,
 	//sportRouter.GET("/getTeams/:tournament_id", tournamentServer.GetTeamsFunc)
 	sportRouter.GET("/getTournamentTeam/:tournament_public_id", tournamentServer.GetTournamentTeamsFunc)
 	sportRouter.GET("/getTournamentsBySport/:game_id", tournamentServer.GetTournamentsBySportFunc)
+	sportRouter.GET("/getTournamentsBySportAndTrending", tournamentServer.GetTournamentsBySportAndTrendingFunc)
 	sportRouter.GET("/getTournament/:tournament_public_id", tournamentServer.GetTournamentFunc)
 	sportRouter.GET("/getAllTournamentMatch/:tournament_public_id", tournamentServer.GetTournamentMatch)
 	sportRouter.PUT("/updateMatchSubStatus/:match_public_id", server.RequiredPermission(PermUpdateMatch), tournamentServer.UpdateMatchSubStatusFunc)
@@ -365,6 +366,7 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateBowlingBowlerStatus", server.RequiredPermission(PermUpdateMatch), cricketServer.UpdateBowlingBowlerFunc)
 
 	sportRouter.GET("/getLiveMatches", handlersServer.GetLiveMatchesFunc)
+	sportRouter.GET("/getTopPerformer", sportsServer.GetTopPerformerHandler)
 
 	server.router = router
 	return server, nil

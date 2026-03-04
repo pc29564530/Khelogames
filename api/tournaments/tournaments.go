@@ -453,6 +453,57 @@ type getTournamentByGameIdRequest struct {
 	GameID int64 `uri:"game_id"`
 }
 
+func (s *TournamentServer) GetTournamentsBySportAndTrendingFunc(ctx *gin.Context) {
+	var req getTournamentByGameIdRequest
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	gameName := ctx.Param("sport")
+
+	game, err := s.store.GetGamebyName(ctx, gameName)
+	if err != nil {
+		s.logger.Error("Failed to get game by name: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get game",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	tournaments, err := s.store.GetTournamentsBySportAndTrending(ctx, req.GameID)
+	if err != nil {
+		s.logger.Error("Failed to get tournaments by sport: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get tournaments by sport",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	results := map[string]interface{}{
+		"id":          game.ID,
+		"name":        game.Name,
+		"min_players": game.MinPlayers,
+		"tournament":  tournaments,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    results,
+	})
+}
+
 func (s *TournamentServer) GetTournamentsBySportFunc(ctx *gin.Context) {
 	var req getTournamentByGameIdRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
