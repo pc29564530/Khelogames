@@ -253,14 +253,12 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 
 	// Remove local merged file
 	os.Remove(finalPath)
-
-	mediaUrl := fmt.Sprintf("%s/%s", s.config.R2BasePublicUrl, fileKey)
+	mediaUrl := fmt.Sprintf("%s/%s", s.config.R2PublicBaseUrl, fileKey)
 
 	// Return response
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"message":   "Upload complete",
 			"media_url": mediaUrl,
 		},
 	})

@@ -20,9 +20,9 @@ type Config struct {
 	ImagePath            string        `mapstructure:"IMAGE_PATH"`
 	VideoPath            string        `mapstructure:"VIDEO_PATH"`
 	AppEnv               string        `mapstructure:"APP_ENV"` // "development" | "production"
-	R2BasePublicUrl      string        `mapstructure:"R2_BASE_PUBLIC_URL"`
+	R2PublicBaseUrl      string        `mapstructure:"R2_PUBLIC_BASE_URL"`
 	R2AccountID          string        `mapstructure:"R2_ACCOUNT_ID"`
-	R2BucketName         string        `mapstructure:"R2_BUCKET"`
+	R2Bucket             string        `mapstructure:"R2_BUCKET"`
 }
 
 // LoadConfig reads configuration from file or envirnment variables.
@@ -46,7 +46,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.BindEnv("IMAGE_PATH")
 	viper.BindEnv("VIDEO_PATH")
 	viper.BindEnv("APP_ENV")
-	viper.BindEnv("R2_BASE_PUBLIC_URL")
+	viper.BindEnv("R2_PUBLIC_BASE_URL")
 	viper.BindEnv("R2_ACCOUNT_ID")
 	viper.BindEnv("R2_BUCKET")
 
