@@ -236,7 +236,7 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 
 	// Upload to R2
 	_, err = s.r2Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(s.config.R2BucketName),
+		Bucket:      aws.String(s.config.R2Bucket),
 		Key:         aws.String(fileKey),
 		Body:        file,
 		ContentType: aws.String(req.MediaType),
