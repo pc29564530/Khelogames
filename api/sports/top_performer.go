@@ -6,7 +6,6 @@ func (s *SportsServer) GetTopPerformerHandler(c *gin.Context) {
 	sport := c.Param("sport")
 	switch sport {
 	case "football":
-		footballServer := NewServer
 		s.footballServer.GetFootballTopPerformerFunc(c)
 	case "cricket":
 		s.cricketServer.GetCricketTopPerformerFunc(c)
