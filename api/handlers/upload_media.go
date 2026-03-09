@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 )
 
@@ -87,7 +89,18 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 	defer out.Close()
 
 	// Copy the chunk from the request body to the file
-	io.Copy(out, file)
+	if _, err := io.Copy(out, file); err != nil {
+		s.logger.Error("Failed to write chunk: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to write chunk",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
 
 	// Save the chunk to the database
 	ctx.JSON(http.StatusOK, gin.H{
@@ -100,56 +113,61 @@ func (s *HandlersServer) CreateUploadMediaFunc(ctx *gin.Context) {
 }
 
 func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
-	// Get the req params
+
+	// Request body
 	var req struct {
 		UploadID    string `json:"upload_id" binding:"required"`
 		TotalChunks int    `json:"total_chunks" binding:"required,min=1"`
 		MediaType   string `json:"media_type" binding:"required"`
 	}
 
-	// Parse the request body
+	// Parse JSON
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
 
-	// Get the upload from the database
+	// Temp chunk directory
 	chunkDir := filepath.Join("/tmp/khelogames_tmp_uploads", req.UploadID)
-	// Use configured media base path, fallback to /tmp
-	finalDir := s.config.MediaBasePath
-	if finalDir == "" {
-		finalDir = "/tmp/khelogames_media_uploads"
-	}
+
+	// Final local file directory
+	finalDir := "/tmp/khelogames_media_uploads"
+
 	if err := os.MkdirAll(finalDir, os.ModePerm); err != nil {
 		s.logger.Error("Failed to create final upload dir: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to create upload directory",
-			},
-			"request_id": ctx.GetString("request_id"),
+			"error":   "Failed to create upload directory",
 		})
 		return
 	}
 
-	var finalPath string
-	mediaType := req.MediaType
-	if mediaType == "image/jpeg" || mediaType == "image/png" || mediaType == "image/jpg" {
-		finalPath = filepath.Join(finalDir, req.UploadID+".jpg")
-	} else if mediaType == "video/mp4" || mediaType == "video/quicktime" || mediaType == "video/mkv" {
-		finalPath = filepath.Join(finalDir, req.UploadID+".mp4")
-	} else {
-		fieldErrors := map[string]string{"media_type": "Unsupported media type"}
-		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+	// Determine extension and folder
+	var fileExt string
+	var folder string
+
+	switch req.MediaType {
+	case "image/jpeg", "image/png", "image/jpg":
+		fileExt = "jpg"
+		folder = "images"
+	case "video/mp4", "video/quicktime", "video/mkv":
+		fileExt = "mp4"
+		folder = "videos"
+	default:
+		errorhandler.ValidationErrorResponse(ctx, map[string]string{
+			"media_type": "Unsupported media type",
+		})
 		return
 	}
 
-	// Create the final file
+	// Local merged file path
+	finalPath := filepath.Join(finalDir, req.UploadID+"."+fileExt)
+
+	// Create merged file
 	finalFile, err := os.Create(finalPath)
 	if err != nil {
-		s.logger.Error("Failed to create file path: ", err)
+		s.logger.Error("Failed to create final file: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error": gin.H{
@@ -160,13 +178,13 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		})
 		return
 	}
-	fmt.Println("final file: ", finalFile)
 	defer finalFile.Close()
 
-	// Copy the chunks from the temporary directory to the final file
+	// Merge chunks
 	for i := 0; i < req.TotalChunks; i++ {
-		// Get the chunk from the database
+
 		chunkPath := filepath.Join(chunkDir, fmt.Sprintf("chunk_%d", i))
+
 		chunkFile, err := os.Open(chunkPath)
 		if err != nil {
 			s.logger.Error("Failed to open chunk: ", err)
@@ -181,10 +199,9 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 			return
 		}
 
-		// Copy the chunk to the final file
 		if _, err := io.Copy(finalFile, chunkFile); err != nil {
-			s.logger.Error("Failed to copy chunk: ", err)
 			chunkFile.Close()
+			s.logger.Error("Failed to merge chunk: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error": gin.H{
@@ -199,30 +216,52 @@ func (s *HandlersServer) CompletedChunkUploadFunc(ctx *gin.Context) {
 		chunkFile.Close()
 	}
 
-	// Remove the temp chunks
-	if err := os.RemoveAll(chunkDir); err != nil {
-		s.logger.Error("Failed to remove temp chunks: ", err)
+	// Remove chunk directory
+	os.RemoveAll(chunkDir)
+
+	// Create R2 object key
+	fileKey := fmt.Sprintf("media/%s/%s.%s", folder, req.UploadID, fileExt)
+
+	// Open merged file for upload
+	file, err := os.Open(finalPath)
+	if err != nil {
+		s.logger.Error("Failed to open final file: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to read merged file",
+		})
+		return
+	}
+	defer file.Close()
+
+	// Upload to R2
+	_, err = s.r2Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.config.R2BucketName),
+		Key:         aws.String(fileKey),
+		Body:        file,
+		ContentType: aws.String(req.MediaType),
+	})
+
+	if err != nil {
+		s.logger.Error("R2 upload failed:", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to upload media",
+		})
+		return
 	}
 
-	var fileExt string
-	if mediaType == "image/jpeg" || mediaType == "image/png" || mediaType == "image/jpg" {
-		fileExt = "jpg"
-	} else if mediaType == "video/mp4" || mediaType == "video/quicktime" || mediaType == "video/mkv" {
-		fileExt = "mp4"
-	}
+	// Remove local merged file
+	os.Remove(finalPath)
 
-	// Build the public URL using MEDIA_BASE_URL from config
-	mediaBaseURL := s.config.MediaBaseURL
-	if mediaBaseURL == "" {
-		mediaBaseURL = "http://localhost/192.168.1.2:8082"
-	}
-	fileURL := fmt.Sprintf("%s/media/%s.%s", mediaBaseURL, req.UploadID, fileExt)
+	mediaUrl := fmt.Sprintf("%s/%s", s.config.R2BasePublicUrl, fileKey)
+
+	// Return response
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
 			"message":   "Upload complete",
-			"file_url":  fileURL,
-			"upload_id": req.UploadID,
+			"media_url": mediaUrl,
 		},
 	})
 }

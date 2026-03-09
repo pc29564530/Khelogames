@@ -26,6 +26,7 @@ import (
 	"khelogames/api/tournaments"
 	db "khelogames/database"
 	"khelogames/logger"
+	"khelogames/storage"
 	"khelogames/util"
 
 	"github.com/gin-gonic/gin"
@@ -62,6 +63,11 @@ func main() {
 
 	txStore := transactions.NewStore(conn, &tokenMaker, log, nil)
 
+	r2Client, err := storage.NewR2Client(config.R2AccountID)
+	if err != nil {
+		log.Fatal("cannot create R2 client:", err)
+	}
+
 	rabbitConn, rabbitChan, err := hub.StartRabbitMQ(config)
 	if err != nil {
 		log.Warnf("RabbitMQ not available, chat features will be disabled: %v", err)
@@ -94,7 +100,7 @@ func main() {
 
 	// Initialize HTTP servers and handlers
 	authServer := auth.NewAuthServer(store, log, tokenMaker, config, txStore)
-	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config, txStore)
+	handlerServer := handlers.NewHandlerServer(store, log, tokenMaker, config, txStore, r2Client)
 	footballServer := football.NewFootballServer(store, log, nil, txStore)
 
 	teamsServer := teams.NewTeamsServer(store, log, tokenMaker, config, txStore)
