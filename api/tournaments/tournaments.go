@@ -454,13 +454,6 @@ type getTournamentByGameIdRequest struct {
 }
 
 func (s *TournamentServer) GetTournamentsBySportAndTrendingFunc(ctx *gin.Context) {
-	var req getTournamentByGameIdRequest
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		fieldErrors := errorhandler.ExtractValidationErrors(err)
-		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
-	}
-
 	gameName := ctx.Param("sport")
 
 	game, err := s.store.GetGamebyName(ctx, gameName)
@@ -477,7 +470,7 @@ func (s *TournamentServer) GetTournamentsBySportAndTrendingFunc(ctx *gin.Context
 		return
 	}
 
-	tournaments, err := s.store.GetTournamentsBySportAndTrending(ctx, req.GameID)
+	tournaments, err := s.store.GetTournamentsBySportAndTrending(ctx, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get tournaments by sport: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
