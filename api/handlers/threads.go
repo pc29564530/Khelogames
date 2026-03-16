@@ -5,6 +5,7 @@ import (
 	db "khelogames/database"
 	errorhandler "khelogames/error_handler"
 	"khelogames/pkg"
+	"strconv"
 
 	"net/http"
 
@@ -192,30 +193,20 @@ func (s *HandlersServer) GetThreadByUserFunc(ctx *gin.Context) {
 	})
 }
 
-func (s *HandlersServer) GetAllThreadDetailFunc(ctx *gin.Context) {
-	threads, err := s.store.GetAllThreads(ctx)
-	if err != nil {
-		s.logger.Error("Failed to fetch threads", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Unable to fetch threads",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	// Even if threads is empty → OK
-	ctx.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    threads,
-	})
-}
-
 func (s *HandlersServer) GetAllThreadsFunc(ctx *gin.Context) {
-	threads, err := s.store.GetAllThreads(ctx)
+	limitStr := ctx.Query("limit")
+	offsetStr := ctx.Query("offset")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 10 // default batch size
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+	threads, err := s.store.GetAllThreads(ctx, limit, offset)
 	if err != nil {
 		s.logger.Error("Failed to fetch threads", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -229,7 +220,6 @@ func (s *HandlersServer) GetAllThreadsFunc(ctx *gin.Context) {
 		return
 	}
 
-	// Even if threads is empty → OK
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    threads,

@@ -181,7 +181,7 @@ func NewServer(config util.Config,
 		authRouter.GET("/getCommunityByCommunityName/:communities_name", handlersServer.GetCommunityByCommunityNameFunc)
 		authRouter.POST("/create_thread", handlersServer.CreateThreadFunc)
 		authRouter.GET("/getThread/:public_id", handlersServer.GetThreadFunc)
-		authRouter.GET("/all_threads", handlersServer.GetAllThreadsFunc)
+		authRouter.GET("/threads", handlersServer.GetAllThreadsFunc)
 		authRouter.GET("/getAllThreadByCommunity/:communities_name", handlersServer.GetAllThreadsByCommunitiesFunc)
 		authRouter.GET("/getCommunityMember/:community_public_id", handlersServer.GetCommunitiesMemberFunc)
 		authRouter.POST("/create_follow/:target_public_id", handlersServer.CreateUserConnectionsFunc)
@@ -207,7 +207,6 @@ func NewServer(config util.Config,
 		authRouter.POST("/createCommunityMessage", messageServer.CreateCommunityMessageFunc)
 		authRouter.GET("/getCommunityMessage", messageServer.GetCommunityByMessageFunc)
 		authRouter.GET("/getCommunityByMessage", messageServer.GetCommunityByMessageFunc)
-		authRouter.GET("/GetAllThreadDetailFunc", handlersServer.GetAllThreadDetailFunc)
 		// authRouter.GET("/GetAllThreadsByCommunityDetailsFunc/:communities_name", handlersServer.GetAllThreadsByCommunityDetailsFunc)
 		//player
 		authRouter.POST("/newPlayer", playersServer.NewPlayerFunc)
@@ -366,6 +365,7 @@ func NewServer(config util.Config,
 	sportRouter.PUT("/updateBowlingBowlerStatus", server.RequiredPermission(PermUpdateMatch), cricketServer.UpdateBowlingBowlerFunc)
 
 	sportRouter.GET("/getLiveMatches", handlersServer.GetLiveMatchesFunc)
+	sportRouter.GET("get-trending-matches", handlersServer.GetTrendingMatchesFunc)
 	sportRouter.GET("/getTopPerformer", sportsServer.GetTopPerformerHandler)
 
 	server.router = router

@@ -142,11 +142,13 @@ const getAllThreads = `
     )
 FROM threads t
 JOIN users u ON u.id = t.user_id
-JOIN user_profiles p ON p.user_id = t.user_id;
+JOIN user_profiles p ON p.user_id = t.user_id
+ORDER BY t.created_at DESC
+LIMIT $1 OFFSET $2;
 `
 
-func (q *Queries) GetAllThreads(ctx context.Context) ([]map[string]interface{}, error) {
-	rows, err := q.db.QueryContext(ctx, getAllThreads)
+func (q *Queries) GetAllThreads(ctx context.Context, limit, offset int) ([]map[string]interface{}, error) {
+	rows, err := q.db.QueryContext(ctx, getAllThreads, limit, offset)
 	if err != nil {
 		return nil, err
 	}
