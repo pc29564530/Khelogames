@@ -178,6 +178,13 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 		})
 		return
 	}
+	if cricketToss == nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    nil,
+		})
+		return
+	}
 
 	tossWonTeamMap, ok := cricketToss["toss_won_team"].(map[string]interface{})
 	if !ok {
@@ -269,5 +276,8 @@ func (s *CricketServer) GetCricketTossFunc(ctx *gin.Context) {
 
 	s.logger.Debug("toss won team details: ", tossDetails)
 
-	ctx.JSON(http.StatusAccepted, tossDetails)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    tossDetails,
+	})
 }

@@ -242,9 +242,9 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			"knockout_level_id": match.KnockoutLevelID,
 		}
 
-		if *match.Stage == "Group" {
+		if *match.Stage == "group" {
 			groupMatches = append(groupMatches, matchMap)
-		} else if match.Stage != nil && *match.Stage == "Knockout" {
+		} else if match.Stage != nil && *match.Stage == "knockout" {
 			switch *match.KnockoutLevelID {
 			case 1:
 				knockoutMatches["final"] = append(knockoutMatches["final"], matchMap)
@@ -261,7 +261,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 			case 7:
 				knockoutMatches["round_128"] = append(knockoutMatches["round_128"], matchMap)
 			}
-		} else if *match.Stage == "League" {
+		} else if *match.Stage == "league" {
 			leagueMatches = append(leagueMatches, matchMap)
 		}
 	}
@@ -284,6 +284,7 @@ func (s *CricketServer) GetCricketScore(matches []db.GetMatchByIDRow, tournament
 		"league_stage":   leagueMatches,
 		"knockout_stage": knockoutMatches,
 	})
+
 	return matchDetail
 }
 
