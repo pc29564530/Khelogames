@@ -130,7 +130,6 @@ func (s *TournamentServer) CreateTournamentMatch(ctx *gin.Context) {
 	}
 
 	if len(fieldErrors) > 0 {
-		fmt.Println("Field Error: ", fieldErrors)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}

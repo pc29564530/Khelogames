@@ -258,6 +258,41 @@ func (s *HandlersServer) GetLiveMatchesFunc(ctx *gin.Context) {
 	})
 }
 
+func (s *HandlersServer) GetTrendingMatchesFunc(ctx *gin.Context) {
+
+	sport := ctx.Param("sport")
+	game, err := s.store.GetGamebyName(ctx, sport)
+	if err != nil {
+		s.logger.Error("Failed to get game by name: ", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid game name",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+	res, err := s.store.GetTrendingMatches(ctx, game.ID)
+	if err != nil {
+		s.logger.Error("Failed to get matches by game: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get trending matches by game",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    res,
+	})
+}
+
 func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 	var req struct {
 		MatchPublicID string `uri:"match_public_id" binding:"required"`

@@ -18,11 +18,8 @@ SELECT
 		'goals', COUNT(fi.id)
 	)
 FROM matches m
-JOIN football_incidents fi 
-	ON fi.match_id = m.id 
-	AND fi.incident_type = 'goals'
-JOIN football_incident_player fip 
-	ON fip.incident_id = fi.id
+JOIN football_incidents fi ON fi.match_id = m.id  AND fi.incident_type = 'goals'
+JOIN football_incident_player fip ON fip.incident_id = fi.id
 JOIN players p 
 	ON p.id = fip.player_id
 WHERE m.game_id = 1 AND m.status_code = 'finished'
@@ -43,7 +40,8 @@ func (q *Queries) GetFootballTopPerformer(ctx context.Context) ([]map[string]int
 
 	defer rows.Close()
 
-	var topPerformers []map[string]interface{}
+	// initialize slice so empty result returns []
+	topPerformers := make([]map[string]interface{}, 0)
 	for rows.Next() {
 		var topPerformer map[string]interface{}
 		var jsonByte []byte
@@ -58,6 +56,11 @@ func (q *Queries) GetFootballTopPerformer(ctx context.Context) ([]map[string]int
 			return nil, err
 		}
 		topPerformers = append(topPerformers, topPerformer)
+	}
+	//check row iteration error
+	if err := rows.Err(); err != nil {
+		log.Printf("Rows iteration error: %v", err)
+		return nil, err
 	}
 	return topPerformers, nil
 }
@@ -75,13 +78,13 @@ const getCricketBatsmanTopPerformer = `
 	JOIN batsman_score bs
 		ON bs.match_id = m.id
 	JOIN players p 
-		ON p.id = bs.player_id
+		ON p.id = bs.batsman_id
 	WHERE m.game_id = 2 AND m.status_code = 'finished'
 		AND m.start_timestamp BETWEEN 
 			(EXTRACT(EPOCH FROM NOW()) * 1000) - (7 * 24 * 60 * 60 * 1000)
 			AND (EXTRACT(EPOCH FROM NOW()) * 1000)
 	GROUP BY p.id, p.public_id, p.name
-	ORDER BY COUNT(fi.id) DESC
+	ORDER BY COUNT(bs.id) DESC
 	LIMIT 5;
 `
 
@@ -110,6 +113,11 @@ func (q *Queries) GetCricketTopBattingPerformer(ctx context.Context) ([]map[stri
 		}
 		topPerformers = append(topPerformers, topPerformer)
 	}
+	//check row iteration error
+	if err := rows.Err(); err != nil {
+		log.Printf("Rows iteration error: %v", err)
+		return nil, err
+	}
 	return topPerformers, nil
 }
 
@@ -126,13 +134,13 @@ const getCricketBowlingTopPerformer = `
 	JOIN bolwer_score bs
 		ON bs.match_id = m.id
 	JOIN players p 
-		ON p.id = bs.player_id
+		ON p.id = bs.bowler_id
 	WHERE m.game_id = 2 AND m.status_code = 'finished'
 		AND m.start_timestamp BETWEEN 
 			(EXTRACT(EPOCH FROM NOW()) * 1000) - (7 * 24 * 60 * 60 * 1000)
 			AND (EXTRACT(EPOCH FROM NOW()) * 1000)
 	GROUP BY p.id, p.public_id, p.name
-	ORDER BY COUNT(fi.id) DESC
+	ORDER BY COUNT(bs.id) DESC
 	LIMIT 5;
 `
 
@@ -160,6 +168,11 @@ func (q *Queries) GetCricketTopBowlingPerformer(ctx context.Context) ([]map[stri
 			return nil, err
 		}
 		topPerformers = append(topPerformers, topPerformer)
+	}
+	//check row iteration error
+	if err := rows.Err(); err != nil {
+		log.Printf("Rows iteration error: %v", err)
+		return nil, err
 	}
 	return topPerformers, nil
 }
