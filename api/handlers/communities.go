@@ -194,11 +194,37 @@ func (s *HandlersServer) GetCommunityByCommunityNameFunc(ctx *gin.Context) {
 		})
 		return
 	}
+
+	user, err := s.store.GetUserByID(ctx, usersList.UserID)
+	if err != nil {
+		s.logger.Error("Failed to get user: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get user",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
 	s.logger.Debug("get community by commmunity name: ", usersList)
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    usersList,
+		"data": gin.H{
+			"public_id":      usersList.PublicID,
+			"user_public_id": user.PublicID,
+			"name":           usersList.Name,
+			"slug":           usersList.Slug,
+			"description":    usersList.Description,
+			"community_type": usersList.CommunityType,
+			"is_active":      usersList.IsActive,
+			"member_count":   usersList.MemberCount,
+			"avatar_url":     usersList.AvatarUrl,
+			"created_at":     usersList.CreatedAt,
+		},
 	})
 }
 

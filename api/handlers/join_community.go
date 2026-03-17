@@ -32,32 +32,6 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	community, err := s.store.GetCommunity(ctx, communityPublicID)
-	if err != nil {
-		s.logger.Error("Failed to get community: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get community",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	if community.UserID != authPayload.UserID {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "FORBIDDEN",
-				"message": "You are not allowed to join this community",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
 	communityUser, err := s.txStore.AddJoinCommunityTx(ctx.Request.Context(), communityPublicID, authPayload.PublicID)
 	if err != nil {
 		s.logger.Error("Failed to join community: ", err)
@@ -76,10 +50,7 @@ func (s *HandlersServer) AddJoinCommunityFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data": gin.H{
-			"message": "Successfully joined",
-			"member":  communityUser,
-		},
+		"data":    communityUser,
 	})
 }
 

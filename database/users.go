@@ -41,6 +41,37 @@ func (q *Queries) GetUser(ctx context.Context, publicID uuid.UUID) (*models.User
 	return &users, err
 }
 
+const getUserByID = `
+SELECT * FROM users
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id int32) (*models.Users, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var users models.Users
+	err := row.Scan(
+		&users.ID,
+		&users.PublicID,
+		&users.FullName,
+		&users.Username,
+		&users.Email,
+		&users.HashPassword,
+		&users.IsVerified,
+		&users.IsBanned,
+		&users.GoogleID,
+		&users.Role,
+		&users.CreatedAt,
+		&users.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Failed to scan: %w", err)
+	}
+	return &users, err
+}
+
 const listUser = `
 SELECT * FROM users
 WHERE public_id = $1

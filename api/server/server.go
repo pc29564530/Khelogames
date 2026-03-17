@@ -282,12 +282,12 @@ func NewServer(config util.Config,
 	sportRouter.POST("/addTournamentParticipants", server.RequiredPermission(PermUpdateTournament), tournamentServer.AddTournamentParticipantsFunc)
 
 	//teams //teams database update completed
-	sportRouter.PUT("/update-team-location/:team_public_id", server.RequiredPermission(PermUpdateTeam), teamsServer.UpdateTeamLocationFunc)
-	sportRouter.POST("/newTeams", teamsServer.AddTeam)
+	sportRouter.PUT("/update-team/:team_public_id", server.RequiredPermission(PermUpdateTeam), teamsServer.UpdateTeamLocationFunc)
+	sportRouter.POST("/create-team", teamsServer.AddTeam)
 	//sportRouter.GET("/getTeam/:public_id", teamsServer.GetTeamFunc)
 	sportRouter.GET("/getTeams", teamsServer.GetTeamsFunc)
 	sportRouter.GET("/searchTeams", teamsServer.SearchTeamFunc)
-	sportRouter.POST("/addTeamsMemberFunc", server.RequiredPermission(PermUpdateTeam), teamsServer.AddTeamsMemberFunc)
+	sportRouter.POST("/addTeamMember", server.RequiredPermission(PermUpdateTeam), teamsServer.AddTeamsMemberFunc)
 	sportRouter.PUT("/removePlayerFromTeam", server.RequiredPermission(PermUpdateTeam), teamsServer.RemovePlayerFromTeamFunc)
 	sportRouter.GET("/getTeamsMemberFunc/:team_public_id", teamsServer.GetTeamsMemberFunc)
 	sportRouter.GET("/getTeamsBySport/:game_id", teamsServer.GetTeamsBySportFunc)
@@ -318,7 +318,7 @@ func NewServer(config util.Config,
 
 	// sportRouter.POST("/addFootballStatistics", footballServer.AddFootballStatisticsFunc)
 	//sportRouter.GET("/getFootballStatistics", footballServer.GetFootballStatisticsFunc)
-	sportRouter.POST("/addFootballMatchSquad", server.RequiredPermission(PermUpdateMatch), footballServer.AddFootballSquadFunc)
+	sportRouter.POST("/addFootballMatchSquad", server.RequiredPermission(PermUpdateTeam), footballServer.AddFootballSquadFunc)
 	sportRouter.GET("/getFootballTournamentPlayerGoal/:tournament_public_id", tournamentServer.GetFootballTournamentPlayersGoalsFunc)
 	sportRouter.GET("/getFootballTournamentPlayerYellowCard/:tournament_public_id", tournamentServer.GetFootballTournamentPlayersYellowCardFunc)
 	sportRouter.GET("/getFootballTournamentPlayerRedCard/:tournament_public_id", tournamentServer.GetFootballTournamentPlayersRedCardFunc)
