@@ -18,7 +18,7 @@ const getCricketBatsmanScoreByTeamID = `
 func (q *Queries) GetCricketBatsmanScoreByTeamID(ctx context.Context, teamPublicID uuid.UUID) (*[]models.BatsmanScore, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketBatsmanScoreByTeamID, teamPublicID)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to query: ", err)
+		return nil, fmt.Errorf("Failed to query: %w", err)
 	}
 	var batsmanScore []models.BatsmanScore
 
@@ -44,7 +44,7 @@ func (q *Queries) GetCricketBatsmanScoreByTeamID(ctx context.Context, teamPublic
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			return nil, fmt.Errorf("Failed to scan the query: ", err)
+			return nil, fmt.Errorf("Failed to scan the query: %w", err)
 		}
 	}
 
@@ -60,7 +60,7 @@ const getCricketBowlerScoreByTeamID = `
 func (q *Queries) GetCricketBowlerScoreByTeamID(ctx context.Context, teamPublicID uuid.UUID) (*[]models.BowlerScore, error) {
 	rows, err := q.db.QueryContext(ctx, getCricketBowlerScoreByTeamID, teamPublicID)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to query: ", err)
+		return nil, fmt.Errorf("Failed to query: %w", err)
 	}
 	var bowlerScore []models.BowlerScore
 
@@ -83,7 +83,7 @@ func (q *Queries) GetCricketBowlerScoreByTeamID(ctx context.Context, teamPublicI
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
-			return nil, fmt.Errorf("Failed to scan the query: ", err)
+			return nil, fmt.Errorf("Failed to scan the query: %w", err)
 		}
 	}
 
@@ -483,8 +483,8 @@ func (q *Queries) GetCricketCurrentInning(ctx context.Context, matchPublicID uui
 		&i.Overs,
 		&i.RunRate,
 		&i.TargetRunRate,
-		&i.IsInningCompleted,
 		&i.FollowOn,
+		&i.IsInningCompleted,
 		&i.Declared,
 		&i.InningStatus,
 	)

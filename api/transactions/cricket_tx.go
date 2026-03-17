@@ -34,7 +34,7 @@ func (store *SQLStore) AddCricketTossTx(ctx context.Context, matchPublicID uuid.
 		if tossDescision == "batting" {
 			teamID = response.TossWin
 		} else {
-			if match.HomeTeamID != response.TossWin {
+			if match.HomeTeamID == response.TossWin {
 				teamID = match.AwayTeamID
 			} else {
 				teamID = match.HomeTeamID
@@ -114,7 +114,7 @@ func (store *SQLStore) AddCricketBlowerTx(ctx context.Context,
 			MatchPublicID:  matchPublicID,
 			TeamPublicID:   teamPublicID,
 			BowlerPublicID: bowlerPublicID,
-			InningNumber:   0,
+			InningNumber:   inningNumber,
 			BallNumber:     0,
 			Runs:           0,
 			Wickets:        0,
@@ -176,7 +176,7 @@ func (store *SQLStore) UpdateWideRunsTx(ctx context.Context, matchPublicID, bowl
 		// Create user
 		batsmanScore, bowlerScore, inningScore, err = q.UpdateWideRuns(ctx, matchPublicID, battingTeamPublicID, bowlerPublicID, runsScored, inningNumber)
 		if err != nil {
-			return fmt.Errorf("Failed to update wide runs: ", err)
+			return fmt.Errorf("Failed to update wide runs: %w", err)
 		}
 
 		if bowlerScore.BallNumber%6 == 0 && runsScored%2 == 0 {
@@ -365,12 +365,12 @@ func (store *SQLStore) AddCricketSquadTx(ctx context.Context, playerData []map[s
 			playerPublicID, err := uuid.Parse(player["public_id"].(string))
 			if err != nil {
 				store.logger.Error("Invalid UUID format", err)
-				return fmt.Errorf("Invalid UUID format: ", err)
+				return fmt.Errorf("Invalid UUID format: %w", err)
 			}
 
 			squad, err := q.AddCricketSquad(ctx, matchPublicID, teamPublicID, playerPublicID, player["position"].(string), player["on_bench"].(bool), false)
 			if err != nil {
-				return fmt.Errorf("Failed to add cricket squad: ", err)
+				return fmt.Errorf("Failed to add cricket squad: %w", err)
 			}
 
 			cricketSquad = append(cricketSquad, map[string]interface{}{

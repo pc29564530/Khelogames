@@ -46,7 +46,7 @@ func (q *Queries) UpdateCricketInningsStatus(ctx context.Context, matchPublicID,
 		&i.InningStatus,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to scan: ", err)
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 
 	return &i, nil
@@ -1146,7 +1146,7 @@ func (q *Queries) AddCricketWicket(ctx context.Context, matchPublicID, teamPubli
 		if err == sql.ErrNoRows {
 			return nil, nil, nil, nil, nil, nil
 		}
-		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to scan query: ", err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to scan query: %w", err)
 	}
 	return &outBatsman, &notOutBatsman, &bowler, &inningScore, &wickets, nil
 }
@@ -1374,7 +1374,7 @@ func (q *Queries) AddCricketWicketWithBowlType(ctx context.Context, matchPublicI
 const updateInningEndStatus = `
 WITH update_inning_number AS (
 	UPDATE cricket_score
-	SET is_inning_completed = true
+	SET is_inning_completed = true,
 		inning_status = 'completed'
 	WHERE match_id = $1 AND team_id = $2 AND inning_number= $3
 	RETURNING *
@@ -1899,7 +1899,7 @@ func (q *Queries) GetCurrentBatsman(ctx context.Context, matchPublicID, teamPubl
 
 	err := json.Unmarshal(jsonBytes, &currentBatsman)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal bowler: ", err)
+		return nil, fmt.Errorf("Failed to unmarshal bowler: %w", err)
 	}
 
 	return currentBatsman, nil
@@ -1963,7 +1963,7 @@ func (q *Queries) GetCurrentBowler(ctx context.Context, matchPublicID, teamPubli
 
 	err := json.Unmarshal(jsonBytes, &currentBowler)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal bowler: ", err)
+		return nil, fmt.Errorf("Failed to unmarshal bowler: %w", err)
 	}
 
 	return currentBowler, nil

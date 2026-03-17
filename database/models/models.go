@@ -65,8 +65,8 @@ type CricketScore struct {
 	Overs             int       `json:"overs"`
 	RunRate           string    `json:"run_rate"`
 	TargetRunRate     string    `json:"target_run_rate"`
-	IsInningCompleted bool      `json:"is_inning_completed"`
 	FollowOn          bool      `json:"follow_on"`
+	IsInningCompleted bool      `json:"is_inning_completed"`
 	Declared          bool      `json:"declared"`
 	InningStatus      string    `json:"inning_status"`
 }

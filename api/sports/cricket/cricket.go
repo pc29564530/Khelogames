@@ -114,6 +114,20 @@ func (s *CricketServer) AddCricketScoreFunc(ctx *gin.Context) {
 		return
 	}
 
+	// Check for duplicate inning creation
+	existingInning, _ := s.store.GetCricketScoreByInning(ctx, matchPublicID, teamPublicID, req.InningNumber)
+	if existingInning != nil {
+		ctx.JSON(http.StatusConflict, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "DUPLICATE_INNING",
+				"message": "Inning already exists for this match, team, and inning number",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
 	arg := db.NewCricketScoreParams{
 		MatchPublicID:     matchPublicID,
 		TeamPublicID:      teamPublicID,
@@ -372,6 +386,17 @@ func (s *CricketServer) UpdateCricketEndInningsFunc(ctx *gin.Context) {
 			"request_id": ctx.GetString("request_id"),
 		})
 		return
+	}
+
+	// Check if match should be finished after ending the inning
+	matchData, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get match model: ", err)
+	} else if matchData != nil {
+		err = s.UpdateMatchStatusAndResult(ctx, inningResponse, matchData, matchData.ID)
+		if err != nil {
+			s.logger.Error("Failed to update match status and result: ", err)
+		}
 	}
 
 	batsmanPlayer, err := s.store.GetPlayerByID(ctx, int64(batsmanResponse.BatsmanID))
