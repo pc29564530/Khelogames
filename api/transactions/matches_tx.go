@@ -118,11 +118,15 @@ func (store *SQLStore) UpdateMatchStatusTx(ctx *gin.Context, matchPublicID uuid.
 		case "in_progress":
 			if gameID.Name == "football" {
 				if err := UpdateFootballStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
-					return fmt.Errorf("Failed to initialize the football score: ", err)
+					return fmt.Errorf("Failed to initialize the football score: %w", err)
 				}
 			} else if gameID.Name == "cricket" {
 				if err := UpdateCricketStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
-					return fmt.Errorf("Failed to initialize the cricket score: ", err)
+					return fmt.Errorf("Failed to initialize the cricket score: %w", err)
+				}
+			} else if gameID.Name == "badminton" {
+				if err := UpdateBadmintonStatusCode(ctx, updatedMatchData, gameID.ID, q, store); err != nil {
+					return fmt.Errorf("Failed to initialize the badminton score: %w", err)
 				}
 			}
 		}
@@ -172,7 +176,7 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData *models.Matc
 		if store.scoreBroadcaster != nil {
 			err := store.scoreBroadcaster.BroadcastTournamentEvent(ct, "ADD_FOOTBALL_SCORE", awayScore)
 			if err != nil {
-				store.logger.Error("Failed to broadcast cricket event: ", err)
+				store.logger.Error("Failed to broadcast football event: ", err)
 			}
 		}
 
@@ -204,7 +208,7 @@ func UpdateFootballStatusCode(ctx context.Context, updatedMatchData *models.Matc
 		if store.scoreBroadcaster != nil {
 			err := store.scoreBroadcaster.BroadcastTournamentEvent(ct, "ADD_FOOTBALL_SCORE", homeScore)
 			if err != nil {
-				store.logger.Error("Failed to broadcast cricket event: ", err)
+				store.logger.Error("Failed to broadcast football event: ", err)
 			}
 		}
 
@@ -357,6 +361,46 @@ func UpdateCricketStatusCode(ctx context.Context, updatedMatchData *models.Match
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+func UpdateBadmintonStatusCode(ctx context.Context, updatedMatchData *models.Match, gameID int64, q *database.Queries, store *SQLStore) error {
+	var ct *gin.Context
+
+	if updatedMatchData.StatusCode == "in_progress" {
+
+		//update location locked
+		_, err := q.UpdateMatchLocationLocked(ctx, updatedMatchData.ID)
+		if err != nil {
+			store.logger.Error("Failed to update match location locked: ", err)
+			return err
+		}
+
+		badmintonScore, err := q.AddBadmintonScore(ctx, int32(updatedMatchData.ID), 1)
+		if err != nil {
+			store.logger.Error("unable to add the badminton match score: ", err)
+			return err
+		}
+
+		score := map[string]interface{}{
+			"public_id":       badmintonScore.PublicID,
+			"match_public_id": updatedMatchData.PublicID,
+			"set_number":      badmintonScore.SetNumber,
+			"home_score":      badmintonScore.HomeScore,
+			"away_score":      badmintonScore.AwayScore,
+			"set_status":      badmintonScore.SetStatus,
+			"created_at":      badmintonScore.CreatedAt,
+		}
+
+		if store.scoreBroadcaster != nil {
+			err := store.scoreBroadcaster.BroadcastTournamentEvent(ct, "ADD_BADMINTON_SCORE", score)
+			if err != nil {
+				store.logger.Error("Failed to broadcast badminton event: ", err)
+			}
+		}
+	} else if updatedMatchData.StatusCode == "finished" {
+		//Will create functionality
 	}
 	return nil
 }

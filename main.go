@@ -21,6 +21,7 @@ import (
 
 	"khelogames/api/messenger"
 	"khelogames/api/server"
+	"khelogames/api/sports/badminton"
 	"khelogames/api/sports/cricket"
 	"khelogames/api/sports/football"
 	"khelogames/api/tournaments"
@@ -97,6 +98,7 @@ func main() {
 	scoredBroadCast := make(chan []byte)
 
 	cricketServer := cricket.NewCricketServer(store, log, nil, txStore)
+	badmintonServer := badminton.NewBadmintonServer(store, log, nil, txStore)
 
 	// Initialize HTTP servers and handlers
 	authServer := auth.NewAuthServer(store, log, tokenMaker, config, txStore)
@@ -114,6 +116,7 @@ func main() {
 	tournamentServer.SetScoreBroadcaster(hub)
 	cricketServer.SetScoreBroadcaster(hub)
 	footballServer.SetScoreBroadcaster(hub)
+	badmintonServer.SetScoreBroadcaster(hub)
 	txStore.SetScoreBroadcaster(hub)
 
 	log.Info("Broadcasters initialized for cricket, football, tournament, and messenger")
@@ -135,6 +138,7 @@ func main() {
 		tournamentServer,
 		footballServer,
 		cricketServer,
+		badmintonServer,
 		teamsServer,
 		messengerServer,
 		playerServer,

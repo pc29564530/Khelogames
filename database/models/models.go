@@ -705,3 +705,14 @@ type MatchUserRoles struct {
 //     UNIQUE (match_id, user_id, role),
 //     UNIQUE (public_id)
 // );
+
+type BadmintonScore struct {
+	ID        int64     `json:"id"`
+	PublicID  uuid.UUID `json:"public_id"`
+	MatchID   int32     `json:"match_id"`
+	SetNumber int       `json:"set_number"`
+	HomeScore int       `json:"home_score"`
+	AwayScore int       `json:"away_score"`
+	SetStatus string    `json:"set_status"`
+	CreatedAt time.Time `json:"created_at"`
+}

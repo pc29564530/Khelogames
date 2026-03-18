@@ -8,6 +8,7 @@ import (
 	"khelogames/api/messenger"
 	"khelogames/api/players"
 	"khelogames/api/sports"
+	"khelogames/api/sports/badminton"
 	"khelogames/api/sports/cricket"
 	"khelogames/api/sports/football"
 	"khelogames/api/teams"
@@ -109,9 +110,9 @@ func NewServer(config util.Config,
 	authServer *auth.AuthServer,
 	handlersServer *handlers.HandlersServer,
 	tournamentServer *tournaments.TournamentServer,
-
 	footballServer *football.FootballServer,
 	cricketServer *cricket.CricketServer,
+	badmintonServer *badminton.BadmintonServer,
 	teamsServer *teams.TeamsServer,
 	messageServer *messenger.MessageServer,
 	playersServer *players.PlayerServer,
@@ -367,6 +368,10 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getLiveMatches", handlersServer.GetLiveMatchesFunc)
 	sportRouter.GET("get-trending-matches", handlersServer.GetTrendingMatchesFunc)
 	sportRouter.GET("/getTopPerformer", sportsServer.GetTopPerformerHandler)
+
+	//Badminton
+	sportRouter.GET("/get-badminton-score", badmintonServer.GetBadmintonScoreFunc)
+	sportRouter.POST("/update-badminton-score", badmintonServer.UpdateBadmintonScoreFunc)
 
 	server.router = router
 	return server, nil
