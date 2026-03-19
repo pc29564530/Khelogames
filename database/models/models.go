@@ -322,8 +322,8 @@ type Player struct {
 	Name      string    `json:"name" db:"name"`
 	Slug      string    `json:"slug" db:"slug"`
 	ShortName string    `json:"short_name" db:"short_name"`
-	MediaUrl  string    `json:"media_url" db:"media_url"`
-	Positions string    `json:"positions" db:"positions"`
+	MediaUrl  *string   `json:"media_url" db:"media_url"`
+	Positions *string   `json:"positions" db:"positions"`
 	Country   string    `json:"country" db:"country"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`

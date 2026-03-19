@@ -6,6 +6,7 @@ import (
 	"khelogames/core/token"
 	"khelogames/database"
 	"khelogames/database/models"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/uber/h3-go/v4"
@@ -18,6 +19,7 @@ func (store *SQLStore) CreateTeamsTx(ctx context.Context, authPayload *token.Pay
 	gameID int32,
 	city, state, country string,
 	latitude, longitude float64,
+	player []interface{},
 ) (*models.Team, error) {
 	var team *models.Team
 
@@ -81,6 +83,22 @@ func (store *SQLStore) CreateTeamsTx(ctx context.Context, authPayload *token.Pay
 		})
 		if err != nil {
 			return err
+		}
+
+		for _, playerPublicID := range player {
+			seconds := int32(time.Now().UTC().Unix())
+			var leaveDate *int32
+			argPlayer := database.AddTeamPlayersParams{
+				TeamPublicID:   team.PublicID,
+				PlayerPublicID: playerPublicID.(uuid.UUID),
+				JoinDate:       seconds,
+				LeaveDate:      leaveDate,
+			}
+			_, err := q.AddTeamPlayers(ctx, argPlayer)
+			if err != nil {
+				store.logger.Errorf("Failed to add player: ", err)
+				return err
+			}
 		}
 
 		return err

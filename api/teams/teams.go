@@ -14,24 +14,24 @@ import (
 )
 
 type addTeamsRequest struct {
-	Name        string `json:"name" binding:"required,min=3,max=100"`
-	MediaURL    string `json:"media_url" binding:"omitempty"`
-	Gender      string `json:"gender" binding:"required,oneof=male female mixed"`
-	National    bool   `json:"national"`
-	Country     string `json:"country" binding:"required,min=2,max=100"`
-	Type        string `json:"type" binding:"required,min=2,max=50"`
-	PlayerCount int    `json:"player_count" binding:"omitempty,min=0"`
-	GameID      int32  `json:"game_id" binding:"required,min=1"`
-	Latitude    string `json:"latitude" binding:"omitempty"`
-	Longitude   string `json:"longitude" binding:"omitempty"`
-	City        string `json:"city" binding:"required,min=2,max=100"`
-	State       string `json:"state" binding:"required,min=2,max=100"`
+	Name        string   `json:"name" binding:"required,min=3,max=100"`
+	MediaURL    string   `json:"media_url" binding:"omitempty"`
+	Gender      string   `json:"gender" binding:"required,oneof=male female mixed"`
+	National    bool     `json:"national"`
+	Country     string   `json:"country" binding:"required,min=2,max=100"`
+	Type        string   `json:"type" binding:"required,min=2,max=50"`
+	PlayerCount int      `json:"player_count" binding:"omitempty,min=0"`
+	GameID      int32    `json:"game_id" binding:"required,min=1"`
+	Latitude    string   `json:"latitude" binding:"omitempty"`
+	Longitude   string   `json:"longitude" binding:"omitempty"`
+	City        string   `json:"city" binding:"required,min=2,max=100"`
+	State       string   `json:"state" binding:"required,min=2,max=100"`
+	Player      []string `json:"player"`
 }
 
 func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 	var req addTeamsRequest
 	fieldErrors := make(map[string]string)
-
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		fieldErrors = errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
@@ -70,6 +70,17 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 		genderChar = "F"
 	}
 
+	var player []interface{}
+	for _, p := range req.Player {
+		pp, err := uuid.Parse(p)
+		if err != nil {
+			s.logger.Error("Failed to parse player_public_id: ", err)
+			fieldErrors["player_public_id"] = "Invalid UUID format"
+		}
+
+		player = append(player, pp)
+	}
+
 	team, err := s.txStore.CreateTeamsTx(
 		ctx,
 		authPayload,
@@ -87,6 +98,7 @@ func (s *TeamsServer) AddTeam(ctx *gin.Context) {
 		req.Country,
 		latitude,
 		longitude,
+		player,
 	)
 
 	if err != nil {
