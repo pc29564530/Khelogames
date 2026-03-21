@@ -501,6 +501,7 @@ func (q *Queries) UpdateMatchResult(ctx context.Context, matchID, resultID int32
 		&i.SubStatus,
 		&i.LocationID,
 		&i.LocationLocked,
+		&i.GameID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

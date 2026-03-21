@@ -52,7 +52,7 @@ func (s *BadmintonServer) UpdateBadmintonScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	score, err := s.store.UpdateBadmintonScore(ctx, matchPublicID, teamPublicID, req.SetNumber)
+	matchResult, setScore, err := s.txStore.UpdateBadmintonScoreTx(ctx, matchPublicID, teamPublicID, req.SetNumber)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -64,9 +64,11 @@ func (s *BadmintonServer) UpdateBadmintonScoreFunc(ctx *gin.Context) {
 		})
 		return
 	}
+
 	ctx.JSON(http.StatusAccepted, gin.H{
-		"success": true,
-		"data":    score,
+		"success":      true,
+		"data":         setScore,
+		"match_result": matchResult,
 	})
 }
 
@@ -96,7 +98,7 @@ func (s *BadmintonServer) GetBadmintonScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	score, err := s.store.GetBadmintonMatchSetScore(ctx, matchPublicID)
+	score, err := s.store.GetBadmintonMatchSetsScore(ctx, matchPublicID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
