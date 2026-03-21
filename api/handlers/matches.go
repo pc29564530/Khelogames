@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	db "khelogames/database"
+	"khelogames/database/models"
 	errorhandler "khelogames/error_handler"
 	"khelogames/util"
 	"net/http"
@@ -8,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/uber/h3-go/v4"
+	h3 "github.com/uber/h3-go/v4"
 )
 
 func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
@@ -339,6 +341,91 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 		})
 		return
 	}
+	// Fetch typed match model for score lookups
+	matchData, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
+	if err != nil || matchData == nil {
+		s.logger.Error("Failed to get match model by public id: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get match model",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	if sport == "football" {
+		homeTeamArg := db.GetFootballScoreParams{MatchID: matchData.ID, TeamID: int64(matchData.HomeTeamID)}
+		awayTeamArg := db.GetFootballScoreParams{MatchID: matchData.ID, TeamID: int64(matchData.AwayTeamID)}
+		homeScore, err := s.store.GetFootballScore(ctx, homeTeamArg)
+		if err != nil {
+			s.logger.Error("Failed to get football match score for home team:", err)
+		}
+		awayScore, err := s.store.GetFootballScore(ctx, awayTeamArg)
+		if err != nil {
+			s.logger.Error("Failed to get football match score for away team: ", err)
+		}
+
+		var emptyScore models.FootballScore
+		var hScore map[string]interface{}
+		if homeScore != emptyScore {
+			hScore = map[string]interface{}{
+				"public_id":        homeScore.PublicID,
+				"first_half":       homeScore.FirstHalf,
+				"second_half":      homeScore.SecondHalf,
+				"goals":            homeScore.Goals,
+				"penalty_shootout": homeScore.PenaltyShootOut,
+			}
+		}
+		match["homeScore"] = hScore
+		var aScore map[string]interface{}
+		if awayScore != emptyScore {
+			aScore = map[string]interface{}{
+				"public_id":        awayScore.PublicID,
+				"first_half":       awayScore.FirstHalf,
+				"second_half":      awayScore.SecondHalf,
+				"goals":            awayScore.Goals,
+				"penalty_shootout": awayScore.PenaltyShootOut,
+			}
+		}
+		match["awayScore"] = aScore
+	} else if sport == "cricket" {
+		matchScore, err := s.store.GetCricketScores(ctx, int32(matchData.ID))
+		if err != nil {
+			s.logger.Error("Failed to get cricket scores: ", err)
+		} else {
+			var homeScore []models.CricketScore
+			var awayScore []models.CricketScore
+			for _, score := range matchScore {
+				if matchData.HomeTeamID == score.TeamID {
+					homeScore = append(homeScore, score)
+				} else {
+					awayScore = append(awayScore, score)
+				}
+			}
+			match["homeScore"] = homeScore
+			match["awayScore"] = awayScore
+		}
+	} else if sport == "badminton" {
+		score, err := s.store.GetBadmintonMatchScore(ctx, matchData.PublicID)
+		if err != nil {
+			s.logger.Error("Failed to get badminton match score:", err)
+		} else if score != nil {
+			var hScore int
+			var aScore int
+			if score.HomeSetsWon != nil {
+				hScore = *score.HomeSetsWon
+			}
+			if score.AwaySetsWon != nil {
+				aScore = *score.AwaySetsWon
+			}
+			match["homeScore"] = hScore
+			match["awayScore"] = aScore
+		}
+	}
+
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"success": true,
 		"data":    match,

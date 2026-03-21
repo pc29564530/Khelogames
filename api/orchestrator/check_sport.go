@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"khelogames/api/shared"
+	"khelogames/api/sports/badminton"
 	"khelogames/api/sports/cricket"
 	"khelogames/api/sports/football"
 	"khelogames/api/transactions"
@@ -25,11 +26,14 @@ func NewCheckSport(store *db.Store, logger *logger.Logger, scoreBroadcaster shar
 func (s *CheckSportServer) CheckSport(sports string, matches []db.GetMatchByIDRow, tournamentPublicID uuid.UUID) []map[string]interface{} {
 	footballServer := football.NewFootballServer(s.store, s.logger, s.scoreBroadcaster, s.txStore)
 	cricketServer := cricket.NewCricketServer(s.store, s.logger, s.scoreBroadcaster, s.txStore)
+	badmintonServer := badminton.NewBadmintonServer(s.store, s.logger, s.scoreBroadcaster, s.txStore)
 	switch sports {
 	case "cricket":
 		return cricketServer.GetCricketScore(matches, tournamentPublicID)
 	case "football":
 		return footballServer.GetFootballScore(matches, tournamentPublicID)
+	case "badminton":
+		return badmintonServer.GetBadmintonScore(matches, tournamentPublicID)
 	default:
 		s.logger.Error("Unsupported sport type:", sports)
 		return nil

@@ -370,7 +370,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getTopPerformer", sportsServer.GetTopPerformerHandler)
 
 	//Badminton
-	sportRouter.GET("/get-badminton-score", badmintonServer.GetBadmintonScoreFunc)
+	sportRouter.GET("/get-badminton-set-score/:match_public_id", badmintonServer.GetBadmintonScoreFunc)
 	sportRouter.POST("/update-badminton-score", badmintonServer.UpdateBadmintonScoreFunc)
 
 	server.router = router
