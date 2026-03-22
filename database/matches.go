@@ -1064,6 +1064,7 @@ func (q *Queries) UpdateMatchLocation(ctx context.Context, eventPublicID uuid.UU
 		&i.SubStatus,
 		&i.LocationID,
 		&i.LocationLocked,
+		&i.GameID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1102,6 +1103,7 @@ func (q *Queries) UpdateMatchLocationLocked(ctx context.Context, matchID int64) 
 		&i.SubStatus,
 		&i.LocationID,
 		&i.LocationLocked,
+		&i.GameID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

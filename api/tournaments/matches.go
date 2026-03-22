@@ -438,9 +438,9 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
+	// authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
 
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
+	_, err = s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
 	if err != nil {
 		s.logger.Error("Failed to get tournament by match id: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -448,33 +448,6 @@ func (s *TournamentServer) UpdateMatchStatusFunc(ctx *gin.Context) {
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
 				"message": "Failed to get match",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
-	if err != nil {
-		s.logger.Error("Failed to get user tournament role: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get user role",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	if !isExists {
-		s.logger.Error("User does not have permission for this tournament")
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "FORBIDDEN",
-				"message": "User does not have permission to update this match",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})

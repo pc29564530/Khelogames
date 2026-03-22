@@ -24,6 +24,12 @@ func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, t
 			return err
 		}
 
+		team, err := q.GetTeamByPublicID(ctx, teamPublicID)
+		if err != nil {
+			store.logger.Error("failed to get team: ", err)
+			return err
+		}
+
 		// Increment score for the scoring team
 		updatedScore, err := q.UpdateBadmintonScore(ctx, matchPublicID, teamPublicID, setNumber)
 		if err != nil {
@@ -31,53 +37,68 @@ func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, t
 			return err
 		}
 
+		if updatedScore != nil {
+			pointNumber, err := q.GetBadmintonMaxPointNumber(ctx, updatedScore.MatchID, setNumber)
+			if err != nil {
+				store.logger.Error("failed to get badminton point number: ", err)
+				return err
+			}
+			_, err = q.AddBadmintonSetsPoints(ctx, updatedScore.MatchID, setNumber, int32(team.ID), updatedScore.HomeScore, updatedScore.AwayScore, *pointNumber)
+			if err != nil {
+				store.logger.Error("failed to add badminton sets points: ", err)
+				return err
+			}
+		}
+
 		// Check if the current set is finished
-		setFinished := isBadmintonSetFinished(updatedScore.HomeScore, updatedScore.AwayScore)
-		if !setFinished {
-			// Set still in progress — build response and return
-			badmintonSetScore = buildBadmintonSetScore(updatedScore, matchPublicID)
-			return nil
-		}
+		if updatedScore.HomeScore != 0 && updatedScore.AwayScore != 0 {
+			setFinished := isBadmintonSetFinished(updatedScore.HomeScore, updatedScore.AwayScore)
+			if !setFinished {
+				// Set still in progress — build response and return
+				badmintonSetScore = buildBadmintonSetScore(updatedScore, matchPublicID)
+				return nil
+			}
 
-		// Mark the current set as finished
-		_, err = q.UpdateBadmintonSetStatus(ctx, matchPublicID, setNumber, "finished")
-		if err != nil {
-			store.logger.Error("failed to update set status: ", err)
-			return err
-		}
+			// Mark the current set as finished
+			_, err = q.UpdateBadmintonSetStatus(ctx, matchPublicID, setNumber, "finished")
+			if err != nil {
+				store.logger.Error("failed to update badminton set status: ", err)
+				return err
+			}
 
-		// Get overall sets won by each side
-		matchScore, err := q.GetBadmintonMatchScore(ctx, matchPublicID)
-		if err != nil {
-			store.logger.Error("failed to get match score: ", err)
-			return err
-		}
+			// Get overall sets won by each side
+			matchScore, err := q.GetBadmintonMatchScore(ctx, matchPublicID)
+			if err != nil {
+				store.logger.Error("failed to get match score: ", err)
+				return err
+			}
 
-		homeSetsWon := derefInt(matchScore.HomeSetsWon)
-		awaySetsWon := derefInt(matchScore.AwaySetsWon)
+			homeSetsWon := derefInt(matchScore.HomeSetsWon)
+			awaySetsWon := derefInt(matchScore.AwaySetsWon)
 
-		// Determine if match is decided (best of 3)
-		if homeSetsWon >= badmintonSetsToWin || awaySetsWon >= badmintonSetsToWin {
-			// Match is over — determine winner
-			var winnerTeamID int32
-			if homeSetsWon > awaySetsWon {
-				winnerTeamID = match.HomeTeamID
+			// Determine if match is decided (best of 3)
+			if homeSetsWon >= badmintonSetsToWin || awaySetsWon >= badmintonSetsToWin {
+				// Match is over — determine winner
+				var winnerTeamID int32
+				if homeSetsWon > awaySetsWon {
+					winnerTeamID = match.HomeTeamID
+				} else {
+					winnerTeamID = match.AwayTeamID
+				}
+
+				matchResult, err = q.UpdateMatchResult(ctx, int32(match.ID), winnerTeamID)
+				if err != nil {
+					store.logger.Error("failed to update match result: ", err)
+					return err
+				}
 			} else {
-				winnerTeamID = match.AwayTeamID
-			}
-
-			matchResult, err = q.UpdateMatchResult(ctx, int32(match.ID), winnerTeamID)
-			if err != nil {
-				store.logger.Error("failed to update match result: ", err)
-				return err
-			}
-		} else {
-			// Match continues — create next set
-			nextSetNumber := setNumber + 1
-			_, err = q.AddBadmintonScore(ctx, int32(match.ID), nextSetNumber)
-			if err != nil {
-				store.logger.Error("failed to add next set: ", err)
-				return err
+				// Match continues — create next set
+				nextSetNumber := setNumber + 1
+				_, err = q.AddBadmintonScore(ctx, int32(match.ID), nextSetNumber)
+				if err != nil {
+					store.logger.Error("failed to add next set: ", err)
+					return err
+				}
 			}
 		}
 

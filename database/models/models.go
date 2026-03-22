@@ -716,3 +716,15 @@ type BadmintonScore struct {
 	SetStatus string    `json:"set_status"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type BadmintonSetsPoints struct {
+	ID            int64     `json:"id"`
+	PublicID      uuid.UUID `json:"public_id"`
+	MatchID       int32     `json:"match_id"`
+	SetNumber     int       `json:"set_number"`
+	ScoringTeamID int32     `json:"scoring_team_id"`
+	HomeScore     int       `json:"home_score"`
+	AwayScore     int       `json:"away_score"`
+	PointNumber   int       `json:"point_number"`
+	CreatedAt     time.Time `json:"created_at"`
+}

@@ -77,8 +77,7 @@ func (s *BadmintonServer) GetBadmintonScoreFunc(ctx *gin.Context) {
 		MatchPublicID string `uri:"match_public_id"`
 	}
 
-	err := ctx.ShouldBindUri(&req)
-	if err != nil {
+	if err := ctx.ShouldBindUri(&req); err != nil {
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
@@ -100,20 +99,54 @@ func (s *BadmintonServer) GetBadmintonScoreFunc(ctx *gin.Context) {
 
 	score, err := s.store.GetBadmintonMatchSetsScore(ctx, matchPublicID)
 	if err != nil {
+		s.logger.Error("Unable to get sets score: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
-				"message": "Failed to update badminton score",
+				"message": "Failed to fetch badminton score",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{
+	var sets []map[string]interface{}
+
+	for _, item := range score {
+		points, err := s.store.GetBadmintonSetsPoints(ctx, item.MatchID, item.SetNumber)
+		if err != nil {
+			s.logger.Error("Unable to get sets points: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to fetch set points",
+				},
+				"request_id": ctx.GetString("request_id"),
+			})
+			return
+		}
+
+		set := map[string]interface{}{
+			"set_number": item.SetNumber,
+			"home_score": item.HomeScore,
+			"away_score": item.AwayScore,
+			"set_status": item.SetStatus,
+			"points":     points,
+		}
+
+		sets = append(sets, set)
+	}
+
+	response := map[string]interface{}{
+		"match_public_id": matchPublicID,
+		"sets":            sets,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    score,
+		"data":    response,
 	})
 }
 
@@ -147,11 +180,13 @@ func (s *BadmintonServer) GetBadmintonScore(matches []database.GetMatchByIDRow, 
 
 		var hScore int
 		var aScore int
-		if score.HomeSetsWon != nil {
-			hScore = *score.HomeSetsWon
-		}
-		if score.AwaySetsWon != nil {
-			aScore = *score.AwaySetsWon
+		if score != nil {
+			if score.HomeSetsWon != nil {
+				hScore = *score.HomeSetsWon
+			}
+			if score.AwaySetsWon != nil {
+				aScore = *score.AwaySetsWon
+			}
 		}
 
 		game, err := s.store.GetGame(ctx, match.HomeGameID)
@@ -221,4 +256,50 @@ func (s *BadmintonServer) GetBadmintonScore(matches []database.GetMatchByIDRow, 
 	})
 
 	return matchDetail
+}
+
+func (s *BadmintonServer) GetBadmintonSetsScore(ctx *gin.Context) {
+	var req struct {
+		MatchPublicID string `uri:"match_public_id"`
+	}
+
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	score, err := s.store.GetBadmintonMatchSetsScore(ctx, matchPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get badminton match sets score: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update badminton score",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    score,
+	})
 }

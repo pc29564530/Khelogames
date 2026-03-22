@@ -423,6 +423,7 @@ func (q *Queries) UpdateMatchSchedule(ctx context.Context, matchPublicID uuid.UU
 		&i.SubStatus,
 		&i.LocationID,
 		&i.LocationLocked,
+		&i.GameID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -461,6 +462,7 @@ func (q *Queries) UpdateMatchStatus(ctx context.Context, matchPublicID uuid.UUID
 		&i.SubStatus,
 		&i.LocationID,
 		&i.LocationLocked,
+		&i.GameID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -542,6 +544,7 @@ func (q *Queries) UpdateMatchSubStatus(ctx context.Context, matchPublicID uuid.U
 		&i.SubStatus,
 		&i.LocationID,
 		&i.LocationLocked,
+		&i.GameID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
