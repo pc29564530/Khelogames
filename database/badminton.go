@@ -79,7 +79,7 @@ func (q *Queries) UpdateBadmintonScore(ctx context.Context, matchPublicID, teamP
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Failed to scan: ", err)
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &i, nil
 }
@@ -247,7 +247,7 @@ func (q *Queries) UpdateBadmintonSetStatus(ctx context.Context, matchPublicID uu
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Failed to scan: ", err)
+		return nil, fmt.Errorf("Failed to scan: %w", err)
 	}
 	return &i, nil
 }
@@ -291,9 +291,9 @@ func (q *Queries) AddBadmintonSetsPoints(ctx context.Context, matchID int32, set
 
 const getBadmintonLastSetsPoints = `
 	SELECT bsp.* FROM badminton_sets_points bsp
-	LEFT JOIN matches m AS m.id = bsp.match_id
-	LEFT JOIN teams t AS t.id = bsp.scoring_team_id
-	WHERE m.public_id = $1 AND t.public_id = $2 AND bsp.set_number $3;
+	LEFT JOIN matches m ON m.id = bsp.match_id
+	LEFT JOIN teams t ON t.id = bsp.scoring_team_id
+	WHERE m.public_id = $1 AND t.public_id = $2 AND bsp.set_number = $3;
 `
 
 func (q *Queries) GetBadmintonLastSetsPoints(ctx context.Context, matchPublicID, teamPublicID uuid.UUID, setNumber int) (*models.BadmintonSetsPoints, error) {
@@ -332,7 +332,7 @@ const getBadmintonSetsPoints = `
 	ORDER BY set_number;
 `
 
-func (q *Queries) GetBadmintonSetsPoints(ctx context.Context, matchID int32, setNumber int) (*[]map[string]interface{}, error) {
+func (q *Queries) GetBadmintonSetsPoints(ctx context.Context, matchID int32, setNumber int) ([]map[string]interface{}, error) {
 	rows, err := q.db.QueryContext(ctx, getBadmintonSetsPoints, matchID, setNumber)
 	if err != nil {
 		return nil, err
@@ -341,21 +341,19 @@ func (q *Queries) GetBadmintonSetsPoints(ctx context.Context, matchID int32, set
 	for rows.Next() {
 		var jsonByte []byte
 		var set map[string]interface{}
-		err := rows.Scan(&jsonByte)
 		if err := rows.Scan(&jsonByte); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil
 			}
 			return nil, err
 		}
-		err = json.Unmarshal(jsonByte, &set)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to unmarshal: ", err)
+		if err := json.Unmarshal(jsonByte, &set); err != nil {
+			return nil, fmt.Errorf("Failed to unmarshal: %w", err)
 		}
 		sets = append(sets, set)
 	}
 
-	return &sets, nil
+	return sets, nil
 }
 
 const getBadmintonMaxPointNumber = `
@@ -384,14 +382,14 @@ const getBadmintonSetsPointsByTeam = `
 	ORDER BY set_number;
 `
 
-func (q *Queries) GetBadmintonSetsPointsByTeam(ctx context.Context, matchID int32, setNumber int) (*[]models.BadmintonSetsPoints, error) {
-	rows, err := q.db.QueryContext(ctx, getBadmintonSetsPointsTeam, matchID, setNumber)
+func (q *Queries) GetBadmintonSetsPointsByTeam(ctx context.Context, matchID int32, setNumber int) ([]models.BadmintonSetsPoints, error) {
+	rows, err := q.db.QueryContext(ctx, getBadmintonSetsPointsByTeam, matchID, setNumber)
 	if err != nil {
 		return nil, err
 	}
-	var sets []models.BadmintonSetsPoint
+	var sets []models.BadmintonSetsPoints
 	for rows.Next() {
-		var set models.BadmintonSetsPoint
+		var set models.BadmintonSetsPoints
 		err := rows.Scan(
 			&set.ID,
 			&set.PublicID,
@@ -412,5 +410,5 @@ func (q *Queries) GetBadmintonSetsPointsByTeam(ctx context.Context, matchID int3
 		sets = append(sets, set)
 	}
 
-	return &sets, nil
+	return sets, nil
 }

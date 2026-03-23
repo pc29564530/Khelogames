@@ -324,70 +324,113 @@ func (s *BadmintonServer) GetBadmintonSetsPointsByTeamFunc(ctx *gin.Context) {
 			"success": false,
 			"error": gin.H{
 				"code":    "VALIDATION_ERROR",
-				"message": "Invalid UUID format",
+				"message": "Invalid match UUID format",
 			},
 			"request_id": ctx.GetString("request_id"),
 		})
 		return
 	}
 
-	matchScore, err := s.store.GetBadmintonMatchScore(ctx context.Context, matchPublicID)
+	teamPublicID, err := uuid.Parse(req.TeamPublicID)
 	if err != nil {
-
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid team UUID format",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
 	}
 
 	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
 	if err != nil {
-		
+		s.logger.Error("Failed to get match: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to fetch match",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
 	}
 
-	checkSetsNumber := matchScore.length
+	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get team: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to fetch team",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
 
-	var sets []map[string]string{}{}
+	matchScores, err := s.store.GetBadmintonMatchSetsScore(ctx, matchPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get badminton match sets score: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to fetch match sets score",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	var sets []map[string]interface{}
 	overAllStreak := 0
 	overAllLead := 0
 	overAllDeficit := 0
 	overAllPoints := 0
-	for _, it := range matchScore {
+
+	for _, it := range matchScores {
 		currentStreak := 0
 		maxStreak := 0
 		maxLead := 0
 		maxDeficit := 0
-		var teamWon int32
-		isTeamWon := false
 		setNumber := it.SetNumber
-		points, err := s.store.GetBadmintonSetsPointsByTeam(ctx, matchID, setNumber)
+
+		points, err := s.store.GetBadmintonSetsPointsByTeam(ctx, it.MatchID, setNumber)
 		if err != nil {
-			s.logger.Error("Failed to get badminton match sets score: ", err)
+			s.logger.Error("Failed to get badminton set points: ", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error": gin.H{
 					"code":    "INTERNAL_ERROR",
-					"message": "Failed to update badminton score",
+					"message": "Failed to fetch set points",
 				},
 				"request_id": ctx.GetString("request_id"),
 			})
 			return
 		}
 
+		var teamWon int32
 		if it.HomeScore > it.AwayScore {
 			teamWon = match.HomeTeamID
 		} else {
 			teamWon = match.AwayTeamID
 		}
-		if teamWon == team.ID {
-			isTeamWon = true
-		}
+		isTeamWon := teamWon == int32(team.ID)
 
-		if team.ID == match.HomeTeamID {
+		var pointWon int
+		if int32(team.ID) == match.HomeTeamID {
 			pointWon = it.HomeScore
 		} else {
 			pointWon = it.AwayScore
 		}
 
 		for _, point := range points {
-			//max point in row
-			if point.ScoringTeamID == team.ID {
+			if point.ScoringTeamID == int32(team.ID) {
 				currentStreak++
 				if currentStreak > maxStreak {
 					maxStreak = currentStreak
@@ -396,33 +439,28 @@ func (s *BadmintonServer) GetBadmintonSetsPointsByTeamFunc(ctx *gin.Context) {
 				currentStreak = 0
 			}
 
-			//max lead
-			if team.ID == match.HomeTeamID {
+			if int32(team.ID) == match.HomeTeamID {
 				lead := point.HomeScore - point.AwayScore
 				if lead > maxLead {
 					maxLead = lead
 				}
-			} else if team.ID == match.AwayTeamID {
-				lead := point.AwayScore - point.HomeScore
-				if lead > maxLead {
-					maxLead = lead
-				}
-			}
-
-			// Biggest Comeback
-			if team.ID == match.HomeTeamID {
 				deficit := point.AwayScore - point.HomeScore
 				if deficit > maxDeficit {
 					maxDeficit = deficit
 				}
-			} else if team.ID == match.AwayTeamID {
+			} else {
+				lead := point.AwayScore - point.HomeScore
+				if lead > maxLead {
+					maxLead = lead
+				}
 				deficit := point.HomeScore - point.AwayScore
 				if deficit > maxDeficit {
 					maxDeficit = deficit
 				}
 			}
 		}
-		overAllPoint = overAllPoint + pointWon
+
+		overAllPoints = overAllPoints + pointWon
 		if overAllLead < maxLead {
 			overAllLead = maxLead
 		}
@@ -432,20 +470,23 @@ func (s *BadmintonServer) GetBadmintonSetsPointsByTeamFunc(ctx *gin.Context) {
 		if overAllDeficit < maxDeficit {
 			overAllDeficit = maxDeficit
 		}
+
 		set := map[string]interface{}{
-			"point_won": pointWon
-			"max_streak": maxStreak,
-			"max_lead": maxLead,
+			"set_number":       setNumber,
+			"point_won":        pointWon,
+			"is_team_won":      isTeamWon,
+			"max_streak":       maxStreak,
+			"max_lead":         maxLead,
 			"biggest_comeback": maxDeficit,
 		}
 		sets = append(sets, set)
 	}
 
 	overall := map[string]interface{}{
-		"total_points_won": totalPointsWon,
-		"max_streak":       overallMaxStreak,
-		"max_lead":         overallMaxLead,
-		"biggest_comeback": overallMaxDeficit,
+		"total_points_won": overAllPoints,
+		"max_streak":       overAllStreak,
+		"max_lead":         overAllLead,
+		"biggest_comeback": overAllDeficit,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{

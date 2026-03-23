@@ -372,7 +372,7 @@ func NewServer(config util.Config,
 	//Badminton
 	sportRouter.GET("/get-badminton-sets-score/:match_public_id", badmintonServer.GetBadmintonScoreFunc)
 	sportRouter.POST("/update-badminton-score", badmintonServer.UpdateBadmintonScoreFunc)
-	sportRouter.GET("/get-badminton-match-team-stats", badmintonServer.GetBadmintonSetsPointsByTeamFunc)
+	sportRouter.GET("/get-badminton-match-team-stats/:match_public_id/:team_public_id", badmintonServer.GetBadmintonSetsPointsByTeamFunc)
 
 	server.router = router
 	return server, nil
