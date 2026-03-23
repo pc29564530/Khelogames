@@ -208,6 +208,7 @@ const listMatchesByLocationQuery = `
     ) AS cricket_away_scores ON true
     WHERE
         m.start_timestamp >= $1
+        AND m.start_timestamp < ($1 + 86400)
         AND nl.distance_km <= $5
         AND m.game_id = $6
     ORDER BY nl.distance_km ASC, m.start_timestamp ASC
@@ -424,6 +425,7 @@ const listMatchesQuery = `
         WHERE cs.match_id = m.id AND cs.team_id = at.id
     ) AS cricket_away_scores ON true
     WHERE m.start_timestamp >= $1
+    AND m.start_timestamp < ($1 + 86400)
     AND t.game_id = $2
     ORDER BY m.start_timestamp;
 `
