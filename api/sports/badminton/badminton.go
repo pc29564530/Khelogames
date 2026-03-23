@@ -303,3 +303,156 @@ func (s *BadmintonServer) GetBadmintonSetsScore(ctx *gin.Context) {
 		"data":    score,
 	})
 }
+
+func (s *BadmintonServer) GetBadmintonSetsPointsByTeamFunc(ctx *gin.Context) {
+	var req struct {
+		MatchPublicID string `uri:"match_public_id"`
+		TeamPublicID  string `uri:"team_public_id"`
+	}
+
+	err := ctx.ShouldBindUri(&req)
+	if err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	matchPublicID, err := uuid.Parse(req.MatchPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	matchScore, err := s.store.GetBadmintonMatchScore(ctx context.Context, matchPublicID)
+	if err != nil {
+
+	}
+
+	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
+	if err != nil {
+		
+	}
+
+	checkSetsNumber := matchScore.length
+
+	var sets []map[string]string{}{}
+	overAllStreak := 0
+	overAllLead := 0
+	overAllDeficit := 0
+	overAllPoints := 0
+	for _, it := range matchScore {
+		currentStreak := 0
+		maxStreak := 0
+		maxLead := 0
+		maxDeficit := 0
+		var teamWon int32
+		isTeamWon := false
+		setNumber := it.SetNumber
+		points, err := s.store.GetBadmintonSetsPointsByTeam(ctx, matchID, setNumber)
+		if err != nil {
+			s.logger.Error("Failed to get badminton match sets score: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to update badminton score",
+				},
+				"request_id": ctx.GetString("request_id"),
+			})
+			return
+		}
+
+		if it.HomeScore > it.AwayScore {
+			teamWon = match.HomeTeamID
+		} else {
+			teamWon = match.AwayTeamID
+		}
+		if teamWon == team.ID {
+			isTeamWon = true
+		}
+
+		if team.ID == match.HomeTeamID {
+			pointWon = it.HomeScore
+		} else {
+			pointWon = it.AwayScore
+		}
+
+		for _, point := range points {
+			//max point in row
+			if point.ScoringTeamID == team.ID {
+				currentStreak++
+				if currentStreak > maxStreak {
+					maxStreak = currentStreak
+				}
+			} else {
+				currentStreak = 0
+			}
+
+			//max lead
+			if team.ID == match.HomeTeamID {
+				lead := point.HomeScore - point.AwayScore
+				if lead > maxLead {
+					maxLead = lead
+				}
+			} else if team.ID == match.AwayTeamID {
+				lead := point.AwayScore - point.HomeScore
+				if lead > maxLead {
+					maxLead = lead
+				}
+			}
+
+			// Biggest Comeback
+			if team.ID == match.HomeTeamID {
+				deficit := point.AwayScore - point.HomeScore
+				if deficit > maxDeficit {
+					maxDeficit = deficit
+				}
+			} else if team.ID == match.AwayTeamID {
+				deficit := point.HomeScore - point.AwayScore
+				if deficit > maxDeficit {
+					maxDeficit = deficit
+				}
+			}
+		}
+		overAllPoint = overAllPoint + pointWon
+		if overAllLead < maxLead {
+			overAllLead = maxLead
+		}
+		if overAllStreak < maxStreak {
+			overAllStreak = maxStreak
+		}
+		if overAllDeficit < maxDeficit {
+			overAllDeficit = maxDeficit
+		}
+		set := map[string]interface{}{
+			"point_won": pointWon
+			"max_streak": maxStreak,
+			"max_lead": maxLead,
+			"biggest_comeback": maxDeficit,
+		}
+		sets = append(sets, set)
+	}
+
+	overall := map[string]interface{}{
+		"total_points_won": totalPointsWon,
+		"max_streak":       overallMaxStreak,
+		"max_lead":         overallMaxLead,
+		"biggest_comeback": overallMaxDeficit,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"sets":    sets,
+			"overall": overall,
+		},
+	})
+}

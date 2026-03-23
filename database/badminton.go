@@ -131,6 +131,7 @@ const getBadmintonMatchScore = `
         WHEN m.status_code = 'in_progress'
         THEN COUNT(*) FILTER (
             WHERE bs.home_score IS NOT NULL
+			AND bs.set_status = 'finished'
 			AND bs.away_score IS NOT NULL
             AND bs.home_score > bs.away_score
         )
@@ -148,6 +149,7 @@ const getBadmintonMatchScore = `
         WHEN m.status_code = 'in_progress'
         THEN COUNT(*) FILTER (
             WHERE bs.home_score IS NOT NULL
+			AND bs.set_status = 'finished'
 			AND bs.away_score IS NOT NULL
             AND bs.away_score > bs.home_score
         )
@@ -373,4 +375,42 @@ func (q *Queries) GetBadmintonMaxPointNumber(ctx context.Context, matchID int32,
 		return nil, err
 	}
 	return &nextPointNumber, nil
+}
+
+const getBadmintonSetsPointsByTeam = `
+	SELECT bsp.*
+	FROM badminton_sets_points bsp
+	WHERE match_id = $1 AND set_number = $2
+	ORDER BY set_number;
+`
+
+func (q *Queries) GetBadmintonSetsPointsByTeam(ctx context.Context, matchID int32, setNumber int) (*[]models.BadmintonSetsPoints, error) {
+	rows, err := q.db.QueryContext(ctx, getBadmintonSetsPointsTeam, matchID, setNumber)
+	if err != nil {
+		return nil, err
+	}
+	var sets []models.BadmintonSetsPoint
+	for rows.Next() {
+		var set models.BadmintonSetsPoint
+		err := rows.Scan(
+			&set.ID,
+			&set.PublicID,
+			&set.MatchID,
+			&set.SetNumber,
+			&set.ScoringTeamID,
+			&set.HomeScore,
+			&set.AwayScore,
+			&set.PointNumber,
+			&set.CreatedAt,
+		)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, err
+		}
+		sets = append(sets, set)
+	}
+
+	return &sets, nil
 }
