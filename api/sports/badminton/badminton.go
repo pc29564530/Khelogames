@@ -52,7 +52,7 @@ func (s *BadmintonServer) UpdateBadmintonScoreFunc(ctx *gin.Context) {
 		return
 	}
 
-	matchResult, setScore, err := s.txStore.UpdateBadmintonScoreTx(ctx, matchPublicID, teamPublicID, req.SetNumber)
+	matchResult, setScore, point, newSet, err := s.txStore.UpdateBadmintonScoreTx(ctx, matchPublicID, teamPublicID, req.SetNumber)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -65,10 +65,54 @@ func (s *BadmintonServer) UpdateBadmintonScoreFunc(ctx *gin.Context) {
 		return
 	}
 
+	matchScore, err := s.store.GetBadmintonMatchScore(ctx, matchPublicID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get badminton score",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	if s.scoreBroadcaster != nil {
+
+		payload := map[string]interface{}{
+			"type": "SCORE_UPDATED",
+			"data": map[string]interface{}{
+				"score":        setScore,
+				"match_result": matchResult,
+				"point":        point,
+				"new_set":      newSet,
+				"match_score": map[string]interface{}{
+					"match_public_id": matchPublicID,
+					"homeScore":       matchScore.HomeSetsWon,
+					"awayScore":       matchScore.AwaySetsWon,
+				},
+			},
+		}
+		err := s.scoreBroadcaster.BroadcastBadmintonEvent(ctx, "UPDATE_SCORE", payload)
+		if err != nil {
+			s.logger.Warn("Broadcast failed: ", err)
+		}
+	}
+
 	ctx.JSON(http.StatusAccepted, gin.H{
-		"success":      true,
-		"data":         setScore,
-		"match_result": matchResult,
+		"success": true,
+		"data": gin.H{
+			"score":        setScore,
+			"match_result": matchResult,
+			"point":        point,
+			"new_set":      newSet,
+			"match_score": map[string]interface{}{
+				"public_id": matchPublicID,
+				"homeScore": matchScore.HomeSetsWon,
+				"awayScore": matchScore.AwaySetsWon,
+			},
+		},
 	})
 }
 

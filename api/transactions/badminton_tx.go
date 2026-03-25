@@ -12,11 +12,16 @@ const badmintonSetsToWin = 2
 const badmintonMinScore = 21
 const badmintonMaxScore = 30
 
-func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, teamPublicID uuid.UUID, setNumber int) (*models.Match, map[string]interface{}, error) {
+func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, teamPublicID uuid.UUID, setNumber int) (*models.Match, map[string]interface{}, *models.BadmintonSetsPoints, *models.BadmintonScore, error) {
 	var badmintonSetScore map[string]interface{}
 	var matchResult *models.Match
+	var points *models.BadmintonSetsPoints
+	var newSet *models.BadmintonScore
 
 	err := store.execTx(ctx, func(q *database.Queries) error {
+
+		var updatedScore *models.BadmintonScore
+
 		// Get match to access internal IDs
 		match, err := q.GetMatchModelByPublicId(ctx, matchPublicID)
 		if err != nil {
@@ -31,7 +36,7 @@ func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, t
 		}
 
 		// Increment score for the scoring team
-		updatedScore, err := q.UpdateBadmintonScore(ctx, matchPublicID, teamPublicID, setNumber)
+		updatedScore, err = q.UpdateBadmintonScore(ctx, matchPublicID, teamPublicID, setNumber)
 		if err != nil {
 			store.logger.Error("failed to update badminton score: ", err)
 			return err
@@ -43,7 +48,9 @@ func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, t
 				store.logger.Error("failed to get badminton point number: ", err)
 				return err
 			}
-			_, err = q.AddBadmintonSetsPoints(ctx, updatedScore.MatchID, setNumber, int32(team.ID), updatedScore.HomeScore, updatedScore.AwayScore, *pointNumber)
+
+			// broadcaster to send response to frontend
+			points, err = q.AddBadmintonSetsPoints(ctx, updatedScore.MatchID, setNumber, int32(team.ID), updatedScore.HomeScore, updatedScore.AwayScore, *pointNumber)
 			if err != nil {
 				store.logger.Error("failed to add badminton sets points: ", err)
 				return err
@@ -51,16 +58,14 @@ func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, t
 		}
 
 		// Check if the current set is finished
-		if updatedScore.HomeScore != 0 && updatedScore.AwayScore != 0 {
-			setFinished := isBadmintonSetFinished(updatedScore.HomeScore, updatedScore.AwayScore)
-			if !setFinished {
-				// Set still in progress — build response and return
-				badmintonSetScore = buildBadmintonSetScore(updatedScore, matchPublicID)
-				return nil
-			}
-
+		setFinished := isBadmintonSetFinished(updatedScore.HomeScore, updatedScore.AwayScore)
+		if !setFinished {
+			// Set still in progress — build response and return
+			badmintonSetScore = buildBadmintonSetScore(updatedScore, matchPublicID)
+			return nil
+		} else {
 			// Mark the current set as finished
-			_, err = q.UpdateBadmintonSetStatus(ctx, matchPublicID, setNumber, "finished")
+			updatedScore, err = q.UpdateBadmintonSetStatus(ctx, matchPublicID, setNumber, "finished")
 			if err != nil {
 				store.logger.Error("failed to update badminton set status: ", err)
 				return err
@@ -94,7 +99,7 @@ func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, t
 			} else {
 				// Match continues — create next set
 				nextSetNumber := setNumber + 1
-				_, err = q.AddBadmintonScore(ctx, int32(match.ID), nextSetNumber)
+				newSet, err = q.AddBadmintonScore(ctx, int32(match.ID), nextSetNumber)
 				if err != nil {
 					store.logger.Error("failed to add next set: ", err)
 					return err
@@ -107,7 +112,7 @@ func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, t
 		return nil
 	})
 
-	return matchResult, badmintonSetScore, err
+	return matchResult, badmintonSetScore, points, newSet, err
 }
 
 // isBadmintonSetFinished checks if a badminton set is complete.

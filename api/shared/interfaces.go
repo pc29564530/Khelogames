@@ -9,6 +9,7 @@ import (
 
 // ScoreBroadcaster defines the interface for broadcasting different score updates
 type ScoreBroadcaster interface {
+	BroadcastBadmintonEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
 	BroadcastCricketEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
 	BroadcastFootballEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error
 	BroadcastTournamentEvent(ctx *gin.Context, eventType string, payload map[string]interface{}) error

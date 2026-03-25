@@ -26,6 +26,7 @@ type Hub struct {
 	CricketBroadcast    chan []byte
 	FootballBroadcast   chan []byte
 	TournamentBroadcast chan []byte
+	BadmintonBroadcast  chan []byte
 
 	logger             *logger.Logger
 	store              *database.Store
@@ -45,6 +46,7 @@ func NewHub(store *database.Store, logger *logger.Logger, upgrader websocket.Upg
 		CricketBroadcast:    make(chan []byte),
 		FootballBroadcast:   make(chan []byte),
 		TournamentBroadcast: make(chan []byte),
+		BadmintonBroadcast:  make(chan []byte),
 		logger:              logger,
 		store:               store,
 		upgrader:            upgrader,
@@ -59,6 +61,7 @@ func NewHub(store *database.Store, logger *logger.Logger, upgrader websocket.Upg
 	go h.StartCricketHub()
 	go h.StartFootballHub()
 	go h.StartTournamentHub()
+	go h.StartBadmintonHub()
 
 	h.logger.Info("Hub initialized successfully")
 	return h

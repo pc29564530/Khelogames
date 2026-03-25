@@ -151,3 +151,27 @@ func (s *Hub) StartFootballHub() {
 		}
 	}
 }
+
+func (s *Hub) StartBadmintonHub() {
+	s.logger.Info("StartBadmintonHub started")
+	defer func() {
+		if r := recover(); r != nil {
+			s.logger.Errorf("StartBadmintonHub panic: %v", r)
+		}
+	}()
+	for {
+		select {
+		case badminton := <-s.BadmintonBroadcast:
+			s.mu.Lock()
+			for client := range s.Clients {
+				err := client.Conn.WriteMessage(websocket.TextMessage, badminton)
+				if err != nil {
+					s.logger.Errorf("Failed to write badminton message to client: %v", err)
+					delete(s.Clients, client)
+					client.Conn.Close()
+				}
+			}
+			s.mu.Unlock()
+		}
+	}
+}
