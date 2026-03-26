@@ -94,7 +94,7 @@ func (s *BadmintonServer) UpdateBadmintonScoreFunc(ctx *gin.Context) {
 				},
 			},
 		}
-		err := s.scoreBroadcaster.BroadcastBadmintonEvent(ctx, "UPDATE_SCORE", payload)
+		err := s.scoreBroadcaster.BroadcastBadmintonEvent(ctx, "UPDATE_BADMINTON_SCORE", payload)
 		if err != nil {
 			s.logger.Warn("Broadcast failed: ", err)
 		}
