@@ -321,14 +321,19 @@ func (s *PlayerServer) GetMatchesByPlayerFunc(ctx *gin.Context) {
 			continue
 		}
 
-		// Get game_id from team (JSON unmarshal returns float64 for numbers)
-		gameID, ok := team["game_id"].(float64)
-		if !ok {
-			s.logger.Error("Missing game_id for team: ", teamPublicIDStr)
+		team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
+		if err != nil {
+			s.logger.Error("Failed to get team details: ", err)
 			continue
 		}
 
-		teamMatches, err := s.store.GetMatchesByTeam(ctx, teamPublicID, int64(gameID))
+		game, err := s.store.GetGame(ctx, int64(team.GameID))
+		if err != nil {
+			s.logger.Error("Failed to get game details: ", err)
+			continue
+		}
+
+		teamMatches, err := s.store.GetMatchesByTeam(ctx, teamPublicID, int64(game.ID))
 		if err != nil {
 			s.logger.Error("Failed to get matches by team: ", err)
 			continue
@@ -336,24 +341,30 @@ func (s *PlayerServer) GetMatchesByPlayerFunc(ctx *gin.Context) {
 
 		for _, match := range teamMatches {
 			// Deduplicate matches (player may appear in both home and away via different teams)
-			matchPublicID, _ := match["public_id"].(string)
-			if seen[matchPublicID] {
-				continue
-			}
-			seen[matchPublicID] = true
+			if game.Name == "badminton" {
+				matchPublicID, _ := match["public_id"].(string)
+				if seen[matchPublicID] {
+					continue
+				}
 
-			// Add badminton scores if available
-			if matchPublicID != "" {
-				matchUUID, err := uuid.Parse(matchPublicID)
-				if err == nil {
-					matchScore, err := s.store.GetBadmintonMatchScore(ctx, matchUUID)
-					if err == nil && matchScore != nil {
-						match["homeScore"] = matchScore.HomeSetsWon
-						match["awayScore"] = matchScore.AwaySetsWon
+				seen[matchPublicID] = true
+
+				// Add badminton scores if available
+				if matchPublicID != "" {
+					matchUUID, err := uuid.Parse(matchPublicID)
+					if err == nil {
+						matchScore, err := s.store.GetBadmintonMatchScore(ctx, matchUUID)
+						if err == nil && matchScore != nil {
+							match["homeScore"] = matchScore.HomeSetsWon
+							match["awayScore"] = matchScore.AwaySetsWon
+							resultFloat64, ok := match["result"].(float64)
+							if ok {
+								match["isWin"] = team.ID == int64(resultFloat64)
+							}
+						}
 					}
 				}
 			}
-
 			matches = append(matches, match)
 		}
 	}
