@@ -132,7 +132,7 @@ const getMatchesByTeam = `
 				'location_id', at.location_id
 			),
 
-			'awayScore', CASE 
+			'awayScore', CASE
 				WHEN g.name = 'football' THEN 
 					json_build_object(
 						'id', fs_away.id,
@@ -222,7 +222,8 @@ const getMatchesByTeam = `
 		WHERE cs.match_id = m.id AND cs.team_id = at.id
 	) AS cricket_away_scores ON true
 
-	WHERE (ht.public_id = $1 OR at.public_id = $1) AND t.game_id = $2;
+	WHERE (ht.public_id = $1 OR at.public_id = $1) AND t.game_id = $2
+	ORDER BY m.id DESC, m.start_timestamp DESC
 `
 
 func (q *Queries) GetMatchesByTeam(ctx context.Context, teamPublicID uuid.UUID, gameID int64) ([]map[string]interface{}, error) {
@@ -422,7 +423,8 @@ func (q *Queries) GetTeamByID(ctx context.Context, id int64) (*models.Team, erro
 const getTeamByPlayer = `
 SELECT JSON_BUILD_OBJECT(
 	'id', t.id, 'public_id', t.public_id, 'name', t.name, 'slug', t.slug, 'shortname',t.shortname,
-	'media_url', t.media_url, 'national', t.national, 'country', t.country, 'location_id', t.location_id, 'join_date', tp.join_date, 'leave_date', tp.leave_date
+	'media_url', t.media_url, 'national', t.national, 'country', t.country, 'type', t.type,
+	'game_id', t.game_id, 'location_id', t.location_id, 'join_date', tp.join_date, 'leave_date', tp.leave_date
 ) FROM team_players tp
 JOIN teams AS t ON tp.team_id=t.id
 JOIN players AS p ON tp.player_id = p.id
@@ -482,6 +484,28 @@ func (q *Queries) GetTeamPlayers(ctx context.Context, teamPublicID uuid.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getPlayerIDsByTeamID = `
+SELECT tp.player_id FROM team_players tp
+WHERE tp.team_id = $1 AND tp.leave_date IS NULL
+`
+
+func (q *Queries) GetPlayerIDsByTeamID(ctx context.Context, teamID int32) ([]int32, error) {
+	rows, err := q.db.QueryContext(ctx, getPlayerIDsByTeamID, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var playerIDs []int32
+	for rows.Next() {
+		var playerID int32
+		if err := rows.Scan(&playerID); err != nil {
+			return nil, err
+		}
+		playerIDs = append(playerIDs, playerID)
+	}
+	return playerIDs, nil
 }
 
 const getTeams = `

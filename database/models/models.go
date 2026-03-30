@@ -295,11 +295,6 @@ type Message struct {
 	IsDelivered bool      `json:"is_delivered"`
 }
 
-// type Messagemedium struct {
-// 	MessageID int64 `json:"message_id"`
-// 	MediaID   int64 `json:"media_id"`
-// }
-
 type OldPlayer struct {
 	ID        int64     `json:"id"`
 	PublicID  uuid.UUID `json:"public_id"`
@@ -351,11 +346,6 @@ type Session struct {
 	CreatedAt    time.Time `json:"created_at"`
 	ExpiresAt    time.Time `json:"expires_at"`
 }
-
-// type Signup struct {
-// 	MobileNumber string `json:"mobile_number"`
-// 	Otp          string `json:"otp"`
-// }
 
 type Team struct {
 	ID          int64     `json:"id"`
@@ -693,19 +683,6 @@ type MatchUserRoles struct {
 	IsActive   bool      `json:"is_active"`
 }
 
-// CREATE TABLE match_user_roles (
-//     id BIGSERIAL PRIMARY KEY,
-//     public_id UUID NOT NULL DEFAULT gen_random_uuid(),
-//     match_id BIGINT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-//     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-//     role VARCHAR NOT NULL,
-//     assigned_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
-//     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-//     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-//     UNIQUE (match_id, user_id, role),
-//     UNIQUE (public_id)
-// );
-
 type BadmintonScore struct {
 	ID        int64     `json:"id"`
 	PublicID  uuid.UUID `json:"public_id"`
@@ -727,4 +704,23 @@ type BadmintonSetsPoints struct {
 	AwayScore     int       `json:"away_score"`
 	PointNumber   int       `json:"point_number"`
 	CreatedAt     time.Time `json:"created_at"`
+}
+
+type BadmintonPlayerStats struct {
+	ID             int64     `json:"id"`
+	PublicID       uuid.UUID `json:"public_id"`
+	PlayerID       int32     `json:"player_id"`
+	PlayType       string    `json:"play_type"`
+	Matches        int       `json:"matches"`
+	Wins           int       `json:"wins"`
+	Losses         int       `json:"losses"`
+	SetsWon        int       `json:"sets_won"`
+	SetsLost       int       `json:"sets_lost"`
+	PointsScored   int       `json:"points_scored"`
+	PointsConceded int       `json:"points_conceded"`
+	WinPercentage  string    `json:"win_percentage"`
+	CurrentStreak  int       `json:"current_streak"`
+	BestStreak     int       `json:"best_streak"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }

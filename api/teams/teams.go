@@ -248,7 +248,7 @@ func (s *TeamsServer) GetTeamsByPlayerFunc(ctx *gin.Context) {
 }
 
 type getPlayersByTeamRequest struct {
-	TeamPublicID string `uri:"team_public_id`
+	TeamPublicID string `uri:"team_public_id"`
 }
 
 func (s *TeamsServer) GetPlayersByTeamFunc(ctx *gin.Context) {

@@ -162,6 +162,7 @@ func NewServer(config util.Config,
 	authRouter := router.Group("/api").Use(authMiddleware(server.tokenMaker, server.logger))
 	{
 		// added the funcitonality for the matches by player
+		authRouter.GET("/getMatchesByPlayer/:player_public_id", playersServer.GetMatchesByPlayerFunc)
 		authRouter.GET("/getPlayerWithProfile/:public_id", handlersServer.GetPlayerWithProfileFunc)
 		authRouter.GET("/getGroups", tournamentServer.GetGroupsFunc)
 		authRouter.GET("/isFollowing/:target_public_id", handlersServer.IsFollowingFunc)
@@ -285,7 +286,7 @@ func NewServer(config util.Config,
 	//teams //teams database update completed
 	sportRouter.PUT("/update-team/:team_public_id", server.RequiredPermission(PermUpdateTeam), teamsServer.UpdateTeamLocationFunc)
 	sportRouter.POST("/create-team", teamsServer.AddTeam)
-	//sportRouter.GET("/getTeam/:public_id", teamsServer.GetTeamFunc)
+	sportRouter.GET("/getTeam/:public_id", teamsServer.GetTeamFunc)
 	sportRouter.GET("/getTeams", teamsServer.GetTeamsFunc)
 	sportRouter.GET("/searchTeams", teamsServer.SearchTeamFunc)
 	sportRouter.POST("/addTeamMember", server.RequiredPermission(PermUpdateTeam), teamsServer.AddTeamsMemberFunc)
@@ -373,6 +374,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/get-badminton-sets-score/:match_public_id", badmintonServer.GetBadmintonScoreFunc)
 	sportRouter.POST("/update-badminton-score", badmintonServer.UpdateBadmintonScoreFunc)
 	sportRouter.GET("/get-badminton-match-team-stats/:match_public_id/:team_public_id", badmintonServer.GetBadmintonSetsPointsByTeamFunc)
+	sportRouter.GET("/getBadmintonPlayerStats/:player_public_id", badmintonServer.GetBadmintonPlayerStatsFunc)
 
 	server.router = router
 	return server, nil

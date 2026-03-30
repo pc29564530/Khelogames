@@ -348,6 +348,77 @@ func (s *BadmintonServer) GetBadmintonSetsScore(ctx *gin.Context) {
 	})
 }
 
+func (s *BadmintonServer) GetBadmintonPlayerStatsFunc(ctx *gin.Context) {
+	var req struct {
+		PlayerPublicID string `uri:"player_public_id"`
+	}
+
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Invalid UUID format",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	player, err := s.store.GetPlayer(ctx, playerPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get player: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to fetch player",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	if player == nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "NOT_FOUND",
+				"message": "Player not found",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	stats, err := s.store.GetBadmintonPlayerStats(ctx, int32(player.ID))
+	if err != nil {
+		s.logger.Error("Failed to get badminton player stats: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to fetch player stats",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
+	})
+}
+
 func (s *BadmintonServer) GetBadmintonSetsPointsByTeamFunc(ctx *gin.Context) {
 	var req struct {
 		MatchPublicID string `uri:"match_public_id"`

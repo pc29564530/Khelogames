@@ -8,16 +8,19 @@ import (
 )
 
 type getGamesRequest struct {
-	ID int64 `uri:"ID" binding:"required"`
+	ID int64 `uri:"id" binding:"required"`
 }
 
 func (s *SportsServer) GetGameFunc(ctx *gin.Context) {
 	var req getGamesRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
+		s.logger.Error("Failed to bind URI: ", err)
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
+
+	s.logger.Info("Received request to get game with ID: ", req.ID)
 
 	response, err := s.store.GetGame(ctx, req.ID)
 	if err != nil {

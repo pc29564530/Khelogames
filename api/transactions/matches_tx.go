@@ -399,9 +399,9 @@ func UpdateBadmintonStatusCode(ctx context.Context, updatedMatchData *models.Mat
 				store.logger.Error("Failed to broadcast badminton event: ", err)
 			}
 		}
-	} else if updatedMatchData.StatusCode == "finished" {
-		//Will create functionality
 	}
+	// Note: badminton match finish is handled in badminton_tx.go (UpdateBadmintonScoreTx)
+	// when a player wins enough sets, not via manual status update.
 	return nil
 }
 

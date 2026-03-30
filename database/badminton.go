@@ -412,3 +412,133 @@ func (q *Queries) GetBadmintonSetsPointsByTeam(ctx context.Context, matchID int3
 
 	return sets, nil
 }
+
+const addOrUpdateBadmintonPlayerStats = `
+	INSERT INTO badminton_player_stats (
+		player_id, play_type, matches, wins, losses,
+		sets_won, sets_lost, points_scored, points_conceded,
+		win_percentage, current_streak, best_streak
+	)
+	VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+	ON CONFLICT (player_id, play_type) DO UPDATE SET
+		matches         = badminton_player_stats.matches + 1,
+		wins            = badminton_player_stats.wins + EXCLUDED.wins,
+		losses          = badminton_player_stats.losses + EXCLUDED.losses,
+		sets_won        = badminton_player_stats.sets_won + EXCLUDED.sets_won,
+		sets_lost       = badminton_player_stats.sets_lost + EXCLUDED.sets_lost,
+		points_scored   = badminton_player_stats.points_scored + EXCLUDED.points_scored,
+		points_conceded = badminton_player_stats.points_conceded + EXCLUDED.points_conceded,
+		win_percentage  = ROUND(
+			((badminton_player_stats.wins + EXCLUDED.wins)::NUMERIC /
+			 (badminton_player_stats.matches + 1)::NUMERIC) * 100, 2
+		),
+		current_streak  = CASE
+			WHEN EXCLUDED.wins = 1 THEN badminton_player_stats.current_streak + 1
+			ELSE 0
+		END,
+		best_streak = GREATEST(
+			badminton_player_stats.best_streak,
+			CASE
+				WHEN EXCLUDED.wins = 1 THEN badminton_player_stats.current_streak + 1
+				ELSE badminton_player_stats.best_streak
+			END
+		),
+		updated_at = NOW()
+	RETURNING *;
+`
+
+type AddOrUpdateBadmintonPlayerStatsParams struct {
+	PlayerID       int32
+	PlayType       string
+	Wins           int
+	Losses         int
+	SetsWon        int
+	SetsLost       int
+	PointsScored   int
+	PointsConceded int
+	WinPercentage  float64
+	Streak         int // 1 if won, 0 if lost
+}
+
+func (q *Queries) AddOrUpdateBadmintonPlayerStats(ctx context.Context, arg AddOrUpdateBadmintonPlayerStatsParams) (*models.BadmintonPlayerStats, error) {
+	row := q.db.QueryRowContext(ctx, addOrUpdateBadmintonPlayerStats,
+		arg.PlayerID,
+		arg.PlayType,
+		arg.Wins,
+		arg.Losses,
+		arg.SetsWon,
+		arg.SetsLost,
+		arg.PointsScored,
+		arg.PointsConceded,
+		arg.WinPercentage,
+		arg.Streak,
+	)
+	var stat models.BadmintonPlayerStats
+	err := row.Scan(
+		&stat.ID,
+		&stat.PublicID,
+		&stat.PlayerID,
+		&stat.PlayType,
+		&stat.Matches,
+		&stat.Wins,
+		&stat.Losses,
+		&stat.SetsWon,
+		&stat.SetsLost,
+		&stat.PointsScored,
+		&stat.PointsConceded,
+		&stat.WinPercentage,
+		&stat.CurrentStreak,
+		&stat.BestStreak,
+		&stat.CreatedAt,
+		&stat.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to upsert badminton player stats: %w", err)
+	}
+
+	return &stat, nil
+}
+
+const getBadmintonPlayerStats = `
+	SELECT * FROM badminton_player_stats
+	WHERE player_id = $1;
+`
+
+func (q *Queries) GetBadmintonPlayerStats(ctx context.Context, playerID int32) ([]models.BadmintonPlayerStats, error) {
+	rows, err := q.db.QueryContext(ctx, getBadmintonPlayerStats, playerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get badminton player stats: %w", err)
+	}
+	defer rows.Close()
+
+	var stats []models.BadmintonPlayerStats
+	for rows.Next() {
+		var stat models.BadmintonPlayerStats
+		err := rows.Scan(
+			&stat.ID,
+			&stat.PublicID,
+			&stat.PlayerID,
+			&stat.PlayType,
+			&stat.Matches,
+			&stat.Wins,
+			&stat.Losses,
+			&stat.SetsWon,
+			&stat.SetsLost,
+			&stat.PointsScored,
+			&stat.PointsConceded,
+			&stat.WinPercentage,
+			&stat.CurrentStreak,
+			&stat.BestStreak,
+			&stat.CreatedAt,
+			&stat.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		stats = append(stats, stat)
+	}
+	return stats, nil
+}

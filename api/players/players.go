@@ -274,3 +274,93 @@ func (s *PlayerServer) GetPlayersBySportFunc(ctx *gin.Context) {
 		"data":    response,
 	})
 }
+
+// Get matches by player public id
+func (s *PlayerServer) GetMatchesByPlayerFunc(ctx *gin.Context) {
+	var req struct {
+		PlayerPublicID string `uri:"player_public_id" binding:"required"`
+	}
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	playerPublicID, err := uuid.Parse(req.PlayerPublicID)
+	if err != nil {
+		s.logger.Error("Invalid UUID format", err)
+		fieldErrors := map[string]string{"player_public_id": "Invalid UUID format"}
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	teamResponse, err := s.store.GetTeamByPlayer(ctx, playerPublicID)
+	if err != nil {
+		s.logger.Error("Failed to get team by player: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get team by player",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+	}
+
+	matches := make([]map[string]interface{}, 0)
+	seen := make(map[string]bool)
+	for _, team := range teamResponse {
+		// Parse team public_id (JSON unmarshal returns string, not uuid.UUID)
+		teamPublicIDStr, ok := team["public_id"].(string)
+		if !ok {
+			continue
+		}
+		teamPublicID, err := uuid.Parse(teamPublicIDStr)
+		if err != nil {
+			s.logger.Error("Invalid team public_id: ", err)
+			continue
+		}
+
+		// Get game_id from team (JSON unmarshal returns float64 for numbers)
+		gameID, ok := team["game_id"].(float64)
+		if !ok {
+			s.logger.Error("Missing game_id for team: ", teamPublicIDStr)
+			continue
+		}
+
+		teamMatches, err := s.store.GetMatchesByTeam(ctx, teamPublicID, int64(gameID))
+		if err != nil {
+			s.logger.Error("Failed to get matches by team: ", err)
+			continue
+		}
+
+		for _, match := range teamMatches {
+			// Deduplicate matches (player may appear in both home and away via different teams)
+			matchPublicID, _ := match["public_id"].(string)
+			if seen[matchPublicID] {
+				continue
+			}
+			seen[matchPublicID] = true
+
+			// Add badminton scores if available
+			if matchPublicID != "" {
+				matchUUID, err := uuid.Parse(matchPublicID)
+				if err == nil {
+					matchScore, err := s.store.GetBadmintonMatchScore(ctx, matchUUID)
+					if err == nil && matchScore != nil {
+						match["homeScore"] = matchScore.HomeSetsWon
+						match["awayScore"] = matchScore.AwaySetsWon
+					}
+				}
+			}
+
+			matches = append(matches, match)
+		}
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    matches,
+	})
+
+}

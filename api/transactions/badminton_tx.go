@@ -1,6 +1,8 @@
 package transactions
 
 import (
+	"context"
+	"fmt"
 	"khelogames/database"
 	"khelogames/database/models"
 
@@ -96,6 +98,12 @@ func (store *SQLStore) UpdateBadmintonScoreTx(ctx *gin.Context, matchPublicID, t
 					store.logger.Error("failed to update match result: ", err)
 					return err
 				}
+
+				// Update badminton player stats for both teams/player
+				if err := updateBadmintonStatsOnFinish(ctx, q, store, match, matchPublicID, winnerTeamID, homeSetsWon, awaySetsWon); err != nil {
+					store.logger.Error("failed to update badminton player stats: ", err)
+					return err
+				}
 			} else {
 				// Match continues — create next set
 				nextSetNumber := setNumber + 1
@@ -151,4 +159,113 @@ func derefInt(p *int) int {
 		return 0
 	}
 	return *p
+}
+
+// updateBadmintonStatsOnFinish calculates and upserts player stats for each player in both teams when a match finishes.
+// For singles: each team has 1 player → 1 stats upsert per side
+// For doubles: each team has 2 players → 2 stats upserts per side (each player gets individual stats)
+func updateBadmintonStatsOnFinish(
+	ctx context.Context,
+	q *database.Queries,
+	store *SQLStore,
+	match *models.Match,
+	matchPublicID uuid.UUID,
+	winnerTeamID int32,
+	homeSetsWon, awaySetsWon int,
+) error {
+	// Get all set scores to calculate total points
+	sets, err := q.GetBadmintonMatchSetsScore(ctx, matchPublicID)
+	if err != nil {
+		return fmt.Errorf("failed to get match sets for stats: %w", err)
+	}
+
+	// Calculate total points from all sets
+	homePointsScored := 0
+	homePointsConceded := 0
+	for _, set := range sets {
+		homePointsScored += set.HomeScore
+		homePointsConceded += set.AwayScore
+	}
+	awayPointsScored := homePointsConceded
+	awayPointsConceded := homePointsScored
+
+	// Determine play_type from match type
+	playType := "singles"
+	if match.Type == "double" {
+		playType = "doubles"
+	}
+
+	// Home team win/loss
+	homeWon := 0
+	homeLost := 0
+	homeStreak := 0
+	if winnerTeamID == match.HomeTeamID {
+		homeWon = 1
+		homeStreak = 1
+	} else {
+		homeLost = 1
+	}
+
+	// Away team win/loss
+	awayWon := 0
+	awayLost := 0
+	awayStreak := 0
+	if winnerTeamID == match.AwayTeamID {
+		awayWon = 1
+		awayStreak = 1
+	} else {
+		awayLost = 1
+	}
+
+	// Get players from home team
+	homePlayerIDs, err := q.GetPlayerIDsByTeamID(ctx, match.HomeTeamID)
+	if err != nil {
+		return fmt.Errorf("failed to get home team players: %w", err)
+	}
+
+	// Get players from away team
+	awayPlayerIDs, err := q.GetPlayerIDsByTeamID(ctx, match.AwayTeamID)
+	if err != nil {
+		return fmt.Errorf("failed to get away team players: %w", err)
+	}
+
+	// UPSERT stats for each player in home team
+	for _, playerID := range homePlayerIDs {
+		_, err = q.AddOrUpdateBadmintonPlayerStats(ctx, database.AddOrUpdateBadmintonPlayerStatsParams{
+			PlayerID:       playerID,
+			PlayType:       playType,
+			Wins:           homeWon,
+			Losses:         homeLost,
+			SetsWon:        homeSetsWon,
+			SetsLost:       awaySetsWon,
+			PointsScored:   homePointsScored,
+			PointsConceded: homePointsConceded,
+			WinPercentage:  float64(homeWon) * 100,
+			Streak:         homeStreak,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upsert home player %d stats: %w", playerID, err)
+		}
+	}
+
+	// UPSERT stats for each player in away team
+	for _, playerID := range awayPlayerIDs {
+		_, err = q.AddOrUpdateBadmintonPlayerStats(ctx, database.AddOrUpdateBadmintonPlayerStatsParams{
+			PlayerID:       playerID,
+			PlayType:       playType,
+			Wins:           awayWon,
+			Losses:         awayLost,
+			SetsWon:        awaySetsWon,
+			SetsLost:       homeSetsWon,
+			PointsScored:   awayPointsScored,
+			PointsConceded: awayPointsConceded,
+			WinPercentage:  float64(awayWon) * 100,
+			Streak:         awayStreak,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upsert away player %d stats: %w", playerID, err)
+		}
+	}
+
+	return nil
 }
