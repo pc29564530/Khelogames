@@ -151,10 +151,37 @@ func (s *HandlersServer) GetMatchesByLocationFunc(ctx *gin.Context) {
 		return
 	}
 
+	var matches []map[string]interface{}
+	if game.Name == "badminton" {
+		for _, match := range listMatches {
+			matchPublicIDStr, ok := match["public_id"].(string)
+			if !ok {
+				s.logger.Error("Invalid match public_id format: ", match["public_id"])
+				continue
+			}
+
+			matchPublicID, err := uuid.Parse(matchPublicIDStr)
+			if err != nil {
+				s.logger.Error("Failed to parse match public_id: ", err)
+				continue
+			}
+
+			badmintonScore, err := s.store.GetBadmintonMatchScore(ctx, matchPublicID)
+			if err != nil {
+				s.logger.Error("Failed to get badminton match score: ", err)
+				continue
+			}
+			match["homeScore"] = badmintonScore.HomeSetsWon
+			match["awayScore"] = badmintonScore.AwaySetsWon
+			matches = append(matches, match)
+		}
+	} else {
+		matches = append(matches, listMatches...)
+	}
 	s.logger.Info("Found ", len(listMatches), " listMatches")
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"success": true,
-		"data":    listMatches,
+		"data":    matches,
 	})
 }
 
@@ -206,7 +233,7 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return
 	}
-	response, err := s.store.ListMatches(ctx, int32(startDate), game.ID)
+	res, err := s.store.ListMatches(ctx, int32(startDate), game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by game: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -219,9 +246,37 @@ func (s *HandlersServer) GetAllMatchesFunc(ctx *gin.Context) {
 		})
 		return
 	}
+	var matches []map[string]interface{}
+	if game.Name == "badminton" {
+		for _, match := range res {
+			matchPublicIDStr, ok := match["public_id"].(string)
+			if !ok {
+				s.logger.Error("Invalid match public_id format: ", match["public_id"])
+				continue
+			}
+
+			matchPublicID, err := uuid.Parse(matchPublicIDStr)
+			if err != nil {
+				s.logger.Error("Failed to parse match public_id: ", err)
+				continue
+			}
+
+			badmintonScore, err := s.store.GetBadmintonMatchScore(ctx, matchPublicID)
+			if err != nil {
+				s.logger.Error("Failed to get badminton match score: ", err)
+				continue
+			}
+			match["homeScore"] = badmintonScore.HomeSetsWon
+			match["awayScore"] = badmintonScore.AwaySetsWon
+			matches = append(matches, match)
+		}
+	} else {
+		matches = append(matches, res...)
+	}
+
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"success": true,
-		"data":    response,
+		"data":    matches,
 	})
 }
 
@@ -241,7 +296,7 @@ func (s *HandlersServer) GetLiveMatchesFunc(ctx *gin.Context) {
 		})
 		return
 	}
-	response, err := s.store.GetLiveMatches(ctx, game.ID)
+	res, err := s.store.GetLiveMatches(ctx, game.ID)
 	if err != nil {
 		s.logger.Error("Failed to get matches by game: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -254,9 +309,38 @@ func (s *HandlersServer) GetLiveMatchesFunc(ctx *gin.Context) {
 		})
 		return
 	}
+
+	var matches []map[string]interface{}
+	if game.Name == "badminton" {
+		for _, match := range res {
+			matchPublicIDStr, ok := match["public_id"].(string)
+			if !ok {
+				s.logger.Error("Invalid match public_id format: ", match["public_id"])
+				continue
+			}
+
+			matchPublicID, err := uuid.Parse(matchPublicIDStr)
+			if err != nil {
+				s.logger.Error("Failed to parse match public_id: ", err)
+				continue
+			}
+
+			badmintonScore, err := s.store.GetBadmintonMatchScore(ctx, matchPublicID)
+			if err != nil {
+				s.logger.Error("Failed to get badminton match score: ", err)
+				continue
+			}
+			match["homeScore"] = badmintonScore.HomeSetsWon
+			match["awayScore"] = badmintonScore.AwaySetsWon
+			matches = append(matches, match)
+		}
+	} else {
+		matches = append(matches, res...)
+	}
+
 	ctx.JSON(http.StatusAccepted, gin.H{
 		"success": true,
-		"data":    response,
+		"data":    matches,
 	})
 }
 
@@ -300,6 +384,7 @@ func (s *HandlersServer) GetMatchByMatchIDFunc(ctx *gin.Context) {
 		MatchPublicID string `uri:"match_public_id" binding:"required"`
 	}
 	if err := ctx.ShouldBindUri(&req); err != nil {
+		s.logger.Error("Failed to bind URI parameters: ", err)
 		fieldErrors := errorhandler.ExtractValidationErrors(err)
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
 		return

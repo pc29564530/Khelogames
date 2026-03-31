@@ -9,6 +9,8 @@ func (s *SportsServer) GetTopPerformerHandler(c *gin.Context) {
 		s.footballServer.GetFootballTopPerformerFunc(c)
 	case "cricket":
 		s.cricketServer.GetCricketTopPerformerFunc(c)
+	case "badminton":
+		s.badmintonServer.GetBadmintonTopPerformerFunc(c)
 	default:
 		c.JSON(400, gin.H{
 			"error": "invalid sport",
