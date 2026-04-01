@@ -29,6 +29,7 @@ const (
 	ResourceTournament = "tournament"
 	ResourceMatch      = "match"
 	ResourceTeam       = "team"
+	ResourceMatchSquad = "match_squad"
 )
 
 // Permission → Roles that can perform it
@@ -54,6 +55,12 @@ var permissionRoles = map[string][]string{
 		RoleAdmin,
 	},
 	PermUpdateCommunity: {
+		RoleAdmin,
+	},
+	PermManageMatchSquad: {
+		RoleScorer,
+		RoleTournamentAdmin,
+		RoleTeamManager,
 		RoleAdmin,
 	},
 }
@@ -98,6 +105,8 @@ func (s *Server) RequiredPermission(permission string) gin.HandlerFunc {
 		var err error
 
 		switch {
+		case permission == PermManageMatchSquad && matchPublicIDStr != "" && teamPublicIDStr != "":
+			allowed, err = s.canManageMatchSquad(ctx, authPayload, matchPublicIDStr, teamPublicIDStr, permission)
 		case matchPublicIDStr != "":
 			allowed, err = s.canPerformMatchAction(ctx, authPayload, matchPublicIDStr, permission)
 
@@ -248,6 +257,89 @@ func (s *Server) canPerformTeamAction(
 		ResourceTeam,
 		team.ID,
 	)
+}
+
+func (s *Server) canManageMatchSquad(
+	ctx context.Context,
+	authPayload *token.Payload,
+	matchPublicIDStr string,
+	teamPublicIDStr string,
+	permission string,
+) (bool, error) {
+
+	matchPublicID, err := uuid.Parse(matchPublicIDStr)
+	if err != nil {
+		return false, err
+	}
+
+	teamPublicID, err := uuid.Parse(teamPublicIDStr)
+	if err != nil {
+		return false, err
+	}
+
+	// Get match safely
+	match, err := s.store.GetMatchModelByPublicId(ctx, matchPublicID)
+	if err != nil {
+		return false, err
+	}
+
+	team, err := s.store.GetTeamByPublicID(ctx, teamPublicID)
+	if err != nil {
+		return false, err
+	}
+
+	// Validate team belongs to match
+	if team.ID != int64(match.HomeTeamID) && team.ID != int64(match.AwayTeamID) {
+		return false, nil
+	}
+
+	if authPayload.UserID == team.UserID {
+		return true, nil
+	}
+
+	// TEAM-level permission (Team Manager / Coach)
+	teamAllowed, err := s.hasAnyRoleForResource(
+		ctx,
+		authPayload.UserID,
+		PermManageMatchSquad,
+		ResourceTeam,
+		team.ID,
+	)
+	if err != nil {
+		return false, err
+	}
+	if teamAllowed {
+		return true, nil
+	}
+
+	// MATCH-level permission (Scorer etc)
+	matchAllowed, err := s.hasAnyRoleForResource(
+		ctx,
+		authPayload.UserID,
+		PermManageMatchSquad,
+		ResourceMatch,
+		match.ID,
+	)
+	if err != nil {
+		return false, err
+	}
+	if matchAllowed {
+		return true, nil
+	}
+
+	// TOURNAMENT-level override
+	tournamentAllowed, err := s.hasAnyRoleForResource(
+		ctx,
+		authPayload.UserID,
+		PermManageMatchSquad,
+		ResourceTournament,
+		int64(match.TournamentID),
+	)
+	if err != nil {
+		return false, err
+	}
+
+	return tournamentAllowed, nil
 }
 
 // Core DB Permission Check

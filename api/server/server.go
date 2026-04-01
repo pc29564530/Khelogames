@@ -49,6 +49,7 @@ const (
 	PermUpdateTournamentAdmin = "UPDATE_TOURNAMENT_ADMIN"
 	PermUpdateTeam            = "UPDATE_TEAM"
 	PermUpdateCommunity       = "UPDATE_COMMUNITY"
+	PermManageMatchSquad      = "MANAGE_MATCH_SQUAD"
 )
 
 func (server *Server) setupStaticFiles() {
@@ -322,7 +323,7 @@ func NewServer(config util.Config,
 
 	// sportRouter.POST("/addFootballStatistics", footballServer.AddFootballStatisticsFunc)
 	//sportRouter.GET("/getFootballStatistics", footballServer.GetFootballStatisticsFunc)
-	sportRouter.POST("/addFootballMatchSquad", server.RequiredPermission(PermUpdateTeam), footballServer.AddFootballSquadFunc)
+	sportRouter.POST("/addFootballMatchSquad", server.RequiredPermission(PermManageMatchSquad), footballServer.AddFootballSquadFunc)
 	sportRouter.GET("/getFootballTournamentPlayerGoal/:tournament_public_id", tournamentServer.GetFootballTournamentPlayersGoalsFunc)
 	sportRouter.GET("/getFootballTournamentPlayerYellowCard/:tournament_public_id", tournamentServer.GetFootballTournamentPlayersYellowCardFunc)
 	sportRouter.GET("/getFootballTournamentPlayerRedCard/:tournament_public_id", tournamentServer.GetFootballTournamentPlayersRedCardFunc)
@@ -341,7 +342,7 @@ func NewServer(config util.Config,
 	sportRouter.GET("/getCurrentBatsman", cricketServer.GetCurrentBatsmanFunc)
 	sportRouter.GET("/getCurrentBowler", cricketServer.GetCurrentBowlerFunc)
 	//squad
-	sportRouter.POST("/addCricketSquad", server.RequiredPermission(PermUpdateMatch), cricketServer.AddCricketSquadFunc)
+	sportRouter.POST("/addCricketSquad", server.RequiredPermission(PermManageMatchSquad), cricketServer.AddCricketSquadFunc)
 	sportRouter.GET("/getCricketMatchSquad", cricketServer.GetCricketMatchSquadFunc)
 	//tournament data
 	sportRouter.GET("/getCricketTournamentMostRuns/:tournament_public_id", tournamentServer.GetCricketTournamentMostRunsFunc)

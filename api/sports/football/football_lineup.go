@@ -1,10 +1,8 @@
 package football
 
 import (
-	"khelogames/core/token"
 	"khelogames/database/models"
 	errorhandler "khelogames/error_handler"
-	"khelogames/pkg"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -73,7 +71,7 @@ type Player struct {
 type MatchSquadRequest struct {
 	MatchPublicID string   `json:"match_public_id"`
 	TeamPublicID  string   `json:"team_public_id"`
-	Player        []Player `json:"player"`
+	Player        []string `json:"player"`
 	IsSubstituted []string `json:"is_substituted"`
 }
 
@@ -104,48 +102,6 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
-	if err != nil {
-		s.logger.Error("Failed to get match data: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get match details",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
-	if err != nil {
-		s.logger.Error("Failed to get user role: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get user tournament role",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-	if !isExists {
-		s.logger.Error("User does not own this match")
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "FORBIDDEN",
-				"message": "You do not own this match",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
 	substitutedMap := make(map[string]bool)
 
 	for _, substitutedID := range req.IsSubstituted {
@@ -153,13 +109,13 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 	}
 
 	var footballSquad []map[string]interface{}
-	for _, player := range req.Player {
+	for _, publicID := range req.Player {
 		var squad *models.FootballSquad
 		var err error
 
-		substitute := substitutedMap[player.PublicID]
+		substitute := substitutedMap[publicID]
 
-		playerPublicID, err := uuid.Parse(player.PublicID)
+		playerPublicID, err := uuid.Parse(publicID)
 		if err != nil {
 			s.logger.Error("Invalid player UUID format: ", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{
@@ -181,6 +137,20 @@ func (s *FootballServer) AddFootballSquadFunc(ctx *gin.Context) {
 				"error": gin.H{
 					"code":    "INTERNAL_ERROR",
 					"message": "Failed to add football squad",
+				},
+				"request_id": ctx.GetString("request_id"),
+			})
+			return
+		}
+
+		player, err := s.store.GetPlayerByPublicID(ctx, playerPublicID)
+		if err != nil {
+			s.logger.Error("Failed to get player: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to get player",
 				},
 				"request_id": ctx.GetString("request_id"),
 			})
