@@ -248,6 +248,8 @@ func NewServer(config util.Config,
 		authRouter.GET("/get-user-roles/:profile_public_id", handlersServer.GetUserRolesFunc)
 		authRouter.GET("/get-resource-roles", handlersServer.GetResourceRolesFunc)
 		authRouter.GET("/get-all-roles", handlersServer.GetAllRolesFunc)
+		//player
+		authRouter.GET("/get-available-players-by-sport/:game_id", playersServer.GetAvailablePlayersBySportFunc)
 	}
 	sportRouter := router.Group("/api/:sport").Use(authMiddleware(server.tokenMaker, server.logger))
 	//tournament

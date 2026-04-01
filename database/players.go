@@ -451,3 +451,50 @@ func (q *Queries) UpdatePlayerPosition(ctx context.Context, publicID uuid.UUID, 
 	}
 	return &i, err
 }
+
+const getAvailablePlayersBySportQuery = `
+	SELECT * FROM players p
+	WHERE game_id=$1 
+		AND (
+			p.id NOT IN (
+				SELECT tp.player_id FROM team_players tp
+				WHERE tp.leave_date IS NULL
+			)
+		);
+`
+
+func (q *Queries) GetAvailablePlayersBySport(ctx context.Context, gameID int32) (*[]models.Player, error) {
+	rows, err := q.db.QueryContext(ctx, getAvailablePlayersBySportQuery, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []models.Player
+	for rows.Next() {
+		var i models.Player
+		if err := rows.Scan(
+			&i.ID,
+			&i.PublicID,
+			&i.UserID,
+			&i.GameID,
+			&i.Name,
+			&i.Slug,
+			&i.ShortName,
+			&i.MediaUrl,
+			&i.Positions,
+			&i.Country,
+			&i.UpdatedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return &items, nil
+}

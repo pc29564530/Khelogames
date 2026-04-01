@@ -164,10 +164,37 @@ func (s *TeamsServer) AddTeamsMemberFunc(ctx *gin.Context) {
 			})
 			return
 		}
+
+		playerData, err := s.store.GetPlayerByPublicID(ctx, playerPublicID)
+		if err != nil {
+			s.logger.Error("Failed to get the player: ", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_ERROR",
+					"message": "Failed to get player",
+				},
+				"request_id": ctx.GetString("request_id"),
+			})
+			return
+		}
+
+		player := map[string]interface{}{
+			"public_id":  playerData.PublicID,
+			"user_id":    playerData.UserID,
+			"name":       playerData.Name,
+			"slug":       playerData.Slug,
+			"short_name": playerData.ShortName,
+			"media_url":  playerData.MediaUrl,
+			"positions":  playerData.Positions,
+			"country":    playerData.Country,
+			"game_id":    playerData.GameID,
+			"join_date":  members.JoinDate,
+		}
 		s.logger.Info("successfully added member to the team")
 		ctx.JSON(http.StatusAccepted, gin.H{
 			"success": true,
-			"data":    members,
+			"data":    player,
 		})
 	}
 }

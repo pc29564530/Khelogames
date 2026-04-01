@@ -375,3 +375,33 @@ func (s *PlayerServer) GetMatchesByPlayerFunc(ctx *gin.Context) {
 	})
 
 }
+
+func (s *PlayerServer) GetAvailablePlayersBySportFunc(ctx *gin.Context) {
+	var req struct {
+		GameID int32 `uri:"game_id" binding:"required,min=1"`
+	}
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		fieldErrors := errorhandler.ExtractValidationErrors(err)
+		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
+		return
+	}
+
+	response, err := s.store.GetAvailablePlayersBySport(ctx, req.GameID)
+	if err != nil {
+		s.logger.Error("Failed to get player: ", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get player by sport",
+			},
+			"request_id": ctx.GetString("request_id"),
+		})
+		return
+	}
+	s.logger.Debug("Successfully get all player: ", response)
+	ctx.JSON(http.StatusAccepted, gin.H{
+		"success": true,
+		"data":    response,
+	})
+}

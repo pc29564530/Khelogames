@@ -314,7 +314,7 @@ SELECT JSON_BUILD_OBJECT(
 		'media_url', p.media_url,
 		'positions', p.positions,
 		'country', p.country,
-		'game', p.game_id,
+		'game_id', p.game_id,
 		'join_date', tp.join_date
 	)
 FROM team_players tp
