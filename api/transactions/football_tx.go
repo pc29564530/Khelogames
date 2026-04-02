@@ -190,17 +190,19 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 	return incidentData, err
 }
 
-func (store *SQLStore) AddFootballIncidentsSubsTx(ctx *gin.Context, matchPublicID, teamPublicID uuid.UUID, periods, incidentType string, incidentTime int, description string, playerInPublicID, playerOutPublicID uuid.UUID) (*map[string]interface{}, error) {
+func (store *SQLStore) AddFootballIncidentsSubsTx(ctx *gin.Context, matchPublicID, teamPublicID, tournamentPublicID uuid.UUID, periods, incidentType string, incidentTime int, description string, playerInPublicID, playerOutPublicID uuid.UUID) (*map[string]interface{}, error) {
 	var incidentData map[string]interface{}
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
 		arg := database.CreateFootballIncidentsParams{
-			MatchPublicID: matchPublicID,
-			TeamPublicID:  &teamPublicID,
-			Periods:       periods,
-			IncidentType:  incidentType,
-			IncidentTime:  incidentTime,
-			Description:   description,
+			TournamentPublicID:    tournamentPublicID,
+			MatchPublicID:         matchPublicID,
+			TeamPublicID:          &teamPublicID,
+			Periods:               periods,
+			IncidentType:          incidentType,
+			IncidentTime:          incidentTime,
+			Description:           description,
+			PenaltyShootoutScored: false,
 		}
 
 		incidents, err := store.CreateFootballIncidents(ctx, arg)

@@ -340,7 +340,6 @@ func (q *Queries) GetPlayerByTeam(ctx context.Context, teamPublicID uuid.UUID) (
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("Player: ", i)
 		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {

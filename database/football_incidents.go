@@ -12,54 +12,61 @@ import (
 
 const addFootballSubsPlayer = `
 WITH incidentID AS (
-	SELECT * FROM football_incidents WHERE public_id = $1
+    SELECT * FROM football_incidents WHERE public_id = $1 LIMIT 1
 ),
 playerInID AS (
-	SELECT * FROM players WHERE public_id = $2
+    SELECT * FROM players WHERE public_id = $2 LIMIT 1
 ),
 playerOutID AS (
-	SELECT * FROM players WHERE public_id = $3
-)
-INSERT INTO football_substitutions_player (
-    incident_id,
-    player_in_id,
-    player_out_id
+    SELECT * FROM players WHERE public_id = $3 LIMIT 1
+),
+inserted AS (
+    INSERT INTO football_substitutions_player (
+        incident_id,
+        player_in_id,
+        player_out_id
+    )
+    SELECT
+        incidentID.id,
+        playerInID.id,
+        playerOutID.id
+    FROM incidentID, playerInID, playerOutID
+    RETURNING *
 )
 SELECT
-	JSON_BUILD_OBJECT (
-		'incident_id': incidentID.id,
-		'player_in', JSON_BUILD_OBJECT(
-			'id', playerInID.id,
-			'public_id', playerInID.public_id,
-			'user_id', playerInID.user_id,
-			'game_id', playerInID.game_id,
-			'name', playerInID.name,
-			'slug', playerInID.slug,
-			'short_name', playerInID.ShortName,
-			'media_url', playerInID.media_url,
-			'positions', playerInID.positions,
-			'country', playerInID.country,
-			'created_at', playerInID.created_at,
-			'updated_at', playerInID.updated_at
-		),
-		'player_out', JSON_BUILD_OBJECT(
-				'id', playerOutID.id,
-				'public_id', playerOutID.public_id,
-				'user_id', playerOutID.user_id,
-				'game_id', playerOutID.game_id,
-				'name', playerOutID.name,
-				'slug', playerOutID.slug,
-				'short_name', playerOutID.ShortName,
-				'media_url', playerOutID.media_url,
-				'positions', playerOutID.positions,
-				'country', playerOutID.country,
-				'created_at', playerOutID.created_at,
-				'updated_at', playerOutID.updated_at
-		
-		)
+    JSON_BUILD_OBJECT(
+        'incident_id', inserted.incident_id,
+        'player_in', JSON_BUILD_OBJECT(
+            'id', playerInID.id,
+            'public_id', playerInID.public_id,
+            'user_id', playerInID.user_id,
+            'game_id', playerInID.game_id,
+            'name', playerInID.name,
+            'slug', playerInID.slug,
+            'short_name', playerInID.short_name,
+            'media_url', playerInID.media_url,
+            'positions', playerInID.positions,
+            'country', playerInID.country,
+            'created_at', playerInID.created_at,
+            'updated_at', playerInID.updated_at
+        ),
+        'player_out', JSON_BUILD_OBJECT(
+            'id', playerOutID.id,
+            'public_id', playerOutID.public_id,
+            'user_id', playerOutID.user_id,
+            'game_id', playerOutID.game_id,
+            'name', playerOutID.name,
+            'slug', playerOutID.slug,
+            'short_name', playerOutID.short_name,
+            'media_url', playerOutID.media_url,
+            'positions', playerOutID.positions,
+            'country', playerOutID.country,
+            'created_at', playerOutID.created_at,
+            'updated_at', playerOutID.updated_at
+        )
     )
-FROM incidentID, playerInID, playerOutID	
-RETURNING *;
+FROM inserted, playerInID, playerOutID
+WHERE playerInID.id != playerOutID.id;
 `
 
 func (q *Queries) ADDFootballSubsPlayer(ctx context.Context, incidentPublicID, playerInPublicID, playerOutPublicID uuid.UUID) (*map[string]interface{}, error) {
@@ -194,55 +201,95 @@ func (q *Queries) CreateFootballIncidents(ctx context.Context, arg CreateFootbal
 const getFootballIncidentWithPlayer = `
 SELECT 
     fi.id,
-	fi.public_id,
-	fi.tournament_id,
+    fi.public_id,
+    fi.tournament_id,
     fi.match_id, 
-    NULL AS team_id, 
+    NULL::integer AS team_id, 
     fi.periods, 
     fi.incident_type, 
     fi.incident_time, 
     fi.description, 
     fi.penalty_shootout_scored,
-    NULL AS players
+    NULL::jsonb AS players
 FROM 
     football_incidents fi
-LEFT JOIN matches AS m ON  m.id = fi.match_id
+LEFT JOIN matches AS m ON m.id = fi.match_id
 WHERE 
     m.public_id = $1 AND 
     (fi.periods = 'half_time' OR fi.periods = 'full_time' OR fi.periods = 'extra_time')
+
 UNION ALL
+
 SELECT 
     fi.id,
-	fi.public_id,
-	fi.tournament_id,
+    fi.public_id,
+    fi.tournament_id,
     fi.match_id, 
-    fi.team_id, 
+    CASE WHEN fi.team_id IS NOT NULL THEN fi.team_id ELSE NULL END AS team_id,
     fi.periods, 
     fi.incident_type, 
     fi.incident_time, 
     fi.description, 
     fi.penalty_shootout_scored,
     CASE
-        WHEN fi.incident_type = 'substitutions' THEN 
-            JSON_BUILD_OBJECT(
-                'player_in', JSON_BUILD_OBJECT('id',player_in.id, 'public_id', player_in.public_id, 'user_id', player_in.user_id, 'name', player_in.name, 'slug', player_in.slug, 'short_name',player_in.short_name, 'country', player_in.country, 'positions', player_in.positions, 'media_url', player_in.media_url ),
-                'player_out', JSON_BUILD_OBJECT('id',player_out.id, 'public_id', player_out.public_id, 'user_id', player_out.user_id, 'name', player_out.name, 'slug', player_out.slug, 'short_name',player_out.short_name, 'country', player_out.country, 'positions', player_out.positions, 'media_url', player_out.media_url)
-            )
+        WHEN fi.incident_type = 'substitution' THEN
+            CASE 
+                WHEN fis.incident_id IS NOT NULL THEN
+                    JSON_BUILD_OBJECT(
+                        'player_in', JSON_BUILD_OBJECT(
+                            'id', player_in.id,
+                            'public_id', player_in.public_id,
+                            'user_id', player_in.user_id,
+                            'name', player_in.name,
+                            'slug', player_in.slug,
+                            'short_name', player_in.short_name,
+                            'country', player_in.country,
+                            'positions', player_in.positions,
+                            'media_url', player_in.media_url
+                        ),
+                        'player_out', JSON_BUILD_OBJECT(
+                            'id', player_out.id,
+                            'public_id', player_out.public_id,
+                            'user_id', player_out.user_id,
+                            'name', player_out.name,
+                            'slug', player_out.slug,
+                            'short_name', player_out.short_name,
+                            'country', player_out.country,
+                            'positions', player_out.positions,
+                            'media_url', player_out.media_url
+                        )
+                    )
+                ELSE NULL
+            END
         ELSE
-            JSON_BUILD_OBJECT(
-                'player', JSON_BUILD_OBJECT('id',player_incident.id,'public_id', player_incident.public_id, 'user_id', player_incident.user_id, 'name', player_incident.name, 'slug', player_incident.slug, 'short_name',player_incident.short_name, 'country', player_incident.country, 'positions', player_incident.positions, 'media_url', player_incident.media_url)
-            )
-    END AS players
+            CASE 
+                WHEN fip.incident_id IS NOT NULL THEN
+                    JSON_BUILD_OBJECT(
+                        'player', JSON_BUILD_OBJECT(
+                            'id', player_incident.id,
+                            'public_id', player_incident.public_id,
+                            'user_id', player_incident.user_id,
+                            'name', player_incident.name,
+                            'slug', player_incident.slug,
+                            'short_name', player_incident.short_name,
+                            'country', player_incident.country,
+                            'positions', player_incident.positions,
+                            'media_url', player_incident.media_url
+                        )
+                    )
+                ELSE NULL
+            END
+    END :: jsonb AS players
 FROM 
     football_incidents fi
 LEFT JOIN
-	matches AS m ON m.id = fi.match_id 
+    matches AS m ON m.id = fi.match_id 
 LEFT JOIN 
-    football_incident_player AS fip ON fip.incident_id=fi.id
+    football_incident_player AS fip ON fip.incident_id = fi.id
 LEFT JOIN 
     players AS player_incident ON player_incident.id = fip.player_id
 LEFT JOIN 
-    football_substitutions_player AS fis ON fis.incident_id=fi.id
+    football_substitutions_player AS fis ON fis.incident_id = fi.id
 LEFT JOIN 
     players AS player_in ON player_in.id = fis.player_in_id
 LEFT JOIN 
@@ -250,6 +297,7 @@ LEFT JOIN
 WHERE
     m.public_id = $1 AND
     (fi.periods IS NULL OR fi.periods NOT IN ('half_time', 'full_time', 'extra_time'))
+
 ORDER BY
     id ASC;
 `
@@ -304,7 +352,7 @@ func (q *Queries) GetFootballIncidentWithPlayer(ctx context.Context, matchPublic
 }
 
 const getFootballScoreByIncidentTime = `
-SELECT SUM ( CASE WHEN team_id=$3 AND incident_type='goal' THEN 1 ELSE 0 END )
+SELECT SUM ( CASE WHEN team_id=$3 AND (incident_type='goal' OR incident_type = 'penalty' )THEN 1 ELSE 0 END )
 FROM football_incidents fi
 WHERE fi.id = $1 AND fi.match_id = $2 AND fi.team_id = $3
 `
