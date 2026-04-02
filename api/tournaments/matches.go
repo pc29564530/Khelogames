@@ -312,33 +312,6 @@ func (s *TournamentServer) UpdateMatchSubStatusFunc(ctx *gin.Context) {
 		return
 	}
 
-	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
-	if err != nil {
-		s.logger.Error("Failed to get user role: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get user role",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	if !isExists {
-		s.logger.Error("User does not have permission for this tournament")
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "FORBIDDEN",
-				"message": "User does not have permission to update this match",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
 	updatedMatchData, err := s.store.UpdateMatchSubStatus(ctx, matchPublicID, req.SubStatus)
 	if err != nil {
 		s.logger.Error("Failed to update match sub status: ", err)

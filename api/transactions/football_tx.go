@@ -8,8 +8,14 @@ import (
 	"github.com/google/uuid"
 )
 
-func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.CreateFootballIncidentsParams, playerPublicID uuid.UUID) (map[string]interface{}, error) {
-	var incidentData map[string]interface{}
+// AddFootballIncidentsTxResult holds the transaction result including optional score data for broadcasting
+type AddFootballIncidentsTxResult struct {
+	IncidentData map[string]interface{}
+	ScoreData    map[string]interface{} // non-nil when a score update occurred
+}
+
+func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.CreateFootballIncidentsParams, playerPublicID uuid.UUID) (*AddFootballIncidentsTxResult, error) {
+	result := &AddFootballIncidentsTxResult{}
 	err := store.execTx(ctx, func(q *database.Queries) error {
 		var err error
 		incidents, err := q.CreateFootballIncidents(ctx, arg)
@@ -52,7 +58,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						return err
 					}
 
-					firstHalf := map[string]interface{}{
+					result.ScoreData = map[string]interface{}{
 						"id":               firstHalfData.ID,
 						"public_id":        firstHalfData.PublicID,
 						"match_id":         firstHalfData.MatchID,
@@ -61,13 +67,6 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						"second_half":      firstHalfData.SecondHalf,
 						"goals":            firstHalfData.Goals,
 						"penalty_shootout": firstHalfData.PenaltyShootOut,
-					}
-
-					if store.scoreBroadcaster != nil {
-						err := store.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_FOOTBALL_SCORE", firstHalf)
-						if err != nil {
-							store.logger.Error("Failed to broadcast cricket event: ", err)
-						}
 					}
 				} else if incidents.Periods == "second_half" {
 					argGoalScore := database.UpdateSecondHalfScoreParams{
@@ -82,7 +81,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						return err
 					}
 
-					secondHalf := map[string]interface{}{
+					result.ScoreData = map[string]interface{}{
 						"id":               secondHalfData.ID,
 						"public_id":        secondHalfData.PublicID,
 						"match_id":         secondHalfData.MatchID,
@@ -92,13 +91,6 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						"goals":            secondHalfData.Goals,
 						"penalty_shootout": secondHalfData.PenaltyShootOut,
 					}
-
-					if store.scoreBroadcaster != nil {
-						err := store.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_FOOTBALL_SCORE", secondHalf)
-						if err != nil {
-							store.logger.Error("Failed to broadcast cricket event: ", err)
-						}
-					}
 				}
 			case "penalty_shootout":
 				if incidents.PenaltyShootoutScored {
@@ -107,7 +99,8 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						store.logger.Error("Failed to update penalty shootout score: ", err)
 						return err
 					}
-					penaltyShootout := map[string]interface{}{
+
+					result.ScoreData = map[string]interface{}{
 						"id":               penaltyData.ID,
 						"public_id":        penaltyData.PublicID,
 						"match_id":         penaltyData.MatchID,
@@ -117,18 +110,12 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 						"goals":            penaltyData.Goals,
 						"penalty_shootout": penaltyData.PenaltyShootOut,
 					}
-					if store.scoreBroadcaster != nil {
-						err := store.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_FOOTBALL_SCORE", penaltyShootout)
-						if err != nil {
-							store.logger.Error("Failed to broadcast cricket event: ", err)
-						}
-					}
 				}
 			default:
 				// Non-score incidents (foul, yellow_card, red_card, etc.) — no score update needed
 			}
 
-			incidentData = map[string]interface{}{
+			result.IncidentData = map[string]interface{}{
 				"id":                      incidents.ID,
 				"public_id":               incidents.PublicID,
 				"match_id":                incidents.MatchID,
@@ -158,12 +145,12 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 				currentMatch, err := q.GetMatchByPublicId(ctx, arg.MatchPublicID, 1)
 				if err == nil && currentMatch != nil {
 					if homeScore, ok := currentMatch["homeScore"].(map[string]interface{}); ok {
-						incidentData["homeScore"] = map[string]interface{}{
+						result.IncidentData["homeScore"] = map[string]interface{}{
 							"goals": homeScore["goals"],
 						}
 					}
 					if awayScore, ok := currentMatch["awayScore"].(map[string]interface{}); ok {
-						incidentData["awayScore"] = map[string]interface{}{
+						result.IncidentData["awayScore"] = map[string]interface{}{
 							"goals": awayScore["goals"],
 						}
 					}
@@ -171,7 +158,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 			}
 
 		} else {
-			incidentData = map[string]interface{}{
+			result.IncidentData = map[string]interface{}{
 				"id":                      incidents.ID,
 				"public_id":               incidents.PublicID,
 				"match_id":                incidents.MatchID,
@@ -187,7 +174,7 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 		}
 		return err
 	})
-	return incidentData, err
+	return result, err
 }
 
 func (store *SQLStore) AddFootballIncidentsSubsTx(ctx *gin.Context, matchPublicID, teamPublicID, tournamentPublicID uuid.UUID, periods, incidentType string, incidentTime int, description string, playerInPublicID, playerOutPublicID uuid.UUID) (*map[string]interface{}, error) {

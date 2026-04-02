@@ -86,7 +86,7 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 	}
 	s.logger.Debugf("Creating incident with params: %+v", arg)
 
-	incidentData, err := s.txStore.AddFootballIncidentsTx(ctx, arg, playerPublicID)
+	txResult, err := s.txStore.AddFootballIncidentsTx(ctx, arg, playerPublicID)
 	if err != nil {
 		s.logger.Error("Failed to create football incidents: ", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -104,12 +104,21 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    incidentData,
+		"data":    txResult.IncidentData,
 	})
+
+	// Broadcast after successful transaction commit
 	if s.scoreBroadcaster != nil {
-		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "ADD_FOOTBALL_INCIDENT", incidentData)
-		if err != nil {
-			s.logger.Warn("Failed to broadcast football event: ", err)
+		// Broadcast the incident event
+		if err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "ADD_FOOTBALL_INCIDENT", txResult.IncidentData); err != nil {
+			s.logger.Warn("Failed to broadcast football incident event: ", err)
+		}
+
+		// Broadcast score update if a score-changing incident occurred
+		if txResult.ScoreData != nil {
+			if err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "UPDATE_FOOTBALL_SCORE", txResult.ScoreData); err != nil {
+				s.logger.Warn("Failed to broadcast football score event: ", err)
+			}
 		}
 	}
 }
@@ -206,7 +215,7 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		"data":    incidentData,
 	})
 	if s.scoreBroadcaster != nil {
-		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "ADD_FOOTBALL_SUB_INCIDENT", *incidentData)
+		err := s.scoreBroadcaster.BroadcastFootballEvent(ctx, "ADD_FOOTBALL_INCIDENT", *incidentData)
 		if err != nil {
 			s.logger.Warn("Failed to broadcast football event: ", err)
 		}
