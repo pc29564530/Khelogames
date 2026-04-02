@@ -1004,7 +1004,7 @@ const getTrendingMatches = `
         FROM cricket_score cs
         WHERE cs.match_id = m.id AND cs.team_id = at.id AND m.status_code='in_progress'
     ) AS cricket_away_scores ON true
-    WHERE m.status_code='in_progress' OR m.status_code='not_started'
+    WHERE (m.status_code='in_progress' OR m.status_code='not_started')
     AND t.game_id = $1
     ORDER BY m.start_timestamp;
 `

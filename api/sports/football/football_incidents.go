@@ -2,11 +2,8 @@ package football
 
 import (
 	"encoding/json"
-	"fmt"
-	"khelogames/core/token"
 	db "khelogames/database"
 	errorhandler "khelogames/error_handler"
-	"khelogames/pkg"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -76,50 +73,6 @@ func (s *FootballServer) AddFootballIncidentsFunc(ctx *gin.Context) {
 			return
 		}
 	}
-
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
-	if err != nil {
-		s.logger.Error("Tournament match not found: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get match details",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
-	if err != nil {
-		s.logger.Error("Failed to get user role in tournament: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get user tournament role",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-	if !isExists {
-		s.logger.Error("User does not own this match")
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "FORBIDDEN",
-				"message": "You do not own this match",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	fmt.Println("Player PUblic ID: ", playerPublicID)
 
 	arg := db.CreateFootballIncidentsParams{
 		TournamentPublicID:    tournamentPublicID,
@@ -211,48 +164,6 @@ func (s *FootballServer) AddFootballIncidentsSubs(ctx *gin.Context) {
 		s.logger.Error("Invalid player out UUID format: ", err)
 		fieldErrors := map[string]string{"player_out_public_id": "Invalid UUID format"}
 		errorhandler.ValidationErrorResponse(ctx, fieldErrors)
-		return
-	}
-
-	authPayload := ctx.MustGet(pkg.AuthorizationPayloadKey).(*token.Payload)
-
-	match, err := s.store.GetTournamentMatchByMatchID(ctx, matchPublicID)
-	if err != nil {
-		s.logger.Error("Tournament match not found: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get match details",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-
-	isExists, err := s.store.GetTournamentUserRole(ctx, int32(match.TournamentID), authPayload.UserID)
-	if err != nil {
-		s.logger.Error("Failed to get user role in tournament: ", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "INTERNAL_ERROR",
-				"message": "Failed to get user tournament role",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
-		return
-	}
-	if !isExists {
-		s.logger.Error("User does not own this match")
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"success": false,
-			"error": gin.H{
-				"code":    "FORBIDDEN",
-				"message": "You do not own this match",
-			},
-			"request_id": ctx.GetString("request_id"),
-		})
 		return
 	}
 
@@ -380,7 +291,6 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 	// Second pass: build incidents array in descending order (newest first) with correct scores
 	var incidents []map[string]interface{}
 	for _, incident := range response {
-
 		if incident.IncidentType == "substitutions" {
 			var data map[string]interface{}
 			tt := (incident.Players).([]byte)
@@ -462,7 +372,7 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 			if err != nil {
 				s.logger.Error("unable to fetch the home score: ", err)
 			} else {
-				incidentDataMap["home_score"] = map[string]interface{}{
+				incidentDataMap["homeScore"] = map[string]interface{}{
 					"goals": homefootballScore[0],
 				}
 			}
@@ -471,7 +381,7 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 			if err != nil {
 				s.logger.Error("unable to fetch the away score: ", err)
 			} else {
-				incidentDataMap["away_score"] = map[string]interface{}{
+				incidentDataMap["awayScore"] = map[string]interface{}{
 					"goals": awayfootballScore[0],
 				}
 			}
@@ -490,7 +400,7 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 			}
 			incidents = append(incidents, incidentDataMap)
 
-		} else if incident.IncidentType == "goal" {
+		} else if incident.IncidentType == "goal" || incident.IncidentType == "penalty" {
 			var data map[string]interface{}
 			tt := (incident.Players).([]byte)
 			err := json.Unmarshal(tt, &data)
@@ -529,10 +439,10 @@ func (s *FootballServer) GetFootballIncidentsFunc(ctx *gin.Context) {
 					"country":    playerData["country"],
 					"media_url":  playerData["media_url"],
 				},
-				"home_score": map[string]interface{}{
+				"homeScore": map[string]interface{}{
 					"goals": homeGoals,
 				},
-				"away_score": map[string]interface{}{
+				"awayScore": map[string]interface{}{
 					"goals": awayGoals,
 				},
 			}

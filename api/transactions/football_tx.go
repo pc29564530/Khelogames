@@ -125,16 +125,8 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 					}
 				}
 			default:
-				store.logger.Errorf("Failed to found the incident type ")
+				// Non-score incidents (foul, yellow_card, red_card, etc.) — no score update needed
 			}
-
-			currentMatch, err := q.GetMatchByPublicId(ctx, arg.MatchPublicID, 1)
-			if err != nil {
-				store.logger.Error("Failed to get match by public id: ", err)
-			}
-
-			homeScore := currentMatch["homeScore"].(map[string]interface{})
-			awayScore := currentMatch["awayScore"].(map[string]interface{})
 
 			incidentData = map[string]interface{}{
 				"id":                      incidents.ID,
@@ -159,12 +151,23 @@ func (store *SQLStore) AddFootballIncidentsTx(ctx *gin.Context, arg database.Cre
 					"country":    playerData.Country,
 					"media_url":  playerData.MediaUrl,
 				},
-				"awayScore": map[string]interface{}{
-					"goals": awayScore["goals"],
-				},
-				"homeScore": map[string]interface{}{
-					"goals": homeScore["goals"],
-				},
+			}
+
+			// Only include scores for score-changing incidents
+			if incidents.IncidentType == "goal" || incidents.IncidentType == "penalty" || incidents.IncidentType == "penalty_shootout" {
+				currentMatch, err := q.GetMatchByPublicId(ctx, arg.MatchPublicID, 1)
+				if err == nil && currentMatch != nil {
+					if homeScore, ok := currentMatch["homeScore"].(map[string]interface{}); ok {
+						incidentData["homeScore"] = map[string]interface{}{
+							"goals": homeScore["goals"],
+						}
+					}
+					if awayScore, ok := currentMatch["awayScore"].(map[string]interface{}); ok {
+						incidentData["awayScore"] = map[string]interface{}{
+							"goals": awayScore["goals"],
+						}
+					}
+				}
 			}
 
 		} else {
